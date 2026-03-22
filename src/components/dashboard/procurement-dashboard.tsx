@@ -75,7 +75,7 @@ export function ProcurementDashboard() {
       </div>
 
       {/* ── Quick Actions ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <QuickAction label={dict.roleDashboard.newPurchase} href="/purchases?action=new" icon={Plus} color="bg-cyan-600" />
         <QuickAction label={dict.roleDashboard.receivingQc} href="/qc" icon={ClipboardCheck} color="bg-emerald-600" />
       </div>

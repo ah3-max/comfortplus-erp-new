@@ -118,20 +118,22 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-            disabled={loading || quickLoading}
-            onClick={() => doLogin('admin@comfortplus.com', 'admin1234', true)}
-          >
-            {quickLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Zap className="mr-2 h-4 w-4" />
-            )}
-            {dict.login.adminQuickLogin}
-          </Button>
+          {process.env.NODE_ENV === 'development' && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+              disabled={loading || quickLoading}
+              onClick={() => doLogin('admin@comfortplus.com', 'admin1234', true)}
+            >
+              {quickLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="mr-2 h-4 w-4" />
+              )}
+              {dict.login.adminQuickLogin}
+            </Button>
+          )}
         </form>
       </CardContent>
     </Card>

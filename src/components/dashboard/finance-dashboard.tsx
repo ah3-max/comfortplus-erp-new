@@ -57,7 +57,7 @@ export function FinanceDashboard() {
       <DashboardHeader title={dict.roleDashboard.financeWorkbench} />
 
       {/* ── AR / AP Banner ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow-lg">
           <p className="text-amber-100 text-sm font-medium">{dict.roleDashboard.accountsReceivable}</p>
           <p className="text-3xl font-bold mt-1">{fmt(receivable.total)}</p>
@@ -71,7 +71,7 @@ export function FinanceDashboard() {
       </div>
 
       {/* ── Today's Collections ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Card className="border-green-200">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">{dict.roleDashboard.todayCollection}</p>

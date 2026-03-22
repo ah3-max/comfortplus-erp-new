@@ -172,7 +172,7 @@ export default function AiSettingsPage() {
         <CardContent className="space-y-4">
           <div>
             <Label>AI 提供者</Label>
-            <div className="grid grid-cols-2 gap-2 mt-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5">
               {[
                 { value: 'anthropic', label: 'Anthropic Claude', sub: '雲端 API' },
                 { value: 'ollama', label: 'Ollama', sub: '本地 GPU' },

@@ -197,7 +197,7 @@ export default function NewPickupPage() {
       <h1 className="text-xl font-bold text-slate-900">{p.newPickup}</h1>
 
       {/* Warehouse Selection */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
           { value: 'MARKETING', label: p.warehouseMarketing, sub: p.marketingSub },
           { value: 'MAIN', label: p.warehouseMain, sub: p.mainSub },

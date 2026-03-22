@@ -1,0 +1,2810 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========== 使用者與權限 ==========
+model User {
+  id           String    @id @default(cuid())
+  employeeNo   String?   @unique  // 員工編號
+  email        String    @unique
+  name         String
+  engName      String?            // 英文名
+  password     String
+  role         Role      @default(SALES)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  title        String?            // 職稱
+  mobile       String?            // 手機
+  lineId       String?            // LINE ID
+  hireDate     DateTime?          // 到職日
+  resignDate   DateTime?          // 離職日
+  isActive     Boolean   @default(true)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  quotations        Quotation[]
+  salesOrders       SalesOrder[]
+  shipments         Shipment[]
+  purchaseOrders    PurchaseOrder[]
+  managedCustomers  Customer[]        @relation("CustomerSalesRep")
+  visitRecords      VisitRecord[]     @relation("VisitedBy")
+  callRecords       CallRecord[]      @relation("CalledBy")
+  sampleRecords     SampleRecord[]    @relation("SampleSentBy")
+  complaintRecords  ComplaintRecord[] @relation("ComplaintReportedBy")
+  supervisedComplaints ComplaintRecord[] @relation("ComplaintSupervisor")
+  complaintLogs     ComplaintLog[]    @relation("ComplaintLoggedBy")
+  transfers         StockTransfer[]   @relation("TransferRequestedBy")
+  stockCounts       StockCount[]      @relation("StockCountCreatedBy")
+  scrapsApproved    StockScrap[]      @relation("ScrapApprovedBy")
+  scrapsCreated     StockScrap[]      @relation("ScrapCreatedBy")
+  tasksAssigned     SalesTask[]       @relation("TaskAssignedTo")
+  tasksCreated      SalesTask[]       @relation("TaskCreatedBy")
+  careSchedules     CareSchedule[]    @relation("CareScheduleSupervisor")
+  serviceRequests   ServiceRequest[]  @relation("ServiceRequestAssigned")
+  uploadedMedia     VisitMedia[]      @relation("MediaUploadedBy")
+  paymentsCreated   PaymentRecord[]   @relation("PaymentCreatedBy")
+  managedDepts      Department[]      @relation("DeptManager")
+  followUpLogs         FollowUpLog[]      @relation("FollowUpLogCreatedBy")
+  opportunities        SalesOpportunity[] @relation("OpportunityOwner")
+  salesSchedules       SalesSchedule[]    @relation("ScheduleSalesRep")
+  salesSchedulesCreated SalesSchedule[]   @relation("ScheduleCreatedBy")
+  salesEventsAssigned  SalesEvent[]       @relation("EventAssignedTo")
+  salesEventsCreated   SalesEvent[]       @relation("EventCreatedBy")
+
+  // Care Incidents
+  reportedIncidents    CareIncident[]     @relation("IncidentReportedBy")
+  assignedIncidents    CareIncident[]     @relation("IncidentAssignedOwner")
+  incidentAttachments  IncidentAttachment[] @relation("IncidentAttachmentUploader")
+  incidentVisitLogs    IncidentVisitLog[] @relation("IncidentVisitLogBy")
+  incidentAudioUploads IncidentAudioRecord[] @relation("IncidentAudioUploader")
+  incidentTrainings    IncidentTrainingLog[] @relation("IncidentTrainer")
+  incidentActionItems  IncidentActionItem[] @relation("IncidentActionOwner")
+}
+
+// ========== 部門設定 ==========
+model Department {
+  id           String      @id @default(cuid())
+  code         String      @unique
+  name         String
+  parentId     String?
+  parent       Department? @relation("DeptTree", fields: [parentId], references: [id])
+  children     Department[] @relation("DeptTree")
+  managerId    String?
+  manager      User?       @relation("DeptManager", fields: [managerId], references: [id])
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  users        User[]
+}
+
+// ========== 角色權限 ==========
+model RolePermission {
+  id              String   @id @default(cuid())
+  roleName        String   // 對應 Role enum 或自定義角色名
+  module          String   // 模組代碼：customers, orders, inventory…
+  canView         Boolean  @default(false)
+  canCreate       Boolean  @default(false)
+  canEdit         Boolean  @default(false)
+  canDelete       Boolean  @default(false)
+  canApprove      Boolean  @default(false)
+  canExport       Boolean  @default(false)
+  canViewCost     Boolean  @default(false)
+  canViewMargin   Boolean  @default(false)
+  canViewFinance  Boolean  @default(false)
+  canCrossWarehouse Boolean @default(false)
+  canCrossCompany Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([roleName, module])
+}
+
+// ========== 審批流程設定 ==========
+model ApprovalFlow {
+  id            String   @id @default(cuid())
+  flowName      String
+  module        String   // 適用模組：quotations, purchases, expenses…
+  triggerCondition String? // 觸發條件描述或 JSON 規則
+  level1Role    String?  // 第一關審批角色/人
+  level2Role    String?  // 第二關
+  level3Role    String?  // 第三關
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum Role {
+  SUPER_ADMIN        // 超級管理員
+  GM                 // 總經理/高階主管
+  SALES_MANAGER      // 業務主管
+  SALES              // 業務人員
+  CARE_SUPERVISOR    // 照顧督導
+  ECOMMERCE          // 電商營運
+  CS                 // 客服人員
+  WAREHOUSE_MANAGER  // 物流倉管主管
+  WAREHOUSE          // 倉儲/物流人員
+  PROCUREMENT        // 採購人員
+  FINANCE            // 財務人員
+}
+
+// ========== 商品管理 ==========
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  name          String
+  category      String
+  series        String?           // 系列：經濟款 / 日間型 / 夜間型
+  size          String?           // 尺寸：S / M / L / XL
+  packagingType String?           // 包裝型態：單包 / 箱 / OEM專版
+  piecesPerPack Int?              // 每包片數
+  packsPerBox   Int?              // 每箱包數
+  specification String?
+  unit          String   @default("包")
+  boxQuantity   Int?              // 舊欄位保留（同 packsPerBox）
+  barcode       String?
+
+  // ── 價格（敏感程度由高到低）──────────────────────────────
+  costPrice      Decimal  @db.Decimal(10, 2)   // 成本價   [FINANCE/PROCUREMENT/GM/SUPER_ADMIN]
+  floorPrice     Decimal? @db.Decimal(10, 2)   // 成本底價 [FINANCE/PROCUREMENT/GM/SUPER_ADMIN]
+  sellingPrice   Decimal  @db.Decimal(10, 2)   // 建議售價 [全員]
+  channelPrice   Decimal? @db.Decimal(10, 2)   // 通路價   [全員]
+  wholesalePrice Decimal? @db.Decimal(10, 2)   // 批發價   [全員]
+  minSellPrice   Decimal? @db.Decimal(10, 2)   // 最低可售價 [SALES_MANAGER+]
+  oemBasePrice   Decimal? @db.Decimal(10, 2)   // OEM報價基準 [PROCUREMENT/FINANCE/GM/SUPER_ADMIN]
+
+  // ── OEM / 工廠資訊 ────────────────────────────────────
+  factorySku   String?                          // 工廠料號
+  moq          Int?                             // 最小訂購量
+  leadTimeDays Int?                             // 生產交期（天）
+
+  // ── 物流資訊 ──────────────────────────────────────────
+  weight       Decimal? @db.Decimal(8, 3)      // 重量 (kg)
+  volume       String?                          // 材積 (e.g. 30x20x15 cm)
+  storageNotes String?                          // 保存/倉儲注意事項
+
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  inventory      Inventory[]
+  quotationItems QuotationItem[]
+  orderItems     SalesOrderItem[]
+  shipmentItems  ShipmentItem[]
+  purchaseItems  PurchaseOrderItem[]
+  receiptItems   PurchaseReceiptItem[]
+  priceHistory   SupplierPriceHistory[]
+  inventoryLots      InventoryLot[]
+  transferItems      StockTransferItem[]
+  countItems         StockCountItem[]
+  scrapRecords       StockScrap[]
+  channelOrderItems  ChannelOrderItem[]
+  qualityChecks      QualityCheck[]
+  priceListItems     PriceListItem[]
+  recurringItems     RecurringOrderItem[]
+  inboundItems       InboundItem[]
+  outboundItems      OutboundItem[]
+  returnItems        ReturnOrderItem[]
+  costStructure      ProductCostStructure?
+  careIncidents      CareIncident[]
+}
+
+// ========== 客戶管理 ==========
+model Customer {
+  id            String              @id @default(cuid())
+  code          String              @unique
+  name          String
+  shortName     String?             // 客戶簡稱
+  type          CustomerType
+  subType       String?             // 客戶子類型（自由文字）
+  contactPerson String?
+  phone         String?
+  lineId        String?             // LINE 帳號
+  email         String?
+  website       String?             // 官網
+  address       String?             // 公司地址
+  deliveryAddress String?           // 配送地址
+  city          String?             // 所在縣市
+  region        SalesRegion?        // 所屬業務區域
+  country       String?  @default("TW")
+  taxId         String?             // 統一編號
+  invoiceTitle  String?             // 發票抬頭
+  invoiceAddress String?            // 發票地址
+
+  // ── 商業條件 ──────────────────────────────────────────
+  paymentTerms      String?          // 付款條件：CASH / NET30 / NET60
+  creditLimit       Decimal?         @db.Decimal(12, 2)
+  billingCycle      String?          // 對帳週期：MONTHLY / BIWEEKLY
+  collectionMethod  String?          // 收款方式：TRANSFER / CHECK / CASH
+  isMonthly         Boolean @default(false) // 是否月結
+  monthlySettleDay  Int?             // 月結日（每月幾號）
+  bankInfo          String?          // 匯款帳號資訊
+  needsPO           Boolean @default(false) // 是否需 PO
+  needsStampedQuote Boolean @default(false) // 是否需用印報價
+  needsInvoiceRequest Boolean @default(false) // 是否需請款單
+  hasContractPrice  Boolean @default(false) // 是否有合約價
+  contractStartDate DateTime?        // 合約起始日
+  contractEndDate   DateTime?        // 合約結束日
+  renewalRemindDate DateTime?        // 續約提醒日
+
+  // ── 分級 ──────────────────────────────────────────────
+  grade                    CustomerGrade?    // 客戶等級 A/B/C/D
+  customerValueGrade       String?           // 客戶價值分級
+  profitGrade              String?           // 毛利貢獻等級
+  riskLevel                String?           // 風險等級
+  paymentStability         String?           // 回款穩定度
+  cooperationStability     String?           // 合作穩定度
+
+  // ── 業務資訊 ──────────────────────────────────────────
+  devStatus                CustomerDevStatus @default(POTENTIAL)
+  source                   CustomerSource?
+  salesRepId               String?
+  salesRep                 User?             @relation("CustomerSalesRep", fields: [salesRepId], references: [id])
+  winRate                  Int?              // 成交機率 0-100%
+  estimatedMonthlyVolume   Decimal?          @db.Decimal(12, 2)  // 預估月採購量（元）
+  estimatedAnnualVolume    Decimal?          @db.Decimal(12, 2)  // 預估年採購量（元）
+  notes                    String?
+  isActive                 Boolean           @default(true)
+
+  // ── 機構結構 ─────────────────────────────────────────
+  isCorporateFoundation    Boolean           @default(false)  // 是否社團法人
+  corporateFoundationName  String?                             // 社團法人名稱
+  branchName               String?                             // 分院/館別名稱
+  orgLevel                 OrgLevel?                           // 客戶層級
+  bedCount                 Int?                                // 床數
+
+  // ── 追蹤狀態（業務自動更新）──────────────────────
+  lastContactDate          DateTime?         // 最後聯繫日（自動更新）
+  nextFollowUpDate         DateTime?         // 下次追蹤日（自動更新）
+  isFollowUp               Boolean           @default(true)  // 是否續追
+
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  quotations       Quotation[]
+  salesOrders      SalesOrder[]
+  visitRecords     VisitRecord[]
+  callRecords      CallRecord[]
+  sampleRecords    SampleRecord[]
+  complaintRecords ComplaintRecord[]
+  salesTasks       SalesTask[]
+  careSchedules    CareSchedule[]
+  serviceRequests  ServiceRequest[]
+  paymentRecords   PaymentRecord[]
+  contacts         CustomerContact[]
+  requirements     CustomerRequirement[]
+  usageProfile     CustomerUsageProfile?
+  deliveryProfile  CustomerDeliveryProfile?
+  demandForecast   CustomerDemandForecast?
+  priceLists       PriceList[]          @relation("CustomerPriceList")
+  recurringOrders  RecurringOrder[]
+  returnOrders     ReturnOrder[]
+  accountsReceivable AccountsReceivable[]
+  opportunities    SalesOpportunity[]
+  tagMaps          CustomerTagMap[]
+  followUpLogs     FollowUpLog[]
+  salesSchedules   SalesSchedule[]
+  salesEvents      SalesEvent[]
+  careIncidents    CareIncident[]
+}
+
+enum CustomerType {
+  // B2B 機構
+  NURSING_HOME       // 護理之家
+  CARE_HOME          // 養老院
+  ELDERLY_HOME       // 老福法養老院
+  SOCIAL_WELFARE     // 社團法人長照機構
+  DAY_CARE           // 日照中心
+  HOME_CARE          // 居家服務單位
+  HOSPITAL           // 醫院/診所
+  DISTRIBUTOR        // 經銷商
+  MEDICAL_CHANNEL    // 醫材通路
+  PHARMACY_CHANNEL   // 藥局通路
+  // B2C
+  B2C_OFFICIAL       // 官網會員
+  B2C_SHOPEE         // 蝦皮客戶
+  B2C_MOMO           // momo 客戶
+  B2C_OTHER          // 其他平台客戶
+  OTHER              // 其他
+}
+
+enum OrgLevel {
+  HEADQUARTERS  // 總部
+  BRANCH        // 分院/分館
+  STANDALONE    // 單一機構
+}
+
+enum ContactRole {
+  PURCHASING  // 採購
+  DIRECTOR    // 主任
+  HEAD_NURSE  // 護理長
+  ACCOUNTING  // 會計
+  ADMIN       // 行政
+  OWNER       // 老闆/負責人
+  WAREHOUSE   // 倉管
+  RECEIVING   // 收貨窗口
+  OTHER       // 其他
+}
+
+enum ContactTimeSlot {
+  MORNING_9_11       // 上午 09:00–11:00
+  NOON_11_13         // 中午 11:00–13:00
+  AFTERNOON_13_15    // 下午 13:00–15:00
+  AFTERNOON_15_17    // 下午 15:00–17:00
+  BEFORE_NIGHT       // 晚班前
+  AFTER_NIGHT        // 晚班後
+  FLEXIBLE           // 不固定
+  NEED_LINE          // 需先 LINE
+  OTHER              // 其他備註
+}
+
+enum CustomerGrade {
+  A
+  B
+  C
+  D
+}
+
+enum CustomerDevStatus {
+  POTENTIAL       // 潛在名單
+  CONTACTED       // 已接觸
+  VISITED         // 已拜訪
+  NEGOTIATING     // 報價中/洽談中
+  TRIAL           // 試用中
+  CLOSED          // 成交
+  STABLE_REPURCHASE // 穩定回購
+  DORMANT         // 休眠
+  CHURNED         // 流失
+  REJECTED        // 確定拒絕
+  OTHER           // 其他
+}
+
+enum CustomerSource {
+  COLD_CALL     // 陌生開發
+  REFERRAL      // 介紹
+  EXHIBITION    // 展會
+  ADVERTISING   // 廣告
+  WEBSITE       // 官網
+}
+
+// ── 客戶聯絡人 ──────────────────────────────────────
+model CustomerContact {
+  id                   String           @id @default(cuid())
+  customerId           String
+  customer             Customer         @relation(fields: [customerId], references: [id])
+  name                 String
+  role                 ContactRole?     // 聯絡人角色
+  title                String?          // 職稱
+  department           String?          // 部門
+  mobile               String?          // 手機
+  phone                String?          // 市話
+  phoneExt             String?          // 分機
+  email                String?
+  lineId               String?          // LINE
+  isPrimary            Boolean          @default(false) // 是否主要聯絡人
+  preferredContactTime ContactTimeSlot? // 建議聯絡時段
+  notes                String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+// ── 客戶使用輪廓 ────────────────────────────────────
+model CustomerUsageProfile {
+  id          String   @id @default(cuid())
+  customerId  String   @unique
+  customer    Customer @relation(fields: [customerId], references: [id])
+  profileDate DateTime @default(now())
+
+  // ── 床位資訊 ───────────────────────────────────────
+  totalBeds        Int?    // 總床數
+  occupiedBeds     Int?    // 目前入住床數
+  vacantBeds       Int?    // 空床數
+  residentCareNote String? // 住民失能型態備註
+
+  // ── 外籍照護 ────────────────────────────────────────
+  foreignCaregiverRatio   Float?                   // 外籍照護比例 (0-100)
+  foreignCaregiverCountry ForeignCaregiverCountry? // 外籍主要國籍
+
+  // ── 品質與品牌 ──────────────────────────────────────
+  managementQuality  ManagementQualityLevel?  // 管理品質評估
+  currentBrands      String?                  // 目前使用品牌
+  competitorBrands   String?                  // 競品品牌補充
+  brandSwitchFreq    BrandSwitchFrequency?    // 換品牌頻率
+  easySwitchBrand    Boolean?                 // 是否容易轉牌
+  procurementStyle   ProcurementDecisionStyle? // 採購決策模式
+
+  // ── 每日用量 ────────────────────────────────────────
+  dailyDiaperLargeQty Int?    // 每日大尿布使用量
+  dailyDiaperSmallQty Int?    // 每日小尿布使用量
+  dailyUnderpadsQty   Int?    // 每日看護墊使用量
+  dailyWipesQty       Int?    // 每日濕紙巾使用量
+  usesWipes           Boolean @default(false) // 是否使用濕紙巾
+
+  // ── 每月預估量 ──────────────────────────────────────
+  monthlyDiaperLargeQty Int? // 每月大尿布預估量
+  monthlyDiaperSmallQty Int? // 每月小尿布預估量
+  monthlyUnderpadsQty   Int? // 每月看護墊預估量
+  monthlyWipesQty       Int? // 每月濕紙巾預估量
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+enum SalesRegion {
+  NORTH_METRO        // 北北桃（台北市・新北市・桃園市）
+  KEELUNG_YILAN      // 基隆宜蘭
+  HSINCHU_MIAOLI     // 新竹苗栗
+  TAICHUNG_AREA      // 台中彰化南投
+  YUNLIN_CHIAYI      // 雲林嘉義
+  TAINAN_KAOHSIUNG   // 台南高屏
+  HUALIEN_TAITUNG    // 花東
+  OFFSHORE           // 離島
+}
+
+enum ForeignCaregiverCountry {
+  INDONESIA    // 印尼
+  VIETNAM      // 越南
+  PHILIPPINES  // 菲律賓
+  THAILAND     // 泰國
+  OTHER        // 其他
+  NONE         // 無
+}
+
+enum OrderFrequency {
+  WEEKLY       // 每週
+  BIWEEKLY     // 每兩週
+  MONTHLY      // 每月
+  IRREGULAR    // 不固定
+  URGENT_ONLY  // 急單型
+}
+
+enum ForecastConfidence {
+  HIGH    // 高
+  MEDIUM  // 中
+  LOW     // 低
+}
+
+// 需求預估用的商品大類（對應 Product.category 關鍵字）
+enum DemandProductCategory {
+  DIAPER_LARGE  // 大尿布 (L/XL/2XL)
+  DIAPER_SMALL  // 小尿布 (S/M)
+  UNDERPAD      // 看護墊
+  WIPES         // 濕紙巾
+  OTHER         // 其他
+}
+
+// ── 客戶需求預估 ────────────────────────────────────
+model CustomerDemandForecast {
+  id          String   @id @default(cuid())
+  customerId  String   @unique
+  customer    Customer @relation(fields: [customerId], references: [id])
+  forecastMonth DateTime @default(now())  // 預估所屬月份
+
+  // ── 手動填入（或從使用輪廓同步）──────────────────
+  dailyDiaperLargeQty Int?    // 每日大尿布
+  dailyDiaperSmallQty Int?    // 每日小尿布
+  dailyUnderpadsQty   Int?    // 每日看護墊
+  dailyWipesQty       Int?    // 每日濕紙巾
+
+  monthlyDiaperLargeQty Int?  // 每月大尿布預估
+  monthlyDiaperSmallQty Int?  // 每月小尿布預估
+  monthlyUnderpadsQty   Int?  // 每月看護墊預估
+  monthlyWipesQty       Int?  // 每月濕紙巾預估
+
+  // ── 下單節奏（手動）────────────────────────────
+  orderFrequency        OrderFrequency?     // 下單頻率
+  avgOrderQty           Int?               // 平均每次下單量（包）
+  nextExpectedOrderDate DateTime?          // 下次預估下單日
+  forecastConfidence    ForecastConfidence? // 預估可信度
+  notes                 String?
+
+  // ── 系統自動計算（從歷史訂單）────────────────────
+  avgDaysBetweenOrders  Int?      // 平均下單間隔天數
+  avgCasesPerOrder      Decimal?  @db.Decimal(10, 2) // 平均每次下單箱數
+  last3OrdersTrend      String?   // 'GROWING'/'DECLINING'/'STABLE'
+  predictedNextOrderDate DateTime? // 系統預測下次下單日
+  analyticsUpdatedAt    DateTime? // 最後一次自動分析時間
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+enum ManagementQualityLevel {
+  GOOD               // 很好
+  AVERAGE            // 普通
+  NEEDS_IMPROVEMENT  // 待加強
+  UNKNOWN            // 不明
+}
+
+enum BrandSwitchFrequency {
+  ALMOST_NEVER     // 幾乎不換
+  OCCASIONAL_TEST  // 偶爾測試
+  QUARTERLY_EVAL   // 每季評估
+  FREQUENT         // 經常更換
+  PRICE_DRIVEN     // 看價格決定
+}
+
+enum ProcurementDecisionStyle {
+  PRICE_ORIENTED          // 價格導向
+  QUALITY_ORIENTED        // 品質導向
+  STABLE_SUPPLY_ORIENTED  // 穩定供貨導向
+  MANAGEMENT_DECIDES      // 主管決定
+  FRONTLINE_DECIDES       // 第一線決定
+  MIXED                   // 混合型
+}
+
+// ── 客戶配送條件 ────────────────────────────────────
+model CustomerDeliveryProfile {
+  id          String   @id @default(cuid())
+  customerId  String   @unique
+  customer    Customer @relation(fields: [customerId], references: [id])
+
+  deliveryAddress      String?  // 收貨地址
+  unloadingLocation    String?  // 下貨地點說明
+  unloadingFloor       Int?     // 下貨樓層
+  hasElevator          Boolean? // 是否有電梯
+  needsCart            Boolean? // 是否需推車
+  hasReception         Boolean? // 是否有管理室
+  receivingHours       String?  // 收貨時段（如：週一至週五 09:00-17:00）
+  suggestedDeliveryTime String? // 建議送貨時段
+  parkingNotes         String?  // 停車注意事項
+  routeNotes           String?  // 動線說明
+  receiverName         String?  // 簽收窗口
+  receiverPhone        String?  // 簽收電話
+  deliveryNotes        String?  // 配送備註
+
+  // 照片附件 — JSON array of { category: string; url: string; label: string }
+  // categories: ENTRANCE / UNLOADING / ELEVATOR / PARKING / WAREHOUSE
+  photoUrls   Json?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── 客戶需求資料 ────────────────────────────────────
+model CustomerRequirement {
+  id               String   @id @default(cuid())
+  customerId       String   @unique
+  customer         Customer @relation(fields: [customerId], references: [id])
+  bedCount         Int?     // 使用床數
+  residentCount    Int?     // 住民數
+  currentBrand     String?  // 使用品牌
+  currentSpec      String?  // 現行規格
+  monthlyUsage     Int?     // 每月用量（箱）
+  currentUnitPrice Decimal? @db.Decimal(10, 2) // 現行單價
+  procurementMode  String?  // 採購模式
+  isTrial          Boolean  @default(false) // 是否試用
+  trialSentDate    DateTime? // 試用品寄送日
+  trialFeedback    String?  // 試用品回饋
+  decisionMaker    String?  // 決策者
+  purchaseContact  String?  // 採購窗口
+  financeContact   String?  // 財務窗口
+  receivingContact String?  // 收貨窗口
+  notes            String?
+  updatedAt        DateTime @updatedAt
+}
+
+// ── 拜訪紀錄 ──────────────────────────────────────────
+model VisitRecord {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  visitedById    String
+  visitedBy      User      @relation("VisitedBy", fields: [visitedById], references: [id])
+  visitDate      DateTime
+  visitMethod    String?   // 拜訪方式：ONSITE / PHONE / VIDEO / OTHER
+  purpose        String?   // 初訪/複訪/服務/教育訓練/簽約
+  participants   String?   // 參與人員（JSON array or text）
+  content        String?   // 訪談重點
+  customerNeeds  String?   // 客戶需求
+  competitorInfo String?   // 競品資訊
+  result         String?   // 拜訪結果
+  nextAction     String?   // 下次跟進事項
+  nextVisitDate  DateTime?
+  followUpStatus String?   // 跟進狀態：PENDING / DONE / OVERDUE
+  createdAt      DateTime  @default(now())
+
+  media          VisitMedia[]
+}
+
+// ── 電訪紀錄 ──────────────────────────────────────────
+model CallRecord {
+  id          String    @id @default(cuid())
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  calledById  String
+  calledBy    User      @relation("CalledBy", fields: [calledById], references: [id])
+  callDate    DateTime
+  duration    Int?      // 通話時長（分鐘）
+  purpose     String?
+  content     String?
+  result      String?
+
+  createdAt   DateTime  @default(now())
+}
+
+// ── 樣品寄送紀錄 ──────────────────────────────────────
+model SampleRecord {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  sentById       String
+  sentBy         User      @relation("SampleSentBy", fields: [sentById], references: [id])
+  sentDate       DateTime
+  items          String         // 樣品品項描述
+  quantity       Int?           // 數量
+  purpose        SamplePurpose? // 目的
+  trackingNo     String?        // 寄送單號
+  recipient      String?        // 收件人
+  hasFeedback    Boolean        @default(false)  // 是否已有回饋
+  followUpDate   DateTime?      // 預計追蹤日
+  followUpResult String?        // 追蹤結果
+  outcome        String?        // 最終結果
+  notes          String?
+  createdAt      DateTime       @default(now())
+}
+
+enum SamplePurpose {
+  TRIAL       // 試用
+  COMPARISON  // 比較/競品
+  EDUCATION   // 衛教/教育訓練
+  NEGOTIATION // 議價
+  OTHER       // 其他
+}
+
+// ── 客訴與售後紀錄 ────────────────────────────────────
+model ComplaintRecord {
+  id            String             @id @default(cuid())
+  customerId    String
+  customer      Customer           @relation(fields: [customerId], references: [id])
+  reportedById  String
+  reportedBy    User               @relation("ComplaintReportedBy", fields: [reportedById], references: [id])
+  complaintDate DateTime
+  type          ComplaintType      @default(COMPLAINT)
+  content       String             // 客訴/售後內容（主旨/情況描述）
+  status        ComplaintStatus    @default(OPEN)
+  severity      ComplaintSeverity  @default(MEDIUM) // 嚴重程度
+
+  // ── 指派照護督導 ──────────────────────────────────
+  assignedSupervisorId String?
+  assignedSupervisor   User?        @relation("ComplaintSupervisor", fields: [assignedSupervisorId], references: [id])
+  supervisorAppointDate DateTime?   // 督導約訪時間
+
+  // ── 第一次回應 ────────────────────────────────────
+  firstResponseAt     DateTime?    // 第一時間回應時間
+  firstResponseMethod String?      // 第一次回應方式（PHONE/ONSITE/LINE/EMAIL）
+
+  // ── 跟進計畫 ─────────────────────────────────────
+  nextFollowUpDate    DateTime?    // 下次跟進日
+  nextFollowUpMethod  String?      // 下次處理方式
+
+  // ── 結案 ────────────────────────────────────────
+  handler     String?              // 負責處理人員（文字）
+  resolution  String?              // 處理結果說明
+  resolvedAt  DateTime?            // 已解決時間
+  closedAt    DateTime?            // 正式結案時間
+
+  // ── 附件 ────────────────────────────────────────
+  photoUrls   Json?               // [{url,label,uploadedAt}]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logs        ComplaintLog[]
+}
+
+// ── 客訴處理紀錄（時間軸）────────────────────────────
+model ComplaintLog {
+  id            String          @id @default(cuid())
+  complaintId   String
+  complaint     ComplaintRecord @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  logDate       DateTime        @default(now())
+  action        ComplaintAction
+  description   String          // 處理說明
+  nextFollowUpDate   DateTime?  // 下次跟進日（更新）
+  nextFollowUpMethod String?    // 下次跟進方式
+  photoUrls     Json?           // 本次上傳的照片
+  loggedById    String
+  loggedBy      User            @relation("ComplaintLoggedBy", fields: [loggedById], references: [id])
+  createdAt     DateTime        @default(now())
+}
+
+enum ComplaintSeverity {
+  LOW       // 低
+  MEDIUM    // 中
+  HIGH      // 高
+  CRITICAL  // 緊急
+}
+
+enum ComplaintAction {
+  PHONE_CALL       // 電話聯繫
+  ONSITE_VISIT     // 現場關心
+  LINE_MSG         // LINE 聯繫
+  EMAIL            // Email 溝通
+  INTERNAL         // 內部協調
+  PRODUCT_EXCHANGE // 換貨處理
+  REFUND           // 退款/折讓
+  CLOSURE          // 結案
+}
+
+enum ComplaintType {
+  COMPLAINT      // 客訴
+  AFTER_SALES    // 售後服務
+  RETURN         // 退貨申請
+  PRODUCT_ISSUE  // 產品異常
+  OTHER          // 其他
+}
+
+enum ComplaintStatus {
+  OPEN        // 待處理
+  IN_PROGRESS // 處理中
+  RESOLVED    // 已解決
+  CLOSED      // 已關閉
+}
+
+// ========== 業務追蹤日誌（統一入口）==========
+model FollowUpLog {
+  id              String          @id @default(cuid())
+  customerId      String
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  createdById     String
+  createdBy       User            @relation("FollowUpLogCreatedBy", fields: [createdById], references: [id])
+  logDate         DateTime        @default(now())
+  logType         FollowUpLogType @default(CALL)
+  method          String?         // 聯繫方式：PHONE / LINE / EMAIL / ONSITE / VIDEO
+  contactPersonId String?         // 聯絡對象（CustomerContact.id）
+  content         String          // 追蹤內容（必填）
+  result          String?         // 結果/回應
+  customerReaction String?        // 客戶反應：POSITIVE / NEUTRAL / NEGATIVE / NO_RESPONSE
+  nextFollowUpDate DateTime?       // 下次追蹤日（填寫後自動建立 task）
+  nextAction      String?         // 下次行動說明
+  hasSample       Boolean         @default(false)  // 是否提供樣品（自動建立 SampleRecord）
+  sampleItems     String?         // 樣品品項說明
+  hasQuote        Boolean         @default(false)  // 是否提供報價（自動更新 opportunity）
+  hasOrder        Boolean         @default(false)  // 是否有訂單（自動更新 opportunity）
+  opportunityId   String?         // 關聯的銷售機會
+  opportunity     SalesOpportunity? @relation(fields: [opportunityId], references: [id])
+  taskCreated     Boolean         @default(false)  // 是否已自動建立任務
+  taskId          String?         // 自動建立的任務 ID
+  isFollowUp      Boolean         @default(true)   // 是否繼續追蹤
+  attachments     String?         // 附件 JSON array
+  createdAt       DateTime        @default(now())
+}
+
+enum FollowUpLogType {
+  CALL         // 電話
+  LINE         // LINE 訊息
+  EMAIL        // 電子郵件
+  MEETING      // 會議
+  FIRST_VISIT  // 初訪
+  SECOND_VISIT // 二訪
+  THIRD_VISIT  // 三訪
+  DELIVERY     // 送貨拜訪
+  SPRING_PARTY // 春酒活動
+  EXPO         // 擺攤活動
+  OTHER        // 其他
+}
+
+// ========== 銷售機會管理 ==========
+model SalesOpportunity {
+  id              String              @id @default(cuid())
+  customerId      String
+  customer        Customer            @relation(fields: [customerId], references: [id])
+  ownerId         String              // 負責業務
+  owner           User                @relation("OpportunityOwner", fields: [ownerId], references: [id])
+  title           String              // 機會名稱
+  stage           OpportunityStage    @default(PROSPECTING)
+  probability     Int                 @default(10)    // 成交機率 0-100
+  expectedAmount  Decimal?            @db.Decimal(12, 2)  // 預估金額
+  expectedCloseDate DateTime?         // 預計成交日
+  productInterest String?             // 有興趣的產品/規格
+  competitorInfo  String?             // 競品資訊
+  lostReason      String?             // 失單原因
+  closedAt        DateTime?           // 成交/失單日期
+  notes           String?
+  isActive        Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  followUpLogs    FollowUpLog[]
+}
+
+enum OpportunityStage {
+  PROSPECTING     // 初步接觸
+  CONTACTED       // 已聯繫
+  VISITED         // 已拜訪
+  NEEDS_ANALYSIS  // 需求分析
+  SAMPLING        // 樣品試用
+  QUOTED          // 已報價
+  NEGOTIATING     // 議價中
+  REGULAR_ORDER   // 穩定訂購
+  LOST            // 失單
+  INACTIVE        // 暫停追蹤
+}
+
+// ========== 客戶標籤 ==========
+model CustomerTag {
+  id        String           @id @default(cuid())
+  name      String           @unique  // 標籤名稱
+  color     String           @default("#6366f1")  // 顏色（hex）
+  category  String?          // 標籤分類（如：產品偏好/重要客戶/問題客戶）
+  createdAt DateTime         @default(now())
+
+  tagMaps   CustomerTagMap[]
+}
+
+model CustomerTagMap {
+  id         String      @id @default(cuid())
+  customerId String
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        CustomerTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+
+  @@unique([customerId, tagId])
+}
+
+// ========== 價格表管理 ==========
+model PriceList {
+  id              String         @id @default(cuid())
+  name            String         // 價格表名稱
+  customerType    CustomerType?  // 適用客戶類型（null = 全部）
+  customerId      String?        // 適用特定客戶（null = 全部同類型）
+  customer        Customer?      @relation("CustomerPriceList", fields: [customerId], references: [id])
+  channel         String?        // 適用通路：B2B / B2C / SHOPEE / MOMO 等
+  currency        String         @default("TWD")
+  effectiveDate   DateTime       // 生效日
+  expiryDate      DateTime?      // 結束日（null = 永久有效）
+  isActive        Boolean        @default(true)
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  items           PriceListItem[]
+}
+
+model PriceListItem {
+  id              String    @id @default(cuid())
+  priceListId     String
+  priceList       PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product   @relation(fields: [productId], references: [id])
+  standardPrice   Decimal   @db.Decimal(10, 2) // 標準售價
+  specialPrice    Decimal?  @db.Decimal(10, 2) // 特價
+  discountRate    Decimal?  @db.Decimal(5, 2)  // 折扣率 %
+  floorPrice      Decimal?  @db.Decimal(10, 2) // 最低可售價
+  requiresApproval Boolean  @default(false)    // 低於此價需主管審批
+  notes           String?
+}
+
+// ========== 報價管理 ==========
+model Quotation {
+  id               String          @id @default(cuid())
+  quotationNo      String          @unique
+  customerId       String
+  customer         Customer        @relation(fields: [customerId], references: [id])
+  customerContactId String?        // 客戶聯絡人
+  createdById      String
+  createdBy        User            @relation(fields: [createdById], references: [id])
+  status           QuotationStatus @default(DRAFT)
+  version          Int             @default(1)     // 報價版本 V1, V2…
+  validUntil       DateTime?
+  totalAmount      Decimal         @db.Decimal(12, 2)
+  currency         String          @default("TWD") // 幣別
+  taxType          String?         // 稅別：TAX_INCLUDED / TAX_EXCLUDED / ZERO_TAX
+  paymentTerm      String?         // 付款條件快照
+  deliveryTerm     String?         // 交貨條件
+  requiresApproval Boolean         @default(false) // 是否需審批
+  approvalStatus   String?         // PENDING / APPROVED / REJECTED（便利欄位，由 QuotationApproval 同步）
+  approvedById     String?
+  attachment       String?         // 附件路徑
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  items       QuotationItem[]
+  salesOrders SalesOrder[]
+  approvals   QuotationApproval[]
+}
+
+enum QuotationStatus {
+  DRAFT              // 草稿
+  PENDING_APPROVAL   // 待審批
+  APPROVED           // 已核准
+  SENT               // 已送出
+  CUSTOMER_REVIEWING // 客戶確認中
+  ACCEPTED           // 已接受
+  REJECTED           // 已拒絕
+  EXPIRED            // 已失效
+  CONVERTED          // 已轉訂單
+}
+
+model QuotationItem {
+  id               String    @id @default(cuid())
+  quotationId      String
+  quotation        Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product   @relation(fields: [productId], references: [id])
+  // 快照欄位（報價建立時凍結，不隨商品主檔異動）
+  productNameSnap  String?   // 商品名稱快照
+  skuSnap          String?   // SKU 快照
+  specSnap         String?   // 規格快照
+  unit             String?   // 單位
+  quantity         Int
+  unitPrice        Decimal   @db.Decimal(10, 2)
+  discount         Decimal   @default(0) @db.Decimal(5, 2)
+  subtotal         Decimal   @db.Decimal(12, 2)
+  costSnap         Decimal?  @db.Decimal(10, 2) // 成本快照（僅有權限者可見）
+  grossMargin      Decimal?  @db.Decimal(12, 2) // 毛利額 = subtotal - cost*qty
+  grossMarginRate  Decimal?  @db.Decimal(5, 2)  // 毛利率 %
+  notes            String?
+}
+
+// ── 報價審批紀錄 ────────────────────────────────────
+model QuotationApproval {
+  id           String   @id @default(cuid())
+  quotationId  String
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  triggerReason String?  // 觸發原因：低於最低售價 / 超出信用額度 / 手動送審
+  approverId   String   // 審批人 user id
+  status       String   // PENDING / APPROVED / REJECTED
+  comment      String?  // 審批意見
+  decidedAt    DateTime? // 審批時間
+  createdAt    DateTime @default(now())
+}
+
+// ========== 訂單管理 ==========
+model SalesOrder {
+  id                    String        @id @default(cuid())
+  orderNo               String        @unique
+  customerId            String
+  customer              Customer      @relation(fields: [customerId], references: [id])
+  customerContactId     String?       // 客戶聯絡人
+  quotationId           String?
+  quotation             Quotation?    @relation(fields: [quotationId], references: [id])
+  createdById           String
+  createdBy             User          @relation(fields: [createdById], references: [id])
+  status                OrderStatus   @default(DRAFT)
+  orderType             OrderType     @default(B2B)
+  orderSource           OrderSource   @default(SALES_INPUT)
+
+  // ── 日期 ──────────────────────────────────────────
+  orderDate             DateTime      @default(now())
+  requestedDeliveryDate DateTime?     // 客戶希望到貨日
+  promisedDeliveryDate  DateTime?     // 承諾到貨日
+
+  // ── 出貨/物流預設 ────────────────────────────────
+  warehouseId           String?       // 預設出貨倉
+  shippingMethod        String?       // 預設配送方式
+
+  // ── 商業條件 ──────────────────────────────────────
+  paymentTerm           String?       // 付款條件快照
+  billingTerm           String?       // 對帳條件
+  invoiceType           String?       // 發票類型：TRIPLICATE / DUPLICATE / RECEIPT / NONE
+  taxType               String?       // TAX_INCLUDED / TAX_EXCLUDED / ZERO_TAX
+  currency              String        @default("TWD")
+
+  // ── 金額（4 層結構）──────────────────────────────
+  subtotal              Decimal       @db.Decimal(12, 2) // 品項小計合計
+  discountAmount        Decimal       @default(0) @db.Decimal(12, 2) // 整單折扣
+  shippingFee           Decimal       @default(0) @db.Decimal(12, 2) // 運費
+  taxAmount             Decimal       @default(0) @db.Decimal(12, 2) // 稅額
+  totalAmount           Decimal       @db.Decimal(12, 2) // = subtotal - discountAmount + shippingFee + taxAmount
+  paidAmount            Decimal       @default(0) @db.Decimal(12, 2)
+  // balanceDue = totalAmount - paidAmount（前端計算）
+
+  notes                 String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  items          SalesOrderItem[]
+  shipments      Shipment[]
+  channelOrders  ChannelOrder[]
+  payments       PaymentRecord[]
+  recurringOrder RecurringOrder?
+  returnOrders   ReturnOrder[]
+  arRecords      AccountsReceivable[] @relation("OrderAR")
+  outboundRecords OutboundRecord[]    @relation("OrderOutbound")
+  careIncidents  CareIncident[]
+}
+
+enum OrderType {
+  B2B           // B2B 機構訂單
+  B2C           // B2C 零售訂單
+  RECURRING     // 定期配送訂單
+  TRIAL         // 試用品訂單
+  REPLENISH     // 補貨訂單
+  EXCHANGE      // 換貨訂單
+}
+
+enum OrderSource {
+  SALES_INPUT        // 業務輸入
+  PHONE              // 電話
+  LINE               // LINE
+  SHOPEE             // 蝦皮
+  MOMO               // momo
+  WEBSITE            // 官網
+  DISTRIBUTOR_IMPORT // 經銷商匯入
+  AUTO_RECURRING     // 系統自動(週配)
+}
+
+enum OrderStatus {
+  DRAFT             // 草稿
+  PENDING           // 待確認
+  CONFIRMED         // 已確認
+  ALLOCATING        // 待配貨
+  READY_TO_SHIP     // 待出貨
+  PARTIAL_SHIPPED   // 部分出貨
+  SHIPPED           // 已出貨
+  SIGNED            // 已簽收
+  COMPLETED         // 已完成
+  CANCELLED         // 已取消
+  RETURNING         // 退貨中
+  RETURNED          // 已退貨
+}
+
+model SalesOrderItem {
+  id              String     @id @default(cuid())
+  orderId         String
+  order           SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product    @relation(fields: [productId], references: [id])
+  // 快照
+  productNameSnap String?
+  skuSnap         String?
+  specSnap        String?
+  // 數量（成人尿布三層結構）
+  boxQty          Int?       // 箱數
+  packQty         Int?       // 包數
+  pieceQty        Int?       // 片數
+  quantity        Int        // 最終計算數量（以包為單位）
+  shippedQty      Int        @default(0)
+  giftQty         Int        @default(0) // 贈品數量
+  unitPrice       Decimal    @db.Decimal(10, 2)
+  discount        Decimal    @default(0) @db.Decimal(5, 2)
+  subtotal        Decimal    @db.Decimal(12, 2)
+  notes           String?
+}
+
+// ── 定期配送設定 ────────────────────────────────────
+model RecurringOrder {
+  id              String    @id @default(cuid())
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  salesOrderId    String?   @unique  // 範本訂單（用來複製品項）
+  salesOrder      SalesOrder? @relation(fields: [salesOrderId], references: [id])
+  frequency       String    // WEEKLY / BIWEEKLY / MONTHLY / CUSTOM
+  intervalDays    Int?      // CUSTOM 時的天數
+  startDate       DateTime
+  endDate         DateTime?
+  pauseFrom       DateTime? // 暫停起日
+  pauseTo         DateTime? // 暫停迄日
+  nextDeliveryDate DateTime? // 下次配送日（系統自動推算）
+  autoCreateOrder Boolean   @default(true) // 是否自動建單
+  isActive        Boolean   @default(true)
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  items           RecurringOrderItem[]
+}
+
+model RecurringOrderItem {
+  id              String         @id @default(cuid())
+  recurringOrderId String
+  recurringOrder  RecurringOrder @relation(fields: [recurringOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product        @relation(fields: [productId], references: [id])
+  quantity        Int            // 每次配送數量
+  notes           String?
+}
+
+// ========== 庫存管理 ==========
+model Inventory {
+  id          String            @id @default(cuid())
+  productId   String
+  product     Product           @relation(fields: [productId], references: [id])
+  warehouse   String            @default("MAIN")
+  category      InventoryCategory @default(FINISHED_GOODS)
+  quantity      Int               @default(0)    // 帳面數量
+  availableQty  Int               @default(0)    // 可用數量 = quantity - lockedQty - reservedQty
+  reservedQty   Int               @default(0)    // 訂單預留
+  lockedQty     Int               @default(0)    // 鎖定（盤點/凍結）
+  damagedQty    Int               @default(0)    // 不良品數量
+  safetyStock   Int               @default(0)
+  lastCountDate DateTime?                        // 最近盤點日
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([productId, warehouse, category])
+}
+
+model InventoryTransaction {
+  id            String             @id @default(cuid())
+  productId     String
+  warehouse     String             @default("MAIN")
+  lotId         String?
+  lot           InventoryLot?      @relation(fields: [lotId], references: [id])
+  category      InventoryCategory?
+  type          TransactionType
+  quantity      Int
+  beforeQty     Int?
+  afterQty      Int?
+  referenceType String?
+  referenceId   String?
+  notes         String?
+  createdById   String?
+  createdAt     DateTime           @default(now())
+}
+
+enum TransactionType {
+  IN
+  OUT
+  TRANSFER_IN
+  TRANSFER_OUT
+  ADJUSTMENT
+  SCRAP
+  RETURN
+}
+
+enum InventoryCategory {
+  FINISHED_GOODS    // 成品庫存
+  OEM_PENDING       // OEM 待交庫存
+  IN_TRANSIT        // 在途庫存
+  PACKAGING         // 包材庫存
+  RAW_MATERIAL      // 原物料庫存
+  DEFECTIVE         // 不良品庫存
+  GIFT_PROMO        // 贈品庫存
+}
+
+enum StockStatus {
+  AVAILABLE         // 可用
+  LOCKED            // 鎖定
+  PENDING_QC        // 待驗
+  DEFECTIVE         // 不良
+  SCRAPPED          // 報廢
+  IN_TRANSIT        // 在途
+  PENDING_TRANSFER  // 待調撥
+}
+
+enum TransferStatus {
+  PENDING           // 待出庫
+  IN_TRANSIT        // 轉運中
+  COMPLETED         // 已完成
+  CANCELLED         // 已取消
+}
+
+enum StockCountStatus {
+  DRAFT             // 草稿
+  COUNTING          // 盤點中
+  REVIEWING         // 複核中
+  COMPLETED         // 已完成
+  CANCELLED         // 已取消
+}
+
+// ========== 倉庫管理 ==========
+model Warehouse {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  name         String
+  warehouseType String? // OWNED / THIRD_PARTY / TEMP
+  address      String?
+  managerId    String?  // 負責人
+  phone        String?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  lots              InventoryLot[]
+  locations         WarehouseLocation[]
+  transfersFrom     StockTransfer[] @relation("TransferFrom")
+  transfersTo       StockTransfer[] @relation("TransferTo")
+  stockCounts       StockCount[]
+  scrapRecords      StockScrap[]
+  inboundRecords    InboundRecord[]
+  outboundRecords   OutboundRecord[]
+}
+
+// ========== 倉位管理 ==========
+model WarehouseLocation {
+  id            String    @id @default(cuid())
+  warehouseId   String
+  warehouse     Warehouse @relation(fields: [warehouseId], references: [id])
+  zone          String    // 區域 A/B/C
+  rack          String?   // 貨架
+  position      String?   // 儲位
+  locationType  String?   // PALLET / SHELF / FLOOR / COLD
+  maxCapacity   Int?      // 最大容量
+  isActive      Boolean   @default(true)
+  notes         String?
+
+  @@unique([warehouseId, zone, rack, position])
+}
+
+// ========== 入庫管理 ==========
+model InboundRecord {
+  id            String      @id @default(cuid())
+  inboundNo     String      @unique
+  warehouseId   String
+  warehouse     Warehouse   @relation(fields: [warehouseId], references: [id])
+  sourceType    String      // PURCHASE / RETURN / TRANSFER / SEA_FREIGHT
+  sourceId      String?     // 關聯單號 ID（通用）
+  seaFreightId  String?
+  seaFreight    SeaFreight? @relation(fields: [seaFreightId], references: [id])
+  returnOrderId String?
+  returnOrder   ReturnOrder? @relation(fields: [returnOrderId], references: [id])
+  arrivalDate   DateTime @default(now())
+  checkedById   String?
+  qcResult      String?  // PASS / FAIL / CONDITIONAL
+  putawayStatus String   @default("PENDING") // PENDING / IN_PROGRESS / COMPLETED
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         InboundItem[]
+}
+
+model InboundItem {
+  id          String        @id @default(cuid())
+  inboundId   String
+  inbound     InboundRecord @relation(fields: [inboundId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id])
+  batchNo     String?
+  quantity    Int
+  locationCode String?     // 上架庫位
+  notes       String?
+}
+
+// ========== 出庫管理 ==========
+model OutboundRecord {
+  id            String      @id @default(cuid())
+  outboundNo    String      @unique
+  warehouseId   String
+  warehouse     Warehouse   @relation(fields: [warehouseId], references: [id])
+  orderId       String?
+  order         SalesOrder? @relation("OrderOutbound", fields: [orderId], references: [id])
+  shipDate      DateTime?
+  pickingStatus String   @default("PENDING") // PENDING / PICKING / PICKED
+  packingStatus String   @default("PENDING") // PENDING / PACKING / PACKED
+  shippedStatus String   @default("PENDING") // PENDING / SHIPPED
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  items         OutboundItem[]
+}
+
+model OutboundItem {
+  id          String         @id @default(cuid())
+  outboundId  String
+  outbound    OutboundRecord @relation(fields: [outboundId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product        @relation(fields: [productId], references: [id])
+  batchNo     String?
+  quantity    Int
+  pickedQty   Int            @default(0)
+  locationCode String?       // 揀貨庫位
+  notes       String?
+}
+
+// ========== 批號管理 ==========
+model InventoryLot {
+  id              String            @id @default(cuid())
+  lotNo           String            @unique
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse         @relation(fields: [warehouseId], references: [id])
+  location        String?           // 庫位代碼，e.g. "A-01-03"
+  category        InventoryCategory @default(FINISHED_GOODS)
+  status          StockStatus       @default(AVAILABLE)
+  quantity        Int               @default(0)
+  lockedQty       Int               @default(0)
+  manufactureDate DateTime?
+  expiryDate      DateTime?
+  sourceFactory   String?
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+  notes           String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  transactions  InventoryTransaction[]
+  transferItems StockTransferItem[]
+  countItems    StockCountItem[]
+  scrapRecords  StockScrap[]
+}
+
+// ========== 調撥管理 ==========
+model StockTransfer {
+  id              String         @id @default(cuid())
+  transferNo      String         @unique
+  fromWarehouseId String
+  fromWarehouse   Warehouse      @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String
+  toWarehouse     Warehouse      @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  status          TransferStatus @default(PENDING)
+  requestedById   String
+  requestedBy     User           @relation("TransferRequestedBy", fields: [requestedById], references: [id])
+  transferDate    DateTime?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  items StockTransferItem[]
+}
+
+model StockTransferItem {
+  id         String        @id @default(cuid())
+  transferId String
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product       @relation(fields: [productId], references: [id])
+  lotId      String?
+  lot        InventoryLot? @relation(fields: [lotId], references: [id])
+  quantity   Int
+}
+
+// ========== 盤點管理 ==========
+model StockCount {
+  id          String           @id @default(cuid())
+  countNo     String           @unique
+  warehouseId String
+  warehouse   Warehouse        @relation(fields: [warehouseId], references: [id])
+  status      StockCountStatus @default(DRAFT)
+  countDate   DateTime?
+  notes       String?
+  createdById String
+  createdBy   User             @relation("StockCountCreatedBy", fields: [createdById], references: [id])
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  items StockCountItem[]
+}
+
+model StockCountItem {
+  id         String        @id @default(cuid())
+  countId    String
+  count      StockCount    @relation(fields: [countId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product       @relation(fields: [productId], references: [id])
+  lotId      String?
+  lot        InventoryLot? @relation(fields: [lotId], references: [id])
+  systemQty  Int
+  countedQty Int           @default(0)
+  variance   Int           @default(0)
+  notes      String?
+}
+
+// ========== 報廢管理 ==========
+model StockScrap {
+  id           String        @id @default(cuid())
+  scrapNo      String        @unique
+  productId    String
+  product      Product       @relation(fields: [productId], references: [id])
+  warehouseId  String
+  warehouse    Warehouse     @relation(fields: [warehouseId], references: [id])
+  lotId        String?
+  lot          InventoryLot? @relation(fields: [lotId], references: [id])
+  quantity     Int
+  reason       String?
+  approvedById String?
+  approvedBy   User?         @relation("ScrapApprovedBy", fields: [approvedById], references: [id])
+  scrapDate    DateTime      @default(now())
+  createdById  String?
+  createdBy    User?         @relation("ScrapCreatedBy", fields: [createdById], references: [id])
+  notes        String?
+  createdAt    DateTime      @default(now())
+}
+
+// ========== 物流商主檔 ==========
+model LogisticsProvider {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  name           String
+  regions        String?  // 配送區域 (JSON array of strings)
+  deliveryDays   Int?     // 配送時效（天）
+  paymentTerms   String?  // 付款條件
+  rateCard       String?  // 運價表（描述或 JSON）
+  contactPerson  String?
+  contactPhone   String?
+  contactEmail   String?
+  claimRules     String?  // 異常理賠規則
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  shipments Shipment[]
+}
+
+// ========== 車次管理（自有車隊） ==========
+model DeliveryTrip {
+  id          String             @id @default(cuid())
+  tripNo      String             @unique
+  vehicleId   String?
+  vehicle     Vehicle?           @relation(fields: [vehicleId], references: [id])
+  driverId    String?
+  driver      Driver?            @relation("TripDriver", fields: [driverId], references: [id])
+  routeId     String?
+  route       DeliveryRoute?     @relation(fields: [routeId], references: [id])
+  vehicleNo   String?            // 車牌（快捷欄位，無 Vehicle 時用）
+  driverName  String?            // 司機姓名（快捷欄位）
+  driverPhone String?
+  region      String?
+  tripDate    DateTime
+  status      DeliveryTripStatus @default(PLANNED)
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  shipments   Shipment[]
+}
+
+enum DeliveryTripStatus {
+  PLANNED    // 排定
+  DEPARTED   // 出發中
+  COMPLETED  // 完成
+  CANCELLED  // 取消
+}
+
+enum DeliveryMethod {
+  OWN_FLEET      // 自有車配送
+  OUTSOURCED     // 外包物流
+  EXPRESS        // 宅配
+  FREIGHT        // 貨運/大宗
+  COLD_CHAIN     // 冷鏈
+  SELF_PICKUP    // 自取
+}
+
+// ========== 車輛主檔 ==========
+model Vehicle {
+  id          String   @id @default(cuid())
+  plateNo     String   @unique  // 車牌
+  vehicleType String?  // 3.5T / 5T / 11T
+  maxWeight   Decimal? @db.Decimal(8, 2) // 載重（噸）
+  maxVolume   Decimal? @db.Decimal(8, 2) // 容積（CBM）
+  owner       String?  // 所屬單位
+  isActive    Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trips       DeliveryTrip[]
+  drivers     Driver[]
+}
+
+// ========== 司機主檔 ==========
+model Driver {
+  id          String   @id @default(cuid())
+  name        String
+  phone       String?
+  vehicleId   String?
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+  serviceArea String?  // 服務區域
+  isActive    Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trips       DeliveryTrip[] @relation("TripDriver")
+}
+
+// ========== 配送路線 ==========
+model DeliveryRoute {
+  id             String   @id @default(cuid())
+  routeName      String
+  region         String?  // 配送區域
+  estimatedStops Int?     // 預估停點數
+  estimatedKm    Decimal? @db.Decimal(8, 1) // 預估里程
+  estimatedHours Decimal? @db.Decimal(4, 1) // 預估工時
+  scheduledDate  DateTime?
+  scheduledById  String?  // 排程人
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  trips          DeliveryTrip[]
+}
+
+// ========== 簽收管理 ==========
+model ProofOfDelivery {
+  id              String    @id @default(cuid())
+  shipmentId      String
+  shipment        Shipment  @relation(fields: [shipmentId], references: [id])
+  signerName      String?   // 簽收人
+  signedAt        DateTime? // 簽收時間
+  photoUrl        String?   // 簽收照片
+  anomalyNote     String?   // 異常註記
+  isCompleted     Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+}
+
+// ========== 退貨管理 ==========
+model ReturnOrder {
+  id              String       @id @default(cuid())
+  returnNo        String       @unique
+  orderId         String
+  order           SalesOrder   @relation(fields: [orderId], references: [id])
+  customerId      String
+  customer        Customer     @relation(fields: [customerId], references: [id])
+  returnType      ReturnType   @default(RETURN)
+  reason          String?
+  status          ReturnStatus @default(PENDING)
+  requestDate     DateTime     @default(now())
+  approvedById    String?
+  approvedAt      DateTime?
+  receivedDate    DateTime?    // 退貨收到日
+  warehouseId     String?      // 退回倉庫
+  refundAmount    Decimal?     @db.Decimal(12, 2)
+  refundStatus    String?      // PENDING / REFUNDED / DEDUCTED
+  notes           String?
+  createdById     String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  items           ReturnOrderItem[]
+  inboundRecords  InboundRecord[]
+}
+
+model ReturnOrderItem {
+  id          String      @id @default(cuid())
+  returnId    String
+  returnOrder ReturnOrder @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product     @relation(fields: [productId], references: [id])
+  quantity    Int
+  reason      String?     // 品項退貨原因
+  condition   String?     // GOOD / DAMAGED / DEFECTIVE
+  notes       String?
+}
+
+enum ReturnType {
+  RETURN       // 退貨
+  EXCHANGE     // 換貨
+  PARTIAL      // 部分退貨
+}
+
+enum ReturnStatus {
+  PENDING      // 待處理
+  APPROVED     // 已核准
+  RECEIVING    // 收貨中
+  RECEIVED     // 已收貨
+  INSPECTING   // 檢驗中
+  COMPLETED    // 已完成
+  REJECTED     // 已拒絕
+  CANCELLED    // 已取消
+}
+
+enum SignStatus {
+  PENDING   // 待簽收
+  SIGNED    // 已簽收
+  REJECTED  // 拒收
+}
+
+enum AnomalyStatus {
+  NORMAL   // 正常
+  DELAY    // 延誤
+  LOST     // 遺失
+  DAMAGE   // 損毀
+  PARTIAL  // 部分短缺
+}
+
+// ========== 出貨管理 ==========
+model Shipment {
+  id                   String             @id @default(cuid())
+  shipmentNo           String             @unique
+  orderId              String
+  order                SalesOrder         @relation(fields: [orderId], references: [id])
+  createdById          String
+  createdBy            User               @relation(fields: [createdById], references: [id])
+  status               ShipmentStatus     @default(PREPARING)
+
+  // 物流資訊
+  deliveryMethod       DeliveryMethod     @default(EXPRESS)
+  logisticsProviderId  String?
+  logisticsProvider    LogisticsProvider? @relation(fields: [logisticsProviderId], references: [id])
+  tripId               String?
+  trip                 DeliveryTrip?      @relation(fields: [tripId], references: [id])
+  trackingNo           String?
+  carrier              String?            // 舊欄位保留相容性
+
+  // 出貨資訊
+  warehouse            String             @default("MAIN")   // 出貨倉庫
+  address              String?
+  palletCount          Int?               // 棧板數
+  boxCount             Int?               // 箱數
+  weight               Decimal?           @db.Decimal(10, 3) // 重量 (kg)
+  volume               String?            // 材積
+
+  // 時間
+  shipDate             DateTime?          // 出貨日
+  expectedDeliveryDate DateTime?          // 預計到貨日
+  deliveryDate         DateTime?          // 實際到貨日（已簽收）
+
+  // 簽收 / 異常
+  signStatus           SignStatus         @default(PENDING)
+  anomalyStatus        AnomalyStatus      @default(NORMAL)
+  anomalyNote          String?
+
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items              ShipmentItem[]
+  proofOfDeliveries  ProofOfDelivery[]
+}
+
+enum ShipmentStatus {
+  PREPARING
+  PACKED
+  SHIPPED
+  DELIVERED
+  FAILED
+}
+
+model ShipmentItem {
+  id         String   @id @default(cuid())
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int
+  boxCount   Int?     // 此品項箱數
+  notes      String?  // 備註（用於撿貨單說明）
+}
+
+// ========== 供應商管理 ==========
+model Supplier {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  name             String
+  contactPerson    String?
+  phone            String?
+  email            String?
+  address          String?
+  taxId            String?
+  paymentTerms     String?
+  country          String?           // 國家：TW/VN/ID/TH/CN
+  capacity         String?           // 月產能描述
+  moq              Int?              // 最小訂購量
+  avgDefectRate    Decimal? @db.Decimal(5, 2) // 平均不良率 %
+  leadTimeDays     Int?              // 交期天數
+  supplyCategories String?           // 採購分類 (JSON array of PurchaseType values)
+  supplyItems      String?           // 供應品項描述
+  notes            String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  purchaseOrders    PurchaseOrder[]
+  priceHistory      SupplierPriceHistory[]
+  productionOrders  ProductionOrder[]  @relation("FactoryProduction")
+  paymentRecords    PaymentRecord[]
+  qualityChecks     QualityCheck[]    @relation("QcSupplier")
+  packagingMaterials PackagingMaterial[] @relation("MaterialSupplier")
+  accountsPayable   AccountsPayable[] @relation("SupplierAP")
+}
+
+// 歷史採購價格
+model SupplierPriceHistory {
+  id            String    @id @default(cuid())
+  supplierId    String
+  supplier      Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?  @relation(fields: [productId], references: [id])
+  itemName      String    // 品項名稱
+  unitCost      Decimal   @db.Decimal(10, 2)
+  currency      String    @default("TWD")
+  effectiveDate DateTime
+  notes         String?
+  createdAt     DateTime  @default(now())
+}
+
+// ========== 採購管理 ==========
+model PurchaseOrder {
+  id           String         @id @default(cuid())
+  poNo         String         @unique
+  supplierId   String
+  supplier     Supplier       @relation(fields: [supplierId], references: [id])
+  createdById  String
+  createdBy    User           @relation(fields: [createdById], references: [id])
+  applicantId  String?        // 申請人（提出需求的業務/倉管）
+  purchaserId  String?        // 採購經辦人
+  status       PurchaseStatus @default(DRAFT)
+  orderType    PurchaseType   @default(FINISHED_GOODS)
+
+  // ── 基本資訊 ──────────────────────────────────────────
+  purchaseDate         DateTime  @default(now()) // 採購日期
+  expectedDate         DateTime?                 // 預計到貨日
+  deliveryTerm         String?                   // 交貨條件：EXW / FOB / CIF / DAP
+  paymentTerm          String?                   // 付款條件：T/T / L/C / 月結
+  currency             String    @default("TWD")
+  exchangeRate         Decimal?  @db.Decimal(8, 4) // 匯率（外幣→TWD）
+  warehouse            String?                   // 收貨倉庫
+  projectNo            String?                   // 專案號
+  specVersion          String?                   // 規格版本
+  inspectionCriteria   String?                   // 驗收標準
+
+  // ── 金額（4 層）──────────────────────────────────────
+  subtotal             Decimal   @db.Decimal(12, 2) // 品項小計
+  taxRate              Decimal?  @db.Decimal(5, 2)  // 稅率 %
+  taxAmount            Decimal?  @db.Decimal(12, 2) // 稅額
+  freightCost          Decimal   @default(0) @db.Decimal(12, 2) // 運費
+  otherCost            Decimal   @default(0) @db.Decimal(12, 2) // 其他費用
+  totalAmount          Decimal   @db.Decimal(12, 2) // = subtotal + taxAmount + freightCost + otherCost
+  paidAmount           Decimal   @default(0) @db.Decimal(12, 2)
+  finalSettlement      Decimal?  @db.Decimal(12, 2) // 最終結算金額
+  notes                String?
+
+  // ── OEM / 工廠延伸欄位 ────────────────────────────────
+  oemProjectNo              String?
+  factory                   String?           // 對應工廠名稱（文字，supplierId 為主 FK）
+  sampleVersion             String?
+  packagingVersion          String?
+  productionBatch           String?
+  inspectionRequirements    String?
+  shippingLabelRequirements String?
+  customNotes               String?
+
+  // ── 生產時程（預計 + 實際）────────────────────────────
+  plannedStartDate          DateTime?         // 預計開工日
+  plannedEndDate            DateTime?         // 預計完工日
+  actualStartDate           DateTime?         // 實際開工日
+  actualEndDate             DateTime?         // 實際完工日
+  packagingReadyDate        DateTime?         // 包材到位日
+  rawMaterialReadyDate      DateTime?         // 原料到位日
+  productionConfirmedDate   DateTime?         // 生產排程確認日
+  factoryShipDate           DateTime?         // 出廠日
+  inspectionDate            DateTime?         // 驗貨日
+  supplementDate            DateTime?         // 補料日
+
+  // ── 品質/成本 ─────────────────────────────────────────
+  defectRate                Decimal? @db.Decimal(5, 2)
+  defectResponsibility      String?
+  lossRate                  Decimal? @db.Decimal(5, 2)
+  delayReason               String?           // 延誤原因
+  finalUnitCost             Decimal? @db.Decimal(10, 2) // 最終結算單價
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items            PurchaseOrderItem[]
+  receipts         PurchaseReceipt[]
+  inventoryLots    InventoryLot[]
+  productionOrders ProductionOrder[]
+  seaFreights      SeaFreight[]
+  payments         PaymentRecord[]
+  qualityChecks    QualityCheck[]
+  apRecords        AccountsPayable[] @relation("PurchaseAP")
+}
+
+enum PurchaseStatus {
+  DRAFT                // 草稿
+  PENDING_APPROVAL     // 待審批
+  SOURCING             // 詢價比價
+  ORDERED              // 已下單
+  FACTORY_CONFIRMED    // 工廠確認
+  IN_PRODUCTION        // 生產中
+  PARTIAL              // 部分到貨
+  RECEIVED             // 已到貨
+  INSPECTED            // 已驗收
+  WAREHOUSED           // 已入庫
+  CLOSED               // 已結案
+  CANCELLED            // 已取消
+}
+
+enum PurchaseType {
+  FINISHED_GOODS      // 成品/OEM 採購
+  OEM                 // OEM 代工採購
+  PACKAGING           // 包材採購
+  RAW_MATERIAL        // 原物料採購
+  AUXILIARY           // 輔料採購
+  SPARE_PARTS         // 備品採購
+  SAMPLE              // 樣品採購
+  GIFT_PROMO          // 贈品/活動物料
+  LOGISTICS_SUPPLIES  // 物流耗材
+}
+
+model PurchaseOrderItem {
+  id              String         @id @default(cuid())
+  orderId         String
+  order           PurchaseOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemType        String         @default("PRODUCT") // PRODUCT / MATERIAL
+  productId       String?
+  product         Product?       @relation(fields: [productId], references: [id])
+  materialId      String?        // 關聯包材
+  material        PackagingMaterial? @relation(fields: [materialId], references: [id])
+  // 快照
+  skuSnap         String?        // SKU 或料號快照
+  nameSnap        String?        // 品名快照
+  specSnap        String?        // 規格版本快照
+  unit            String?        // 單位
+  quantity        Int
+  receivedQty     Int            @default(0)
+  unitCost        Decimal        @db.Decimal(10, 2)
+  currency        String?        // 品項幣別（可不同於主單）
+  subtotal        Decimal        @db.Decimal(12, 2)
+  taxType         String?        // 品項稅別
+  notes           String?
+}
+
+model PurchaseReceipt {
+  id          String                @id @default(cuid())
+  receiptNo   String                @unique
+  orderId     String
+  order       PurchaseOrder         @relation(fields: [orderId], references: [id])
+  createdById String
+  receiptDate DateTime              @default(now())
+  notes       String?
+  createdAt   DateTime              @default(now())
+
+  items PurchaseReceiptItem[]
+}
+
+model PurchaseReceiptItem {
+  id        String          @id @default(cuid())
+  receiptId String
+  receipt   PurchaseReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product         @relation(fields: [productId], references: [id])
+  quantity  Int
+}
+
+// ========== 系統設定 ==========
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ========== 業務待辦事項 ==========
+model SalesTask {
+  id           String        @id @default(cuid())
+  title        String
+  description  String?
+  taskType     TaskType      @default(OTHER)
+  priority     TaskPriority  @default(MEDIUM)
+  status       TaskStatus    @default(PENDING)
+  dueDate      DateTime?
+  completedAt  DateTime?
+  customerId   String?
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  assignedToId String
+  assignedTo   User          @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  createdById  String
+  createdBy    User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+enum TaskType {
+  VISIT        // 拜訪
+  CALL         // 電訪
+  FOLLOW_UP    // 跟進
+  PROPOSAL     // 提案
+  DEMO         // 產品示範
+  ADMIN        // 行政作業
+  OTHER        // 其他
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  PENDING      // 待辦
+  IN_PROGRESS  // 進行中
+  DONE         // 已完成
+  CANCELLED    // 已取消
+}
+
+// ========== 業務行程/拜訪排程（Module 5）==========
+model SalesSchedule {
+  id             String       @id @default(cuid())
+  customerId     String
+  customer       Customer     @relation(fields: [customerId], references: [id])
+  salesRepId     String
+  salesRep       User         @relation("ScheduleSalesRep", fields: [salesRepId], references: [id])
+  scheduleDate   DateTime
+  startTime      DateTime?    // 開始時間
+  endTime        DateTime?    // 結束時間
+  location       String?      // 地點
+  scheduleType   ScheduleType @default(OTHER)
+  preReminder    String?      // 行前提醒/事前準備
+  postResult     String?      // 行後結果
+  isCompleted    Boolean      @default(false)
+  notes          String?
+  createdById    String
+  createdBy      User         @relation("ScheduleCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+enum ScheduleType {
+  FIRST_VISIT     // 初訪
+  SECOND_VISIT    // 二訪
+  THIRD_VISIT     // 三訪
+  PAYMENT_COLLECT // 收款
+  DELIVERY        // 送貨
+  EXPO            // 擺攤
+  SPRING_PARTY    // 春酒
+  RECONCILE       // 對帳
+  OTHER           // 其他
+}
+
+// ========== 訂單/配送/收款事件（Module 6）==========
+model SalesEvent {
+  id           String         @id @default(cuid())
+  eventType    SalesEventType @default(OTHER)
+  eventDate    DateTime
+  customerId   String
+  customer     Customer       @relation(fields: [customerId], references: [id])
+  items        String?        // 品項描述
+  quantity     Int?           // 數量
+  amount       Decimal?       @db.Decimal(12, 2)  // 金額
+  assignedToId String
+  assignedTo   User           @relation("EventAssignedTo", fields: [assignedToId], references: [id])
+  isCompleted  Boolean        @default(false)
+  notes        String?
+  createdById  String
+  createdBy    User           @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+enum SalesEventType {
+  ORDER           // 下單
+  DELIVERY        // 配送
+  PAYMENT         // 收款
+  RECONCILE       // 對帳
+  INVOICE_RECEIPT // 收票
+  OTHER           // 其他
+}
+
+// ========== 照顧督導模組 ==========
+model CareSchedule {
+  id            String            @id @default(cuid())
+  scheduleNo    String            @unique
+  supervisorId  String
+  supervisor    User              @relation("CareScheduleSupervisor", fields: [supervisorId], references: [id])
+  customerId    String
+  customer      Customer          @relation(fields: [customerId], references: [id])
+  scheduleDate  DateTime
+  visitType     CareVisitType     @default(ROUTINE_VISIT)
+  status        CareScheduleStatus @default(SCHEDULED)
+  purpose       String?           // 拜訪目的
+  content       String?           // 服務內容
+  result        String?           // 服務結果
+  nextVisitDate DateTime?
+  reminderSent  Boolean           @default(false)
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  serviceRequests ServiceRequest[]
+  media           VisitMedia[]
+}
+
+enum CareVisitType {
+  ROUTINE_VISIT    // 定期巡訪
+  TRAINING         // 教育訓練
+  ONBOARDING       // 新客戶上線
+  COMPLAINT_FOLLOW // 客訴跟進
+  PRODUCT_DEMO     // 產品示範
+  OTHER            // 其他
+}
+
+enum CareScheduleStatus {
+  SCHEDULED    // 已排定
+  IN_PROGRESS  // 進行中
+  COMPLETED    // 已完成
+  CANCELLED    // 已取消
+}
+
+model ServiceRequest {
+  id             String               @id @default(cuid())
+  customerId     String
+  customer       Customer             @relation(fields: [customerId], references: [id])
+  requestType    ServiceRequestType   @default(OTHER)
+  urgency        ServiceUrgency       @default(MEDIUM)
+  status         ServiceRequestStatus @default(OPEN)
+  description    String
+  resolution     String?
+  assignedToId   String?
+  assignedTo     User?                @relation("ServiceRequestAssigned", fields: [assignedToId], references: [id])
+  careScheduleId String?
+  careSchedule   CareSchedule?        @relation(fields: [careScheduleId], references: [id])
+  resolvedAt     DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+}
+
+enum ServiceRequestType {
+  SKIN_ISSUE      // 皮膚問題/紅屁股
+  PRODUCT_CHANGE  // 產品更換需求
+  TRAINING        // 教育訓練需求
+  COMPLAINT       // 客訴
+  SUPPLY_ISSUE    // 供應問題
+  NEW_ONBOARD     // 新客戶上線
+  OTHER           // 其他
+}
+
+enum ServiceUrgency {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ServiceRequestStatus {
+  OPEN         // 待處理
+  ASSIGNED     // 已指派
+  IN_PROGRESS  // 處理中
+  RESOLVED     // 已解決
+  CLOSED       // 已關閉
+}
+
+// ========== QC 品質檢驗 ==========
+model QualityCheck {
+  id                String           @id @default(cuid())
+  qcNo              String           @unique
+  inspectionType    QcInspectionType
+  qcStatus          QcStatus         @default(PENDING)
+  result            QcResult?        // 最終判定
+
+  // 關聯
+  productionOrderId String?
+  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id])
+  purchaseOrderId   String?
+  purchaseOrder     PurchaseOrder?   @relation(fields: [purchaseOrderId], references: [id])
+  supplierId        String?
+  supplier          Supplier?        @relation("QcSupplier", fields: [supplierId], references: [id])
+  productId         String?
+  product           Product?         @relation(fields: [productId], references: [id])
+
+  // 檢驗資訊
+  batchNo           String?
+  inspectionDate    DateTime?
+  inspectedById     String?
+  sampleSize        Int?             // 抽樣數
+  passedQty         Int?
+  failedQty         Int?
+  passRate          Decimal?         @db.Decimal(5, 2)
+  defectRate        Decimal?         @db.Decimal(5, 2)
+  resultSummary     String?          // 結果摘要
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  checkItems        QcCheckItem[]
+}
+
+enum QcInspectionType {
+  RAW_MATERIAL       // 原物料 QC
+  PACKAGING          // 包材 QC
+  IN_PRODUCTION      // 生產中 QC
+  FINISHED_PRODUCT   // 成品 QC
+  PRE_SHIPMENT       // 出貨前 QC
+  INCOMING           // 到貨驗收 QC
+  COMPLAINT_TRACE    // 客訴反查 QC
+}
+
+enum QcStatus {
+  PENDING            // 待檢驗
+  IN_PROGRESS        // 檢驗中
+  COMPLETED          // 已完成
+  ON_HOLD            // 暫停
+}
+
+enum QcResult {
+  ACCEPTED           // 允收
+  CONDITIONAL_ACCEPT // 條件允收
+  REWORK             // 重工
+  RETURN_TO_SUPPLIER // 退貨
+  SUPPLEMENT         // 補貨
+  DEDUCTION          // 扣款
+  ANOMALY_CLOSED     // 異常結案
+}
+
+// ── QC 檢驗明細 ────────────────────────────────────
+model QcCheckItem {
+  id              String       @id @default(cuid())
+  qcId            String
+  qc              QualityCheck @relation(fields: [qcId], references: [id], onDelete: Cascade)
+  itemName        String       // 檢驗項目名稱（吸收量/回滲量/腰貼黏性…）
+  standardValue   String?      // 標準值（e.g. ">300ml", "≤5ml"）
+  actualValue     String?      // 實測值
+  isQualified     Boolean?     // 合格與否
+  defectType      String?      // 缺陷類型
+  defectQty       Int?         // 缺陷數量
+  judgment        String?      // 判定（PASS/FAIL/WARNING）
+  notes           String?
+}
+
+// ========== 包材追蹤 ==========
+model PackagingMaterial {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  name            String
+  materialType    String    // WAISTBAND(腰貼) / BAG(袋) / BOX(箱) / LABEL(標籤) / OTHER
+  supplierId      String?
+  supplier        Supplier? @relation("MaterialSupplier", fields: [supplierId], references: [id])
+  stockQty        Int       @default(0)       // 庫存數量
+  inTransitQty    Int       @default(0)       // 在途數量
+  sentToFactoryQty Int      @default(0)       // 已送工廠數量
+  wastageRate     Decimal?  @db.Decimal(5, 2) // 損耗率 %
+  unit            String    @default("個")
+  safetyStock     Int       @default(0)
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  purchaseItems      PurchaseOrderItem[]
+}
+
+// ========== 拜訪媒體（照片/錄音/文件）==========
+model VisitMedia {
+  id             String        @id @default(cuid())
+  visitRecordId  String?
+  visitRecord    VisitRecord?  @relation(fields: [visitRecordId], references: [id])
+  careScheduleId String?
+  careSchedule   CareSchedule? @relation(fields: [careScheduleId], references: [id])
+  mediaType      MediaType
+  fileName       String
+  fileUrl        String        // 儲存路徑 (local: /uploads/... 或 S3 URL)
+  fileSize       Int?          // bytes
+  mimeType       String?
+  description    String?
+  uploadedById   String
+  uploadedBy     User          @relation("MediaUploadedBy", fields: [uploadedById], references: [id])
+  createdAt      DateTime      @default(now())
+}
+
+enum MediaType {
+  PHOTO
+  AUDIO
+  VIDEO
+  DOCUMENT
+}
+
+// ========== OEM 生產追蹤 ==========
+model ProductionOrder {
+  id               String           @id @default(cuid())
+  productionNo     String           @unique
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id])
+  factoryId        String
+  factory          Supplier         @relation("FactoryProduction", fields: [factoryId], references: [id])
+  status           ProductionStatus @default(PENDING)
+
+  // 數量
+  orderQty         Int
+  producedQty      Int?
+  passedQty        Int?
+  defectQty        Int?
+  defectRate       Decimal?         @db.Decimal(5, 2)
+
+  // 里程碑
+  sampleSubmitDate    DateTime?     // 打樣送出
+  sampleApproveDate   DateTime?     // 打樣確認
+  productionStartDate DateTime?     // 開始生產
+  productionEndDate   DateTime?     // 生產完成
+  inspectionDate      DateTime?     // 驗貨日
+  shipmentDate        DateTime?     // 出廠日
+
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  seaFreights      SeaFreight[]
+  qualityChecks    QualityCheck[]
+}
+
+enum ProductionStatus {
+  PENDING            // 待排產
+  SAMPLE_SUBMITTED   // 打樣中
+  SAMPLE_APPROVED    // 樣品確認
+  IN_PRODUCTION      // 生產中
+  QC_INSPECTION      // 驗貨中
+  READY_TO_SHIP      // 待出廠
+  SHIPPED            // 已出廠
+  COMPLETED          // 已完成
+  CANCELLED          // 已取消
+}
+
+// ========== 海運追蹤 ==========
+model SeaFreight {
+  id                  String         @id @default(cuid())
+  freightNo           String         @unique
+  status              FreightStatus  @default(PENDING)
+  customsStatus       CustomsStatus  @default(NOT_STARTED)
+
+  // ── 關聯 ──────────────────────────────────────────
+  productionOrderId   String?
+  productionOrder     ProductionOrder? @relation(fields: [productionOrderId], references: [id])
+  purchaseOrderId     String?
+  purchaseOrder       PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  // ── 基本資訊 ──────────────────────────────────────
+  shippingMode        String?        // SEA / AIR / LAND / MULTIMODAL
+  incoterm            String?        // EXW / FOB / CIF / DAP / DDP
+  forwarder           String?        // 貨代公司
+  customsBroker       String?        // 報關行
+  containerType       String?        // 20GP / 40GP / 40HQ / LCL
+  containerNo         String?        // 貨櫃號
+  sealNo              String?        // 封條號
+  bookingNo           String?        // 訂艙號
+  blNo                String?        // 提單號
+
+  // ── 船務資訊 ──────────────────────────────────────
+  vesselName          String?        // 船名
+  voyageNo            String?        // 航次
+  shippingLine        String?        // 航運公司
+  portOfLoading       String?        // 起運港
+  portOfDischarge     String?        // 目的港
+  transshipPort       String?        // 轉運港
+  trackingUrl         String?        // 即時追蹤 URL
+  delayReason         String?        // 船期異常原因
+
+  // ── 時間預計 / 實際 ──────────────────────────────
+  etd                 DateTime?      // 預計開船
+  eta                 DateTime?      // 預計到港
+  actualDeparture     DateTime?      // 實際開船 (ATD)
+  actualArrival       DateTime?      // 實際到港 (ATA)
+
+  // ── 物流里程碑 ────────────────────────────────────
+  factoryExitDate     DateTime?      // 工廠出廠日
+  consolidationDate   DateTime?      // 集貨日
+  loadingDate         DateTime?      // 裝櫃日
+  customsDeclareDate  DateTime?      // 報關申報日
+  customsReleasedDate DateTime?      // 放行日
+  customsCompletedDate DateTime?     // 清關完成日
+  devanningDate       DateTime?      // 拆櫃日
+  warehouseInDate     DateTime?      // 入倉日
+
+  // ── 報關文件 ──────────────────────────────────────
+  customsDeclarationNo String?       // 報關單號
+  invoiceNo           String?        // 商業發票號碼
+  packingListNo       String?        // 裝箱單號
+  certificateOfOrigin String?        // 原產地證明
+  insuranceInfo       String?        // 保險資料
+  blAttachment        String?        // 提單附件路徑
+  customsDocAttachment String?       // 清關文件附件路徑
+
+  // ── 貨物資訊 ──────────────────────────────────────
+  palletCount         Int?
+  boxCount            Int?
+  weight              Decimal?       @db.Decimal(10, 3)
+  volume              String?
+
+  // ── 費用明細 ──────────────────────────────────────
+  oceanFreight        Decimal?       @db.Decimal(12, 2) // 海運費
+  customsFee          Decimal?       @db.Decimal(12, 2) // 報關費
+  documentFee         Decimal?       @db.Decimal(12, 2) // 文件費
+  portCharge          Decimal?       @db.Decimal(12, 2) // 港雜費
+  truckingFee         Decimal?       @db.Decimal(12, 2) // 拖車費
+  insuranceFee        Decimal?       @db.Decimal(12, 2) // 保險費
+  storageFee          Decimal?       @db.Decimal(12, 2) // 倉租
+  otherFee            Decimal?       @db.Decimal(12, 2) // 其他費用
+  totalCostTWD        Decimal?       @db.Decimal(12, 2) // 台幣換算總額
+
+  notes               String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  inboundRecords      InboundRecord[]
+}
+
+enum FreightStatus {
+  PENDING         // 待處理
+  BOOKED          // 已訂艙
+  FACTORY_EXIT    // 工廠出廠
+  CONSOLIDATED    // 已集貨
+  LOADED          // 已裝櫃
+  CUSTOMS_DECLARE // 報關中
+  CUSTOMS_CLEARED // 已放行
+  IN_TRANSIT      // 海運中
+  ARRIVED         // 已到港
+  CUSTOMS_DEST    // 目的港清關中
+  DEVANNING       // 拆櫃中
+  DELIVERING      // 內陸配送中
+  RECEIVED        // 已到倉
+  CANCELLED       // 取消
+}
+
+enum CustomsStatus {
+  NOT_STARTED    // 未開始
+  SUBMITTED      // 已報關
+  INSPECTING     // 查驗中
+  CLEARED        // 已放行
+  HELD           // 扣留中
+}
+
+// ========== 線上通路管理 ==========
+model SalesChannel {
+  id              String          @id @default(cuid())
+  code            String          @unique
+  name            String
+  platform        ChannelPlatform
+  shopUrl         String?
+  commissionRate    Decimal?        @db.Decimal(5, 2)   // 平台抽成 %
+  integrationMethod String?        // API / CSV_IMPORT / MANUAL
+  contactPerson     String?
+  contactPhone      String?
+  notes             String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  channelOrders   ChannelOrder[]
+}
+
+enum ChannelPlatform {
+  SHOPEE         // 蝦皮
+  MOMO           // momo
+  PCHOME         // PChome
+  YAHOO          // Yahoo
+  RAKUTEN        // 樂天
+  LINE_SHOP      // LINE 購物
+  OFFICIAL       // 官網
+  OTHER          // 其他
+}
+
+model ChannelOrder {
+  id              String              @id @default(cuid())
+  channelId       String
+  channel         SalesChannel        @relation(fields: [channelId], references: [id])
+  channelOrderNo  String              // 通路平台訂單號
+  salesOrderId    String?             // 關聯內部訂單
+  salesOrder      SalesOrder?         @relation(fields: [salesOrderId], references: [id])
+
+  buyerName         String?
+  buyerPhone        String?
+  buyerAddress      String?
+  recipientName     String?            // 收件人（可與買家不同）
+  recipientPhone    String?
+  recipientAddress  String?
+
+  orderAmount       Decimal            @db.Decimal(12, 2)
+  platformFee       Decimal?           @db.Decimal(12, 2)
+  shippingFee       Decimal?           @db.Decimal(12, 2)
+  netAmount         Decimal?           @db.Decimal(12, 2) // 實收金額
+
+  status            ChannelOrderStatus @default(PENDING)
+  paymentStatus     String?            // PENDING / PAID / REFUNDED
+  deliveryStatus    String?            // PENDING / SHIPPED / DELIVERED
+  remittanceStatus  String?            // PENDING / REMITTED / CONFIRMED（平台匯入狀態）
+  orderedAt         DateTime
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  items           ChannelOrderItem[]
+}
+
+enum ChannelOrderStatus {
+  PENDING      // 待處理
+  CONFIRMED    // 已確認
+  SHIPPED      // 已出貨
+  DELIVERED    // 已送達
+  COMPLETED    // 已完成
+  CANCELLED    // 已取消
+  RETURNED     // 已退貨
+}
+
+model ChannelOrderItem {
+  id              String       @id @default(cuid())
+  channelOrderId  String
+  channelOrder    ChannelOrder @relation(fields: [channelOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id])
+  quantity        Int
+  unitPrice       Decimal      @db.Decimal(10, 2)
+  subtotal        Decimal      @db.Decimal(12, 2)
+}
+
+// ========== 收付款管理 ==========
+model PaymentRecord {
+  id              String            @id @default(cuid())
+  paymentNo       String            @unique
+  direction       PaymentDirection
+  paymentType     PaymentType
+
+  salesOrderId    String?
+  salesOrder      SalesOrder?       @relation(fields: [salesOrderId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+  customerId      String?
+  customer        Customer?         @relation(fields: [customerId], references: [id])
+  supplierId      String?
+  supplier        Supplier?         @relation(fields: [supplierId], references: [id])
+
+  amount          Decimal           @db.Decimal(12, 2)
+  paymentDate     DateTime
+  paymentMethod   String?           // 匯款/支票/現金/月結
+  bankAccount     String?
+  referenceNo     String?           // 匯款單號/支票號碼
+  invoiceNo       String?           // 發票號碼
+
+  notes           String?
+  createdById     String
+  createdBy       User              @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+enum PaymentDirection {
+  INCOMING       // 收款（客戶 → 我方）
+  OUTGOING       // 付款（我方 → 供應商）
+}
+
+enum PaymentType {
+  DEPOSIT        // 訂金
+  PROGRESS       // 期款
+  FINAL          // 尾款
+  FULL           // 全額
+  REFUND         // 退款
+  ADJUSTMENT     // 調整
+}
+
+// ========== 應收帳款 AR ==========
+model AccountsReceivable {
+  id           String   @id @default(cuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id])
+  orderId      String?
+  order        SalesOrder? @relation("OrderAR", fields: [orderId], references: [id])
+  invoiceNo    String?  // 發票號碼
+  invoiceDate  DateTime?
+  dueDate      DateTime? // 到期日
+  amount       Decimal  @db.Decimal(12, 2) // 應收金額
+  paidAmount   Decimal  @default(0) @db.Decimal(12, 2)
+  // balance = amount - paidAmount（前端計算）
+  agingDays    Int?     // 帳齡天數（可由 cron 更新或前端計算）
+  status       ArStatus @default(NOT_DUE)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  receipts     ReceiptRecord[]
+}
+
+enum ArStatus {
+  NOT_DUE       // 未到期
+  DUE           // 已到期
+  PARTIAL_PAID  // 部分收款
+  PAID          // 已收清
+  BAD_DEBT      // 呆帳風險
+}
+
+// ── 收款紀錄（沖銷 AR）────────────────────────────────
+model ReceiptRecord {
+  id            String             @id @default(cuid())
+  arId          String
+  ar            AccountsReceivable @relation(fields: [arId], references: [id])
+  customerId    String
+  receiptDate   DateTime
+  receiptMethod String?  // TRANSFER / CHECK / CASH / OFFSET
+  amount        Decimal  @db.Decimal(12, 2)
+  bankLast5     String?  // 匯款帳號末五碼
+  reconcileStatus String @default("PENDING") // PENDING / MATCHED / MISMATCH
+  notes         String?
+  createdById   String
+  createdAt     DateTime @default(now())
+}
+
+// ========== 應付帳款 AP ==========
+model AccountsPayable {
+  id             String   @id @default(cuid())
+  supplierId     String
+  supplier       Supplier @relation("SupplierAP", fields: [supplierId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder  PurchaseOrder? @relation("PurchaseAP", fields: [purchaseOrderId], references: [id])
+  invoiceNo      String?
+  invoiceDate    DateTime?
+  dueDate        DateTime?
+  amount         Decimal  @db.Decimal(12, 2)
+  paidAmount     Decimal  @default(0) @db.Decimal(12, 2)
+  status         ApStatus @default(NOT_DUE)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  disbursements  DisbursementRecord[]
+}
+
+enum ApStatus {
+  NOT_DUE       // 未到期
+  DUE           // 已到期
+  PARTIAL_PAID  // 部分付款
+  PAID          // 已付清
+}
+
+// ── 付款紀錄（沖銷 AP）────────────────────────────────
+model DisbursementRecord {
+  id            String           @id @default(cuid())
+  apId          String
+  ap            AccountsPayable  @relation(fields: [apId], references: [id])
+  payee         String?          // 收款人
+  paymentDate   DateTime
+  paymentMethod String?          // T/T / CHECK / CASH
+  currency      String           @default("TWD")
+  exchangeRate  Decimal?         @db.Decimal(8, 4)
+  amount        Decimal          @db.Decimal(12, 2)
+  bankInfo      String?
+  notes         String?
+  createdById   String
+  createdAt     DateTime         @default(now())
+}
+
+// ========== 商品成本結構 ==========
+model ProductCostStructure {
+  id                String   @id @default(cuid())
+  productId         String   @unique
+  product           Product  @relation(fields: [productId], references: [id])
+  standardCost      Decimal? @db.Decimal(10, 2) // 標準成本
+  factoryCost       Decimal? @db.Decimal(10, 2) // 工廠成本
+  packagingCost     Decimal? @db.Decimal(10, 2) // 包材成本
+  intlLogisticsCost Decimal? @db.Decimal(10, 2) // 國際物流成本
+  customsCost       Decimal? @db.Decimal(10, 2) // 報關成本
+  storageCost       Decimal? @db.Decimal(10, 2) // 倉儲成本
+  domesticLogisticsCost Decimal? @db.Decimal(10, 2) // 台灣配送成本
+  totalCost         Decimal? @db.Decimal(10, 2) // 總成本
+  updatedAt         DateTime @updatedAt
+}
+
+// ========== 單號序列 ==========
+model Sequence {
+  id        String   @id @default(cuid())
+  type      String   @unique
+  prefix    String
+  currentNo Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════
+// 客訴與照護事件中心 (Care Incidents)
+// ═══════════════════════════════════════════════════════════
+
+enum IncidentType {
+  COMPLAINT        // 一般客訴
+  SKIN_ISSUE       // 皮膚問題
+  PRODUCT_DEFECT   // 產品瑕疵
+  CARE_PROCESS     // 照護流程問題
+  STAFF_FEEDBACK   // 員工反映
+  FAMILY_COMPLAINT // 家屬客訴
+  OTHER
+}
+
+enum IncidentSource {
+  PHONE_CALL
+  LINE_MESSAGE
+  ON_SITE_VISIT
+  EMAIL
+  SALES_REP
+  SUPERVISOR
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_VISIT
+  RESOLVED
+  CLOSED
+}
+
+enum SymptomCategory {
+  SKIN_REDNESS      // 皮膚紅腫
+  SKIN_ULCER        // 壓瘡/潰瘍
+  ALLERGIC_REACTION // 過敏反應
+  PRODUCT_LEAKAGE   // 產品滲漏
+  FIT_ISSUE         // 穿戴不合
+  ODOR_ISSUE        // 異味問題
+  OTHER
+}
+
+enum AttachmentType {
+  SITE_PHOTO        // 現場照片
+  SKIN_PHOTO        // 皮膚照片（敏感）
+  CHAT_SCREENSHOT   // 聊天截圖
+  AUDIO_RECORDING   // 錄音檔
+  TRANSCRIPT        // 逐字稿
+  TRAINING_PHOTO    // 教育訓練照片
+  DOCUMENT          // 文件
+  OTHER
+}
+
+enum TranscriptStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum ActionItemStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+model CareIncident {
+  id              String           @id @default(cuid())
+  incidentNo      String           @unique // e.g. CI-20260318-001
+  customerId      String
+  customer        Customer         @relation(fields: [customerId], references: [id])
+  orderId         String?
+  order           SalesOrder?      @relation(fields: [orderId], references: [id])
+  productId       String?
+  product         Product?         @relation(fields: [productId], references: [id])
+  batchNo         String?
+
+  incidentType    IncidentType
+  incidentSource  IncidentSource
+  incidentDate    DateTime
+  reportedById    String
+  reportedBy      User             @relation("IncidentReportedBy", fields: [reportedById], references: [id])
+  contactPerson   String?          // Customer contact name
+  assignedOwnerId String?
+  assignedOwner   User?            @relation("IncidentAssignedOwner", fields: [assignedOwnerId], references: [id])
+
+  severity        IncidentSeverity @default(MEDIUM)
+  status          IncidentStatus   @default(OPEN)
+  symptomCategory SymptomCategory?
+  issueSummary    String
+  detailedDescription String?
+  suspectedCause  String?
+  immediateActionTaken String?
+
+  requiresOnSiteVisit  Boolean  @default(false)
+  scheduledVisitDate   DateTime?
+  resolution      String?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  isKnowledgeBase Boolean  @default(false) // auto-set on CLOSED
+
+  attachments     IncidentAttachment[]
+  visitLogs       IncidentVisitLog[]
+  audioRecords    IncidentAudioRecord[]
+  trainingLogs    IncidentTrainingLog[]
+  actionItems     IncidentActionItem[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([incidentDate])
+}
+
+model IncidentAttachment {
+  id           String         @id @default(cuid())
+  incidentId   String
+  incident     CareIncident   @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  visitLogId   String?        // optional link to a visit log
+  visitLog     IncidentVisitLog? @relation(fields: [visitLogId], references: [id])
+  trainingLogId String?
+  trainingLog  IncidentTrainingLog? @relation(fields: [trainingLogId], references: [id])
+
+  attachmentType AttachmentType
+  fileUrl      String
+  fileName     String?
+  fileSizeBytes Int?
+  mimeType     String?
+  description  String?
+  capturedAt   DateTime?      // when was the photo/recording taken
+  isSensitive  Boolean  @default(false) // skin photos, resident photos
+  relatedStage String?        // e.g. 'initial_report', 'visit', 'resolution'
+
+  uploadedById String
+  uploadedBy   User           @relation("IncidentAttachmentUploader", fields: [uploadedById], references: [id])
+  uploadedAt   DateTime       @default(now())
+
+  @@index([incidentId])
+}
+
+model IncidentVisitLog {
+  id          String       @id @default(cuid())
+  incidentId  String
+  incident    CareIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  visitDate   DateTime
+  visitType   String       // 電訪 / 現場 / 視訊
+  participants String?     // JSON array of names
+  onSiteObservation   String?
+  skinConditionNote   String?
+  careProcessNote     String?
+  productUsageNote    String?
+  staffFeedback       String?
+  immediateSuggestion String?
+  nextFollowupDate    DateTime?
+  visitedById         String
+  visitedBy           User     @relation("IncidentVisitLogBy", fields: [visitedById], references: [id])
+  createdAt   DateTime @default(now())
+  attachments IncidentAttachment[]
+
+  @@index([incidentId])
+}
+
+model IncidentAudioRecord {
+  id              String            @id @default(cuid())
+  incidentId      String
+  incident        CareIncident      @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  audioFileUrl    String
+  audioDurationSec Int?
+  transcriptText   String?          @db.Text
+  transcriptStatus TranscriptStatus @default(PENDING)
+  aiSummary        String?          @db.Text
+  aiMeetingMinutes String?          @db.Text
+  aiConclusion     String?          @db.Text
+  aiActionItems    Json?            // [{title, owner, dueDate}]
+  processedAt      DateTime?
+  uploadedById     String
+  uploadedBy       User             @relation("IncidentAudioUploader", fields: [uploadedById], references: [id])
+  createdAt        DateTime         @default(now())
+
+  @@index([incidentId])
+}
+
+model IncidentTrainingLog {
+  id              String       @id @default(cuid())
+  incidentId      String
+  incident        CareIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  trainingDate    DateTime
+  trainingTopic   String
+  trainerUserId   String
+  trainer         User         @relation("IncidentTrainer", fields: [trainerUserId], references: [id])
+  attendees       Json?        // [{name, role}]
+  trainingContent String?      @db.Text
+  trainingResult  String?
+  trainingPhotoUrls Json?      // [{url, label}]
+  followupRequired  Boolean @default(false)
+  nextFollowupDate  DateTime?
+  createdAt         DateTime @default(now())
+  attachments       IncidentAttachment[]
+
+  @@index([incidentId])
+}
+
+model IncidentActionItem {
+  id              String           @id @default(cuid())
+  incidentId      String
+  incident        CareIncident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  actionTitle     String
+  actionDescription String?
+  ownerUserId     String?
+  owner           User?            @relation("IncidentActionOwner", fields: [ownerUserId], references: [id])
+  dueDate         DateTime?
+  status          ActionItemStatus @default(OPEN)
+  completionNote  String?
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([incidentId])
+  @@index([status])
+}

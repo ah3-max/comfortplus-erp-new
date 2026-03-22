@@ -70,8 +70,9 @@ export default function PickupListPage() {
     if (tab === 'pending') params.set('status', 'PENDING_VERIFY')
 
     fetch(`/api/pickup?${params}`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json() })
       .then(setPickups)
+      .catch(() => { /* toast imported via sonner if needed */ })
       .finally(() => setLoading(false))
   }, [tab])
 
