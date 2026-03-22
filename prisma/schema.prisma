@@ -50,6 +50,7 @@ model Product {
   inventory      Inventory[]
   quotationItems QuotationItem[]
   orderItems     SalesOrderItem[]
+  shipmentItems  ShipmentItem[]
 }
 
 // ========== 客戶管理 ==========
@@ -235,6 +236,7 @@ model ShipmentItem {
   shipmentId String
   shipment   Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
   productId  String
+  product    Product  @relation(fields: [productId], references: [id])
   quantity   Int
 }
 

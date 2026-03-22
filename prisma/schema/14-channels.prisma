@@ -1,0 +1,63 @@
+// ========== 線上通路管理 ==========
+model SalesChannel {
+  id              String          @id @default(cuid())
+  code            String          @unique
+  name            String
+  platform        ChannelPlatform
+  shopUrl         String?
+  commissionRate    Decimal?        @db.Decimal(5, 2)   // 平台抽成 %
+  integrationMethod String?        // API / CSV_IMPORT / MANUAL
+  contactPerson     String?
+  contactPhone      String?
+  notes             String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  channelOrders   ChannelOrder[]
+  retailOutlets   RetailOutlet[]
+  retailEvents    RetailEvent[] @relation("ChannelRetailEvent")
+}
+
+model ChannelOrder {
+  id              String              @id @default(cuid())
+  channelId       String
+  channel         SalesChannel        @relation(fields: [channelId], references: [id])
+  channelOrderNo  String              // 通路平台訂單號
+  salesOrderId    String?             // 關聯內部訂單
+  salesOrder      SalesOrder?         @relation(fields: [salesOrderId], references: [id])
+
+  buyerName         String?
+  buyerPhone        String?
+  buyerAddress      String?
+  recipientName     String?            // 收件人（可與買家不同）
+  recipientPhone    String?
+  recipientAddress  String?
+
+  orderAmount       Decimal            @db.Decimal(12, 2)
+  platformFee       Decimal?           @db.Decimal(12, 2)
+  shippingFee       Decimal?           @db.Decimal(12, 2)
+  netAmount         Decimal?           @db.Decimal(12, 2) // 實收金額
+
+  status            ChannelOrderStatus @default(PENDING)
+  paymentStatus     String?            // PENDING / PAID / REFUNDED
+  deliveryStatus    String?            // PENDING / SHIPPED / DELIVERED
+  remittanceStatus  String?            // PENDING / REMITTED / CONFIRMED（平台匯入狀態）
+  orderedAt         DateTime
+  notes           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  items           ChannelOrderItem[]
+}
+
+model ChannelOrderItem {
+  id              String       @id @default(cuid())
+  channelOrderId  String
+  channelOrder    ChannelOrder @relation(fields: [channelOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id])
+  quantity        Int
+  unitPrice       Decimal      @db.Decimal(10, 2)
+  subtotal        Decimal      @db.Decimal(12, 2)
+}

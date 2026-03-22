@@ -1,0 +1,322 @@
+// ========== 收付款管理 ==========
+model PaymentRecord {
+  id              String            @id @default(cuid())
+  paymentNo       String            @unique
+  direction       PaymentDirection
+  paymentType     PaymentType
+
+  salesOrderId    String?
+  salesOrder      SalesOrder?       @relation(fields: [salesOrderId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+  customerId      String?
+  customer        Customer?         @relation(fields: [customerId], references: [id])
+  supplierId      String?
+  supplier        Supplier?         @relation(fields: [supplierId], references: [id])
+
+  amount          Decimal           @db.Decimal(12, 2)
+  paymentDate     DateTime
+  paymentMethod   String?           // 匯款/支票/現金/月結
+  bankAccount     String?
+  referenceNo     String?           // 匯款單號/支票號碼
+  invoiceNo       String?           // 發票號碼
+
+  notes           String?
+  createdById     String
+  createdBy       User              @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+// ========== 應收帳款 AR ==========
+model AccountsReceivable {
+  id           String   @id @default(cuid())
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id])
+  orderId      String?
+  order        SalesOrder? @relation("OrderAR", fields: [orderId], references: [id])
+  invoiceNo    String?  // 發票號碼
+  invoiceDate  DateTime?
+  dueDate      DateTime? // 到期日
+  amount       Decimal  @db.Decimal(12, 2) // 應收金額
+  paidAmount   Decimal  @default(0) @db.Decimal(12, 2)
+  // balance = amount - paidAmount（前端計算）
+  agingDays    Int?     // 帳齡天數（可由 cron 更新或前端計算）
+  status       ArStatus @default(NOT_DUE)
+  billingRequestId String?
+  invoiceId        String?
+  collectionStatus String? @default("NORMAL")
+  lastCollectionDate DateTime?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  receipts       ReceiptRecord[]
+  collectionLogs CollectionLog[]
+}
+
+// ── 收款紀錄（沖銷 AR）────────────────────────────────
+model ReceiptRecord {
+  id            String             @id @default(cuid())
+  arId          String
+  ar            AccountsReceivable @relation(fields: [arId], references: [id])
+  customerId    String
+  receiptDate   DateTime
+  receiptMethod String?  // TRANSFER / CHECK / CASH / OFFSET
+  amount        Decimal  @db.Decimal(12, 2)
+  bankLast5     String?  // 匯款帳號末五碼
+  reconcileStatus String @default("PENDING") // PENDING / MATCHED / MISMATCH
+  proofPhotoUrl   String?
+  proofDescription String?
+  orderId       String?
+  shipmentId    String?
+  notes         String?
+  createdById   String
+  createdAt     DateTime @default(now())
+}
+
+// ========== 應付帳款 AP ==========
+model AccountsPayable {
+  id             String   @id @default(cuid())
+  supplierId     String
+  supplier       Supplier @relation("SupplierAP", fields: [supplierId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder  PurchaseOrder? @relation("PurchaseAP", fields: [purchaseOrderId], references: [id])
+  invoiceNo      String?
+  invoiceDate    DateTime?
+  dueDate        DateTime?
+  amount         Decimal  @db.Decimal(12, 2)
+  paidAmount     Decimal  @default(0) @db.Decimal(12, 2)
+  status         ApStatus @default(NOT_DUE)
+  apCategory     String?
+  currency       String   @default("TWD")
+  exchangeRate   Decimal? @db.Decimal(8,4)
+  amountForeign  Decimal? @db.Decimal(12,2)
+  batchNo        String?
+  productId      String?
+  seaFreightId   String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  disbursements    DisbursementRecord[]
+  supplierInvoices SupplierInvoice[] @relation("APSupplierInvoice")
+}
+
+// ── 付款紀錄（沖銷 AP）────────────────────────────────
+model DisbursementRecord {
+  id            String           @id @default(cuid())
+  apId          String
+  ap            AccountsPayable  @relation(fields: [apId], references: [id])
+  payee         String?          // 收款人
+  paymentDate   DateTime
+  paymentMethod String?          // T/T / CHECK / CASH
+  currency      String           @default("TWD")
+  exchangeRate  Decimal?         @db.Decimal(8, 4)
+  amount        Decimal          @db.Decimal(12, 2)
+  bankInfo      String?
+  notes         String?
+  createdById   String
+  createdAt     DateTime         @default(now())
+}
+
+model ExchangeRate {
+  id            String   @id @default(cuid())
+  fromCurrency  String
+  toCurrency    String   @default("TWD")
+  rate          Decimal  @db.Decimal(12,6)
+  effectiveDate DateTime @db.Date
+  source        String?
+  createdAt     DateTime @default(now())
+  @@unique([fromCurrency, toCurrency, effectiveDate])
+  @@index([fromCurrency, toCurrency, effectiveDate(sort: Desc)])
+}
+
+model Invoice {
+  id               String   @id @default(cuid())
+  invoiceNo        String   @unique
+  invoiceType      String
+  customerId       String?
+  customer         Customer? @relation("CustomerInvoice", fields: [customerId], references: [id])
+  supplierId       String?
+  salesOrderId     String?
+  billingRequestId String?
+  subtotal         Decimal  @db.Decimal(12,2)
+  taxRate          Decimal? @db.Decimal(5,2)
+  taxAmount        Decimal? @db.Decimal(12,2)
+  totalAmount      Decimal  @db.Decimal(12,2)
+  invoiceDate      DateTime
+  buyerName        String?
+  buyerTaxId       String?
+  sellerName       String?
+  sellerTaxId      String?
+  pdfUrl           String?
+  status           String   @default("ISSUED")
+  voidReason       String?
+  isCredit         Boolean  @default(false)
+  originalInvoiceId String?
+  notes            String?
+  createdById      String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model BillingRequest {
+  id              String   @id @default(cuid())
+  billingNo       String   @unique
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  salesOrderId    String?
+  salesOrder      SalesOrder? @relation(fields: [salesOrderId], references: [id])
+  shipmentId      String?
+  billingDate     DateTime @default(now())
+  dueDate         DateTime?
+  amount          Decimal  @db.Decimal(12,2)
+  taxAmount       Decimal? @db.Decimal(12,2)
+  totalAmount     Decimal  @db.Decimal(12,2)
+  status          String   @default("DRAFT")
+  invoiceId       String?
+  notes           String?
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ReconciliationStatement {
+  id              String   @id @default(cuid())
+  statementNo     String   @unique
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  periodStart     DateTime
+  periodEnd       DateTime
+  openingBalance  Decimal  @db.Decimal(12,2)
+  totalBilled     Decimal  @db.Decimal(12,2)
+  totalReceived   Decimal  @db.Decimal(12,2)
+  totalAdjustment Decimal  @db.Decimal(12,2) @default(0)
+  closingBalance  Decimal  @db.Decimal(12,2)
+  lineItems       Json?
+  status          String   @default("DRAFT")
+  customerConfirmedAt DateTime?
+  disputeNote     String?
+  pdfUrl          String?
+  notes           String?
+  createdById     String
+  createdAt       DateTime @default(now())
+}
+
+model CreditDebitNote {
+  id                String   @id @default(cuid())
+  noteNo            String   @unique
+  noteType          String
+  direction         String
+  customerId        String?
+  customer          Customer? @relation("CustomerCDN", fields: [customerId], references: [id])
+  supplierId        String?
+  originalInvoiceNo String?
+  salesOrderId      String?
+  purchaseOrderId   String?
+  amount            Decimal  @db.Decimal(12,2)
+  taxAmount         Decimal? @db.Decimal(12,2)
+  totalAmount       Decimal  @db.Decimal(12,2)
+  reason            String
+  status            String   @default("DRAFT")
+  approvedById      String?
+  approvedAt        DateTime?
+  attachmentUrl     String?
+  notes             String?
+  createdById       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SupplierInvoice {
+  id                String   @id @default(cuid())
+  supplierId        String
+  supplier          Supplier @relation("SupplierInvoiceSupplier", fields: [supplierId], references: [id])
+  invoiceCategory   String
+  supplierInvoiceNo String?
+  invoiceDate       DateTime
+  dueDate           DateTime?
+  currency          String   @default("TWD")
+  amount            Decimal  @db.Decimal(12,2)
+  exchangeRate      Decimal? @db.Decimal(8,4)
+  amountTWD         Decimal  @db.Decimal(12,2)
+  purchaseOrderId   String?
+  purchaseOrder     PurchaseOrder? @relation("PurchaseSupplierInvoice", fields: [purchaseOrderId], references: [id])
+  seaFreightId      String?
+  seaFreight        SeaFreight? @relation(fields: [seaFreightId], references: [id])
+  shipmentId        String?
+  batchNo           String?
+  productId         String?
+  invoicePdfUrl     String?
+  status            String   @default("RECEIVED")
+  apId              String?
+  ap                AccountsPayable? @relation("APSupplierInvoice", fields: [apId], references: [id])
+  notes             String?
+  createdById       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model BatchCostAllocation {
+  id              String   @id @default(cuid())
+  batchNo         String
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  lotId           String?
+  lot             InventoryLot? @relation(fields: [lotId], references: [id])
+  quantity        Int
+  factoryCost     Decimal? @db.Decimal(12,2)
+  packagingCost   Decimal? @db.Decimal(12,2)
+  oceanFreight    Decimal? @db.Decimal(12,2)
+  customsDuty     Decimal? @db.Decimal(12,2)
+  customsFee      Decimal? @db.Decimal(12,2)
+  truckingFee     Decimal? @db.Decimal(12,2)
+  insuranceFee    Decimal? @db.Decimal(12,2)
+  warehouseCost   Decimal? @db.Decimal(12,2)
+  otherCost       Decimal? @db.Decimal(12,2)
+  totalCost       Decimal? @db.Decimal(12,2)
+  unitCost        Decimal? @db.Decimal(10,4)
+  currency        String?
+  exchangeRate    Decimal? @db.Decimal(8,4)
+  purchaseOrderId String?
+  seaFreightId    String?
+  supplierInvoiceIds Json?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([batchNo, productId])
+}
+
+model FinanceAttachment {
+  id              String   @id @default(cuid())
+  attachableType  String
+  attachableId    String
+  fileType        String
+  fileUrl         String
+  fileName        String?
+  fileSizeBytes   Int?
+  description     String?
+  uploadedById    String
+  uploadedBy      User     @relation("FinAttachUploadedBy", fields: [uploadedById], references: [id])
+  uploadedAt      DateTime @default(now())
+  @@index([attachableType, attachableId])
+}
+
+model CollectionLog {
+  id              String   @id @default(cuid())
+  arId            String
+  ar              AccountsReceivable @relation(fields: [arId], references: [id])
+  customerId      String?
+  customer        Customer? @relation("CustomerCollection", fields: [customerId], references: [id])
+  collectionDate  DateTime
+  method          String
+  contactPerson   String?
+  result          String?
+  promisedDate    DateTime?
+  promisedAmount  Decimal? @db.Decimal(12,2)
+  notes           String?
+  createdById     String
+  createdBy       User     @relation("CollectionCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+}

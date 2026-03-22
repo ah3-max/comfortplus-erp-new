@@ -1,0 +1,161 @@
+// ========== 商品管理 ==========
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  name          String
+  category      String
+  series        String?           // 系列：經濟款 / 日間型 / 夜間型
+  size          String?           // 尺寸：S / M / L / XL
+  packagingType String?           // 包裝型態：單包 / 箱 / OEM專版
+  piecesPerPack Int?              // 每包片數
+  packsPerBox   Int?              // 每箱包數
+  specification String?
+  unit          String   @default("包")
+  boxQuantity   Int?              // 舊欄位保留（同 packsPerBox）
+  barcode       String?
+
+  // ── 價格（敏感程度由高到低）──────────────────────────────
+  costPrice      Decimal  @db.Decimal(10, 2)   // 成本價   [FINANCE/PROCUREMENT/GM/SUPER_ADMIN]
+  floorPrice     Decimal? @db.Decimal(10, 2)   // 成本底價 [FINANCE/PROCUREMENT/GM/SUPER_ADMIN]
+  sellingPrice   Decimal  @db.Decimal(10, 2)   // 建議售價 [全員]
+  channelPrice   Decimal? @db.Decimal(10, 2)   // 通路價   [全員]
+  wholesalePrice Decimal? @db.Decimal(10, 2)   // 批發價   [全員]
+  minSellPrice   Decimal? @db.Decimal(10, 2)   // 最低可售價 [SALES_MANAGER+]
+  oemBasePrice   Decimal? @db.Decimal(10, 2)   // OEM報價基準 [PROCUREMENT/FINANCE/GM/SUPER_ADMIN]
+
+  // ── OEM / 工廠資訊（主力廠快照，詳細見 ProductSupplier）──
+  factorySku   String?                          // 主力廠料號（快照）
+  moq          Int?                             // 最小訂購量（主力廠）
+  leadTimeDays Int?                             // 生產交期天數（主力廠）
+
+  // ── 物流資訊 ──────────────────────────────────────────
+  weight       Decimal? @db.Decimal(8, 3)      // 重量 (kg)
+  volume       String?                          // 材積 (e.g. 30x20x15 cm)
+  storageNotes String?                          // 保存/倉儲注意事項
+
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  inventory      Inventory[]
+  quotationItems QuotationItem[]
+  orderItems     SalesOrderItem[]
+  shipmentItems  ShipmentItem[]
+  purchaseItems  PurchaseOrderItem[]
+  receiptItems   PurchaseReceiptItem[]
+  priceHistory   SupplierPriceHistory[]
+  inventoryLots      InventoryLot[]
+  transferItems      StockTransferItem[]
+  countItems         StockCountItem[]
+  scrapRecords       StockScrap[]
+  channelOrderItems  ChannelOrderItem[]
+  qualityChecks      QualityCheck[]
+  priceListItems     PriceListItem[]
+  recurringItems     RecurringOrderItem[]
+  inboundItems       InboundItem[]
+  outboundItems      OutboundItem[]
+  returnItems        ReturnOrderItem[]
+  costStructure      ProductCostStructure?
+  careIncidents      CareIncident[]
+
+  // New relations for extended models
+  unitConversions    UnitConversion[]
+  productBOMs        ProductBOM[]
+  batchCostAllocations BatchCostAllocation[]
+  retailSalesPlans   RetailSalesPlan[]
+  productRecalls     ProductRecall[]
+  productSuppliers   ProductSupplier[]
+  pickupItems        WarehousePickupItem[]
+}
+
+// ========== 商品-廠商中介表（多廠商支援）==========
+model ProductSupplier {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+
+  // ── 廠商料號與品名 ────────────────────────────────
+  factorySku        String?   // 工廠料號（此廠對此品的料號）
+  factoryProductName String?  // 工廠品名
+
+  // ── 採購/生產條件 ─────────────────────────────────
+  unitCost      Decimal? @db.Decimal(10,2) // 採購單價（含加工費）
+  currency      String   @default("USD")
+  moq           Int?                       // 最低訂購量
+  leadTimeDays  Int?                       // 生產交期（天）
+  paymentTerms  String?                    // 付款條件
+  deliveryTerm  String?                    // 交貨條件（EXW/FOB/CIF）
+  originCountry String?                    // 生產國
+
+  // ── 新品開發狀態 ──────────────────────────────────
+  status        String  @default("ACTIVE")
+  // DEVELOPING   - 開發中（打樣前）
+  // SAMPLING     - 打樣中
+  // APPROVED     - 樣品通過，可量產
+  // ACTIVE       - 正式量產中
+  // INACTIVE     - 停止合作
+  isPrimary     Boolean @default(false)   // 是否為主力廠
+
+  // ── 品質記錄 ──────────────────────────────────────
+  qualityGrade    String?              // A / B / C
+  avgDefectRate   Decimal? @db.Decimal(5,2)
+  lastQcResult    String?
+  lastQcDate      DateTime?
+
+  // ── 樣品/認證 ─────────────────────────────────────
+  sampleVersion    String?   // 目前樣品版本
+  sampleApprovedAt DateTime?
+  certifications   String?   // 認證說明（SGS/ISO/FDA...）
+
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, supplierId])
+  @@index([productId, status])
+}
+
+// ========== 商品 BOM (物料清單) ==========
+model ProductBOM {
+  id              String   @id @default(cuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  materialId      String
+  material        PackagingMaterial @relation(fields: [materialId], references: [id])
+  quantityPerUnit Decimal  @db.Decimal(10,4)
+  unit            String
+  isOptional      Boolean  @default(false)
+  alternativeIds  String[] @default([])
+  notes           String?
+  @@unique([productId, materialId])
+}
+
+// ========== 單位換算 ==========
+model UnitConversion {
+  id              String   @id @default(cuid())
+  productId       String?
+  product         Product? @relation(fields: [productId], references: [id])
+  fromUnit        String
+  toUnit          String
+  conversionRate  Decimal  @db.Decimal(10,4)
+  @@unique([productId, fromUnit, toUnit])
+}
+
+// ========== 商品成本結構 ==========
+model ProductCostStructure {
+  id                    String   @id @default(cuid())
+  productId             String   @unique
+  product               Product  @relation(fields: [productId], references: [id])
+  standardCost          Decimal? @db.Decimal(10, 2)
+  factoryCost           Decimal? @db.Decimal(10, 2)
+  packagingCost         Decimal? @db.Decimal(10, 2)
+  intlLogisticsCost     Decimal? @db.Decimal(10, 2)
+  customsCost           Decimal? @db.Decimal(10, 2)
+  storageCost           Decimal? @db.Decimal(10, 2)
+  domesticLogisticsCost Decimal? @db.Decimal(10, 2)
+  totalCost             Decimal? @db.Decimal(10, 2)
+  updatedAt             DateTime @updatedAt
+}

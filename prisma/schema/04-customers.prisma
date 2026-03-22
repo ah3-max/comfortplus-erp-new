@@ -1,0 +1,362 @@
+// ── 客戶主檔 ──────────────────────────────────────────
+model Customer {
+  id            String              @id @default(cuid())
+  code          String              @unique
+  name          String
+  shortName     String?             // 客戶簡稱
+  type          CustomerType
+  subType       String?             // 客戶子類型（自由文字）
+  contactPerson String?
+  phone         String?
+  lineId        String?             // LINE 帳號
+  email         String?
+  website       String?             // 官網
+  address       String?             // 公司地址
+  deliveryAddress String?           // 配送地址
+  city          String?             // 所在縣市
+  region        SalesRegion?        // 所屬業務區域
+  country       String?  @default("TW")
+  taxId         String?             // 統一編號
+  invoiceTitle  String?             // 發票抬頭
+  invoiceAddress String?            // 發票地址
+
+  // ── 商業條件 ──────────────────────────────────────────
+  paymentTerms      String?          // 付款條件：CASH / NET30 / NET60
+  creditLimit       Decimal?         @db.Decimal(12, 2)
+  billingCycle      String?          // 對帳週期：MONTHLY / BIWEEKLY
+  collectionMethod  String?          // 收款方式：TRANSFER / CHECK / CASH
+  isMonthly         Boolean @default(false) // 是否月結
+  monthlySettleDay  Int?             // 月結日（每月幾號）
+  bankInfo          String?          // 匯款帳號資訊
+  needsPO           Boolean @default(false) // 是否需 PO
+  needsStampedQuote Boolean @default(false) // 是否需用印報價
+  needsInvoiceRequest Boolean @default(false) // 是否需請款單
+  hasContractPrice  Boolean @default(false) // 是否有合約價
+  contractStartDate DateTime?        // 合約起始日
+  contractEndDate   DateTime?        // 合約結束日
+  renewalRemindDate DateTime?        // 續約提醒日
+
+  // ── 分級 ──────────────────────────────────────────────
+  grade                    CustomerGrade?    // 客戶等級 A/B/C/D
+  customerValueGrade       String?           // 客戶價值分級
+  profitGrade              String?           // 毛利貢獻等級
+  riskLevel                String?           // 風險等級
+  paymentStability         String?           // 回款穩定度
+  cooperationStability     String?           // 合作穩定度
+
+  // ── 業務資訊 ──────────────────────────────────────────
+  devStatus                CustomerDevStatus @default(POTENTIAL)
+  source                   CustomerSource?
+  salesRepId               String?
+  salesRep                 User?             @relation("CustomerSalesRep", fields: [salesRepId], references: [id])
+  winRate                  Int?              // 成交機率 0-100%
+  estimatedMonthlyVolume   Decimal?          @db.Decimal(12, 2)  // 預估月採購量（元）
+  estimatedAnnualVolume    Decimal?          @db.Decimal(12, 2)  // 預估年採購量（元）
+  notes                    String?
+  isActive                 Boolean           @default(true)
+
+  // ── 機構結構 ─────────────────────────────────────────
+  isCorporateFoundation    Boolean           @default(false)  // 是否社團法人
+  corporateFoundationName  String?                             // 社團法人名稱
+  branchName               String?                             // 分院/館別名稱
+  orgLevel                 OrgLevel?                           // 客戶層級
+  bedCount                 Int?                                // 床數
+
+  // ── 追蹤狀態（業務自動更新）──────────────────────
+  lastContactDate          DateTime?         // 最後聯繫日（自動更新）
+  nextFollowUpDate         DateTime?         // 下次追蹤日（自動更新）
+  isFollowUp               Boolean           @default(true)  // 是否續追
+
+  // ── 流失管理 ──────────────────────────────────────────
+  healthScore        Int?      @default(100)
+  healthLevel        String?
+  healthUpdatedAt    DateTime?
+  lastOrderDate      DateTime?
+  avgOrderInterval   Int?
+  lifetimeValue      Decimal?  @db.Decimal(14,2)
+  churnReason        String?
+  churnDate          DateTime?
+  churnNote          String?
+
+  // ── 信用額度占用 ──────────────────────────────────────
+  creditUsed         Decimal?  @db.Decimal(12,2) @default(0)
+  creditAvailable    Decimal?  @db.Decimal(12,2)
+  creditUpdatedAt    DateTime?
+  isCreditHold       Boolean   @default(false)
+
+  // ── 配送特殊條件 ──────────────────────────────────────
+  saturdayDelivery   Boolean   @default(false)
+  callBeforeDelivery Boolean   @default(false)
+  floorCarry         Boolean   @default(false)
+  floorCarryNote     String?
+  monthlyRestDays    String?
+  deliveryTimeWindow String?
+  deliveryNote       String?
+
+  // ── 心臟客戶 (Key Account) 管理 ──────────────────────
+  isKeyAccount        Boolean   @default(false)
+  keyAccountMgrId     String?
+  keyAccountMgr       User?     @relation("KeyAccountMgr", fields: [keyAccountMgrId], references: [id])
+  visitFrequencyDays  Int?      // 目標拜訪頻率（幾天一次）
+  relationshipScore   Int?      // 關係深度 1-10
+  keyAccountNote      String?   // 戰略備注
+  keyAccountSince     DateTime? // 列為心臟客戶的日期
+
+  // ── 風險標記 ──────────────────────────────────────────
+  isBlacklist        Boolean   @default(false)
+  isWhitelist        Boolean   @default(false)
+  isHighRisk         Boolean   @default(false)
+  riskNote           String?
+  isSupplyStopped    Boolean   @default(false)
+  supplyStopReason   String?
+  supplyStopDate     DateTime?
+
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  quotations       Quotation[]
+  salesOrders      SalesOrder[]
+  visitRecords     VisitRecord[]
+  callRecords      CallRecord[]
+  sampleRecords    SampleRecord[]
+  complaintRecords ComplaintRecord[]
+  salesTasks       SalesTask[]
+  careSchedules    CareSchedule[]
+  serviceRequests  ServiceRequest[]
+  paymentRecords   PaymentRecord[]
+  contacts         CustomerContact[]
+  requirements     CustomerRequirement[]
+  usageProfile     CustomerUsageProfile?
+  deliveryProfile  CustomerDeliveryProfile?
+  demandForecast   CustomerDemandForecast?
+  priceLists       PriceList[]          @relation("CustomerPriceList")
+  recurringOrders  RecurringOrder[]
+  returnOrders     ReturnOrder[]
+  accountsReceivable AccountsReceivable[]
+  opportunities    SalesOpportunity[]
+  tagMaps          CustomerTagMap[]
+  followUpLogs     FollowUpLog[]
+  salesSchedules   SalesSchedule[]
+  salesEvents      SalesEvent[]
+  careIncidents    CareIncident[]
+  customerChangeLogs   CustomerChangeLog[]
+  salesRepChanges      SalesRepChange[]
+  duplicateChecksA     CustomerDuplicateCheck[] @relation("DupCheckA")
+  duplicateChecksB     CustomerDuplicateCheck[] @relation("DupCheckB")
+  billingRequests      BillingRequest[]
+  invoices             Invoice[]         @relation("CustomerInvoice")
+  reconciliations      ReconciliationStatement[]
+  creditDebitNotes     CreditDebitNote[] @relation("CustomerCDN")
+  collectionLogs       CollectionLog[]   @relation("CustomerCollection")
+  retailEvents         RetailEvent[]     @relation("RetailEventCustomer")
+  recallNotifications  RecallNotification[]
+  businessEvents       BusinessEvent[]     @relation("CustomerBusinessEvents")
+  meetingRecords       MeetingRecord[]     @relation("CustomerMeetingRecords")
+  warehousePickups     WarehousePickup[]
+}
+
+// ── 客戶聯絡人 ──────────────────────────────────────
+model CustomerContact {
+  id                   String           @id @default(cuid())
+  customerId           String
+  customer             Customer         @relation(fields: [customerId], references: [id])
+  name                 String
+  role                 ContactRole?     // 聯絡人角色
+  title                String?          // 職稱
+  department           String?          // 部門
+  mobile               String?          // 手機
+  phone                String?          // 市話
+  phoneExt             String?          // 分機
+  email                String?
+  lineId               String?          // LINE
+  isPrimary            Boolean          @default(false) // 是否主要聯絡人
+  preferredContactTime ContactTimeSlot? // 建議聯絡時段
+  notes                String?
+  isActive        Boolean  @default(true)
+  startDate       DateTime @default(now())
+  endDate         DateTime?
+  changeReason    String?
+  replacedById    String?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+}
+
+// ── 客戶使用輪廓 ────────────────────────────────────
+model CustomerUsageProfile {
+  id          String   @id @default(cuid())
+  customerId  String   @unique
+  customer    Customer @relation(fields: [customerId], references: [id])
+  profileDate DateTime @default(now())
+
+  // ── 床位資訊 ───────────────────────────────────────
+  totalBeds        Int?    // 總床數
+  occupiedBeds     Int?    // 目前入住床數
+  vacantBeds       Int?    // 空床數
+  residentCareNote String? // 住民失能型態備註
+
+  // ── 外籍照護 ────────────────────────────────────────
+  foreignCaregiverRatio   Float?                   // 外籍照護比例 (0-100)
+  foreignCaregiverCountry ForeignCaregiverCountry? // 外籍主要國籍
+
+  // ── 品質與品牌 ──────────────────────────────────────
+  managementQuality  ManagementQualityLevel?  // 管理品質評估
+  currentBrands      String?                  // 目前使用品牌
+  competitorBrands   String?                  // 競品品牌補充
+  brandSwitchFreq    BrandSwitchFrequency?    // 換品牌頻率
+  easySwitchBrand    Boolean?                 // 是否容易轉牌
+  procurementStyle   ProcurementDecisionStyle? // 採購決策模式
+
+  // ── 每日用量 ────────────────────────────────────────
+  dailyDiaperLargeQty Int?    // 每日大尿布使用量
+  dailyDiaperSmallQty Int?    // 每日小尿布使用量
+  dailyUnderpadsQty   Int?    // 每日看護墊使用量
+  dailyWipesQty       Int?    // 每日濕紙巾使用量
+  usesWipes           Boolean @default(false) // 是否使用濕紙巾
+
+  // ── 每月預估量 ──────────────────────────────────────
+  monthlyDiaperLargeQty Int? // 每月大尿布預估量
+  monthlyDiaperSmallQty Int? // 每月小尿布預估量
+  monthlyUnderpadsQty   Int? // 每月看護墊預估量
+  monthlyWipesQty       Int? // 每月濕紙巾預估量
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+}
+
+// ── 客戶需求預估 ────────────────────────────────────
+model CustomerDemandForecast {
+  id          String   @id @default(cuid())
+  customerId  String   @unique
+  customer    Customer @relation(fields: [customerId], references: [id])
+  forecastMonth DateTime @default(now())  // 預估所屬月份
+
+  // ── 手動填入（或從使用輪廓同步）──────────────────
+  dailyDiaperLargeQty Int?    // 每日大尿布
+  dailyDiaperSmallQty Int?    // 每日小尿布
+  dailyUnderpadsQty   Int?    // 每日看護墊
+  dailyWipesQty       Int?    // 每日濕紙巾
+
+  monthlyDiaperLargeQty Int?  // 每月大尿布預估
+  monthlyDiaperSmallQty Int?  // 每月小尿布預估
+  monthlyUnderpadsQty   Int?  // 每月看護墊預估
+  monthlyWipesQty       Int?  // 每月濕紙巾預估
+
+  // ── 下單節奏（手動）────────────────────────────
+  orderFrequency        OrderFrequency?     // 下單頻率
+  avgOrderQty           Int?               // 平均每次下單量（包）
+  nextExpectedOrderDate DateTime?          // 下次預估下單日
+  forecastConfidence    ForecastConfidence? // 預估可信度
+  notes                 String?
+
+  // ── 系統自動計算（從歷史訂單）────────────────────
+  avgDaysBetweenOrders  Int?      // 平均下單間隔天數
+  avgCasesPerOrder      Decimal?  @db.Decimal(10, 2) // 平均每次下單箱數
+  last3OrdersTrend      String?   // 'GROWING'/'DECLINING'/'STABLE'
+  predictedNextOrderDate DateTime? // 系統預測下次下單日
+  analyticsUpdatedAt    DateTime? // 最後一次自動分析時間
+
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// ── 客戶配送條件 ────────────────────────────────────
+model CustomerDeliveryProfile {
+  id          String   @id @default(cuid())
+  customerId  String   @unique
+  customer    Customer @relation(fields: [customerId], references: [id])
+
+  deliveryAddress      String?  // 收貨地址
+  unloadingLocation    String?  // 下貨地點說明
+  unloadingFloor       Int?     // 下貨樓層
+  hasElevator          Boolean? // 是否有電梯
+  needsCart            Boolean? // 是否需推車
+  hasReception         Boolean? // 是否有管理室
+  receivingHours       String?  // 收貨時段（如：週一至週五 09:00-17:00）
+  suggestedDeliveryTime String? // 建議送貨時段
+  parkingNotes         String?  // 停車注意事項
+  routeNotes           String?  // 動線說明
+  receiverName         String?  // 簽收窗口
+  receiverPhone        String?  // 簽收電話
+  deliveryNotes        String?  // 配送備註
+
+  // 照片附件 — JSON array of { category: string; url: string; label: string }
+  // categories: ENTRANCE / UNLOADING / ELEVATOR / PARKING / WAREHOUSE
+  photoUrls   Json?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── 客戶需求資料 ────────────────────────────────────
+model CustomerRequirement {
+  id               String   @id @default(cuid())
+  customerId       String   @unique
+  customer         Customer @relation(fields: [customerId], references: [id])
+  bedCount         Int?     // 使用床數
+  residentCount    Int?     // 住民數
+  currentBrand     String?  // 使用品牌
+  currentSpec      String?  // 現行規格
+  monthlyUsage     Int?     // 每月用量（箱）
+  currentUnitPrice Decimal? @db.Decimal(10, 2) // 現行單價
+  procurementMode  String?  // 採購模式
+  isTrial          Boolean  @default(false) // 是否試用
+  trialSentDate    DateTime? // 試用品寄送日
+  trialFeedback    String?  // 試用品回饋
+  decisionMaker    String?  // 決策者
+  purchaseContact  String?  // 採購窗口
+  financeContact   String?  // 財務窗口
+  receivingContact String?  // 收貨窗口
+  notes            String?
+  updatedAt        DateTime @updatedAt
+}
+
+// ── 客戶變更日誌 ────────────────────────────────────
+model CustomerChangeLog {
+  id              String   @id @default(cuid())
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  changeType      String
+  fieldName       String?
+  beforeValue     String?
+  afterValue      String?
+  reason          String?
+  changedById     String
+  changedBy       User     @relation("CustomerChangeBy", fields: [changedById], references: [id])
+  changedAt       DateTime @default(now())
+  @@index([customerId, changeType, changedAt(sort: Desc)])
+}
+
+// ── 客戶重複檢查 ────────────────────────────────────
+model CustomerDuplicateCheck {
+  id              String   @id @default(cuid())
+  customerAId     String
+  customerA       Customer @relation("DupCheckA", fields: [customerAId], references: [id])
+  customerBId     String
+  customerB       Customer @relation("DupCheckB", fields: [customerBId], references: [id])
+  matchType       String
+  matchScore      Int
+  status          String   @default("PENDING")
+  resolvedById    String?
+  resolvedAt      DateTime?
+  mergeTargetId   String?
+  createdAt       DateTime @default(now())
+  @@unique([customerAId, customerBId])
+}
+
+// ── 客戶合併日誌 ────────────────────────────────────
+model CustomerMergeLog {
+  id              String   @id @default(cuid())
+  survivorId      String
+  mergedId        String
+  mergedCode      String
+  mergedName      String
+  movedOrders     Int      @default(0)
+  movedContacts   Int      @default(0)
+  movedComplaints Int      @default(0)
+  movedPayments   Int      @default(0)
+  mergedById      String
+  mergedAt        DateTime @default(now())
+  notes           String?
+}

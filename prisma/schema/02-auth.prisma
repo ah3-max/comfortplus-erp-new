@@ -1,0 +1,153 @@
+// ========== 使用者與權限 ==========
+model User {
+  id           String    @id @default(cuid())
+  employeeNo   String?   @unique  // 員工編號
+  email        String    @unique
+  name         String
+  engName      String?            // 英文名
+  password     String
+  role         Role      @default(SALES)
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  title        String?            // 職稱
+  mobile       String?            // 手機
+  lineId       String?            // LINE ID
+  hireDate     DateTime?          // 到職日
+  resignDate   DateTime?          // 離職日
+  isActive     Boolean   @default(true)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  quotations        Quotation[]
+  salesOrders       SalesOrder[]
+  shipments         Shipment[]
+  purchaseOrders    PurchaseOrder[]
+  managedCustomers  Customer[]        @relation("CustomerSalesRep")
+  visitRecords      VisitRecord[]     @relation("VisitedBy")
+  callRecords       CallRecord[]      @relation("CalledBy")
+  sampleRecords     SampleRecord[]    @relation("SampleSentBy")
+  complaintRecords  ComplaintRecord[] @relation("ComplaintReportedBy")
+  supervisedComplaints ComplaintRecord[] @relation("ComplaintSupervisor")
+  complaintLogs     ComplaintLog[]    @relation("ComplaintLoggedBy")
+  transfers         StockTransfer[]   @relation("TransferRequestedBy")
+  stockCounts       StockCount[]      @relation("StockCountCreatedBy")
+  scrapsApproved    StockScrap[]      @relation("ScrapApprovedBy")
+  scrapsCreated     StockScrap[]      @relation("ScrapCreatedBy")
+  tasksAssigned     SalesTask[]       @relation("TaskAssignedTo")
+  tasksCreated      SalesTask[]       @relation("TaskCreatedBy")
+  careSchedules     CareSchedule[]    @relation("CareScheduleSupervisor")
+  serviceRequests   ServiceRequest[]  @relation("ServiceRequestAssigned")
+  uploadedMedia     VisitMedia[]      @relation("MediaUploadedBy")
+  paymentsCreated   PaymentRecord[]   @relation("PaymentCreatedBy")
+  managedDepts      Department[]      @relation("DeptManager")
+  followUpLogs         FollowUpLog[]      @relation("FollowUpLogCreatedBy")
+  opportunities        SalesOpportunity[] @relation("OpportunityOwner")
+  salesSchedules       SalesSchedule[]    @relation("ScheduleSalesRep")
+  salesSchedulesCreated SalesSchedule[]   @relation("ScheduleCreatedBy")
+  salesEventsAssigned  SalesEvent[]       @relation("EventAssignedTo")
+  salesEventsCreated   SalesEvent[]       @relation("EventCreatedBy")
+
+  // Care Incidents
+  reportedIncidents    CareIncident[]     @relation("IncidentReportedBy")
+  assignedIncidents    CareIncident[]     @relation("IncidentAssignedOwner")
+  incidentAttachments  IncidentAttachment[] @relation("IncidentAttachmentUploader")
+  incidentVisitLogs    IncidentVisitLog[] @relation("IncidentVisitLogBy")
+  incidentAudioUploads IncidentAudioRecord[] @relation("IncidentAudioUploader")
+  incidentTrainings    IncidentTrainingLog[] @relation("IncidentTrainer")
+  incidentActionItems  IncidentActionItem[] @relation("IncidentActionOwner")
+
+  // New relations for extended models
+  auditLogs            AuditLog[]
+  notifications        Notification[]        @relation("NotificationUser")
+  alertsAssigned       SystemAlert[]         @relation("AlertAssignedTo")
+  handoversFrom        WorkHandover[]        @relation("HandoverFrom")
+  handoversTo          WorkHandover[]        @relation("HandoverTo")
+  salesTargets         SalesTarget[]
+  salesRepChangesFrom  SalesRepChange[]      @relation("PrevRep")
+  salesRepChangesTo    SalesRepChange[]      @relation("NewRep")
+  uploadBatches        UploadBatch[]         @relation("UploadedByUser")
+  documentVersions     DocumentVersion[]     @relation("DocVersionCreatedBy")
+  exportLogs           ExportLog[]
+  collectionLogs       CollectionLog[]       @relation("CollectionCreatedBy")
+  financeAttachments   FinanceAttachment[]   @relation("FinAttachUploadedBy")
+  customerChangeLogs   CustomerChangeLog[]   @relation("CustomerChangeBy")
+  recallNotifyBy       RecallNotification[]  @relation("RecallNotifiedBy")
+
+  // ── 業務行事曆 ─────────────────────────────────────
+  ownedBusinessEvents    BusinessEvent[]     @relation("BizEventOwner")
+  createdBusinessEvents  BusinessEvent[]     @relation("BizEventCreatedBy")
+  facilitatedMeetings    MeetingRecord[]     @relation("MeetingFacilitator")
+  createdMeetingRecords  MeetingRecord[]     @relation("MeetingRecordCreatedBy")
+  meetingActionItems     MeetingActionItem[] @relation("MeetingActionOwner")
+  managedPromoCalendars  PromoCalendar[]     @relation("PromoCalendarOwner")
+
+  // ── 報價審批 ────────────────────────────────────────
+  quotationApprovals     QuotationApproval[] @relation("QuotationApprover")
+
+  // ── 心臟客戶管理 ────────────────────────────────────
+  keyAccounts            Customer[]          @relation("KeyAccountMgr")
+
+  // ── 行銷倉取貨 ────────────────────────────────────────
+  pickups                WarehousePickup[]   @relation("PickedBy")
+  verifiedPickups        WarehousePickup[]   @relation("VerifiedBy")
+}
+
+// ========== 部門設定 ==========
+model Department {
+  id           String      @id @default(cuid())
+  code         String      @unique
+  name         String
+  parentId     String?
+  parent       Department? @relation("DeptTree", fields: [parentId], references: [id])
+  children     Department[] @relation("DeptTree")
+  managerId    String?
+  manager      User?       @relation("DeptManager", fields: [managerId], references: [id])
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  users        User[]
+}
+
+// ========== 角色權限 ==========
+model RolePermission {
+  id              String   @id @default(cuid())
+  roleName        String   // 對應 Role enum 或自定義角色名
+  module          String   // 模組代碼：customers, orders, inventory…
+  canView         Boolean  @default(false)
+  canCreate       Boolean  @default(false)
+  canEdit         Boolean  @default(false)
+  canDelete       Boolean  @default(false)
+  canApprove      Boolean  @default(false)
+  canExport       Boolean  @default(false)
+  canViewCost     Boolean  @default(false)
+  canViewMargin   Boolean  @default(false)
+  canViewFinance  Boolean  @default(false)
+  canCrossWarehouse Boolean @default(false)
+  canCrossCompany Boolean  @default(false)
+  canViewSensitivePhoto Boolean @default(false)
+  canViewFloorPrice     Boolean @default(false)
+  dataScope             String  @default("ALL")  // ALL / OWN / TEAM / REGION
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([roleName, module])
+}
+
+// ========== 審批流程設定 ==========
+model ApprovalFlow {
+  id            String   @id @default(cuid())
+  flowName      String
+  module        String   // 適用模組：quotations, purchases, expenses…
+  triggerCondition String? // 觸發條件描述或 JSON 規則
+  level1Role    String?  // 第一關審批角色/人
+  level2Role    String?  // 第二關
+  level3Role    String?  // 第三關
+  minAmount       Decimal? @db.Decimal(12,2)
+  maxAmount       Decimal? @db.Decimal(12,2)
+  isUrgent        Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

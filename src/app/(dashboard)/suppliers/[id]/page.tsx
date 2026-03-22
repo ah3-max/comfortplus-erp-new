@@ -1,0 +1,402 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { SupplierForm } from '@/components/purchases/supplier-form'
+import { ArrowLeft, Pencil, Plus, Trash2, Loader2, Building2, Package, History, TrendingDown } from 'lucide-react'
+import { toast } from 'sonner'
+
+const purchaseTypeLabels: Record<string, string> = {
+  FINISHED_GOODS:     '成品採購', OEM: 'OEM代工',
+  PACKAGING:          '包材採購', RAW_MATERIAL: '原物料採購',
+  GIFT_PROMO:         '贈品/活動', LOGISTICS_SUPPLIES: '物流耗材',
+}
+const statusConfig: Record<string, { label: string; cls: string }> = {
+  DRAFT:            { label: '草稿',   cls: 'border-slate-300 text-slate-600' },
+  PENDING_APPROVAL: { label: '審核中', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
+  SOURCING:         { label: '詢價中', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
+  CONFIRMED:        { label: '已確認', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
+  PARTIAL:          { label: '部分到貨', cls: 'bg-amber-100 text-amber-700 border-amber-200' },
+  RECEIVED:         { label: '已到貨', cls: 'bg-green-100 text-green-700 border-green-200' },
+  CANCELLED:        { label: '已取消', cls: 'bg-red-100 text-red-700 border-red-200' },
+}
+
+interface PriceHistory {
+  id: string; itemName: string; unitCost: string; currency: string
+  effectiveDate: string; notes: string | null
+  product: { id: string; sku: string; name: string; unit: string } | null
+}
+interface PurchaseOrder {
+  id: string; poNo: string; status: string; orderType: string
+  totalAmount: string; paidAmount: string; expectedDate: string | null; createdAt: string
+}
+interface Supplier {
+  id: string; code: string; name: string; contactPerson: string | null
+  phone: string | null; email: string | null; address: string | null
+  taxId: string | null; paymentTerms: string | null
+  leadTimeDays: number | null; supplyCategories: string | null
+  supplyItems: string | null; notes: string | null; isActive: boolean
+  purchaseOrders: PurchaseOrder[]
+  priceHistory: PriceHistory[]
+  _count: { purchaseOrders: number }
+}
+
+function fmt(v: string | number) {
+  return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(Number(v))
+}
+function fmtDate(s: string) {
+  return new Date(s).toLocaleDateString('zh-TW')
+}
+
+export default function SupplierDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const [supplier, setSupplier] = useState<Supplier | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const [tab, setTab]           = useState<'info' | 'orders' | 'price'>('info')
+  const [editOpen, setEditOpen] = useState(false)
+
+  // 歷史採購價格 dialog
+  const [priceOpen, setPriceOpen]   = useState(false)
+  const [pItemName, setPItemName]   = useState('')
+  const [pUnitCost, setPUnitCost]   = useState('')
+  const [pDate, setPDate]           = useState(new Date().toISOString().slice(0, 10))
+  const [pNotes, setPNotes]         = useState('')
+  const [pSaving, setPSaving]       = useState(false)
+
+  async function fetchSupplier() {
+    setLoading(true)
+    const res = await fetch(`/api/suppliers/${id}`)
+    if (res.ok) setSupplier(await res.json())
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchSupplier() }, [id])
+
+  async function handleAddPrice(e: React.FormEvent) {
+    e.preventDefault()
+    if (!pItemName || !pUnitCost) { toast.error('請填寫品項名稱與單價'); return }
+    setPSaving(true)
+    const res = await fetch(`/api/suppliers/${id}/price-history`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemName: pItemName, unitCost: pUnitCost, effectiveDate: pDate, notes: pNotes }),
+    })
+    setPSaving(false)
+    if (res.ok) {
+      toast.success('採購價格已新增')
+      setPriceOpen(false)
+      setPItemName(''); setPUnitCost(''); setPNotes('')
+      setPDate(new Date().toISOString().slice(0, 10))
+      fetchSupplier()
+    } else {
+      const d = await res.json(); toast.error(d.error ?? '新增失敗')
+    }
+  }
+
+  async function handleDeletePrice(recordId: string) {
+    if (!confirm('確定刪除此價格紀錄？')) return
+    const res = await fetch(`/api/suppliers/${id}/price-history?recordId=${recordId}`, { method: 'DELETE' })
+    if (res.ok) { toast.success('已刪除'); fetchSupplier() }
+    else toast.error('刪除失敗')
+  }
+
+  if (loading) return (
+    <div className="flex h-full items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  )
+  if (!supplier) return (
+    <div className="flex h-full items-center justify-center text-muted-foreground">找不到此供應商</div>
+  )
+
+  const categories = supplier.supplyCategories ? JSON.parse(supplier.supplyCategories) as string[] : []
+  const totalPurchased = supplier.purchaseOrders
+    .filter(o => o.status !== 'CANCELLED')
+    .reduce((s, o) => s + Number(o.totalAmount), 0)
+
+  return (
+    <div className="space-y-5 max-w-5xl">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <button onClick={() => router.back()}
+          className="rounded-lg p-1.5 hover:bg-slate-100 transition-colors">
+          <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+        </button>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
+          <Building2 className="h-5 w-5 text-slate-600" />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">{supplier.name}</h1>
+            <span className="text-sm font-mono text-muted-foreground">{supplier.code}</span>
+            {!supplier.isActive && <Badge variant="outline" className="text-xs bg-slate-50 text-slate-500">停用</Badge>}
+          </div>
+          {categories.length > 0 && (
+            <div className="flex gap-1 mt-1">
+              {categories.map(c => (
+                <Badge key={c} variant="outline" className="text-xs px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200">
+                  {purchaseTypeLabels[c] ?? c}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+        <Button variant="outline" onClick={() => setEditOpen(true)}>
+          <Pencil className="mr-2 h-4 w-4" />編輯
+        </Button>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground mb-1">累計採購金額</div>
+            <div className="text-xl font-bold text-slate-900">{fmt(totalPurchased)}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{supplier._count.purchaseOrders} 筆採購單</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground mb-1">交期</div>
+            <div className="text-xl font-bold text-slate-900">
+              {supplier.leadTimeDays != null ? `${supplier.leadTimeDays} 天` : '—'}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">付款：{supplier.paymentTerms ?? '—'}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground mb-1">歷史報價筆數</div>
+            <div className="text-xl font-bold text-slate-900">{supplier.priceHistory.length}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">歷史採購價格紀錄</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
+        {[
+          { id: 'info',   label: '基本資料',   icon: <Building2 className="h-4 w-4" /> },
+          { id: 'orders', label: '採購紀錄',   icon: <Package className="h-4 w-4" /> },
+          { id: 'price',  label: '歷史採購價格', icon: <History className="h-4 w-4" /> },
+        ].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              tab === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+            }`}>
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 基本資料 */}
+      {tab === 'info' && (
+        <div className="grid grid-cols-2 gap-5">
+          <Card>
+            <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">聯絡資訊</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {[
+                { label: '聯絡人', value: supplier.contactPerson },
+                { label: '電話', value: supplier.phone },
+                { label: 'Email', value: supplier.email },
+                { label: '地址', value: supplier.address },
+                { label: '統一編號', value: supplier.taxId },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="font-medium text-right max-w-[60%]">{value ?? '—'}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">合作條件</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">付款條件</span>
+                <span className="font-medium">{supplier.paymentTerms ?? '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">交期天數</span>
+                <span className="font-medium">{supplier.leadTimeDays != null ? `${supplier.leadTimeDays} 天` : '—'}</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground">供應分類</span>
+                <div className="flex flex-wrap gap-1">
+                  {categories.length > 0
+                    ? categories.map(c => (
+                      <Badge key={c} variant="outline" className="text-xs">{purchaseTypeLabels[c] ?? c}</Badge>
+                    ))
+                    : <span className="text-muted-foreground">—</span>}
+                </div>
+              </div>
+              {supplier.supplyItems && (
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground">供應品項</span>
+                  <p className="text-xs text-slate-700 whitespace-pre-wrap">{supplier.supplyItems}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          {supplier.notes && (
+            <Card className="col-span-2">
+              <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">備註</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{supplier.notes}</p></CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* 採購紀錄 */}
+      {tab === 'orders' && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">採購紀錄（最近 20 筆）</CardTitle>
+            <Button size="sm" onClick={() => router.push('/purchases')}>
+              <Package className="mr-2 h-4 w-4" />前往採購管理
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>採購單號</TableHead>
+                  <TableHead>採購類型</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead className="text-right">採購金額</TableHead>
+                  <TableHead className="text-right">已付款</TableHead>
+                  <TableHead>預計到貨</TableHead>
+                  <TableHead>建立日期</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supplier.purchaseOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">尚無採購紀錄</TableCell>
+                  </TableRow>
+                ) : supplier.purchaseOrders.map(o => {
+                  const sc = statusConfig[o.status] ?? { label: o.status, cls: '' }
+                  return (
+                    <TableRow key={o.id} className="cursor-pointer hover:bg-slate-50"
+                      onClick={() => router.push(`/purchases/${o.id}`)}>
+                      <TableCell className="font-mono text-sm font-medium">{o.poNo}</TableCell>
+                      <TableCell className="text-sm">{purchaseTypeLabels[o.orderType] ?? o.orderType}</TableCell>
+                      <TableCell><Badge variant="outline" className={`text-xs ${sc.cls}`}>{sc.label}</Badge></TableCell>
+                      <TableCell className="text-right font-medium">{fmt(o.totalAmount)}</TableCell>
+                      <TableCell className="text-right text-sm text-green-600">
+                        {Number(o.paidAmount) > 0 ? fmt(o.paidAmount) : '—'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {o.expectedDate ? fmtDate(o.expectedDate) : '—'}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{fmtDate(o.createdAt)}</TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 歷史採購價格 */}
+      {tab === 'price' && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">歷史採購價格</CardTitle>
+            <Button size="sm" onClick={() => setPriceOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />新增報價
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>品項名稱</TableHead>
+                  <TableHead className="text-right w-32">採購單價</TableHead>
+                  <TableHead className="w-24">幣別</TableHead>
+                  <TableHead className="w-28">生效日期</TableHead>
+                  <TableHead>備註</TableHead>
+                  <TableHead className="w-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supplier.priceHistory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      尚無歷史採購價格，點擊右上角新增
+                    </TableCell>
+                  </TableRow>
+                ) : supplier.priceHistory.map(p => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="font-medium text-sm">{p.itemName}</div>
+                      {p.product && (
+                        <div className="text-xs text-muted-foreground font-mono">{p.product.sku}</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right font-bold">{fmt(p.unitCost)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.currency}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{fmtDate(p.effectiveDate)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{p.notes ?? '—'}</TableCell>
+                    <TableCell>
+                      <button onClick={() => handleDeletePrice(p.id)}
+                        className="text-muted-foreground hover:text-red-500 transition-colors">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit supplier dialog */}
+      <SupplierForm open={editOpen} onClose={() => setEditOpen(false)}
+        onSuccess={fetchSupplier} supplier={supplier} />
+
+      {/* Add price dialog */}
+      <Dialog open={priceOpen} onOpenChange={(o) => !o && setPriceOpen(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>新增歷史採購價格</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddPrice} className="space-y-4 py-1">
+            <div className="space-y-1.5">
+              <Label>品項名稱 <span className="text-red-500">*</span></Label>
+              <Input value={pItemName} onChange={e => setPItemName(e.target.value)} placeholder="商品名稱 or 品項描述" required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>採購單價 <span className="text-red-500">*</span></Label>
+                <Input type="number" value={pUnitCost} onChange={e => setPUnitCost(e.target.value)} placeholder="0" min={0} step={0.01} required />
+              </div>
+              <div className="space-y-1.5">
+                <Label>生效日期</Label>
+                <Input type="date" value={pDate} onChange={e => setPDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>備註</Label>
+              <Input value={pNotes} onChange={e => setPNotes(e.target.value)} placeholder="備註（選填）" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPriceOpen(false)} disabled={pSaving}>取消</Button>
+              <Button type="submit" disabled={pSaving}>
+                {pSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}新增
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

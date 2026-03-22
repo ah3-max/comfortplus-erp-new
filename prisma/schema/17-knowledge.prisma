@@ -1,0 +1,68 @@
+model KnowledgeBaseEntry {
+  id String @id @default(cuid())
+  incidentId String?
+  incident CareIncident? @relation(fields: [incidentId], references: [id])
+  entryType String
+  title String
+  summary String
+  tags String[]
+  relatedSkus String[]
+  relatedBatchNos String[]
+  customerTypes String[]
+  symptomCodes String[]
+  embedding Json?
+  isPublic Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model KnowledgeBaseConfig {
+  id String @id @default(cuid())
+  configType String @unique
+  configData Json
+  isActive Boolean @default(true)
+  updatedById String?
+  updatedAt DateTime @updatedAt
+}
+
+model AIQueryLog {
+  id String @id @default(cuid())
+  userId String
+  query String
+  answer String
+  sources Json
+  isCorrect Boolean?
+  correctedAnswer String?
+  correctedById String?
+  correctedAt DateTime?
+  rating Int?
+  feedbackNote String?
+  createdAt DateTime @default(now())
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model DocumentVersion {
+  id String @id @default(cuid())
+  documentType String
+  relatedType String?
+  relatedId String?
+  documentName String
+  version Int @default(1)
+  versionNote String?
+  fileUrl String
+  fileName String
+  fileSizeBytes Int?
+  mimeType String?
+  status String @default("DRAFT")
+  approvedById String?
+  approvedAt DateTime?
+  effectiveDate DateTime?
+  expiryDate DateTime?
+  previousVersionId String?
+  createdById String
+  createdBy User @relation("DocVersionCreatedBy", fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([documentType, relatedType, relatedId])
+  @@index([documentType, status])
+}

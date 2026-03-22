@@ -1,0 +1,230 @@
+// ── 拜訪紀錄 ──────────────────────────────────────────
+model VisitRecord {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  visitedById    String
+  visitedBy      User      @relation("VisitedBy", fields: [visitedById], references: [id])
+  visitDate      DateTime
+  visitMethod    String?   // 拜訪方式：ONSITE / PHONE / VIDEO / OTHER
+  purpose        String?   // 初訪/複訪/服務/教育訓練/簽約
+  participants   String?   // 參與人員（JSON array or text）
+  content        String?   // 訪談重點
+  customerNeeds  String?   // 客戶需求
+  competitorInfo String?   // 競品資訊
+  result         String?   // 拜訪結果
+  nextAction     String?   // 下次跟進事項
+  nextVisitDate  DateTime?
+  followUpStatus String?   // 跟進狀態：PENDING / DONE / OVERDUE
+  createdAt      DateTime  @default(now())
+
+  media          VisitMedia[]
+}
+
+// ── 電訪紀錄 ──────────────────────────────────────────
+model CallRecord {
+  id          String    @id @default(cuid())
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  calledById  String
+  calledBy    User      @relation("CalledBy", fields: [calledById], references: [id])
+  callDate    DateTime
+  duration    Int?      // 通話時長（分鐘）
+  purpose     String?
+  content     String?
+  result      String?
+
+  createdAt   DateTime  @default(now())
+}
+
+// ── 樣品寄送紀錄 ──────────────────────────────────────
+model SampleRecord {
+  id             String    @id @default(cuid())
+  customerId     String
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  sentById       String
+  sentBy         User      @relation("SampleSentBy", fields: [sentById], references: [id])
+  sentDate       DateTime
+  items          String         // 樣品品項描述
+  quantity       Int?           // 數量
+  purpose        SamplePurpose? // 目的
+  trackingNo     String?        // 寄送單號
+  recipient      String?        // 收件人
+  hasFeedback    Boolean        @default(false)  // 是否已有回饋
+  followUpDate   DateTime?      // 預計追蹤日
+  followUpResult String?        // 追蹤結果
+  outcome        String?        // 最終結果
+  sampleCost     Decimal?       @db.Decimal(10,2)
+  shippingCost   Decimal?       @db.Decimal(10,2)
+  totalCost      Decimal?       @db.Decimal(10,2)
+  isTrialOrder   Boolean        @default(false)
+  trialRisk      String?
+  notes          String?
+  createdAt      DateTime       @default(now())
+}
+
+// ── 客訴與售後紀錄 ────────────────────────────────────
+model ComplaintRecord {
+  id            String             @id @default(cuid())
+  customerId    String
+  customer      Customer           @relation(fields: [customerId], references: [id])
+  reportedById  String
+  reportedBy    User               @relation("ComplaintReportedBy", fields: [reportedById], references: [id])
+  complaintDate DateTime
+  type          ComplaintType      @default(COMPLAINT)
+  content       String             // 客訴/售後內容（主旨/情況描述）
+  status        ComplaintStatus    @default(OPEN)
+  severity      ComplaintSeverity  @default(MEDIUM) // 嚴重程度
+
+  // ── 指派照護督導 ──────────────────────────────────
+  assignedSupervisorId String?
+  assignedSupervisor   User?        @relation("ComplaintSupervisor", fields: [assignedSupervisorId], references: [id])
+  supervisorAppointDate DateTime?   // 督導約訪時間
+
+  // ── 第一次回應 ────────────────────────────────────
+  firstResponseAt     DateTime?    // 第一時間回應時間
+  firstResponseMethod String?      // 第一次回應方式（PHONE/ONSITE/LINE/EMAIL）
+
+  // ── 跟進計畫 ─────────────────────────────────────
+  nextFollowUpDate    DateTime?    // 下次跟進日
+  nextFollowUpMethod  String?      // 下次處理方式
+
+  // ── 結案 ────────────────────────────────────────
+  handler     String?              // 負責處理人員（文字）
+  resolution  String?              // 處理結果說明
+  resolvedAt  DateTime?            // 已解決時間
+  closedAt    DateTime?            // 正式結案時間
+
+  // ── 附件 ────────────────────────────────────────
+  photoUrls   Json?               // [{url,label,uploadedAt}]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logs        ComplaintLog[]
+}
+
+// ── 客訴處理紀錄（時間軸）────────────────────────────
+model ComplaintLog {
+  id            String          @id @default(cuid())
+  complaintId   String
+  complaint     ComplaintRecord @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  logDate       DateTime        @default(now())
+  action        ComplaintAction
+  description   String          // 處理說明
+  nextFollowUpDate   DateTime?  // 下次跟進日（更新）
+  nextFollowUpMethod String?    // 下次跟進方式
+  photoUrls     Json?           // 本次上傳的照片
+  loggedById    String
+  loggedBy      User            @relation("ComplaintLoggedBy", fields: [loggedById], references: [id])
+  createdAt     DateTime        @default(now())
+}
+
+// ========== 業務追蹤日誌（統一入口）==========
+model FollowUpLog {
+  id              String          @id @default(cuid())
+  customerId      String
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  createdById     String
+  createdBy       User            @relation("FollowUpLogCreatedBy", fields: [createdById], references: [id])
+  logDate         DateTime        @default(now())
+  logType         FollowUpLogType @default(CALL)
+  method          String?         // 聯繫方式：PHONE / LINE / EMAIL / ONSITE / VIDEO
+  contactPersonId String?         // 聯絡對象（CustomerContact.id）
+  content         String          // 追蹤內容（必填）
+  result          String?         // 結果/回應
+  customerReaction String?        // 客戶反應：POSITIVE / NEUTRAL / NEGATIVE / NO_RESPONSE
+  nextFollowUpDate DateTime?       // 下次追蹤日（填寫後自動建立 task）
+  nextAction      String?         // 下次行動說明
+  hasSample       Boolean         @default(false)  // 是否提供樣品（自動建立 SampleRecord）
+  sampleItems     String?         // 樣品品項說明
+  hasQuote        Boolean         @default(false)  // 是否提供報價（自動更新 opportunity）
+  hasOrder        Boolean         @default(false)  // 是否有訂單（自動更新 opportunity）
+  opportunityId   String?         // 關聯的銷售機會
+  opportunity     SalesOpportunity? @relation(fields: [opportunityId], references: [id])
+  taskCreated     Boolean         @default(false)  // 是否已自動建立任務
+  taskId          String?         // 自動建立的任務 ID
+  isFollowUp      Boolean         @default(true)   // 是否繼續追蹤
+  attachments     String?         // 附件 JSON array
+  createdAt       DateTime        @default(now())
+}
+
+// ========== 銷售機會管理 ==========
+model SalesOpportunity {
+  id              String              @id @default(cuid())
+  customerId      String
+  customer        Customer            @relation(fields: [customerId], references: [id])
+  ownerId         String              // 負責業務
+  owner           User                @relation("OpportunityOwner", fields: [ownerId], references: [id])
+  title           String              // 機會名稱
+  stage           OpportunityStage    @default(PROSPECTING)
+  probability     Int                 @default(10)    // 成交機率 0-100
+  expectedAmount  Decimal?            @db.Decimal(12, 2)  // 預估金額
+  expectedCloseDate DateTime?         // 預計成交日
+  productInterest String?             // 有興趣的產品/規格
+  competitorInfo  String?             // 競品資訊
+  lostReason      String?             // 失單原因
+  closedAt        DateTime?           // 成交/失單日期
+  notes           String?
+  isActive        Boolean             @default(true)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  followUpLogs    FollowUpLog[]
+}
+
+// ========== 客戶標籤 ==========
+model CustomerTag {
+  id        String           @id @default(cuid())
+  name      String           @unique  // 標籤名稱
+  color     String           @default("#6366f1")  // 顏色（hex）
+  category  String?          // 標籤分類（如：產品偏好/重要客戶/問題客戶）
+  createdAt DateTime         @default(now())
+
+  tagMaps   CustomerTagMap[]
+}
+
+model CustomerTagMap {
+  id         String      @id @default(cuid())
+  customerId String
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        CustomerTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+
+  @@unique([customerId, tagId])
+}
+
+// ── 業務負責人變更 ──────────────────────────────────
+model SalesRepChange {
+  id              String   @id @default(cuid())
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  previousRepId   String?
+  previousRep     User?    @relation("PrevRep", fields: [previousRepId], references: [id])
+  newRepId        String
+  newRep          User     @relation("NewRep", fields: [newRepId], references: [id])
+  changeDate      DateTime @default(now())
+  changeReason    String?
+  handoverNote    String?
+  handoverStatus  String   @default("PENDING")
+  createdById     String
+  createdAt       DateTime @default(now())
+}
+
+// ── 業績目標 ────────────────────────────────────────
+model SalesTarget {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  targetMonth     DateTime @db.Date
+  revenueTarget   Decimal  @db.Decimal(14,2)
+  orderTarget     Int?
+  visitTarget     Int?
+  newCustTarget   Int?
+  revenueActual   Decimal? @db.Decimal(14,2)
+  achieveRate     Decimal? @db.Decimal(5,2)
+  notes           String?
+  updatedAt       DateTime @updatedAt
+  @@unique([userId, targetMonth])
+}

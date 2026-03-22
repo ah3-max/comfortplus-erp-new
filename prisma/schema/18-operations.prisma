@@ -1,0 +1,96 @@
+model WorkHandover {
+  id String @id @default(cuid())
+  handoverNo String @unique
+  handoverType String
+  fromUserId String
+  fromUser User @relation("HandoverFrom", fields: [fromUserId], references: [id])
+  toUserId String
+  toUser User @relation("HandoverTo", fields: [toUserId], references: [id])
+  summary String
+  relatedType String?
+  relatedId String?
+  checklist Json?
+  status String @default("PENDING")
+  acceptedAt DateTime?
+  completedAt DateTime?
+  dueDate DateTime?
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SLARule {
+  id String @id @default(cuid())
+  module String
+  severity String?
+  responseTimeHrs Int
+  resolutionTimeHrs Int
+  onSiteTimeHrs Int?
+  escalateAfterHrs Int?
+  escalateToRole String?
+  isActive Boolean @default(true)
+  notes String?
+  updatedAt DateTime @updatedAt
+  @@unique([module, severity])
+}
+
+model FieldValidationRule {
+  id String @id @default(cuid())
+  module String
+  entityType String
+  triggerField String
+  triggerValue String
+  requiredFields String[]
+  ruleName String
+  errorMessage String
+  isActive Boolean @default(true)
+  @@unique([module, triggerField, triggerValue])
+}
+
+model AttachmentPolicy {
+  id String @id @default(cuid())
+  module String @unique
+  autoNaming Boolean @default(true)
+  namePattern String?
+  allowedMimeTypes String[] @default(["image/jpeg","image/png","application/pdf"])
+  maxFileSizeMb Int @default(10)
+  maxFilesPerEntity Int @default(50)
+  retentionDays Int?
+  canDownloadRoles String[] @default([])
+  canDeleteRoles String[] @default(["SUPER_ADMIN"])
+  isSensitiveDefault Boolean @default(false)
+  notes String?
+  updatedAt DateTime @updatedAt
+}
+
+model ReminderSchedule {
+  id String @id @default(cuid())
+  title String
+  reminderType String
+  eventDate DateTime?
+  reminderDays Int[] @default([7,3,1])
+  isRecurring Boolean @default(false)
+  frequency String?
+  notifyUserIds String[] @default([])
+  notifyRoles String[] @default([])
+  amount Decimal? @db.Decimal(12,2)
+  isActive Boolean @default(true)
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model KPIDefinition {
+  id String @id @default(cuid())
+  kpiCode String @unique
+  kpiName String
+  module String
+  formula String
+  calcLogic String?
+  attributionRule String?
+  unit String?
+  targetDefault Decimal? @db.Decimal(12,2)
+  warningThreshold Decimal? @db.Decimal(12,2)
+  isActive Boolean @default(true)
+  updatedAt DateTime @updatedAt
+}

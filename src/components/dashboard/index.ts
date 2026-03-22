@@ -1,0 +1,6 @@
+export { GmDashboard } from './gm-dashboard'
+export { SalesDashboard } from './sales-dashboard'
+export { SalesManagerDashboard } from './sales-manager-dashboard'
+export { WarehouseDashboard } from './warehouse-dashboard'
+export { FinanceDashboard } from './finance-dashboard'
+export { ProcurementDashboard } from './procurement-dashboard'
