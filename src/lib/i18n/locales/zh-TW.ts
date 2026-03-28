@@ -133,6 +133,7 @@ const zhTW = {
     paymentTransferList: '付款單轉帳清單',
     priceTiers: '多級單價',
     marginCalc: '毛利計算',
+    profit: '利潤管理',
     knowledge: '知識庫',
     retail: '實體通路',
     auditLog: '操作紀錄',

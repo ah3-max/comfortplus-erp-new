@@ -63,6 +63,7 @@ import {
   Scale,
   RotateCcw,
   CalendarCheck2,
+  TrendingUp,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -73,7 +74,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'production' | 'materialRequisitions' | 'productionReceipts' | 'seaFreight' | 'channels' | 'payments' | 'kpi' | 'pipeline' | 'opportunities' |
   'qc' | 'packaging' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
-  'alerts' | 'traceability' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
+  'alerts' | 'traceability' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
@@ -113,6 +114,7 @@ const navGroups: NavGroup[] = [
       { href: '/e-invoices',     key: 'eInvoices',      icon: FileText },
       { href: '/sales-returns',  key: 'salesReturns',   icon: RotateCcw },
       { href: '/margin-calc',    key: 'marginCalc',     icon: Calculator },
+      { href: '/profit',         key: 'profit',         icon: TrendingUp },
       { href: '/kpi',                 key: 'kpi',            icon: Zap },
       { href: '/pipeline',            key: 'pipeline',       icon: Target },
       { href: '/sales-opportunities', key: 'opportunities',  icon: Briefcase },

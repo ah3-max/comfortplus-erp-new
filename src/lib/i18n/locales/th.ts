@@ -131,6 +131,7 @@ const th = {
     paymentTransferList: 'รายการโอนเงินจ่าย',
     priceTiers: 'ราคาหลายระดับ',
     marginCalc: 'คำนวณกำไร',
+    profit: 'การวิเคราะห์กำไร',
     knowledge: 'ฐานความรู้',
     retail: 'ค้าปลีก',
     auditLog: 'บันทึกการตรวจสอบ',

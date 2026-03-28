@@ -131,6 +131,7 @@ const en = {
     paymentTransferList: 'Payment Transfer List',
     priceTiers: 'Price Tiers',
     marginCalc: 'Margin Calc',
+    profit: 'Profit Analysis',
     knowledge: 'Knowledge',
     retail: 'Retail',
     auditLog: 'Audit Log',
