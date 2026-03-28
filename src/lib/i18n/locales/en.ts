@@ -106,6 +106,8 @@ const en = {
     fulfillmentRate: 'Order Fulfillment Rate',
     promoCalendar: 'Promo Calendar',
     vehicles: 'Vehicle Management',
+    priceLists: 'Customer Special Prices',
+    channelOrders: 'Channel Orders',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

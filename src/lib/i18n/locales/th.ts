@@ -106,6 +106,8 @@ const th = {
     fulfillmentRate: 'วิเคราะห์อัตราการปฏิบัติตามคำสั่งซื้อ',
     promoCalendar: 'ปฏิทินโปรโมชัน',
     vehicles: 'จัดการยานพาหนะ',
+    priceLists: 'ราคาพิเศษลูกค้า',
+    channelOrders: 'คำสั่งซื้อช่องทาง',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',

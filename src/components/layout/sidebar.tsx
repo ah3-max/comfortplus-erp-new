@@ -68,6 +68,7 @@ import {
   Clock,
   DollarSign,
   CheckCircle2,
+  Tag,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -81,7 +82,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
   'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' | 'deliveryPerformance' | 'deadStock' | 'meetingRecords' | 'salespersonPerformance' | 'returnAnalysis' |
-  'promoCalendar' | 'vehicles' | 'fulfillmentRate' |
+  'promoCalendar' | 'vehicles' | 'fulfillmentRate' | 'priceLists' | 'channelOrders' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -131,6 +132,8 @@ const navGroups: NavGroup[] = [
       { href: '/salesperson-performance', key: 'salespersonPerformance',   icon: Users },
       { href: '/fulfillment-rate',        key: 'fulfillmentRate',          icon: CheckCircle2 },
       { href: '/promo-calendar',          key: 'promoCalendar',            icon: CalendarRange },
+      { href: '/price-lists',             key: 'priceLists',               icon: Tag },
+      { href: '/channel-orders',          key: 'channelOrders',            icon: ShoppingBag },
     ],
   },
   {

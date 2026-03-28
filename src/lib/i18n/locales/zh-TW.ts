@@ -108,6 +108,8 @@ const zhTW = {
     fulfillmentRate: '訂單履約率分析',
     promoCalendar: '促銷行事曆',
     vehicles: '車輛管理',
+    priceLists: '客戶特殊價格表',
+    channelOrders: '通路訂單',
     arAging: '應收帳齡',
     finance: '財務報表',
     apAging: '應付帳齡',
