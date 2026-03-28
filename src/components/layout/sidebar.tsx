@@ -78,7 +78,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
-  'creditManagement' | 'autoJournal' | 'statements' |
+  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -133,7 +133,8 @@ const navGroups: NavGroup[] = [
       { href: '/stock-counts',  key: 'stockCounts',  icon: ClipboardCheck },
       { href: '/internal-use',  key: 'internalUse',  icon: PackageX },
       { href: '/traceability',     key: 'traceability',   icon: SearchCode },
-      { href: '/expiry-tracking',  key: 'expiryTracking', icon: Clock },
+      { href: '/expiry-tracking',   key: 'expiryTracking',   icon: Clock },
+      { href: '/inventory-movement', key: 'inventoryMovement', icon: BarChart3 },
       { href: '/wms',           key: 'wms',          icon: Warehouse },
     ],
   },

@@ -91,6 +91,7 @@ const en = {
     creditManagement: 'Credit Management',
     autoJournal: 'Auto Journal Posting',
     statements: 'Customer Statements',
+    inventoryMovement: 'Inventory Movement',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

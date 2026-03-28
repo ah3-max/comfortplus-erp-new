@@ -91,6 +91,7 @@ const th = {
     creditManagement: 'การจัดการเครดิตลูกค้า',
     autoJournal: 'บันทึกบัญชีอัตโนมัติ',
     statements: 'ใบแจ้งยอดลูกค้า',
+    inventoryMovement: 'รายงานความเคลื่อนไหวสินค้า',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',
