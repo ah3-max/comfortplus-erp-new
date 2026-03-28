@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -193,6 +194,7 @@ function StatusProgress({ status }: { status: FreightStatus }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function SeaFreightPage() {
+  const { dict } = useI18n()
   const [records, setRecords]           = useState<SeaFreight[]>([])
   const [loading, setLoading]           = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('_all')
@@ -370,11 +372,11 @@ export default function SeaFreightPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">海運追蹤</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.seaFreight.title}</h1>
           <p className="text-sm text-muted-foreground">共 {activeCount} 筆海運記錄</p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />新增海運
+          <Plus className="mr-2 h-4 w-4" />{dict.common.create}
         </Button>
       </div>
 
@@ -519,7 +521,7 @@ export default function SeaFreightPage() {
       <Dialog open={createOpen} onOpenChange={o => !o && setCreateOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新增海運記錄</DialogTitle>
+            <DialogTitle>{dict.seaFreight.title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* Source type */}
@@ -585,7 +587,7 @@ export default function SeaFreightPage() {
             {/* Vessel & Container */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>船名</Label>
+                <Label>{dict.seaFreight.vessel}</Label>
                 <Input
                   value={createForm.vesselName}
                   onChange={e => cf('vesselName', e.target.value)}
@@ -593,7 +595,7 @@ export default function SeaFreightPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>櫃號</Label>
+                <Label>{dict.seaFreight.container}</Label>
                 <Input
                   value={createForm.containerNo}
                   onChange={e => cf('containerNo', e.target.value.toUpperCase())}
@@ -674,11 +676,11 @@ export default function SeaFreightPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={saving}>
-              取消
+              {dict.common.cancel}
             </Button>
             <Button onClick={handleCreate} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              新增
+              {dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -688,7 +690,7 @@ export default function SeaFreightPage() {
       <Dialog open={editOpen} onOpenChange={o => !o && setEditOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>編輯海運記錄</DialogTitle>
+            <DialogTitle>{dict.common.edit}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* Status selectors */}
@@ -845,11 +847,11 @@ export default function SeaFreightPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
-              取消
+              {dict.common.cancel}
             </Button>
             <Button onClick={handleEdit} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              儲存
+              {dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

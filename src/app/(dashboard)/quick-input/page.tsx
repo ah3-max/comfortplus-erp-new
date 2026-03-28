@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -244,6 +245,7 @@ function hasSpeechRecognition(): boolean {
 // ---------------------------------------------------------------------------
 
 export default function QuickInputPage() {
+  const { dict } = useI18n()
   // --- All customers (loaded once) ---
   const [allCustomers, setAllCustomers] = useState<Customer[]>([])
 
@@ -599,7 +601,7 @@ export default function QuickInputPage() {
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 shadow-sm">
-        <h1 className="text-xl font-bold text-gray-900">快速輸入</h1>
+        <h1 className="text-xl font-bold text-gray-900">{dict.quickInput.title}</h1>
         <p className="text-sm text-gray-500">拜訪後快速記錄資料</p>
       </div>
 
@@ -732,11 +734,11 @@ export default function QuickInputPage() {
         <section>
           <Card className="border-0 shadow-md">
             <CardContent className="p-4 space-y-4">
-              <h2 className="font-bold text-gray-900 text-lg">快速紀錄</h2>
+              <h2 className="font-bold text-gray-900 text-lg">{dict.quickInput.visitRecord}</h2>
 
               {/* Customer picker */}
               <div>
-                <Label className="text-sm text-gray-600 mb-2 block">客戶</Label>
+                <Label className="text-sm text-gray-600 mb-2 block">{dict.quickInput.customer}</Label>
                 <CustomerPicker
                   value={selectedCustomer}
                   onChange={setSelectedCustomer}
@@ -767,7 +769,7 @@ export default function QuickInputPage() {
 
               {/* Notes textarea with voice button */}
               <div className="relative">
-                <Label className="text-sm text-gray-600 mb-1 block">備註內容</Label>
+                <Label className="text-sm text-gray-600 mb-1 block">{dict.quickInput.notes}</Label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -805,7 +807,7 @@ export default function QuickInputPage() {
                 ) : (
                   <Send className="w-5 h-5 mr-2" />
                 )}
-                {submitting ? '送出中...' : '送出紀錄'}
+                {submitting ? '送出中...' : dict.quickInput.submitSuccess}
               </Button>
             </CardContent>
           </Card>
@@ -1015,7 +1017,7 @@ export default function QuickInputPage() {
                 resetComplaintForm()
               }}
             >
-              取消
+              {dict.common.cancel}
             </Button>
             <Button
               className="bg-red-600 hover:bg-red-700"

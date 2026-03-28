@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -36,6 +37,7 @@ function fmt(n: number) {
 }
 
 export default function PartyTransactionsPage() {
+  const { dict } = useI18n()
   const searchParams = useSearchParams()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
@@ -81,8 +83,8 @@ export default function PartyTransactionsPage() {
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">往來類型</label>
           <select value={partyType} onChange={e => { setPartyType(e.target.value); setData(null) }} className="rounded-md border px-3 py-2 text-sm">
-            <option value="CUSTOMER">客戶</option>
-            <option value="SUPPLIER">供應商</option>
+            <option value="CUSTOMER">{dict.common.customer}</option>
+            <option value="SUPPLIER">{dict.common.supplier}</option>
           </select>
         </div>
         <div className="space-y-1">
@@ -102,7 +104,7 @@ export default function PartyTransactionsPage() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}
         </Button>
       </div>
 
@@ -110,7 +112,7 @@ export default function PartyTransactionsPage() {
         <>
           <div className="flex items-center gap-3 rounded-lg border bg-slate-50 p-3">
             <Badge className={partyType === 'CUSTOMER' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}>
-              {partyType === 'CUSTOMER' ? '客戶' : '供應商'}
+              {partyType === 'CUSTOMER' ? dict.common.customer : dict.common.supplier}
             </Badge>
             <span className="font-semibold">{data.party.name}</span>
             <span className="text-xs text-muted-foreground font-mono">{data.party.code}</span>
@@ -171,7 +173,7 @@ export default function PartyTransactionsPage() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請輸入往來對象 ID 並點擊查詢
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -300,6 +301,7 @@ function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
 export default function QuotationDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { dict } = useI18n()
 
   const [quotation, setQuotation] = useState<Quotation | null>(null)
   const [relatedOrders, setRelatedOrders] = useState<RelatedOrder[]>([])
@@ -523,7 +525,7 @@ export default function QuotationDetailPage() {
                 disabled={actionLoading}
               >
                 <Pencil className="mr-2 h-4 w-4" />
-                編輯
+                {dict.common.edit}
               </Button>
               <Button
                 onClick={handleSubmitForApproval}
@@ -534,7 +536,7 @@ export default function QuotationDetailPage() {
                 ) : (
                   <Send className="mr-2 h-4 w-4" />
                 )}
-                送審
+                {dict.purchasesExt.submitForApproval}
               </Button>
             </>
           )}
@@ -618,7 +620,7 @@ export default function QuotationDetailPage() {
                 ) : (
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                 )}
-                標記接受
+                {dict.common.approve}
               </Button>
             </>
           )}
@@ -642,7 +644,7 @@ export default function QuotationDetailPage() {
                 ) : (
                   <ShoppingCart className="mr-2 h-4 w-4" />
                 )}
-                轉為訂單
+                {dict.quotations.convertToOrder}
               </Button>
             </>
           )}
@@ -664,7 +666,7 @@ export default function QuotationDetailPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">客戶名稱</CardTitle>
+            <CardTitle className="text-xs font-medium text-muted-foreground">{dict.quotations.customer}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-0.5">
             <p className="font-semibold text-sm leading-tight">{quotation.customer.name}</p>
@@ -680,7 +682,7 @@ export default function QuotationDetailPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">有效期限</CardTitle>
+            <CardTitle className="text-xs font-medium text-muted-foreground">{dict.quotations.validUntil}</CardTitle>
           </CardHeader>
           <CardContent>
             {quotation.validUntil ? (
@@ -698,7 +700,7 @@ export default function QuotationDetailPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">建立人員</CardTitle>
+            <CardTitle className="text-xs font-medium text-muted-foreground">{dict.common.createdBy}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm font-medium">{quotation.createdBy.name}</p>
@@ -707,7 +709,7 @@ export default function QuotationDetailPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground">建立日期</CardTitle>
+            <CardTitle className="text-xs font-medium text-muted-foreground">{dict.common.createdAt}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm font-medium">{formatDate(quotation.createdAt)}</p>
@@ -725,7 +727,7 @@ export default function QuotationDetailPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
-            <CardTitle className="text-base">報價明細</CardTitle>
+            <CardTitle className="text-base">{dict.common.detail}</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -733,11 +735,11 @@ export default function QuotationDetailPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10 text-center">序號</TableHead>
-                <TableHead>品名</TableHead>
-                <TableHead className="w-32">SKU</TableHead>
-                <TableHead className="text-center w-20">數量</TableHead>
-                <TableHead className="text-center w-16">單位</TableHead>
-                <TableHead className="text-right w-28">單價</TableHead>
+                <TableHead>{dict.products.name}</TableHead>
+                <TableHead className="w-32">{dict.products.sku}</TableHead>
+                <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
+                <TableHead className="text-center w-16">{dict.common.unit}</TableHead>
+                <TableHead className="text-right w-28">{dict.common.price}</TableHead>
                 <TableHead className="text-right w-20">折扣%</TableHead>
                 <TableHead className="text-right w-28">小計</TableHead>
               </TableRow>
@@ -781,7 +783,7 @@ export default function QuotationDetailPage() {
             <tfoot>
               <tr className="border-t bg-slate-50">
                 <td colSpan={7} className="px-4 py-3 text-right text-sm font-semibold">
-                  合計
+                  {dict.common.total}
                 </td>
                 <td className="px-4 py-3 text-right font-bold text-base">
                   {formatCurrency(quotation.totalAmount)}
@@ -796,7 +798,7 @@ export default function QuotationDetailPage() {
       {quotation.notes && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">備註</CardTitle>
+            <CardTitle className="text-base">{dict.common.notes}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{quotation.notes}</p>
@@ -815,7 +817,7 @@ export default function QuotationDetailPage() {
           </CardHeader>
           <CardContent>
             {relatedOrders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">尚無關聯訂單</p>
+              <p className="text-sm text-muted-foreground">{dict.common.noRecords}</p>
             ) : (
               <div className="space-y-2">
                 {relatedOrders.map((order) => (
@@ -854,7 +856,7 @@ export default function QuotationDetailPage() {
       <Dialog open={editOpen} onOpenChange={(o) => !o && setEditOpen(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>編輯報價單</DialogTitle>
+            <DialogTitle>{dict.common.edit}{dict.quotations.title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-1">
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
@@ -887,11 +889,11 @@ export default function QuotationDetailPage() {
               onClick={() => setEditOpen(false)}
               disabled={saving}
             >
-              取消
+              {dict.common.cancel}
             </Button>
             <Button onClick={handleSaveEdit} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              儲存
+              {dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -928,7 +930,7 @@ export default function QuotationDetailPage() {
               onClick={() => { setApproveOpen(false); setApproveComment('') }}
               disabled={approving}
             >
-              取消
+              {dict.common.cancel}
             </Button>
             <Button
               onClick={handleDecide}

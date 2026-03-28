@@ -344,6 +344,20 @@ export default function PaymentsPage() {
         : 'border-transparent text-muted-foreground hover:text-foreground'
     }`
 
+  /* ─── Dict-based label maps ─────────────────────────────── */
+  const DIRECTION_CONFIG: Record<PaymentDirection, { label: string; color: string }> = {
+    INCOMING: { label: dict.payments.directions.INCOMING, color: DIRECTION_COLOR.INCOMING },
+    OUTGOING: { label: dict.payments.directions.OUTGOING, color: DIRECTION_COLOR.OUTGOING },
+  }
+  const TYPE_CONFIG: Record<PaymentType, { label: string; color: string }> = {
+    DEPOSIT:    { label: dict.payments.types.DEPOSIT,    color: TYPE_COLOR.DEPOSIT },
+    PROGRESS:   { label: dict.payments.types.PROGRESS,   color: TYPE_COLOR.PROGRESS },
+    FINAL:      { label: dict.payments.types.FINAL,      color: TYPE_COLOR.FINAL },
+    FULL:       { label: dict.payments.types.FULL,       color: TYPE_COLOR.FULL },
+    REFUND:     { label: dict.payments.types.REFUND,     color: TYPE_COLOR.REFUND },
+    ADJUSTMENT: { label: dict.payments.types.ADJUSTMENT, color: TYPE_COLOR.ADJUSTMENT },
+  }
+
   /* ─── Filtered data ─────────────────────────────────────── */
   const filteredPayments = payments
 
@@ -352,7 +366,7 @@ export default function PaymentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">收付款管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.payments.title}</h1>
           <p className="text-sm text-muted-foreground">
             管理銷售收款與採購付款紀錄
           </p>
@@ -365,11 +379,11 @@ export default function PaymentsPage() {
             if (filterDateTo)   params.set('dateTo', filterDateTo)
             window.open(`/api/payments/export?${params}`, '_blank')
           }}>
-            <Download className="mr-2 h-4 w-4" />匯出 Excel
+            <Download className="mr-2 h-4 w-4" />{dict.common.exportExcel}
           </Button>
           <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            {tab === 'INCOMING' ? '新增收款' : '新增付款'}
+            {dict.paymentsExt.newPayment}
           </Button>
         </div>
       </div>
@@ -382,7 +396,7 @@ export default function PaymentsPage() {
               <ArrowDownLeft className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">本月收款總額</p>
+              <p className="text-sm text-slate-500">本月{dict.payments.directions.INCOMING}總額</p>
               <p className="text-xl font-bold text-green-600">{formatCurrency(monthIncoming)}</p>
             </div>
           </CardContent>
@@ -393,7 +407,7 @@ export default function PaymentsPage() {
               <ArrowUpRight className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">本月付款總額</p>
+              <p className="text-sm text-slate-500">本月{dict.payments.directions.OUTGOING}總額</p>
               <p className="text-xl font-bold text-red-600">{formatCurrency(monthOutgoing)}</p>
             </div>
           </CardContent>
@@ -404,7 +418,7 @@ export default function PaymentsPage() {
               <Receipt className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">待收帳款</p>
+              <p className="text-sm text-slate-500">{dict.paymentsExt.totalReceived}</p>
               <p className="text-xl font-bold text-amber-600">
                 {tab === 'INCOMING' ? formatCurrency(totalIncoming) : '—'}
               </p>
@@ -417,7 +431,7 @@ export default function PaymentsPage() {
               <Banknote className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">待付帳款</p>
+              <p className="text-sm text-slate-500">{dict.paymentsExt.totalPaid}</p>
               <p className="text-xl font-bold text-purple-600">
                 {tab === 'OUTGOING' ? formatCurrency(totalOutgoing) : '—'}
               </p>
@@ -429,10 +443,10 @@ export default function PaymentsPage() {
       {/* Tab Bar */}
       <div className="border-b flex gap-0">
         <button className={tabStyle('INCOMING')} onClick={() => setTab('INCOMING')}>
-          收款管理
+          {dict.payments.incoming}
         </button>
         <button className={tabStyle('OUTGOING')} onClick={() => setTab('OUTGOING')}>
-          付款管理
+          {dict.payments.outgoing}
         </button>
       </div>
 
@@ -459,15 +473,15 @@ export default function PaymentsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-36">收付單號</TableHead>
+              <TableHead className="w-36">{dict.payments.paymentNo}</TableHead>
               <TableHead className="w-16">方向</TableHead>
-              <TableHead className="w-16">類型</TableHead>
-              <TableHead className="text-right w-28">金額</TableHead>
-              <TableHead className="w-28">日期</TableHead>
-              <TableHead>{tab === 'INCOMING' ? '客戶' : '供應商'}</TableHead>
+              <TableHead className="w-16">{dict.common.type}</TableHead>
+              <TableHead className="text-right w-28">{dict.common.amount}</TableHead>
+              <TableHead className="w-28">{dict.payments.paymentDate}</TableHead>
+              <TableHead>{tab === 'INCOMING' ? dict.common.customer : dict.common.supplier}</TableHead>
               <TableHead>關聯單號</TableHead>
-              <TableHead className="w-24">付款方式</TableHead>
-              <TableHead className="w-32">發票號碼</TableHead>
+              <TableHead className="w-24">{dict.payments.paymentMethod}</TableHead>
+              <TableHead className="w-32">{dict.payments.invoiceNo}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -482,14 +496,14 @@ export default function PaymentsPage() {
               <TableRow>
                 <TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
                   {filterDateFrom || filterDateTo
-                    ? '找不到符合條件的收付款紀錄'
-                    : `尚無${tab === 'INCOMING' ? '收款' : '付款'}紀錄，點擊右上角新增`}
+                    ? dict.paymentsExt.noResults
+                    : dict.paymentsExt.noPayments}
                 </TableCell>
               </TableRow>
             ) : (
               filteredPayments.map(p => {
-                const dir = { color: DIRECTION_COLOR[p.direction], label: (dict.payments.directions as Record<string, string>)[p.direction] ?? p.direction }
-                const typ = { label: (dict.payments.types as Record<string, string>)[p.type] ?? p.type, color: TYPE_COLOR[p.type] ?? 'bg-slate-100 text-slate-600' }
+                const dir = DIRECTION_CONFIG[p.direction]
+                const typ = TYPE_CONFIG[p.type] ?? { label: p.type, color: 'bg-slate-100 text-slate-600' }
                 const counterparty = p.direction === 'INCOMING'
                   ? p.customer?.name
                   : p.supplier?.name
@@ -526,13 +540,13 @@ export default function PaymentsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEdit(p)}>
-                            <Pencil className="mr-2 h-4 w-4" />編輯
+                            <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openWriteOff(p)}>
                             <MinusCircle className="mr-2 h-4 w-4" />核銷
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(p)} variant="destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />刪除
+                            <Trash2 className="mr-2 h-4 w-4" />{dict.common.delete}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -549,7 +563,7 @@ export default function PaymentsPage() {
       <Dialog open={createOpen} onOpenChange={o => !o && setCreateOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新增{createForm.direction === 'INCOMING' ? '收款' : '付款'}</DialogTitle>
+            <DialogTitle>{dict.paymentsExt.newPayment}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* Direction */}
@@ -571,27 +585,27 @@ export default function PaymentsPage() {
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INCOMING">收款（INCOMING）</SelectItem>
-                  <SelectItem value="OUTGOING">付款（OUTGOING）</SelectItem>
+                  <SelectItem value="INCOMING">{dict.payments.directions.INCOMING}</SelectItem>
+                  <SelectItem value="OUTGOING">{dict.payments.directions.OUTGOING}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Type */}
             <div className="space-y-1.5">
-              <Label>類型 <span className="text-red-500">*</span></Label>
+              <Label>{dict.common.type} <span className="text-red-500">*</span></Label>
               <Select
                 value={createForm.type}
                 onValueChange={v => cf('type', v ?? 'FULL')}
               >
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DEPOSIT">訂金（DEPOSIT）</SelectItem>
-                  <SelectItem value="PROGRESS">期款（PROGRESS）</SelectItem>
-                  <SelectItem value="FINAL">尾款（FINAL）</SelectItem>
-                  <SelectItem value="FULL">全額（FULL）</SelectItem>
-                  <SelectItem value="REFUND">退款（REFUND）</SelectItem>
-                  <SelectItem value="ADJUSTMENT">調整（ADJUSTMENT）</SelectItem>
+                  <SelectItem value="DEPOSIT">{dict.payments.types.DEPOSIT}</SelectItem>
+                  <SelectItem value="PROGRESS">{dict.payments.types.PROGRESS}</SelectItem>
+                  <SelectItem value="FINAL">{dict.payments.types.FINAL}</SelectItem>
+                  <SelectItem value="FULL">{dict.payments.types.FULL}</SelectItem>
+                  <SelectItem value="REFUND">{dict.payments.types.REFUND}</SelectItem>
+                  <SelectItem value="ADJUSTMENT">{dict.payments.types.ADJUSTMENT}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -599,13 +613,13 @@ export default function PaymentsPage() {
             {/* Amount + Date */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>金額 <span className="text-red-500">*</span></Label>
+                <Label>{dict.common.amount} <span className="text-red-500">*</span></Label>
                 <Input type="number" min={0} step="1" placeholder="0"
                   value={createForm.amount}
                   onChange={e => cf('amount', e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>付款日期 <span className="text-red-500">*</span></Label>
+                <Label>{dict.payments.paymentDate} <span className="text-red-500">*</span></Label>
                 <Input type="date" value={createForm.paymentDate}
                   onChange={e => cf('paymentDate', e.target.value)} />
               </div>
@@ -613,7 +627,7 @@ export default function PaymentsPage() {
 
             {/* Payment Method */}
             <div className="space-y-1.5">
-              <Label>付款方式</Label>
+              <Label>{dict.payments.paymentMethod}</Label>
               <Select
                 value={createForm.method || '_none'}
                 onValueChange={v => cf('method', v === '_none' ? '' : (v ?? ''))}
@@ -632,7 +646,7 @@ export default function PaymentsPage() {
             {createForm.direction === 'INCOMING' ? (
               <>
                 <div className="space-y-1.5">
-                  <Label>客戶 <span className="text-red-500">*</span></Label>
+                  <Label>{dict.common.customer} <span className="text-red-500">*</span></Label>
                   <Select
                     value={createForm.customerId || '_none'}
                     onValueChange={v => cf('customerId', v === '_none' ? '' : (v ?? ''))}
@@ -669,7 +683,7 @@ export default function PaymentsPage() {
             ) : (
               <>
                 <div className="space-y-1.5">
-                  <Label>供應商 <span className="text-red-500">*</span></Label>
+                  <Label>{dict.common.supplier} <span className="text-red-500">*</span></Label>
                   <Select
                     value={createForm.supplierId || '_none'}
                     onValueChange={v => cf('supplierId', v === '_none' ? '' : (v ?? ''))}
@@ -707,7 +721,7 @@ export default function PaymentsPage() {
 
             {/* Bank Account */}
             <div className="space-y-1.5">
-              <Label>銀行帳號</Label>
+              <Label>{dict.paymentsExt.bankAccount}</Label>
               <Input value={createForm.bankAccount}
                 onChange={e => cf('bankAccount', e.target.value)}
                 placeholder="銀行名稱 / 帳號末四碼" />
@@ -716,13 +730,13 @@ export default function PaymentsPage() {
             {/* Reference No + Invoice No */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>參考編號</Label>
+                <Label>{dict.payments.referenceNo}</Label>
                 <Input value={createForm.referenceNo}
                   onChange={e => cf('referenceNo', e.target.value)}
                   placeholder="匯款單號 / 支票號碼" />
               </div>
               <div className="space-y-1.5">
-                <Label>發票號碼</Label>
+                <Label>{dict.payments.invoiceNo}</Label>
                 <Input value={createForm.invoiceNo}
                   onChange={e => cf('invoiceNo', e.target.value)}
                   placeholder="AB-12345678" />
@@ -731,17 +745,17 @@ export default function PaymentsPage() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea value={createForm.notes}
                 onChange={e => cf('notes', e.target.value)}
                 rows={2} placeholder="特殊說明..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              新增
+              {dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -776,7 +790,7 @@ export default function PaymentsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setWriteOffTarget(null)} disabled={writingOff}>取消</Button>
+            <Button variant="outline" onClick={() => setWriteOffTarget(null)} disabled={writingOff}>{dict.common.cancel}</Button>
             <Button onClick={handleWriteOff} disabled={writingOff}>
               {writingOff && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               確認核銷
@@ -789,11 +803,11 @@ export default function PaymentsPage() {
       <Dialog open={editOpen} onOpenChange={o => !o && setEditOpen(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>編輯收付款 {editTarget?.paymentNo}</DialogTitle>
+            <DialogTitle>{dict.common.edit} — {editTarget?.paymentNo}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
-              <Label>付款方式</Label>
+              <Label>{dict.payments.paymentMethod}</Label>
               <Select
                 value={editForm.method || '_none'}
                 onValueChange={v => setEditForm(prev => ({ ...prev, method: v === '_none' ? '' : (v ?? '') }))}
@@ -808,35 +822,35 @@ export default function PaymentsPage() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>銀行帳號</Label>
+              <Label>{dict.paymentsExt.bankAccount}</Label>
               <Input value={editForm.bankAccount}
                 onChange={e => setEditForm(prev => ({ ...prev, bankAccount: e.target.value }))}
                 placeholder="銀行名稱 / 帳號末四碼" />
             </div>
             <div className="space-y-1.5">
-              <Label>參考編號</Label>
+              <Label>{dict.payments.referenceNo}</Label>
               <Input value={editForm.referenceNo}
                 onChange={e => setEditForm(prev => ({ ...prev, referenceNo: e.target.value }))}
                 placeholder="匯款單號 / 支票號碼" />
             </div>
             <div className="space-y-1.5">
-              <Label>發票號碼</Label>
+              <Label>{dict.payments.invoiceNo}</Label>
               <Input value={editForm.invoiceNo}
                 onChange={e => setEditForm(prev => ({ ...prev, invoiceNo: e.target.value }))}
                 placeholder="AB-12345678" />
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea value={editForm.notes}
                 onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
                 rows={2} placeholder="特殊說明..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
             <Button onClick={handleEdit} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              儲存
+              {dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

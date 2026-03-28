@@ -791,7 +791,7 @@ export default function CustomerDetailPage() {
                       </div>
                     ))}
                   </div>
-                  {customer.notes && <><Separator /><div><p className="text-xs text-muted-foreground mb-1">備註</p><p className="text-sm whitespace-pre-wrap">{customer.notes}</p></div></>}
+                  {customer.notes && <><Separator /><div><p className="text-xs text-muted-foreground mb-1">{dict.common.notes}</p><p className="text-sm whitespace-pre-wrap">{customer.notes}</p></div></>}
                 </div>
               </div>
 
@@ -864,7 +864,7 @@ export default function CustomerDetailPage() {
                     <div className="col-span-2 flex justify-end">
                       <Button size="sm" onClick={handleSaveKeyAccount} disabled={savingKa} className="h-7 text-xs">
                         {savingKa && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-                        儲存心臟客戶設定
+                        {dict.common.save}{dict.customersExt.keyAccount}
                       </Button>
                     </div>
                   </div>
@@ -904,9 +904,9 @@ export default function CustomerDetailPage() {
           {activeTab === 'visits' && (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button onClick={() => setVisitOpen(true)}><Plus className="mr-2 h-4 w-4" />新增拜訪紀錄</Button>
+                <Button onClick={() => setVisitOpen(true)}><Plus className="mr-2 h-4 w-4" />{dict.common.add}{dict.roleDashboard.visitRecord}</Button>
               </div>
-              {customer.visitRecords.length === 0 ? <p className="py-10 text-center text-muted-foreground">尚無拜訪紀錄</p>
+              {customer.visitRecords.length === 0 ? <p className="py-10 text-center text-muted-foreground">{dict.common.noRecords}</p>
                 : customer.visitRecords.map(v => (
                 <div key={v.id} className="rounded-lg border p-4 space-y-2 group">
                   <div className="flex items-center justify-between">
@@ -929,9 +929,9 @@ export default function CustomerDetailPage() {
           {activeTab === 'calls' && (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button onClick={() => setCallOpen(true)}><Plus className="mr-2 h-4 w-4" />新增電訪紀錄</Button>
+                <Button onClick={() => setCallOpen(true)}><Plus className="mr-2 h-4 w-4" />{dict.common.add}{dict.roleDashboard.callRecord}</Button>
               </div>
-              {customer.callRecords.length === 0 ? <p className="py-10 text-center text-muted-foreground">尚無電訪紀錄</p>
+              {customer.callRecords.length === 0 ? <p className="py-10 text-center text-muted-foreground">{dict.common.noRecords}</p>
                 : customer.callRecords.map(c => (
                 <div key={c.id} className="rounded-lg border p-4 space-y-2 group">
                   <div className="flex items-center justify-between">
@@ -956,7 +956,7 @@ export default function CustomerDetailPage() {
               <div className="flex justify-end">
                 <Button onClick={() => setSampleOpen(true)}><Plus className="mr-2 h-4 w-4" />新增樣品紀錄</Button>
               </div>
-              {customer.sampleRecords.length === 0 ? <p className="py-10 text-center text-muted-foreground">尚無樣品寄送紀錄</p>
+              {customer.sampleRecords.length === 0 ? <p className="py-10 text-center text-muted-foreground">{dict.common.noRecords}</p>
                 : customer.sampleRecords.map(s => (
                 <div key={s.id} className="rounded-lg border p-4 space-y-2 group">
                   <div className="flex items-center justify-between">
@@ -980,7 +980,7 @@ export default function CustomerDetailPage() {
           {/* ── 報價紀錄 ── */}
           {activeTab === 'quotations' && (
             <div className="space-y-3">
-              {customer.quotations.length === 0 ? <p className="py-10 text-center text-muted-foreground">尚無報價紀錄</p>
+              {customer.quotations.length === 0 ? <p className="py-10 text-center text-muted-foreground">{dict.common.noRecords}</p>
                 : customer.quotations.map(q => (
                 <div key={q.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/quotations/${q.id}`)}>
                   <div className="flex items-center gap-3">
@@ -1000,7 +1000,7 @@ export default function CustomerDetailPage() {
           {/* ── 訂單紀錄 ── */}
           {activeTab === 'orders' && (
             <div className="space-y-3">
-              {customer.salesOrders.length === 0 ? <p className="py-10 text-center text-muted-foreground">尚無訂單紀錄</p>
+              {customer.salesOrders.length === 0 ? <p className="py-10 text-center text-muted-foreground">{dict.common.noRecords}</p>
                 : customer.salesOrders.map(o => (
                 <div key={o.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/orders/${o.id}`)}>
                   <div className="flex items-center gap-3">
@@ -1075,7 +1075,7 @@ export default function CustomerDetailPage() {
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 pt-1">
-                    <Button variant="outline" size="sm" onClick={() => setShowOppForm(false)}>取消</Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowOppForm(false)}>{dict.common.cancel}</Button>
                     <Button size="sm" onClick={handleCreateOpportunity} disabled={savingOpp}>
                       {savingOpp && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
                       建立
@@ -1149,8 +1149,8 @@ export default function CustomerDetailPage() {
               <div className="space-y-1.5"><Label>下次拜訪日</Label><Input type="date" value={visitForm.nextVisitDate} onChange={e => setVisitForm(p => ({ ...p, nextVisitDate: e.target.value }))} /></div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setVisitOpen(false)} disabled={saving}>取消</Button>
-              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存</Button>
+              <Button type="button" variant="outline" onClick={() => setVisitOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
+              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1173,8 +1173,8 @@ export default function CustomerDetailPage() {
             <div className="space-y-1.5"><Label>通話內容</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={3} value={callForm.content} onChange={e => setCallForm(p => ({ ...p, content: e.target.value }))} placeholder="談話要點..." /></div>
             <div className="space-y-1.5"><Label>結果</Label><Input value={callForm.result} onChange={e => setCallForm(p => ({ ...p, result: e.target.value }))} placeholder="客戶回應、結論..." /></div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCallOpen(false)} disabled={saving}>取消</Button>
-              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存</Button>
+              <Button type="button" variant="outline" onClick={() => setCallOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
+              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -1196,8 +1196,8 @@ export default function CustomerDetailPage() {
             </div>
             <div className="space-y-1.5"><Label>備註</Label><Input value={sampleForm.notes} onChange={e => setSampleForm(p => ({ ...p, notes: e.target.value }))} placeholder="備註..." /></div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setSampleOpen(false)} disabled={saving}>取消</Button>
-              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存</Button>
+              <Button type="button" variant="outline" onClick={() => setSampleOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
+              <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

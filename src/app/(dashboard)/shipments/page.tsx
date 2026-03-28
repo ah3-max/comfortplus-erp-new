@@ -324,7 +324,7 @@ export default function ShipmentsPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   const tabs = [
-    { key: 'shipments', label: dict.shipments.shipmentNo.replace('號', '單'),   icon: Package },
+    { key: 'shipments', label: '出貨單',   icon: Package },
     { key: 'trips',     label: '配送行程', icon: Car },
     { key: 'picking',   label: '撿貨/裝箱單', icon: ClipboardList },
     { key: 'logistics', label: dict.shipments.carrier,   icon: Truck },

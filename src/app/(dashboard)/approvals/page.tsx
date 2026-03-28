@@ -94,6 +94,7 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ApprovalsPage() {
+  const { dict } = useI18n()
   const [tab, setTab] = useState('inbox')
   const [requests, setRequests] = useState<ApprovalRequest[]>([])
   const [templates, setTemplates] = useState<ApprovalTemplate[]>([])
@@ -266,9 +267,9 @@ export default function ApprovalsPage() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">電子簽核</h1>
+        <h1 className="text-xl font-bold">{dict.approvals.title}</h1>
         <Button onClick={openNewReqDialog}>
-          <Plus className="mr-2 h-4 w-4" />新增申請
+          <Plus className="mr-2 h-4 w-4" />{dict.approvals.newRequest}
         </Button>
       </div>
 
@@ -276,7 +277,7 @@ export default function ApprovalsPage() {
         <TabsList className="w-full md:w-auto">
           <TabsTrigger value="inbox">我的待辦</TabsTrigger>
           <TabsTrigger value="mine">我的申請</TabsTrigger>
-          <TabsTrigger value="all">全部申請</TabsTrigger>
+          <TabsTrigger value="all">{dict.common.all}申請</TabsTrigger>
           <TabsTrigger value="templates">簽核範本</TabsTrigger>
         </TabsList>
 
@@ -285,10 +286,10 @@ export default function ApprovalsPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? '')}>
               <SelectTrigger className="h-8 w-36">
-                <SelectValue placeholder="全部狀態" />
+                <SelectValue placeholder={dict.common.all + dict.common.status} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">全部狀態</SelectItem>
+                <SelectItem value="">{dict.common.all + dict.common.status}</SelectItem>
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v.label}</SelectItem>
                 ))}
@@ -296,10 +297,10 @@ export default function ApprovalsPage() {
             </Select>
             <Select value={moduleFilter} onValueChange={v => setModuleFilter(v ?? '')}>
               <SelectTrigger className="h-8 w-36">
-                <SelectValue placeholder="全部模組" />
+                <SelectValue placeholder={dict.common.all + '模組'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">全部模組</SelectItem>
+                <SelectItem value="">{dict.common.all + '模組'}</SelectItem>
                 {Object.entries(MODULE_LABELS).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v}</SelectItem>
                 ))}
@@ -314,9 +315,9 @@ export default function ApprovalsPage() {
             <Card>
               <CardContent className="pt-4">
                 {loading ? (
-                  <p className="py-8 text-center text-muted-foreground">載入中…</p>
+                  <p className="py-8 text-center text-muted-foreground">{dict.common.loading}</p>
                 ) : requests.length === 0 ? (
-                  <p className="py-8 text-center text-muted-foreground">沒有符合的紀錄</p>
+                  <p className="py-8 text-center text-muted-foreground">{dict.approvals.noResults}</p>
                 ) : (
                   <div className="space-y-2">
                     {requests.map(r => <RequestRow key={r.id} req={r} />)}
@@ -333,12 +334,12 @@ export default function ApprovalsPage() {
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">簽核範本管理</CardTitle>
               <Button size="sm" onClick={() => setTmplDialog(true)}>
-                <Plus className="mr-1 h-4 w-4" />新增範本
+                <Plus className="mr-1 h-4 w-4" />{dict.common.create}範本
               </Button>
             </CardHeader>
             <CardContent>
               {templates.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">尚無簽核範本</p>
+                <p className="py-8 text-center text-muted-foreground">{dict.approvals.noApprovals}</p>
               ) : (
                 <div className="space-y-3">
                   {templates.map(t => (
@@ -428,10 +429,10 @@ export default function ApprovalsPage() {
                   >
                     <CheckCircle2 className="mr-1 h-4 w-4" />批准
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleCancel(detail.id)}>取消申請</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleCancel(detail.id)}>{dict.common.cancel}申請</Button>
                 </>
               )}
-              <Button variant="ghost" size="sm" onClick={() => setDetail(null)}>關閉</Button>
+              <Button variant="ghost" size="sm" onClick={() => setDetail(null)}>{dict.common.close}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -441,7 +442,7 @@ export default function ApprovalsPage() {
       <Dialog open={actionDialog.open} onOpenChange={o => !o && setActionDialog({ open: false, requestId: '', action: 'APPROVE' })}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{actionDialog.action === 'APPROVE' ? '批准簽核' : '拒絕簽核'}</DialogTitle>
+            <DialogTitle>{actionDialog.action === 'APPROVE' ? dict.common.approve + '簽核' : dict.common.reject + '簽核'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -456,13 +457,13 @@ export default function ApprovalsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActionDialog({ open: false, requestId: '', action: 'APPROVE' })}>取消</Button>
+            <Button variant="outline" onClick={() => setActionDialog({ open: false, requestId: '', action: 'APPROVE' })}>{dict.common.cancel}</Button>
             <Button
               variant={actionDialog.action === 'APPROVE' ? 'default' : 'destructive'}
               onClick={handleAction}
               disabled={saving}
             >
-              確認{actionDialog.action === 'APPROVE' ? '批准' : '拒絕'}
+              {dict.common.confirm}{actionDialog.action === 'APPROVE' ? dict.common.approve : dict.common.reject}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -472,7 +473,7 @@ export default function ApprovalsPage() {
       <Dialog open={newReqDialog} onOpenChange={o => !o && setNewReqDialog(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新增簽核申請</DialogTitle>
+            <DialogTitle>{dict.approvals.newRequest}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             {/* Template selector */}
@@ -544,11 +545,11 @@ export default function ApprovalsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewReqDialog(false)} disabled={newReqSaving}>
-              取消
+              {dict.common.cancel}
             </Button>
             <Button onClick={handleSubmitNewReq} disabled={newReqSaving || !newReqForm.subject.trim()}>
               {newReqSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              送出申請
+              {dict.common.submit}申請
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -558,7 +559,7 @@ export default function ApprovalsPage() {
       <Dialog open={tmplDialog} onOpenChange={setTmplDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新增簽核範本</DialogTitle>
+            <DialogTitle>{dict.common.create}簽核範本</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -626,8 +627,8 @@ export default function ApprovalsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTmplDialog(false)}>取消</Button>
-            <Button onClick={handleSaveTemplate} disabled={saving || !tmplForm.name}>儲存範本</Button>
+            <Button variant="outline" onClick={() => setTmplDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleSaveTemplate} disabled={saving || !tmplForm.name}>{dict.common.save}範本</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

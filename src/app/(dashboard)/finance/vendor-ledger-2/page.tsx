@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -26,6 +27,7 @@ function fmt(n: number) {
 }
 
 export default function VendorLedger2Page() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -42,7 +44,7 @@ export default function VendorLedger2Page() {
       const res = await fetch(`/api/finance/vendor-ledger-2?${params}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate, status])
 
@@ -68,16 +70,16 @@ export default function VendorLedger2Page() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">狀態</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.status}</label>
           <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="">全部</option>
+            <option value="">{dict.common.all}</option>
             <option value="NOT_DUE">未到期</option>
             <option value="DUE">已到期</option>
             <option value="PAID">已付</option>
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}
         </Button>
       </div>
 
@@ -149,7 +151,7 @@ export default function VendorLedger2Page() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請點擊查詢載入資料
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

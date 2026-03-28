@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -159,6 +160,7 @@ function addDays(dateStr: string, n: number) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DailyReportPage() {
+  const { dict } = useI18n()
   const router = useRouter()
   const [date, setDate]         = useState(yesterdayStr())
   const [report, setReport]     = useState<DailyReport | null>(null)
@@ -225,7 +227,7 @@ export default function DailyReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">業務日報</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.dailyReport.title}</h1>
           <p className="text-sm text-muted-foreground">所有數據自動從系統彙整，無需手動填寫</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -270,7 +272,7 @@ export default function DailyReportPage() {
             {sending
               ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               : <Send className="mr-2 h-4 w-4" />}
-            發送日報
+            {dict.dailyReport.submitReport}
           </Button>
           <Button
             variant="outline"
@@ -278,7 +280,7 @@ export default function DailyReportPage() {
             onClick={() => window.open(`/api/daily-report/export?date=${date}`, '_blank')}
           >
             <FileText className="mr-2 h-4 w-4" />
-            匯出 Excel
+            {dict.common.exportExcel}
           </Button>
         </div>
       </div>
@@ -352,7 +354,7 @@ export default function DailyReportPage() {
           {report.repSummaries.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">業務員表現</CardTitle>
+                <CardTitle className="text-base">{dict.dailyReport.salesRep}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">

@@ -596,7 +596,7 @@ export default function PipelinePage() {
                   </div>
                   {stageVolume > 0 && (
                     <p className="text-[10px] text-muted-foreground">
-                      預估月量 ${formatCurrency(stageVolume)}
+                      {dict.pipeline.monthlyVolume} ${formatCurrency(stageVolume)}
                     </p>
                   )}
                 </div>

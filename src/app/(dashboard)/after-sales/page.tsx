@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -92,6 +93,7 @@ interface EditForm {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AfterSalesPage() {
+  const { dict } = useI18n()
   const [orders, setOrders] = useState<AfterSalesOrder[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -260,26 +262,26 @@ export default function AfterSalesPage() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">售後管理</h1>
+        <h1 className="text-xl font-bold">{dict.afterSales.title}</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1 h-4 w-4" />建立服務單
+          <Plus className="mr-1 h-4 w-4" />{dict.afterSales.newCase}
         </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <Input placeholder="搜尋單號/說明/聯絡人…" value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
+        <Input placeholder={dict.afterSales.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
         <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? '')}>
-          <SelectTrigger className="h-8 w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-32"><SelectValue placeholder={dict.common.all} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部狀態</SelectItem>
+            <SelectItem value="">{dict.common.all}</SelectItem>
             {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={priorityFilter} onValueChange={v => setPriorityFilter(v ?? '')}>
-          <SelectTrigger className="h-8 w-28"><SelectValue placeholder="全部優先" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-28"><SelectValue placeholder={dict.common.all} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部優先</SelectItem>
+            <SelectItem value="">{dict.common.all}</SelectItem>
             {Object.entries(PRIORITY_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -288,9 +290,9 @@ export default function AfterSalesPage() {
       {/* List */}
       <div className="space-y-2">
         {loading ? (
-          <p className="py-8 text-center text-muted-foreground">載入中…</p>
+          <p className="py-8 text-center text-muted-foreground">{dict.common.loading}</p>
         ) : orders.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">沒有符合的服務單</p>
+          <p className="py-8 text-center text-muted-foreground">{dict.afterSales.noResults}</p>
         ) : orders.map(o => (
           <div key={o.id} className="group flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer" onClick={() => { setDetail(o); setDetailTab('logs') }}>
             <div className="min-w-0 flex-1">
@@ -348,7 +350,7 @@ export default function AfterSalesPage() {
             <div className="flex flex-wrap gap-2">
               {canEdit(detail.status) && (
                 <Button size="sm" variant="outline" onClick={e => openEdit(detail, e)}>
-                  <Pencil className="mr-1 h-4 w-4" />編輯
+                  <Pencil className="mr-1 h-4 w-4" />{dict.common.edit}
                 </Button>
               )}
               {Object.entries(STATUS_CONFIG).filter(([k]) => k !== detail.status).map(([k, v]) => (
@@ -356,7 +358,7 @@ export default function AfterSalesPage() {
               ))}
               {detail.status === 'OPEN' && (
                 <Button size="sm" variant="destructive" onClick={e => handleDelete(detail, e)}>
-                  <Trash2 className="mr-1 h-4 w-4" />刪除
+                  <Trash2 className="mr-1 h-4 w-4" />{dict.common.delete}
                 </Button>
               )}
             </div>
@@ -380,7 +382,7 @@ export default function AfterSalesPage() {
 
               <TabsContent value="logs">
                 <div className="mb-2 flex justify-end">
-                  <Button size="sm" onClick={() => setLogDialog(true)}><Plus className="mr-1 h-4 w-4" />新增記錄</Button>
+                  <Button size="sm" onClick={() => setLogDialog(true)}><Plus className="mr-1 h-4 w-4" />{dict.common.add}</Button>
                 </div>
                 {detail.processingLogs.length === 0 ? (
                   <p className="py-4 text-center text-sm text-muted-foreground">尚無處理記錄</p>
@@ -401,7 +403,7 @@ export default function AfterSalesPage() {
 
               <TabsContent value="consumptions">
                 <div className="mb-2 flex justify-end">
-                  <Button size="sm" onClick={() => setConsumptionDialog(true)}><Plus className="mr-1 h-4 w-4" />新增消耗</Button>
+                  <Button size="sm" onClick={() => setConsumptionDialog(true)}><Plus className="mr-1 h-4 w-4" />{dict.common.add}</Button>
                 </div>
                 {detail.consumptions.length === 0 ? (
                   <p className="py-4 text-center text-sm text-muted-foreground">尚無消耗明細</p>
@@ -435,7 +437,7 @@ export default function AfterSalesPage() {
             {detail.status === 'IN_PROGRESS' && (
               <div className="flex justify-end">
                 <Button size="sm" onClick={() => handleStatusChange(detail.id, 'COMPLETED')}>
-                  <CheckCircle2 className="mr-1 h-4 w-4" />標記完成
+                  <CheckCircle2 className="mr-1 h-4 w-4" />{dict.common.complete}
                 </Button>
               </div>
             )}
@@ -446,7 +448,7 @@ export default function AfterSalesPage() {
       {/* ── Edit Dialog ── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>編輯服務單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.edit}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div><Label>服務類型 *</Label>
@@ -470,8 +472,8 @@ export default function AfterSalesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>取消</Button>
-            <Button onClick={handleEdit} disabled={saving || !editForm.description}>儲存</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
+            <Button onClick={handleEdit} disabled={saving || !editForm.description}>{dict.common.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -479,7 +481,7 @@ export default function AfterSalesPage() {
       {/* ── Create Dialog ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>建立售後服務單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.afterSales.newCase}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div><Label>服務類型 *</Label>
@@ -504,8 +506,8 @@ export default function AfterSalesPage() {
             <div><Label>備註</Label><Textarea value={newOrder.notes} onChange={e => setNewOrder(o => ({ ...o, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
-            <Button onClick={handleCreate} disabled={saving || !newOrder.description}>建立</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreate} disabled={saving || !newOrder.description}>{dict.common.create}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -524,8 +526,8 @@ export default function AfterSalesPage() {
             <div><Label>處理內容 *</Label><Textarea value={newLog.content} onChange={e => setNewLog(l => ({ ...l, content: e.target.value }))} className="mt-1" rows={4} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLogDialog(false)}>取消</Button>
-            <Button onClick={handleAddLog} disabled={saving || !newLog.content}>新增</Button>
+            <Button variant="outline" onClick={() => setLogDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleAddLog} disabled={saving || !newLog.content}>{dict.common.add}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -543,8 +545,8 @@ export default function AfterSalesPage() {
             <div><Label>備註</Label><Input value={newConsumption.notes} onChange={e => setNewConsumption(c => ({ ...c, notes: e.target.value }))} className="mt-1" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConsumptionDialog(false)}>取消</Button>
-            <Button onClick={handleAddConsumption} disabled={saving || !newConsumption.productId || !newConsumption.quantity}>新增</Button>
+            <Button variant="outline" onClick={() => setConsumptionDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleAddConsumption} disabled={saving || !newConsumption.productId || !newConsumption.quantity}>{dict.common.add}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -59,6 +60,7 @@ function DetailTable({ rows, color }: { rows: DetailRow[]; color: string }) {
 }
 
 export default function IncomeExpenseDetailPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
   const [startDate, setStartDate] = useState(firstOfMonth)
@@ -85,7 +87,7 @@ export default function IncomeExpenseDetailPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">收入支出明細表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.incomeExpenseDetail}</h1>
           <p className="text-sm text-muted-foreground">收入與費用逐筆明細</p>
         </div>
       </div>
@@ -100,7 +102,7 @@ export default function IncomeExpenseDetailPage() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
         </Button>
       </div>
 

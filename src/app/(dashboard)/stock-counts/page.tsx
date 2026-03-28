@@ -71,6 +71,7 @@ function formatDate(str: string | null) {
 }
 
 export default function StockCountsPage() {
+  const { dict } = useI18n()
   const [data, setData] = useState<StockCount[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -208,20 +209,20 @@ export default function StockCountsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">庫存盤點</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.stockCounts.title}</h1>
           <p className="text-sm text-muted-foreground">
             共 {pagination?.total ?? data.length} 筆
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
-          <Plus className="mr-2 h-4 w-4" />新增盤點
+          <Plus className="mr-2 h-4 w-4" />{dict.stockCounts.newCount}
         </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋單號或倉庫..."
+          <Input className="pl-9" placeholder={dict.stockCounts.searchPlaceholder}
             value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -238,14 +239,14 @@ export default function StockCountsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-36">盤點單號</TableHead>
-              <TableHead>倉庫</TableHead>
-              <TableHead className="w-20">類型</TableHead>
-              <TableHead className="w-20">狀態</TableHead>
+              <TableHead className="w-36">{dict.stockCounts.countNo}</TableHead>
+              <TableHead>{dict.common.warehouse}</TableHead>
+              <TableHead className="w-20">{dict.common.type}</TableHead>
+              <TableHead className="w-20">{dict.common.status}</TableHead>
               <TableHead className="text-right w-16">品項</TableHead>
               <TableHead className="text-right w-16">差異數</TableHead>
               <TableHead className="w-24">計畫日</TableHead>
-              <TableHead className="w-24">建立</TableHead>
+              <TableHead className="w-24">{dict.common.createdAt}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -257,7 +258,7 @@ export default function StockCountsPage() {
             ) : data.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="py-16 text-center">
                 <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground">{search || filterStatus ? '找不到符合的盤點單' : '尚無盤點單'}</p>
+                <p className="text-muted-foreground">{search || filterStatus ? dict.stockCounts.noResults : dict.stockCounts.noCounts}</p>
               </TableCell></TableRow>
             ) : data.map(d => {
               const sc = statusConfig[d.status]
@@ -323,8 +324,8 @@ export default function StockCountsPage() {
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁</p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)}>上一頁</Button>
-            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>下一頁</Button>
+            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
+            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>
           </div>
         </div>
       )}
@@ -332,10 +333,10 @@ export default function StockCountsPage() {
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增盤點單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.stockCounts.newCount}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium">倉庫 *</label>
+              <label className="text-sm font-medium">{dict.stockCounts.warehouseLabel} *</label>
               <select className="w-full rounded-md border px-3 py-2 text-sm"
                 value={createForm.warehouseId}
                 onChange={e => setCreateForm(f => ({ ...f, warehouseId: e.target.value }))}>
@@ -354,21 +355,21 @@ export default function StockCountsPage() {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">計畫盤點日</label>
+              <label className="text-sm font-medium">{dict.stockCounts.countDate}</label>
               <Input type="date" value={createForm.plannedDate}
                 onChange={e => setCreateForm(f => ({ ...f, plannedDate: e.target.value }))} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">備註</label>
+              <label className="text-sm font-medium">{dict.common.notes}</label>
               <Input placeholder="..." value={createForm.notes}
                 onChange={e => setCreateForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
             <p className="text-xs text-muted-foreground">建立時將自動從庫存系統帶入所有品項的帳面數量。</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>{dict.common.cancel}</Button>
             <Button onClick={createCount} disabled={creating}>
-              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}建立
+              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

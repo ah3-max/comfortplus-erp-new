@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -125,6 +126,7 @@ interface ArticleFormDialogProps {
 }
 
 function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormDialogProps) {
+  const { dict } = useI18n()
   const isEdit = Boolean(editArticle)
   const [form, setForm] = useState<ArticleFormData>(DEFAULT_FORM)
   const [saving, setSaving] = useState(false)
@@ -152,11 +154,11 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title.trim()) {
-      toast.error('請填寫標題')
+      toast.error(dict.common.required)
       return
     }
     if (!form.summary.trim()) {
-      toast.error('請填寫內容')
+      toast.error(dict.common.required)
       return
     }
 
@@ -185,7 +187,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
         throw new Error(err.error ?? '操作失敗')
       }
 
-      toast.success(isEdit ? '文章已更新' : '文章已新增')
+      toast.success(isEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       onSaved()
       onClose()
     } catch (err) {
@@ -201,7 +203,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            {isEdit ? '編輯文章' : '新增文章'}
+            {isEdit ? dict.common.edit : dict.knowledge.newEntry}
           </DialogTitle>
         </DialogHeader>
 
@@ -209,7 +211,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
           {/* Title */}
           <div className="space-y-1.5">
             <Label htmlFor="kb-title">
-              標題 <span className="text-destructive">*</span>
+              {dict.common.name} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="kb-title"
@@ -222,7 +224,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
 
           {/* Category */}
           <div className="space-y-1.5">
-            <Label htmlFor="kb-type">類別</Label>
+            <Label htmlFor="kb-type">{dict.common.type}</Label>
             <Select value={form.entryType} onValueChange={v => set('entryType', v ?? '')}>
               <SelectTrigger id="kb-type">
                 <SelectValue placeholder="選擇類別" />
@@ -240,7 +242,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
           {/* Content */}
           <div className="space-y-1.5">
             <Label htmlFor="kb-summary">
-              內容 <span className="text-destructive">*</span>
+              {dict.common.description} <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="kb-summary"
@@ -256,7 +258,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
           {/* Tags */}
           <div className="space-y-1.5">
             <Label htmlFor="kb-tags" className="flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5" /> 標籤
+              <Tag className="h-3.5 w-3.5" /> {dict.knowledgeExt.tags}
               <span className="text-xs text-muted-foreground font-normal">（逗號分隔）</span>
             </Label>
             <Input
@@ -299,17 +301,17 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
               />
             </button>
             <Label className="cursor-pointer" onClick={() => set('isPublic', !form.isPublic)}>
-              {form.isPublic ? '公開（所有人可見）' : '草稿（僅自己可見）'}
+              {form.isPublic ? dict.common.active : dict.common.inactive}
             </Label>
           </div>
 
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
-              取消
+              {dict.common.cancel}
             </Button>
             <Button type="submit" disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {isEdit ? '儲存變更' : '新增文章'}
+              {isEdit ? dict.common.save : dict.knowledge.newEntry}
             </Button>
           </DialogFooter>
         </form>
@@ -329,25 +331,26 @@ interface DeleteDialogProps {
 }
 
 function DeleteDialog({ open, articleTitle, onClose, onConfirm, deleting }: DeleteDialogProps) {
+  const { dict } = useI18n()
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5" />
-            確認刪除
+            {dict.common.deleteConfirm}
           </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          確定要刪除文章「<span className="font-medium text-foreground">{articleTitle}</span>」嗎？此操作無法復原。
+          {dict.common.deleteConfirm}「<span className="font-medium text-foreground">{articleTitle}</span>」
         </p>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose} disabled={deleting}>
-            取消
+            {dict.common.cancel}
           </Button>
           <Button variant="destructive" onClick={onConfirm} disabled={deleting}>
             {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            刪除
+            {dict.common.delete}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -364,6 +367,7 @@ interface ArticleDetailDialogProps {
 }
 
 function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogProps) {
+  const { dict } = useI18n()
   if (!article) return null
   const typeConfig = getTypeConfig(article.entryType)
 
@@ -383,8 +387,8 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
 
         {/* Meta */}
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground border-b pb-3">
-          <span>建立：{formatDate(article.createdAt)}</span>
-          <span>更新：{formatDate(article.updatedAt)}</span>
+          <span>{dict.common.createdAt}：{formatDate(article.createdAt)}</span>
+          <span>{dict.common.updatedAt}：{formatDate(article.updatedAt)}</span>
           <span className={article.isPublic ? 'text-green-600' : 'text-amber-600'}>
             {article.isPublic ? '● 公開' : '● 草稿'}
           </span>
@@ -431,11 +435,11 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}>
             <X className="h-4 w-4 mr-1.5" />
-            關閉
+            {dict.common.close}
           </Button>
           <Button onClick={() => { onClose(); onEdit(article) }}>
             <Edit className="h-4 w-4 mr-1.5" />
-            編輯文章
+            {dict.common.edit}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -446,6 +450,7 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function KnowledgePage() {
+  const { dict } = useI18n()
   const [articles, setArticles] = useState<KnowledgeArticle[]>([])
   const [total, setTotal] = useState(0)
   const [stats, setStats] = useState<{ entryType: string; _count: { id: number } }[]>([])
@@ -505,7 +510,7 @@ export default function KnowledgePage() {
         const err = await res.json().catch(() => ({}))
         throw new Error(err.error ?? '刪除失敗')
       }
-      toast.success('文章已刪除')
+      toast.success(dict.common.deleteSuccess)
       setDeleteTarget(null)
       fetchArticles()
     } catch (err) {
@@ -539,10 +544,10 @@ export default function KnowledgePage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BookOpen className="h-6 w-6" />
-            知識庫
+            {dict.knowledge.title}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            搜尋產品知識、客訴案例與解決方案
+            {dict.knowledge.search}
           </p>
         </div>
         <Button
@@ -550,7 +555,7 @@ export default function KnowledgePage() {
           className="shrink-0 min-h-[44px]"
         >
           <Plus className="h-4 w-4 mr-1.5" />
-          新增文章
+          {dict.knowledge.newEntry}
         </Button>
       </div>
 
@@ -559,14 +564,14 @@ export default function KnowledgePage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="搜尋標題、內容、標籤或 SKU…"
+            placeholder={dict.knowledgeExt.searchPlaceholder}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-10 min-h-[44px]"
           />
         </div>
         <Button type="submit" className="min-h-[44px] px-5">
-          搜尋
+          {dict.common.search}
         </Button>
         {search && (
           <Button
@@ -624,11 +629,11 @@ export default function KnowledgePage() {
         <Card>
           <CardContent className="py-20 text-center">
             <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">尚無知識條目</p>
+            <p className="text-lg font-medium">{dict.knowledgeExt.noEntries}</p>
             <p className="text-sm text-muted-foreground mt-1">
               {search || activeCategory
-                ? '找不到符合條件的結果，請嘗試其他關鍵字或類別'
-                : '知識庫目前為空，點擊「新增文章」開始建立'}
+                ? dict.knowledgeExt.noResults
+                : dict.common.noRecords}
             </p>
             {(search || activeCategory) && (
               <Button
@@ -636,7 +641,7 @@ export default function KnowledgePage() {
                 className="mt-4"
                 onClick={() => { setSearch(''); setActiveCategory('') }}
               >
-                清除篩選
+                {dict.common.reset}
               </Button>
             )}
           </CardContent>
@@ -714,7 +719,7 @@ export default function KnowledgePage() {
                     {/* Footer meta + actions */}
                     <div className="mt-auto pt-3 border-t flex items-center justify-between gap-2">
                       <span className="text-xs text-muted-foreground">
-                        更新 {formatDate(article.updatedAt)}
+                        {dict.knowledgeExt.lastUpdated} {formatDate(article.updatedAt)}
                       </span>
                       <div className="flex gap-1">
                         <Button

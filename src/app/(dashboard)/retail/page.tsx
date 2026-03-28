@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1083,6 +1084,7 @@ function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => vo
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function RetailPage() {
+  const { dict } = useI18n()
   const [brands,  setBrands]  = useState<RetailBrand[]>([])
   const [outlets, setOutlets] = useState<RetailOutlet[]>([])
   const [events,  setEvents]  = useState<RetailEvent[]>([])
@@ -1148,16 +1150,16 @@ export default function RetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Store className="h-6 w-6 text-blue-600" />實體通路管理
+            <Store className="h-6 w-6 text-blue-600" />{dict.retail.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {brands.length} 個品牌 · {outlets.length} 間門市 · {activeEvents} 個活動進行中
           </p>
         </div>
         <div className="flex gap-2">
-          {activeTab === 'brands' && <Button onClick={() => setShowBrandForm(true)} size="sm" className="gap-1.5"><Plus className="h-4 w-4" />新增品牌</Button>}
-          {activeTab === 'outlets' && <Button onClick={() => setShowOutletForm(true)} size="sm" className="gap-1.5"><Plus className="h-4 w-4" />新增門市</Button>}
-          {activeTab === 'events' && <Button onClick={() => setShowEventForm(true)} size="sm" className="gap-1.5"><Plus className="h-4 w-4" />新增活動</Button>}
+          {activeTab === 'brands' && <Button onClick={() => setShowBrandForm(true)} size="sm" className="gap-1.5"><Plus className="h-4 w-4" />{dict.retail.newOutlet}</Button>}
+          {activeTab === 'outlets' && <Button onClick={() => setShowOutletForm(true)} size="sm" className="gap-1.5"><Plus className="h-4 w-4" />{dict.retail.outlets}</Button>}
+          {activeTab === 'events' && <Button onClick={() => setShowEventForm(true)} size="sm" className="gap-1.5"><Plus className="h-4 w-4" />{dict.retail.newEvent}</Button>}
         </div>
       </div>
 
@@ -1182,9 +1184,9 @@ export default function RetailPage() {
 
       {/* Tab Bar */}
       <div className="border-b flex gap-0">
-        <button className={tabStyle('outlets')} onClick={() => setActiveTab('outlets')}>門市管理</button>
-        <button className={tabStyle('brands')}  onClick={() => setActiveTab('brands')}>品牌管理</button>
-        <button className={tabStyle('events')}  onClick={() => setActiveTab('events')}>活動管理</button>
+        <button className={tabStyle('outlets')} onClick={() => setActiveTab('outlets')}>{dict.retail.outlets}</button>
+        <button className={tabStyle('brands')}  onClick={() => setActiveTab('brands')}>{dict.retail.displays}</button>
+        <button className={tabStyle('events')}  onClick={() => setActiveTab('events')}>{dict.retail.events}</button>
       </div>
 
       {loading && (

@@ -274,12 +274,12 @@ export default function ProductionPage() {
     })
     setCreating(false)
     if (res.ok) {
-      toast.success('生產單已建立')
+      toast.success(dict.common.createSuccess)
       setCreateOpen(false)
       fetchOrders()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '建立失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -326,12 +326,12 @@ export default function ProductionPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('生產單已更新')
+      toast.success(dict.common.updateSuccess)
       setEditOpen(false)
       fetchOrders()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '更新失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -441,8 +441,8 @@ export default function ProductionPage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-lg border-2 border-dashed p-16 text-center text-muted-foreground">
           {search || filterStatus || filterFactory
-            ? '找不到符合條件的生產單'
-            : '尚無生產單，請點擊右上角新增'}
+            ? dict.common.noResultsFound
+            : dict.common.noRecords}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -618,7 +618,7 @@ export default function ProductionPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>代工工廠 <span className="text-red-500">*</span></Label>
+              <Label>{dict.production.factory} <span className="text-red-500">*</span></Label>
               <Select
                 value={createForm.factoryId || '_none'}
                 onValueChange={v => setCreateForm(f => ({ ...f, factoryId: v === '_none' ? '' : (v ?? '') }))}
@@ -649,7 +649,7 @@ export default function ProductionPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea
                 value={createForm.notes}
                 onChange={e => setCreateForm(f => ({ ...f, notes: e.target.value }))}
@@ -679,7 +679,7 @@ export default function ProductionPage() {
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* Status */}
             <div className="space-y-1.5">
-              <Label>生產狀態</Label>
+              <Label>{dict.common.status}</Label>
               <Select
                 value={editForm.status || '_none'}
                 onValueChange={v => setEditForm(f => ({ ...f, status: (v === '_none' ? '' : (v ?? '')) as ProductionStatus | '' }))}
@@ -708,7 +708,7 @@ export default function ProductionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>良品數量</Label>
+                <Label>{dict.qcExt.passQty}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -718,7 +718,7 @@ export default function ProductionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>不良品數量</Label>
+                <Label>{dict.qcExt.failQty}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -730,7 +730,7 @@ export default function ProductionPage() {
             </div>
 
             {/* Milestone dates */}
-            <p className="text-xs font-medium text-slate-500 pt-1">里程碑日期</p>
+            <p className="text-xs font-medium text-slate-500 pt-1">{dict.common.date}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>打樣送出日</Label>
@@ -784,7 +784,7 @@ export default function ProductionPage() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea
                 value={editForm.notes}
                 onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}

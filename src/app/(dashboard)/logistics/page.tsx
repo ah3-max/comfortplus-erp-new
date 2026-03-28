@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -140,13 +141,14 @@ function alertColor(alert: string): string {
 type Tab = 'providers' | 'vehicles'
 
 export default function LogisticsPage() {
+  const { dict } = useI18n()
   const [tab, setTab] = useState<Tab>('providers')
 
   return (
     <div className="space-y-5">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">物流管理</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.logistics.title}</h1>
         <p className="text-sm text-muted-foreground">管理物流商與自有車隊</p>
       </div>
 
@@ -160,7 +162,7 @@ export default function LogisticsPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          物流商
+          {dict.logistics.providerName}
         </button>
         <button
           onClick={() => setTab('vehicles')}
@@ -170,7 +172,7 @@ export default function LogisticsPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          車輛管理
+          {dict.nav.vehicles}
         </button>
       </div>
 
@@ -185,6 +187,7 @@ export default function LogisticsPage() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ProvidersTab() {
+  const { dict } = useI18n()
   const [providers, setProviders] = useState<Provider[]>([])
   const [loading, setLoading]     = useState(true)
   const [showInactive, setShowInactive] = useState(false)
@@ -227,8 +230,8 @@ function ProvidersTab() {
   }
 
   async function handleSave() {
-    if (!form.name) { toast.error('請填寫物流商名稱'); return }
-    if (!editing && !form.code) { toast.error('請填寫物流商代碼'); return }
+    if (!form.name) { toast.error(dict.logistics.providerName); return }
+    if (!editing && !form.code) { toast.error(dict.logistics.code); return }
     setSaving(true)
     const url    = editing ? `/api/logistics/${editing.id}` : '/api/logistics'
     const method = editing ? 'PUT' : 'POST'
@@ -242,11 +245,11 @@ function ProvidersTab() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success(editing ? '物流商已更新' : '物流商已新增')
+      toast.success(editing ? dict.common.updateSuccess : dict.common.createSuccess)
       setOpen(false); fetchProviders()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '儲存失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -256,8 +259,8 @@ function ProvidersTab() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !p.isActive }),
     })
-    if (res.ok) { toast.success(p.isActive ? '已停用' : '已啟用'); fetchProviders() }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(p.isActive ? dict.common.inactive : dict.common.active); fetchProviders() }
+    else toast.error(dict.common.error)
   }
 
   const activeCount = providers.filter(p => p.isActive).length
@@ -266,14 +269,14 @@ function ProvidersTab() {
     <>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">共 {activeCount} 間物流商</p>
+          <p className="text-sm text-muted-foreground">共 {activeCount} 間{dict.logistics.providerName}</p>
         </div>
         <div className="flex gap-2">
           <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} />
-            顯示已停用
+            {dict.common.inactive}
           </label>
-          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增物流商</Button>
+          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />{dict.logistics.newLogistics}</Button>
         </div>
       </div>
 
@@ -331,12 +334,12 @@ function ProvidersTab() {
                 </div>
                 <div className="flex items-center gap-2">
                   {p.isActive
-                    ? <Badge variant="outline" className="border-green-400 text-green-600 text-xs">啟用</Badge>
-                    : <Badge variant="outline" className="border-red-400 text-red-600 text-xs">停用</Badge>
+                    ? <Badge variant="outline" className="border-green-400 text-green-600 text-xs">{dict.common.active}</Badge>
+                    : <Badge variant="outline" className="border-red-400 text-red-600 text-xs">{dict.common.inactive}</Badge>
                   }
                   <button onClick={() => toggleActive(p)}
                     className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
-                    {p.isActive ? '停用' : '啟用'}
+                    {p.isActive ? dict.common.inactive : dict.common.active}
                   </button>
                 </div>
               </div>
@@ -354,26 +357,26 @@ function ProvidersTab() {
 
       {!loading && providers.length === 0 && (
         <div className="rounded-lg border-2 border-dashed p-16 text-center text-muted-foreground">
-          尚無物流商資料，請新增第一間物流商
+          {dict.logistics.noLogistics}
         </div>
       )}
 
       <Dialog open={open} onOpenChange={o => !o && setOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? '編輯物流商' : '新增物流商'}</DialogTitle>
+            <DialogTitle>{editing ? dict.common.edit : dict.logistics.newLogistics}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {!editing && (
               <div className="space-y-1.5">
-                <Label>物流商代碼 <span className="text-red-500">*</span></Label>
+                <Label>{dict.logistics.code} <span className="text-red-500">*</span></Label>
                 <Input value={form.code} onChange={e => f('code', e.target.value.toUpperCase())}
                   placeholder="HSINCHU / KERRY" maxLength={20} />
                 <p className="text-xs text-muted-foreground">英數大寫，建立後不可更改</p>
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>物流商名稱 <span className="text-red-500">*</span></Label>
+              <Label>{dict.logistics.providerName} <span className="text-red-500">*</span></Label>
               <Input value={form.name} onChange={e => f('name', e.target.value)} placeholder="新竹物流" />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -395,7 +398,7 @@ function ProvidersTab() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>聯絡窗口</Label>
+                <Label>{dict.logistics.contact}</Label>
                 <Input value={form.contactPerson} onChange={e => f('contactPerson', e.target.value)}
                   placeholder="業務聯絡人" />
               </div>
@@ -427,10 +430,10 @@ function ProvidersTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editing ? '儲存' : '新增'}
+              {editing ? dict.common.save : dict.common.add}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -444,6 +447,7 @@ function ProvidersTab() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function VehiclesTab() {
+  const { dict } = useI18n()
   const [vehicles, setVehicles]         = useState<Vehicle[]>([])
   const [loading, setLoading]           = useState(true)
   const [vehicleOpen, setVehicleOpen]   = useState(false)
@@ -503,7 +507,7 @@ function VehiclesTab() {
   }
 
   async function handleVehicleSave() {
-    if (!vForm.plateNo) { toast.error('請填寫車牌號碼'); return }
+    if (!vForm.plateNo) { toast.error(dict.common.required); return }
     setSaving(true)
     const url    = editingVehicle ? `/api/vehicles/${editingVehicle.id}` : '/api/vehicles'
     const method = editingVehicle ? 'PUT' : 'POST'
@@ -527,12 +531,12 @@ function VehiclesTab() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success(editingVehicle ? '車輛資料已更新' : '車輛已新增')
+      toast.success(editingVehicle ? dict.common.updateSuccess : dict.common.createSuccess)
       setVehicleOpen(false)
       fetchVehicles()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '儲存失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -560,8 +564,8 @@ function VehiclesTab() {
   }
 
   async function handleMaintSave() {
-    if (!mForm.title)       { toast.error('請填寫保養項目'); return }
-    if (!mForm.serviceDate) { toast.error('請填寫保養日期'); return }
+    if (!mForm.title)       { toast.error(dict.common.required); return }
+    if (!mForm.serviceDate) { toast.error(dict.common.date); return }
     if (!maintVehicleId)    return
     setMaintSaving(true)
     const res = await fetch(`/api/vehicles/${maintVehicleId}/maintenance`, {
@@ -581,7 +585,7 @@ function VehiclesTab() {
     })
     setMaintSaving(false)
     if (res.ok) {
-      toast.success('保養紀錄已新增')
+      toast.success(dict.common.createSuccess)
       setMaintOpen(false)
       // Refresh maintenance records for this vehicle
       const updated = await fetch(`/api/vehicles/${maintVehicleId}/maintenance`)
@@ -593,7 +597,7 @@ function VehiclesTab() {
       fetchVehicles()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '儲存失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -607,7 +611,7 @@ function VehiclesTab() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">共 {vehicles.length} 輛車</p>
         <Button onClick={openCreateVehicle}>
-          <Plus className="mr-2 h-4 w-4" />新增車輛
+          <Plus className="mr-2 h-4 w-4" />{dict.common.add}
         </Button>
       </div>
 
@@ -618,7 +622,7 @@ function VehiclesTab() {
         </div>
       ) : vehicles.length === 0 ? (
         <div className="rounded-lg border-2 border-dashed p-16 text-center text-muted-foreground">
-          尚無車輛資料，請新增第一輛車
+          {dict.common.noRecords}
         </div>
       ) : (
         <div className="space-y-3">
@@ -811,7 +815,7 @@ function VehiclesTab() {
       <Dialog open={vehicleOpen} onOpenChange={o => !o && setVehicleOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingVehicle ? '編輯車輛' : '新增車輛'}</DialogTitle>
+            <DialogTitle>{editingVehicle ? dict.common.edit : dict.common.add}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* 車牌 */}
@@ -943,7 +947,7 @@ function VehiclesTab() {
 
             {/* 備註 */}
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea
                 value={vForm.notes}
                 onChange={e => vf('notes', e.target.value)}
@@ -953,10 +957,10 @@ function VehiclesTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setVehicleOpen(false)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setVehicleOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
             <Button onClick={handleVehicleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editingVehicle ? '儲存' : '新增'}
+              {editingVehicle ? dict.common.save : dict.common.add}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -966,7 +970,7 @@ function VehiclesTab() {
       <Dialog open={maintOpen} onOpenChange={o => !o && setMaintOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>新增保養紀錄</DialogTitle>
+            <DialogTitle>{dict.common.add}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* Type + Title */}
@@ -1061,7 +1065,7 @@ function VehiclesTab() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea
                 value={mForm.notes}
                 onChange={e => mf('notes', e.target.value)}
@@ -1071,10 +1075,10 @@ function VehiclesTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMaintOpen(false)} disabled={maintSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setMaintOpen(false)} disabled={maintSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleMaintSave} disabled={maintSaving}>
               {maintSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              新增
+              {dict.common.add}
             </Button>
           </DialogFooter>
         </DialogContent>

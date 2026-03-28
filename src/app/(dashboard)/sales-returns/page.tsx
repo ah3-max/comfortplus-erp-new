@@ -116,8 +116,8 @@ export default function SalesReturnsPage() {
           <div className="flex justify-between items-center text-sm text-muted-foreground">
             <span>共 {data.pagination.total} 筆</span>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => fetchData(page - 1)}>上一頁</Button>
-              <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages} onClick={() => fetchData(page + 1)}>下一頁</Button>
+              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => fetchData(page - 1)}>{dict.common.prevPage}</Button>
+              <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages} onClick={() => fetchData(page + 1)}>{dict.common.nextPage}</Button>
             </div>
           </div>
           <div className="rounded-lg border bg-white overflow-hidden">
@@ -153,7 +153,7 @@ export default function SalesReturnsPage() {
                   </div>
                   {isOpen && (
                     <div className="bg-slate-50 border-t px-6 py-3 space-y-2">
-                      {row.reason && <p className="text-sm text-muted-foreground">退貨原因：{row.reason}</p>}
+                      {row.reason && <p className="text-sm text-muted-foreground">{dict.salesReturns.reason}：{row.reason}</p>}
                       <Table>
                         <TableHeader>
                           <TableRow className="text-xs">
@@ -191,6 +191,7 @@ export default function SalesReturnsPage() {
 }
 
 function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  const { dict } = useI18n()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ orderId: '', customerId: '', returnType: 'RETURN', reason: '', refundAmount: '', notes: '' })
 
@@ -213,7 +214,7 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>新增銷貨退貨單</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{dict.salesReturns.newReturn}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
           {[
             { label: '訂單 ID', key: 'orderId', placeholder: '貼上訂單 ID' },
@@ -234,17 +235,17 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">退貨原因</label>
+            <label className="text-xs font-medium text-muted-foreground">{dict.salesReturns.reason}</label>
             <textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} rows={2} className="w-full rounded-md border px-3 py-2 text-sm" />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">備註</label>
+            <label className="text-xs font-medium text-muted-foreground">{dict.common.notes}</label>
             <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} className="w-full rounded-md border px-3 py-2 text-sm" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>取消</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立</Button>
+          <Button variant="outline" onClick={onClose}>{dict.common.cancel}</Button>
+          <Button onClick={handleSubmit} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

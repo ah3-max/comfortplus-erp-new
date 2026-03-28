@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -971,6 +972,7 @@ type GradeFilter = 'ALL' | 'A' | 'B' | 'C'
 type RegionFilter = 'ALL' | SalesRegion
 
 export default function KeyAccountsPage() {
+  const { dict } = useI18n()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -1050,7 +1052,7 @@ export default function KeyAccountsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Star className="h-6 w-6 text-amber-400 fill-amber-400" />
-            重要客戶管理
+            {dict.customersExt.keyAccount}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             A / B 級核心客戶 — 共 {customers.length} 位
@@ -1062,7 +1064,7 @@ export default function KeyAccountsPage() {
           </Button>
           <Button onClick={() => setShowNew(true)} className="active:scale-[0.97]">
             <Plus className="h-4 w-4 mr-2" />
-            新增重要客戶
+            {dict.common.create}
           </Button>
         </div>
       </div>
@@ -1123,7 +1125,7 @@ export default function KeyAccountsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="搜尋名稱、代碼、聯絡人…"
+            placeholder={dict.customersExt.searchPlaceholder}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -1132,7 +1134,7 @@ export default function KeyAccountsPage() {
         {/* Grade tabs */}
         <Tabs value={gradeFilter} onValueChange={v => setGradeFilter(v as GradeFilter)}>
           <TabsList>
-            <TabsTrigger value="ALL">全部</TabsTrigger>
+            <TabsTrigger value="ALL">{dict.common.all}</TabsTrigger>
             <TabsTrigger value="A">
               <span className="inline-flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
@@ -1182,7 +1184,7 @@ export default function KeyAccountsPage() {
         <div className="text-center py-20 text-muted-foreground">
           <Star className="h-12 w-12 mx-auto mb-4 opacity-20" />
           <p className="text-base font-medium">
-            {customers.length === 0 ? '尚無重要客戶' : '找不到符合條件的客戶'}
+            {customers.length === 0 ? dict.customersExt.noCustomers : dict.customersExt.noResults}
           </p>
           <p className="text-sm mt-1">
             {customers.length === 0

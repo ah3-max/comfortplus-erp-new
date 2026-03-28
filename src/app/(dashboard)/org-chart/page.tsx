@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Loader2, Building2, ChevronDown, ChevronRight, Users } from 'lucide-react'
@@ -83,6 +84,7 @@ function DeptNode({ dept, level, users }: { dept: Department; level: number; use
 }
 
 export default function OrgChartPage() {
+  const { dict } = useI18n()
   const [depts, setDepts] = useState<Department[]>([])
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -114,7 +116,7 @@ export default function OrgChartPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">組織圖</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.orgChart.title}</h1>
         <p className="text-sm text-muted-foreground">公司部門架構與人員配置</p>
       </div>
 
@@ -123,7 +125,7 @@ export default function OrgChartPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <Building2 className="h-5 w-5 text-blue-500" />
             <div>
-              <p className="text-xs text-muted-foreground">部門數</p>
+              <p className="text-xs text-muted-foreground">{dict.orgChart.department}</p>
               <p className="text-lg font-bold">{totalDepts}</p>
             </div>
           </CardContent>
@@ -132,7 +134,7 @@ export default function OrgChartPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <Users className="h-5 w-5 text-green-500" />
             <div>
-              <p className="text-xs text-muted-foreground">員工數</p>
+              <p className="text-xs text-muted-foreground">{dict.orgChart.employee}</p>
               <p className="text-lg font-bold">{totalUsers}</p>
             </div>
           </CardContent>
@@ -151,7 +153,7 @@ export default function OrgChartPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : tree.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">尚未建立部門資料，請先執行 seed</div>
+        <div className="text-center py-16 text-muted-foreground">{dict.orgChart.noData}</div>
       ) : (
         <Card>
           <CardContent className="p-6">

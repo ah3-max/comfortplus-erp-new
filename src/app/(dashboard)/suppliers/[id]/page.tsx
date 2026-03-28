@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,6 +59,7 @@ function fmtDate(s: string) {
 export default function SupplierDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { dict } = useI18n()
   const [supplier, setSupplier] = useState<Supplier | null>(null)
   const [loading, setLoading]   = useState(true)
   const [tab, setTab]           = useState<'info' | 'orders' | 'price'>('info')
@@ -114,7 +116,7 @@ export default function SupplierDetailPage() {
     </div>
   )
   if (!supplier) return (
-    <div className="flex h-full items-center justify-center text-muted-foreground">找不到此供應商</div>
+    <div className="flex h-full items-center justify-center text-muted-foreground">{dict.suppliers.noSuppliers}</div>
   )
 
   const categories = supplier.supplyCategories ? JSON.parse(supplier.supplyCategories) as string[] : []
@@ -150,7 +152,7 @@ export default function SupplierDetailPage() {
           )}
         </div>
         <Button variant="outline" onClick={() => setEditOpen(true)}>
-          <Pencil className="mr-2 h-4 w-4" />編輯
+          <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
         </Button>
       </div>
 
@@ -158,7 +160,7 @@ export default function SupplierDetailPage() {
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">累計採購金額</div>
+            <div className="text-xs text-muted-foreground mb-1">{dict.purchasesExt.totalAmount}</div>
             <div className="text-xl font-bold text-slate-900">{fmt(totalPurchased)}</div>
             <div className="text-xs text-muted-foreground mt-0.5">{supplier._count.purchaseOrders} 筆採購單</div>
           </CardContent>
@@ -185,7 +187,7 @@ export default function SupplierDetailPage() {
       <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
         {[
           { id: 'info',   label: '基本資料',   icon: <Building2 className="h-4 w-4" /> },
-          { id: 'orders', label: '採購紀錄',   icon: <Package className="h-4 w-4" /> },
+          { id: 'orders', label: dict.nav.purchases,   icon: <Package className="h-4 w-4" /> },
           { id: 'price',  label: '歷史採購價格', icon: <History className="h-4 w-4" /> },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
@@ -204,11 +206,11 @@ export default function SupplierDetailPage() {
             <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">聯絡資訊</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {[
-                { label: '聯絡人', value: supplier.contactPerson },
-                { label: '電話', value: supplier.phone },
-                { label: 'Email', value: supplier.email },
-                { label: '地址', value: supplier.address },
-                { label: '統一編號', value: supplier.taxId },
+                { label: dict.suppliers.contact, value: supplier.contactPerson },
+                { label: dict.suppliers.phone, value: supplier.phone },
+                { label: dict.suppliers.email, value: supplier.email },
+                { label: dict.suppliers.address, value: supplier.address },
+                { label: dict.customersExt.taxId, value: supplier.taxId },
               ].map(({ label, value }) => (
                 <div key={label} className="flex justify-between">
                   <span className="text-muted-foreground">{label}</span>
@@ -221,7 +223,7 @@ export default function SupplierDetailPage() {
             <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">合作條件</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">付款條件</span>
+                <span className="text-muted-foreground">{dict.suppliers.paymentTerms}</span>
                 <span className="font-medium">{supplier.paymentTerms ?? '—'}</span>
               </div>
               <div className="flex justify-between">
@@ -268,13 +270,13 @@ export default function SupplierDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>採購單號</TableHead>
-                  <TableHead>採購類型</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead className="text-right">採購金額</TableHead>
-                  <TableHead className="text-right">已付款</TableHead>
-                  <TableHead>預計到貨</TableHead>
-                  <TableHead>建立日期</TableHead>
+                  <TableHead>{dict.purchases.poNo}</TableHead>
+                  <TableHead>{dict.common.type}</TableHead>
+                  <TableHead>{dict.common.status}</TableHead>
+                  <TableHead className="text-right">{dict.purchasesExt.totalAmount}</TableHead>
+                  <TableHead className="text-right">{dict.purchasesExt.paidAmount}</TableHead>
+                  <TableHead>{dict.purchasesExt.expectedDate}</TableHead>
+                  <TableHead>{dict.common.createdAt}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -313,7 +315,7 @@ export default function SupplierDetailPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">歷史採購價格</CardTitle>
             <Button size="sm" onClick={() => setPriceOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />新增報價
+              <Plus className="mr-2 h-4 w-4" />{dict.common.add}
             </Button>
           </CardHeader>
           <CardContent className="p-0">
@@ -324,7 +326,7 @@ export default function SupplierDetailPage() {
                   <TableHead className="text-right w-32">採購單價</TableHead>
                   <TableHead className="w-24">幣別</TableHead>
                   <TableHead className="w-28">生效日期</TableHead>
-                  <TableHead>備註</TableHead>
+                  <TableHead>{dict.common.notes}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -368,7 +370,7 @@ export default function SupplierDetailPage() {
       {/* Add price dialog */}
       <Dialog open={priceOpen} onOpenChange={(o) => !o && setPriceOpen(false)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>新增歷史採購價格</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.add}歷史採購價格</DialogTitle></DialogHeader>
           <form onSubmit={handleAddPrice} className="space-y-4 py-1">
             <div className="space-y-1.5">
               <Label>品項名稱 <span className="text-red-500">*</span></Label>
@@ -389,9 +391,9 @@ export default function SupplierDetailPage() {
               <Input value={pNotes} onChange={e => setPNotes(e.target.value)} placeholder="備註（選填）" />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setPriceOpen(false)} disabled={pSaving}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setPriceOpen(false)} disabled={pSaving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={pSaving}>
-                {pSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}新增
+                {pSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.add}
               </Button>
             </DialogFooter>
           </form>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -109,6 +110,7 @@ type PageTab = 'users' | 'permissions'
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function UsersPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'SUPER_ADMIN' || session?.user?.role === 'GM'
 
@@ -247,14 +249,14 @@ export default function UsersPage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">用戶管理</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.users.title}</h1>
         {tab === 'users' && (
-          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增用戶</Button>
+          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />{dict.users.newUser}</Button>
         )}
         {tab === 'permissions' && permDirty && (
           <Button onClick={savePerms} disabled={permSaving}>
             {permSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            儲存權限
+            {dict.common.save}
           </Button>
         )}
       </div>
@@ -279,12 +281,12 @@ export default function UsersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>姓名</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead className="w-28">角色</TableHead>
-                <TableHead className="w-20">狀態</TableHead>
-                <TableHead className="w-28">建立日期</TableHead>
-                <TableHead className="w-24 text-center">操作</TableHead>
+                <TableHead>{dict.users.name}</TableHead>
+                <TableHead>{dict.users.email}</TableHead>
+                <TableHead className="w-28">{dict.users.role}</TableHead>
+                <TableHead className="w-20">{dict.common.status}</TableHead>
+                <TableHead className="w-28">{dict.common.createdAt}</TableHead>
+                <TableHead className="w-24 text-center">{dict.common.actions}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -440,7 +442,7 @@ export default function UsersPage() {
       <Dialog open={formOpen} onOpenChange={(o) => !o && setFormOpen(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editTarget ? '編輯用戶' : '新增用戶'}</DialogTitle>
+            <DialogTitle>{editTarget ? dict.common.edit : dict.users.newUser}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -481,10 +483,10 @@ export default function UsersPage() {
               </>
             )}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setFormOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editTarget ? '儲存變更' : '新增用戶'}
+                {editTarget ? dict.common.save : dict.users.newUser}
               </Button>
             </DialogFooter>
           </form>

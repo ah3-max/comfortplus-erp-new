@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -97,6 +98,7 @@ const CUSTOMS_STATUS_LABELS: Record<string, string> = {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ImportProjectsPage() {
+  const { dict } = useI18n()
   const [projects, setProjects] = useState<ImportProjectBase[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -207,15 +209,15 @@ export default function ImportProjectsPage() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">進口費用管理</h1>
+        <h1 className="text-xl font-bold">{dict.importProjects.title}</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1 h-4 w-4" />新增專案
+          <Plus className="mr-1 h-4 w-4" />{dict.importProjects.newProject}
         </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <Input placeholder="搜尋專案號/名稱…" value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
+        <Input placeholder={dict.importProjects.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
         <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? '')}>
           <SelectTrigger className="h-8 w-36"><SelectValue placeholder="全部狀態" /></SelectTrigger>
           <SelectContent>
@@ -230,7 +232,7 @@ export default function ImportProjectsPage() {
         {loading ? (
           <p className="col-span-full py-8 text-center text-muted-foreground">載入中…</p>
         ) : projects.length === 0 ? (
-          <p className="col-span-full py-8 text-center text-muted-foreground">沒有符合的進口專案</p>
+          <p className="col-span-full py-8 text-center text-muted-foreground">{dict.importProjects.noProjects}</p>
         ) : projects.map(p => (
           <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setDetail(p); setDetailTab('costs') }}>
             <CardHeader className="pb-2">
@@ -247,7 +249,7 @@ export default function ImportProjectsPage() {
             <CardContent>
               <div className="grid grid-cols-2 gap-1 text-sm">
                 {p.supplier && <p className="text-muted-foreground truncate">供應商：{p.supplier.name}</p>}
-                {p.eta && <p className="text-muted-foreground">預計到港：{new Date(p.eta).toLocaleDateString('zh-TW')}</p>}
+                {p.eta && <p className="text-muted-foreground">{dict.importProjects.eta}：{new Date(p.eta).toLocaleDateString('zh-TW')}</p>}
                 <p className="text-muted-foreground">費用項目：{p.costItems.length} 筆</p>
                 <p className="font-medium">{fmt(p.totalCost)}</p>
               </div>
@@ -375,10 +377,10 @@ export default function ImportProjectsPage() {
       {/* ── Create Project Dialog ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增進口專案</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.importProjects.newProject}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>專案名稱 *</Label><Input value={newProject.name} onChange={e => setNewProject(p => ({ ...p, name: e.target.value }))} className="mt-1" /></div>
-            <div><Label>說明</Label><Textarea value={newProject.description} onChange={e => setNewProject(p => ({ ...p, description: e.target.value }))} className="mt-1" rows={2} /></div>
+            <div><Label>{dict.common.description}</Label><Textarea value={newProject.description} onChange={e => setNewProject(p => ({ ...p, description: e.target.value }))} className="mt-1" rows={2} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>幣別</Label>
                 <Select value={newProject.currency} onValueChange={v => setNewProject(p => ({ ...p, currency: v ?? 'USD' }))}>
@@ -394,11 +396,11 @@ export default function ImportProjectsPage() {
               <div><Label>預計出港 (ETD)</Label><Input type="date" value={newProject.etd} onChange={e => setNewProject(p => ({ ...p, etd: e.target.value }))} className="mt-1" /></div>
               <div><Label>預計到港 (ETA)</Label><Input type="date" value={newProject.eta} onChange={e => setNewProject(p => ({ ...p, eta: e.target.value }))} className="mt-1" /></div>
             </div>
-            <div><Label>備註</Label><Textarea value={newProject.notes} onChange={e => setNewProject(p => ({ ...p, notes: e.target.value }))} className="mt-1" rows={2} /></div>
+            <div><Label>{dict.common.notes}</Label><Textarea value={newProject.notes} onChange={e => setNewProject(p => ({ ...p, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
-            <Button onClick={handleCreate} disabled={saving || !newProject.name}>建立專案</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreate} disabled={saving || !newProject.name}>{dict.importProjects.newProject}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -431,8 +433,8 @@ export default function ImportProjectsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCostDialog(false)}>取消</Button>
-            <Button onClick={handleAddCost} disabled={saving || !newCost.description || !newCost.amount}>新增</Button>
+            <Button variant="outline" onClick={() => setCostDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleAddCost} disabled={saving || !newCost.description || !newCost.amount}>{dict.common.add}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -465,8 +467,8 @@ export default function ImportProjectsPage() {
             <div><Label>匯款單號</Label><Input value={newPayment.remittanceRef} onChange={e => setNewPayment(p => ({ ...p, remittanceRef: e.target.value }))} className="mt-1" /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentDialog(false)}>取消</Button>
-            <Button onClick={handleAddPayment} disabled={saving || !newPayment.amount || !newPayment.paymentDate}>新增</Button>
+            <Button variant="outline" onClick={() => setPaymentDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleAddPayment} disabled={saving || !newPayment.amount || !newPayment.paymentDate}>{dict.common.add}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -500,8 +502,8 @@ export default function ImportProjectsPage() {
             <div><Label>備註</Label><Textarea value={newCustoms.notes} onChange={e => setNewCustoms(c => ({ ...c, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCustomsDialog(false)}>取消</Button>
-            <Button onClick={handleSetCustoms} disabled={saving}>儲存</Button>
+            <Button variant="outline" onClick={() => setCustomsDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleSetCustoms} disabled={saving}>{dict.common.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -63,7 +63,7 @@ export default function APVoucherDetailPage() {
         </div>
         {data && (
           <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-1" />列印
+            <Printer className="h-4 w-4 mr-1" />{dict.common.print}
           </Button>
         )}
       </div>
@@ -77,16 +77,16 @@ export default function APVoucherDetailPage() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">狀態</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.status}</label>
           <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="">全部</option>
+            <option value="">{dict.common.all}</option>
             <option value="NOT_DUE">未到期</option>
             <option value="DUE">已到期</option>
             <option value="PARTIAL_PAID">部分付款</option>
             <option value="PAID">已付清</option>
           </select>
         </div>
-        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}</Button>
       </div>
       {data && (
         <>
@@ -165,7 +165,7 @@ export default function APVoucherDetailPage() {
           </div>
         </>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請點擊查詢載入資料</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

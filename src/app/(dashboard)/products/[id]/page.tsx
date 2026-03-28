@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -506,6 +507,7 @@ function SupplierForm({ productId, initial, supplierOptions, onSaved, onCancel }
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { dict } = useI18n()
 
   const [product, setProduct]                 = useState<Product | null>(null)
   const [transactions, setTransactions]       = useState<Transaction[]>([])
@@ -586,7 +588,7 @@ export default function ProductDetailPage() {
   }
   if (!product) {
     return (
-      <div className="py-20 text-center text-muted-foreground">找不到商品資料</div>
+      <div className="py-20 text-center text-muted-foreground">{dict.common.noData}</div>
     )
   }
 
@@ -616,11 +618,11 @@ export default function ProductDetailPage() {
               </span>
               {product.isActive ? (
                 <Badge variant="outline" className="text-xs border-green-200 bg-green-50 text-green-700">
-                  上架中
+                  {dict.productsExt.statusActive}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-xs border-red-200 bg-red-50 text-red-600">
-                  已停用
+                  {dict.productsExt.statusInactive}
                 </Badge>
               )}
               {lowStockRows.length > 0 && (
@@ -639,7 +641,7 @@ export default function ProductDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" />編輯商品
+            <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}{dict.common.product}
           </Button>
           <Button
             variant={product.isActive ? 'destructive' : 'default'}
@@ -647,7 +649,7 @@ export default function ProductDetailPage() {
             disabled={toggling}
           >
             {toggling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {product.isActive ? '停用' : '啟用'}
+            {product.isActive ? dict.common.inactive : dict.common.active}
           </Button>
         </div>
       </div>
@@ -656,19 +658,19 @@ export default function ProductDetailPage() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Package className="h-4 w-4 text-muted-foreground" />商品資訊
+            <Package className="h-4 w-4 text-muted-foreground" />{dict.products.title}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            <InfoRow label="商品分類"  value={product.category} />
-            <InfoRow label="系列"      value={product.series} />
-            <InfoRow label="尺寸"      value={product.size} />
+            <InfoRow label={dict.products.category}  value={product.category} />
+            <InfoRow label={dict.products.series}      value={product.series} />
+            <InfoRow label={dict.products.size}      value={product.size} />
             <InfoRow label="包裝型態"  value={product.packagingType} />
             <InfoRow label="每包片數"  value={product.piecesPerPack != null ? `${fmtNum(product.piecesPerPack)} 片` : null} />
             <InfoRow label="每箱包數"  value={product.packsPerBox  != null ? `${fmtNum(product.packsPerBox)} 包` : null} />
-            <InfoRow label="條碼"      value={product.barcode ? <span className="font-mono">{product.barcode}</span> : null} />
-            <InfoRow label="重量 (kg)" value={product.weight} />
+            <InfoRow label={dict.productsExt.barcode}      value={product.barcode ? <span className="font-mono">{product.barcode}</span> : null} />
+            <InfoRow label={dict.productsExt.weight} value={product.weight} />
             <InfoRow label="材積"      value={product.volume} />
           </div>
           {(product.specification || product.storageNotes || product.description) && (
@@ -704,7 +706,7 @@ export default function ProductDetailPage() {
         <CardContent>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             <div className="rounded-lg bg-blue-50 p-3">
-              <p className="text-xs text-muted-foreground">建議售價</p>
+              <p className="text-xs text-muted-foreground">{dict.products.sellingPrice}</p>
               <p className="mt-0.5 text-base font-bold text-blue-700">{fmtCurrency(product.sellingPrice)}</p>
             </div>
             {product.channelPrice   != null && (
@@ -721,7 +723,7 @@ export default function ProductDetailPage() {
             )}
             {product.costPrice      != null && (
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-muted-foreground">成本價</p>
+                <p className="text-xs text-muted-foreground">{dict.products.costPrice}</p>
                 <p className="mt-0.5 text-sm font-semibold">{fmtCurrency(product.costPrice)}</p>
               </div>
             )}
@@ -848,18 +850,18 @@ export default function ProductDetailPage() {
         </CardHeader>
         <CardContent className="p-0">
           {product.inventory.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">尚無庫存資料</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">{dict.common.noData}</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>倉庫</TableHead>
-                  <TableHead>分類</TableHead>
-                  <TableHead className="text-right">庫存量</TableHead>
-                  <TableHead className="text-right">鎖定量</TableHead>
-                  <TableHead className="text-right">可用量</TableHead>
-                  <TableHead className="text-right">安全庫存</TableHead>
-                  <TableHead className="text-center">狀態</TableHead>
+                  <TableHead>{dict.common.warehouse}</TableHead>
+                  <TableHead>{dict.inventory.category}</TableHead>
+                  <TableHead className="text-right">{dict.inventory.quantity}</TableHead>
+                  <TableHead className="text-right">{dict.inventoryExt.lockedQty}</TableHead>
+                  <TableHead className="text-right">{dict.inventoryExt.available}</TableHead>
+                  <TableHead className="text-right">{dict.inventory.safetyStock}</TableHead>
+                  <TableHead className="text-center">{dict.common.status}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -913,7 +915,7 @@ export default function ProductDetailPage() {
         </CardHeader>
         <CardContent className="p-0">
           {transactions.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">尚無異動紀錄</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">{dict.common.noRecords}</p>
           ) : (
             <Table>
               <TableHeader>
@@ -991,10 +993,10 @@ export default function ProductDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>訂單編號</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead className="text-right">金額</TableHead>
-                  <TableHead>日期</TableHead>
+                  <TableHead>{dict.orders.orderNo}</TableHead>
+                  <TableHead>{dict.common.status}</TableHead>
+                  <TableHead className="text-right">{dict.common.amount}</TableHead>
+                  <TableHead>{dict.common.date}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

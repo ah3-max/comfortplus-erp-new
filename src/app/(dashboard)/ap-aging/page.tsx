@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -72,6 +73,7 @@ function AgingCell({ value, highlight }: { value: number; highlight?: boolean })
 }
 
 export default function ApAgingPage() {
+  const { dict } = useI18n()
   const [rows, setRows] = useState<SupplierRow[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [asOf, setAsOf] = useState<string | null>(null)
@@ -113,9 +115,9 @@ export default function ApAgingPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">應付帳齡分析</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.finance.apAging}</h1>
           <p className="text-sm text-muted-foreground">
-            {summary ? `${summary.supplierCount} 家供應商 · ${summary.invoiceCount} 筆未付帳款` : '載入中...'}
+            {summary ? `${summary.supplierCount} 家供應商 · ${summary.invoiceCount} 筆未付帳款` : dict.common.loading}
             {asOf && <span className="ml-2">截至 {fmtDate(asOf)}</span>}
           </p>
         </div>
@@ -152,7 +154,7 @@ export default function ApAgingPage() {
 
       <div className="relative w-64">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="搜尋供應商..." value={search} onChange={e => setSearch(e.target.value)} />
+        <Input className="pl-9" placeholder={dict.common.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       <div className="rounded-lg border bg-white">
@@ -160,13 +162,13 @@ export default function ApAgingPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-8" />
-              <TableHead>供應商</TableHead>
+              <TableHead>{dict.common.supplier}</TableHead>
               <TableHead className="text-right">未到期</TableHead>
               <TableHead className="text-right">1–30天</TableHead>
               <TableHead className="text-right">31–60天</TableHead>
               <TableHead className="text-right">61–90天</TableHead>
               <TableHead className="text-right">90天以上</TableHead>
-              <TableHead className="text-right">合計</TableHead>
+              <TableHead className="text-right">{dict.common.total}</TableHead>
               <TableHead className="text-right w-16">筆數</TableHead>
             </TableRow>
           </TableHeader>
@@ -180,7 +182,7 @@ export default function ApAgingPage() {
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="py-16 text-center text-muted-foreground">
-                  {search ? '找不到符合的供應商' : '目前無未付帳款'}
+                  {search ? dict.common.noResultsFound : dict.common.noData}
                 </TableCell>
               </TableRow>
             ) : (
@@ -245,7 +247,7 @@ export default function ApAgingPage() {
                 {summary && filtered.length > 1 && (
                   <TableRow className="bg-slate-50 font-semibold border-t-2">
                     <TableCell />
-                    <TableCell className="text-slate-700">合計 ({filtered.length} 家)</TableCell>
+                    <TableCell className="text-slate-700">{dict.common.total} ({filtered.length} 家)</TableCell>
                     <TableCell className="text-right">{summary.current > 0 ? `$${fmt(filtered.reduce((s, r) => s + r.current, 0))}` : '—'}</TableCell>
                     <TableCell className="text-right text-amber-600">{summary.days1_30 > 0 ? `$${fmt(filtered.reduce((s, r) => s + r.days1_30, 0))}` : '—'}</TableCell>
                     <TableCell className="text-right text-orange-600">{summary.days31_60 > 0 ? `$${fmt(filtered.reduce((s, r) => s + r.days31_60, 0))}` : '—'}</TableCell>

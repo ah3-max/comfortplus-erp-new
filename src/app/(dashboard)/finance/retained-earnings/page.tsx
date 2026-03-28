@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -26,6 +27,7 @@ function fmt(n: number) {
 }
 
 export default function RetainedEarningsPage() {
+  const { dict } = useI18n()
   const currentYear = new Date().getFullYear()
   const [year, setYear] = useState(currentYear)
   const [data, setData] = useState<REData | null>(null)
@@ -48,7 +50,7 @@ export default function RetainedEarningsPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">盈餘公積金表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.retainedEarnings}</h1>
           <p className="text-sm text-muted-foreground">保留盈餘與股東權益變動</p>
         </div>
       </div>

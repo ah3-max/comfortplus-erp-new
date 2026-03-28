@@ -104,7 +104,7 @@ export default function RegionMappingPage() {
                             setForm({ city: m.city, district: m.district ?? '', region: m.region, deliveryZone: m.deliveryZone ?? '' })
                             setDialog(true)
                           }}>
-                            編輯
+                            {dict.common.edit}
                           </Button>
                         </td>
                       </tr>

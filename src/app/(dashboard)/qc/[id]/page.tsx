@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -205,7 +206,7 @@ function CheckItemRow({
               onClick={save}
               className="text-xs px-2.5 py-1 rounded-md bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1"
             >
-              <Save className="h-3 w-3" />儲存
+              <Save className="h-3 w-3" />{dict.common.save}
             </button>
           )}
           <button
@@ -222,6 +223,7 @@ function CheckItemRow({
 
 // ── Main Detail Page ───────────────────────────────────────────────────────
 export default function QcDetailPage() {
+  const { dict } = useI18n()
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [qc, setQc] = useState<QcDetail | null>(null)
@@ -359,7 +361,7 @@ export default function QcDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           <Link href="/qc" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-slate-700 mb-2">
-            <ArrowLeft className="h-3.5 w-3.5" />返回列表
+            <ArrowLeft className="h-3.5 w-3.5" />{dict.common.back}
           </Link>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-slate-900 font-mono">{qc.qcNo}</h1>
@@ -380,7 +382,7 @@ export default function QcDetailPage() {
           </p>
         </div>
         <Button onClick={handleSave} disabled={saving} size="sm">
-          {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />儲存中…</> : <><Save className="mr-1.5 h-3.5 w-3.5" />儲存變更</>}
+          {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />{dict.common.saving}</> : <><Save className="mr-1.5 h-3.5 w-3.5" />{dict.common.save}</>}
         </Button>
       </div>
 
@@ -397,7 +399,7 @@ export default function QcDetailPage() {
                 <div className="flex items-start gap-2">
                   <Package className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">商品</p>
+                    <p className="text-xs text-muted-foreground">{dict.common.product}</p>
                     <p className="font-medium">{qc.product.name}</p>
                     <p className="text-xs font-mono text-slate-500">{qc.product.sku}</p>
                   </div>
@@ -407,7 +409,7 @@ export default function QcDetailPage() {
                 <div className="flex items-start gap-2">
                   <Factory className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">供應商 / 工廠</p>
+                    <p className="text-xs text-muted-foreground">{dict.common.supplier}</p>
                     <p className="font-medium">{qc.supplier.name}</p>
                   </div>
                 </div>
@@ -425,7 +427,7 @@ export default function QcDetailPage() {
                 <div className="flex items-start gap-2">
                   <ShoppingBag className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">採購單</p>
+                    <p className="text-xs text-muted-foreground">{dict.nav.purchases}</p>
                     <p className="font-mono text-sm">{qc.purchaseOrder.poNo}</p>
                   </div>
                 </div>
@@ -444,7 +446,7 @@ export default function QcDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">狀態</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.status}</Label>
                 <select
                   value={editStatus}
                   onChange={e => setEditStatus(e.target.value)}
@@ -475,7 +477,7 @@ export default function QcDetailPage() {
                   </div>
                   <div className="rounded-lg bg-red-50 border border-red-200 py-1.5">
                     <p className="text-sm font-bold text-red-700">{liveDefectRate}%</p>
-                    <p className="text-xs text-red-600">不良率</p>
+                    <p className="text-xs text-red-600">{dict.qcExt.defectRate}</p>
                   </div>
                 </div>
               )}
@@ -504,7 +506,7 @@ export default function QcDetailPage() {
               </div>
 
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">備註</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.notes}</Label>
                 <Input value={editNotes} onChange={e => setEditNotes(e.target.value)}
                   className="text-sm h-9" placeholder="（選填）" />
               </div>
@@ -529,7 +531,7 @@ export default function QcDetailPage() {
                     </Button>
                   )}
                   <Button size="sm" variant="outline" onClick={() => setShowAddItem(s => !s)} className="gap-1 text-xs">
-                    <Plus className="h-3.5 w-3.5" />新增項目
+                    <Plus className="h-3.5 w-3.5" />{dict.common.add}
                   </Button>
                 </div>
               </div>
@@ -578,9 +580,9 @@ export default function QcDetailPage() {
                       />
                     </div>
                     <Button size="sm" onClick={handleAddItem} disabled={addingItem || !newItemName.trim()}>
-                      {addingItem ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : '新增'}
+                      {addingItem ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : dict.common.add}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setShowAddItem(false)}>取消</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setShowAddItem(false)}>{dict.common.cancel}</Button>
                   </div>
                 </div>
               )}

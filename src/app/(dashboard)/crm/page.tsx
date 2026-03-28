@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -369,6 +370,7 @@ function ScheduleManagementTab() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function CRMPage() {
+  const { dict } = useI18n()
   const [alerts, setAlerts] = useState<Alerts | null>(null)
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [managerData, setManagerData] = useState<ManagerDashboard | null>(null)
@@ -418,7 +420,7 @@ export default function CRMPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">業務追蹤中心</h1>
+          <h1 className="text-xl font-bold text-slate-900">{dict.crm.title}</h1>
           <p className="text-xs text-muted-foreground">系統自動整理 · 追蹤提醒</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>

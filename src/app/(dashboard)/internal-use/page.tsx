@@ -85,6 +85,7 @@ function fmtDate(str: string) {
 }
 
 export default function InternalUsePage() {
+  const { dict } = useI18n()
   const [tab, setTab] = useState('internal')
 
   // Internal Use
@@ -234,7 +235,7 @@ export default function InternalUsePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">內部使用 / 不良品管理</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.internalUse.title}管理</h1>
         <p className="text-sm text-muted-foreground">領用管理 · 不良品追蹤與處置</p>
       </div>
 
@@ -249,11 +250,11 @@ export default function InternalUsePage() {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="搜尋單號..." value={iuSearch}
+              <Input className="pl-9" placeholder={dict.internalUse.searchPlaceholder} value={iuSearch}
                 onChange={e => { setIuSearch(e.target.value); setIuPage(1) }} />
             </div>
             <Button onClick={() => setShowIuDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />新增領用
+              <Plus className="mr-2 h-4 w-4" />{dict.internalUse.newRequest}
             </Button>
           </div>
 
@@ -261,14 +262,14 @@ export default function InternalUsePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">單號</TableHead>
-                  <TableHead className="w-20">用途</TableHead>
-                  <TableHead>倉庫</TableHead>
-                  <TableHead className="w-20">狀態</TableHead>
+                  <TableHead className="w-32">{dict.internalUse.requestNo}</TableHead>
+                  <TableHead className="w-20">{dict.internalUse.purpose}</TableHead>
+                  <TableHead>{dict.common.warehouse}</TableHead>
+                  <TableHead className="w-20">{dict.common.status}</TableHead>
                   <TableHead className="text-right w-24">總成本</TableHead>
-                  <TableHead className="w-20">品項</TableHead>
+                  <TableHead className="w-20">{dict.internalUse.items}</TableHead>
                   <TableHead className="w-24">申請人</TableHead>
-                  <TableHead className="w-20">日期</TableHead>
+                  <TableHead className="w-20">{dict.common.date}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -278,7 +279,7 @@ export default function InternalUsePage() {
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                   </TableCell></TableRow>
                 ) : iuData.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="py-16 text-center text-muted-foreground">尚無領用紀錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="py-16 text-center text-muted-foreground">{dict.internalUse.noRequests}</TableCell></TableRow>
                 ) : iuData.map(d => {
                   const sc = internalUseStatusConfig[d.status] ?? { label: d.status, className: '' }
                   return (
@@ -345,8 +346,8 @@ export default function InternalUsePage() {
 
           {iuPagination && iuPagination.totalPages > 1 && (
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" disabled={iuPage <= 1} onClick={() => setIuPage(p => p - 1)}>上一頁</Button>
-              <Button variant="outline" size="sm" disabled={iuPage >= iuPagination.totalPages} onClick={() => setIuPage(p => p + 1)}>下一頁</Button>
+              <Button variant="outline" size="sm" disabled={iuPage <= 1} onClick={() => setIuPage(p => p - 1)}>{dict.common.prevPage}</Button>
+              <Button variant="outline" size="sm" disabled={iuPage >= iuPagination.totalPages} onClick={() => setIuPage(p => p + 1)}>{dict.common.nextPage}</Button>
             </div>
           )}
         </TabsContent>
@@ -377,14 +378,14 @@ export default function InternalUsePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-32">單號</TableHead>
-                  <TableHead>品項</TableHead>
+                  <TableHead>{dict.common.product}</TableHead>
                   <TableHead className="w-20">來源</TableHead>
                   <TableHead className="w-16">嚴重度</TableHead>
-                  <TableHead className="w-20">狀態</TableHead>
-                  <TableHead className="text-right w-16">數量</TableHead>
+                  <TableHead className="w-20">{dict.common.status}</TableHead>
+                  <TableHead className="text-right w-16">{dict.common.quantity}</TableHead>
                   <TableHead className="text-right w-24">估計損失</TableHead>
                   <TableHead className="w-24">處置</TableHead>
-                  <TableHead className="w-20">日期</TableHead>
+                  <TableHead className="w-20">{dict.common.date}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -396,7 +397,7 @@ export default function InternalUsePage() {
                 ) : dgData.length === 0 ? (
                   <TableRow><TableCell colSpan={10} className="py-16 text-center">
                     <AlertTriangle className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
-                    <p className="text-muted-foreground">{dgSearch || dgFilterStatus ? '找不到符合的紀錄' : '尚無不良品紀錄'}</p>
+                    <p className="text-muted-foreground">{dgSearch || dgFilterStatus ? dict.internalUse.noResults : dict.internalUse.noRequests}</p>
                   </TableCell></TableRow>
                 ) : dgData.map(d => {
                   const sev = severityConfig[d.severity] ?? { label: d.severity, className: '' }
@@ -438,8 +439,8 @@ export default function InternalUsePage() {
 
           {dgPagination && dgPagination.totalPages > 1 && (
             <div className="flex justify-end gap-2">
-              <Button variant="outline" size="sm" disabled={dgPage <= 1} onClick={() => setDgPage(p => p - 1)}>上一頁</Button>
-              <Button variant="outline" size="sm" disabled={dgPage >= dgPagination.totalPages} onClick={() => setDgPage(p => p + 1)}>下一頁</Button>
+              <Button variant="outline" size="sm" disabled={dgPage <= 1} onClick={() => setDgPage(p => p - 1)}>{dict.common.prevPage}</Button>
+              <Button variant="outline" size="sm" disabled={dgPage >= dgPagination.totalPages} onClick={() => setDgPage(p => p + 1)}>{dict.common.nextPage}</Button>
             </div>
           )}
         </TabsContent>
@@ -448,7 +449,7 @@ export default function InternalUsePage() {
       {/* ── Internal Use Create Dialog ── */}
       <Dialog open={showIuDialog} onOpenChange={setShowIuDialog}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增內部領用單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.internalUse.newRequest}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -469,7 +470,7 @@ export default function InternalUsePage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">品項</label>
+              <label className="text-sm font-medium">{dict.internalUse.items}</label>
               {iuForm.items.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-1 items-center">
                   <select className="col-span-7 rounded border px-2 py-1.5 text-sm" value={item.productId}
@@ -491,14 +492,14 @@ export default function InternalUsePage() {
               </Button>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">備註</label>
+              <label className="text-sm font-medium">{dict.common.notes}</label>
               <Input placeholder="..." value={iuForm.notes} onChange={e => setIuForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowIuDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowIuDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={submitIU} disabled={submitting}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}建立
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -576,9 +577,9 @@ export default function InternalUsePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDgDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowDgDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={submitDG} disabled={submitting}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}建立
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -622,7 +623,7 @@ export default function InternalUsePage() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setResolveTarget(null)}>取消</Button>
+            <Button variant="outline" onClick={() => setResolveTarget(null)}>{dict.common.cancel}</Button>
             <Button onClick={resolveDefect} disabled={submitting || !resolveForm.disposition}>
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認處置
             </Button>

@@ -62,6 +62,28 @@ function formatDate(str: string) {
 }
 
 export default function RFQPage() {
+  const { dict } = useI18n()
+
+  const statusConfig: Record<RFQStatus, {
+    label: string
+    variant: 'default' | 'secondary' | 'outline' | 'destructive'
+    className?: string
+  }> = {
+    DRAFT:     { label: dict.rfq.statuses.DRAFT, variant: 'outline' },
+    SENT:      { label: dict.rfq.statuses.SENT, variant: 'secondary' },
+    RESPONDED: { label: '已回覆', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    COMPLETED: { label: '已完成', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    CANCELLED: { label: dict.rfq.statuses.CANCELLED, variant: 'destructive' },
+  }
+
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'DRAFT', label: dict.rfq.statuses.DRAFT },
+    { value: 'SENT', label: dict.rfq.statuses.SENT },
+    { value: 'RESPONDED', label: '已回覆' },
+    { value: 'COMPLETED', label: '已完成' },
+  ]
+
   const [rfqs, setRfqs] = useState<RFQ[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -213,7 +235,7 @@ export default function RFQPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">詢價單管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.rfq.title}</h1>
           <p className="text-sm text-muted-foreground">
             共 {pagination ? pagination.total : rfqs.length} 筆
             {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
@@ -221,7 +243,7 @@ export default function RFQPage() {
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />新增詢價單
+          <Plus className="mr-2 h-4 w-4" />{dict.rfq.newRfq}
         </Button>
       </div>
 
@@ -229,7 +251,7 @@ export default function RFQPage() {
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋詢價單號..."
+          <Input className="pl-9" placeholder={dict.rfq.searchPlaceholder}
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -251,12 +273,12 @@ export default function RFQPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">詢價單號</TableHead>
-              <TableHead className="w-28">有效期限</TableHead>
-              <TableHead>品項</TableHead>
-              <TableHead className="w-20 text-center">供應商數</TableHead>
-              <TableHead className="w-24">狀態</TableHead>
-              <TableHead className="w-24">日期</TableHead>
+              <TableHead className="w-40">{dict.rfq.rfqNo}</TableHead>
+              <TableHead className="w-28">{dict.rfq.dueDate}</TableHead>
+              <TableHead>{dict.rfq.items}</TableHead>
+              <TableHead className="w-20 text-center">{dict.common.supplier}</TableHead>
+              <TableHead className="w-24">{dict.common.status}</TableHead>
+              <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -273,11 +295,11 @@ export default function RFQPage() {
                   <div className="flex flex-col items-center gap-3">
                     <FileText className="h-10 w-10 text-muted-foreground/50" />
                     <p className="text-muted-foreground">
-                      {search || filterStatus ? '找不到符合的詢價單' : '尚無詢價單資料'}
+                      {search || filterStatus ? dict.rfq.noResults : dict.rfq.noRfqs}
                     </p>
                     {!search && !filterStatus && (
                       <Button variant="outline" size="sm" onClick={openCreate}>
-                        <Plus className="mr-2 h-4 w-4" />新增第一筆詢價單
+                        <Plus className="mr-2 h-4 w-4" />{dict.rfq.newRfq}
                       </Button>
                     )}
                   </div>
@@ -310,7 +332,7 @@ export default function RFQPage() {
                         <DropdownMenuContent align="end" className="w-44">
                           {rfq.status === 'DRAFT' && (
                             <DropdownMenuItem onClick={() => openEdit(rfq)}>
-                              <Pencil className="mr-2 h-4 w-4" />編輯
+                              <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                             </DropdownMenuItem>
                           )}
                           {rfq.status === 'DRAFT' && (
@@ -358,7 +380,7 @@ export default function RFQPage() {
             <div className="flex flex-col items-center gap-3">
               <FileText className="h-10 w-10 text-muted-foreground/50" />
               <p className="text-muted-foreground">
-                {search || filterStatus ? '找不到符合的詢價單' : '尚無詢價單資料'}
+                {search || filterStatus ? dict.rfq.noResults : dict.rfq.noRfqs}
               </p>
             </div>
           </div>
@@ -396,11 +418,11 @@ export default function RFQPage() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
               onClick={() => setPage(p => p - 1)}>
-              上一頁
+              {dict.common.prevPage}
             </Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
               onClick={() => setPage(p => p + 1)}>
-              下一頁
+              {dict.common.nextPage}
             </Button>
           </div>
         </div>
@@ -410,7 +432,7 @@ export default function RFQPage() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editTarget ? '編輯詢價單' : '新增詢價單'}</DialogTitle>
+            <DialogTitle>{editTarget ? `${dict.common.edit}${dict.rfq.title}` : dict.rfq.newRfq}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4">
@@ -420,12 +442,12 @@ export default function RFQPage() {
                 <Label>承辦人</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
-                  <option value="">選擇承辦人（預設為自己）</option>
+                  <option value="">{dict.common.select}</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>有效期限</Label>
+                <Label>{dict.rfq.dueDate}</Label>
                 <Input type="date" value={form.validUntil}
                   onChange={e => setForm(f => ({ ...f, validUntil: e.target.value }))} />
               </div>
@@ -433,7 +455,7 @@ export default function RFQPage() {
 
             {/* Suppliers */}
             <div>
-              <Label className="text-base font-semibold">詢價供應商</Label>
+              <Label className="text-base font-semibold">{dict.common.supplier}</Label>
               <div className="mt-2 flex flex-wrap gap-2">
                 {suppliers.map(s => (
                   <button key={s.id} onClick={() => toggleSupplier(s.id)}
@@ -446,7 +468,7 @@ export default function RFQPage() {
                   </button>
                 ))}
                 {suppliers.length === 0 && (
-                  <p className="text-sm text-muted-foreground">無供應商資料</p>
+                  <p className="text-sm text-muted-foreground">{dict.common.noRecords}</p>
                 )}
               </div>
             </div>
@@ -454,10 +476,10 @@ export default function RFQPage() {
             {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-base font-semibold">詢價品項</Label>
+                <Label className="text-base font-semibold">{dict.rfq.items}</Label>
                 <Button variant="outline" size="sm"
                   onClick={() => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }))}>
-                  <Plus className="mr-1 h-3 w-3" />新增品項
+                  <Plus className="mr-1 h-3 w-3" />{dict.common.add}
                 </Button>
               </div>
               <div className="space-y-3">
@@ -467,12 +489,12 @@ export default function RFQPage() {
                       <Label className="text-xs">品項</Label>
                       <select className="w-full rounded-md border px-2 py-1.5 text-sm"
                         value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
-                        <option value="">選擇品項</option>
+                        <option value="">{dict.common.select}</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
                       </select>
                     </div>
                     <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs">數量</Label>
+                      <Label className="text-xs">{dict.common.quantity}</Label>
                       <Input type="number" min={1} value={item.quantity}
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
@@ -495,16 +517,16 @@ export default function RFQPage() {
             </div>
 
             <div>
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setFormOpen(false)}>{dict.common.cancel}</Button>
               <Button onClick={handleSubmit} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editTarget ? '更新' : '建立'}
+                {editTarget ? dict.common.save : dict.common.create}
               </Button>
             </div>
           </div>

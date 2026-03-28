@@ -55,6 +55,7 @@ function MaterialForm({
   onSaved: () => void
   onCancel: () => void
 }) {
+  const { dict } = useI18n()
   const isEdit = !!initial?.id
   const [code,             setCode]             = useState(initial?.code             ?? '')
   const [name,             setName]             = useState(initial?.name             ?? '')
@@ -108,7 +109,7 @@ function MaterialForm({
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-blue-900 flex items-center gap-2">
           <Layers className="h-4 w-4" />
-          {isEdit ? `編輯：${initial?.name}` : '新增包材'}
+          {isEdit ? `${dict.common.edit}：${initial?.name}` : dict.packaging.newPackaging}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -134,7 +135,7 @@ function MaterialForm({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">料號 / 代碼 *</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.packagingCode} *</Label>
             <Input
               value={code}
               onChange={e => setCode(e.target.value)}
@@ -144,11 +145,11 @@ function MaterialForm({
             />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">包材名稱 *</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.packagingName} *</Label>
             <Input value={name} onChange={e => setName(e.target.value)} className="text-sm h-9" placeholder="例：L號腰貼" />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">單位</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.unit}</Label>
             <Input value={unit} onChange={e => setUnit(e.target.value)} className="text-sm h-9" placeholder="個 / 卷 / 張…" />
           </div>
           <div>
@@ -168,24 +169,24 @@ function MaterialForm({
             <Input type="number" min={0} value={sentToFactoryQty} onChange={e => setSentToFactoryQty(e.target.value)} className="text-sm h-9" />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">安全庫存</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.safetyStock}</Label>
             <Input type="number" min={0} value={safetyStock} onChange={e => setSafetyStock(e.target.value)} className="text-sm h-9" />
           </div>
         </div>
 
         <div>
-          <Label className="text-xs text-slate-600 mb-1.5 block">備註</Label>
+          <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.notes}</Label>
           <Input value={notes} onChange={e => setNotes(e.target.value)} className="text-sm h-9" placeholder="（選填）" />
         </div>
 
         <div className="flex gap-2 pt-1">
           <Button onClick={handleSubmit} disabled={saving} size="sm">
             {saving
-              ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />儲存中…</>
-              : <><Check className="mr-1.5 h-3.5 w-3.5" />{isEdit ? '儲存變更' : '新增包材'}</>
+              ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />{dict.common.saving}</>
+              : <><Check className="mr-1.5 h-3.5 w-3.5" />{isEdit ? dict.common.save : dict.packaging.newPackaging}</>
             }
           </Button>
-          <Button variant="outline" size="sm" onClick={onCancel}>取消</Button>
+          <Button variant="outline" size="sm" onClick={onCancel}>{dict.common.cancel}</Button>
         </div>
       </CardContent>
     </Card>
@@ -194,6 +195,7 @@ function MaterialForm({
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function PackagingPage() {
+  const { dict } = useI18n()
   const [materials, setMaterials] = useState<PackagingMaterial[]>([])
   const [loading,   setLoading]   = useState(true)
   const [showForm,  setShowForm]  = useState(false)
@@ -240,13 +242,13 @@ export default function PackagingPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Layers className="h-6 w-6 text-purple-600" />
-            包材管理
+            {dict.packaging.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">Packaging Materials — 共 {materials.length} 種</p>
         </div>
         {!showForm && !editing && (
           <Button onClick={() => setShowForm(true)} className="gap-2">
-            <Plus className="h-4 w-4" />新增包材
+            <Plus className="h-4 w-4" />{dict.packaging.newPackaging}
           </Button>
         )}
       </div>
@@ -307,19 +309,19 @@ export default function PackagingPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <XCircle className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>目前無包材資料</p>
-              <p className="text-xs mt-1">點擊右上角「新增包材」開始建立</p>
+              <p>{dict.packaging.noPackaging}</p>
+              <p className="text-xs mt-1">點擊右上角「{dict.packaging.newPackaging}」開始建立</p>
             </div>
           ) : (
             <div className="divide-y">
               {/* Header */}
               <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2.5 text-xs font-semibold text-muted-foreground bg-slate-50">
-                <span>料號 / 名稱</span>
-                <span>類型</span>
-                <span>庫存</span>
+                <span>{dict.packaging.packagingCode} / {dict.packaging.packagingName}</span>
+                <span>{dict.common.type}</span>
+                <span>{dict.packaging.currentStock}</span>
                 <span>在途</span>
                 <span>送廠</span>
-                <span>安全庫存</span>
+                <span>{dict.packaging.safetyStock}</span>
                 <span>損耗率</span>
                 <span></span>
               </div>

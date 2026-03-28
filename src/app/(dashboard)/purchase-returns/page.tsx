@@ -45,6 +45,7 @@ function fmt(n: string | number | null) {
 }
 
 export default function PurchaseReturnsPage() {
+  const { dict } = useI18n()
   const [data, setData] = useState<{ data: PurchaseReturn[]; pagination: { total: number; totalPages: number } } | null>(null)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -97,14 +98,14 @@ export default function PurchaseReturnsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">進貨退貨單</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.purchaseReturns.title}</h1>
           <p className="text-sm text-muted-foreground">供應商退貨管理、審核、應付帳款沖銷</p>
         </div>
-        <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4 mr-1" />新增退貨單</Button>
+        <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4 mr-1" />{dict.purchaseReturns.newReturn}</Button>
       </div>
 
       <div className="flex flex-wrap gap-3 items-end rounded-lg border bg-white p-4">
-        <Input placeholder="搜尋退貨單號/供應商…" value={search} onChange={e => setSearch(e.target.value)} className="w-52" />
+        <Input placeholder={dict.purchaseReturns.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="w-52" />
         <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
           <option value="">全部狀態</option>
           {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -117,13 +118,13 @@ export default function PurchaseReturnsPage() {
           <div className="flex justify-between items-center text-sm text-muted-foreground">
             <span>共 {data.pagination.total} 筆</span>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => fetchData(page - 1)}>上一頁</Button>
-              <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages} onClick={() => fetchData(page + 1)}>下一頁</Button>
+              <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => fetchData(page - 1)}>{dict.common.prevPage}</Button>
+              <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages} onClick={() => fetchData(page + 1)}>{dict.common.nextPage}</Button>
             </div>
           </div>
           <div className="rounded-lg border bg-white overflow-hidden">
             {data.data.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground">無退貨記錄</div>
+              <div className="py-16 text-center text-muted-foreground">{dict.purchaseReturns.noReturns}</div>
             ) : data.data.map(row => {
               const sc = STATUS_CONFIG[row.status] ?? { label: row.status, cls: 'bg-slate-100' }
               const isOpen = expanded.has(row.id)
@@ -155,7 +156,7 @@ export default function PurchaseReturnsPage() {
                   {isOpen && (
                     <div className="bg-slate-50 border-t px-6 py-3 space-y-2">
                       <div className="flex gap-4 text-xs text-muted-foreground">
-                        {row.reason && <span>退貨原因：{row.reason}</span>}
+                        {row.reason && <span>{dict.purchaseReturns.reason}：{row.reason}</span>}
                         {row.debitNoteNo && <span>扣款通知單：{row.debitNoteNo}</span>}
                         {row.deductStatus && <span>扣款狀態：{row.deductStatus}</span>}
                       </div>
@@ -198,6 +199,7 @@ export default function PurchaseReturnsPage() {
 }
 
 function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
+  const { dict } = useI18n()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ purchaseId: '', supplierId: '', returnType: 'RETURN', reason: '', deductAmount: '', debitNoteNo: '', notes: '' })
 
@@ -220,7 +222,7 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>新增進貨退貨單</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{dict.purchaseReturns.newReturn}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
           {[
             { label: '採購單 ID', key: 'purchaseId', placeholder: '貼上採購單 ID' },
@@ -242,13 +244,13 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">退貨原因</label>
+            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.reason}</label>
             <textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} rows={2} className="w-full rounded-md border px-3 py-2 text-sm" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>取消</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立</Button>
+          <Button variant="outline" onClick={onClose}>{dict.common.cancel}</Button>
+          <Button onClick={handleSubmit} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

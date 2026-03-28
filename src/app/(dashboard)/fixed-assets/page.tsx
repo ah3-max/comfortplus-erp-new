@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -123,6 +124,7 @@ function buildDepSchedule(cost: number, salvage: number, lifeYears: number, star
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FixedAssetsPage() {
+  const { dict } = useI18n()
   const [assets, setAssets] = useState<FixedAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -320,9 +322,9 @@ export default function FixedAssetsPage() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">固定資產</h1>
+        <h1 className="text-xl font-bold">{dict.fixedAssets.title}</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1 h-4 w-4" />新增資產
+          <Plus className="mr-1 h-4 w-4" />{dict.fixedAssets.newAsset}
         </Button>
       </div>
 
@@ -330,24 +332,24 @@ export default function FixedAssetsPage() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">資產總數</p><p className="text-xl font-bold">{assets.filter(a => a.status === 'ACTIVE').length}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">原始成本</p><p className="text-lg font-bold">{fmt(totalCost)}</p></CardContent></Card>
-        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">帳面淨值</p><p className="text-lg font-bold text-blue-600">{fmt(totalNBV)}</p></CardContent></Card>
-        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">累計折舊</p><p className="text-lg font-bold text-orange-600">{fmt(totalCost - totalNBV)}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">{dict.fixedAssets.currentValue}</p><p className="text-lg font-bold text-blue-600">{fmt(totalNBV)}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">{dict.fixedAssets.depreciation}</p><p className="text-lg font-bold text-orange-600">{fmt(totalCost - totalNBV)}</p></CardContent></Card>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <Input placeholder="搜尋資產號/名稱/序號…" value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
+        <Input placeholder={dict.fixedAssets.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
         <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? '')}>
-          <SelectTrigger className="h-8 w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-32"><SelectValue placeholder={dict.common.all + dict.common.status} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部狀態</SelectItem>
+            <SelectItem value="">{dict.common.all + dict.common.status}</SelectItem>
             {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={v => setCategoryFilter(v ?? '')}>
-          <SelectTrigger className="h-8 w-32"><SelectValue placeholder="全部類別" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-32"><SelectValue placeholder={dict.common.all + dict.fixedAssets.category} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部類別</SelectItem>
+            <SelectItem value="">{dict.common.all + dict.fixedAssets.category}</SelectItem>
             {Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -359,19 +361,19 @@ export default function FixedAssetsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b text-xs text-muted-foreground">
-                <th className="px-4 py-2 text-left">資產號</th>
-                <th className="px-4 py-2 text-left">名稱</th>
-                <th className="px-4 py-2 text-left">類別</th>
+                <th className="px-4 py-2 text-left">{dict.fixedAssets.assetNo}</th>
+                <th className="px-4 py-2 text-left">{dict.fixedAssets.assetName}</th>
+                <th className="px-4 py-2 text-left">{dict.fixedAssets.category}</th>
                 <th className="px-4 py-2 text-right">原始成本</th>
-                <th className="px-4 py-2 text-right">帳面淨值</th>
-                <th className="px-4 py-2 text-left">購入日</th>
-                <th className="px-4 py-2 text-center">狀態</th>
+                <th className="px-4 py-2 text-right">{dict.fixedAssets.currentValue}</th>
+                <th className="px-4 py-2 text-left">{dict.fixedAssets.purchaseDate}</th>
+                <th className="px-4 py-2 text-center">{dict.common.status}</th>
               </tr></thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">載入中…</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{dict.common.loading}</td></tr>
                 ) : assets.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">沒有符合的資產</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">{dict.fixedAssets.noAssets}</td></tr>
                 ) : assets.map(a => (
                   <tr key={a.id} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => { setDetail(a); setDetailTab('info') }}>
                     <td className="px-4 py-2 font-mono text-xs text-muted-foreground">{a.assetNo}</td>
@@ -402,10 +404,10 @@ export default function FixedAssetsPage() {
 
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => openEdit(detail)}>
-                <Pencil className="mr-1 h-3.5 w-3.5" />編輯
+                <Pencil className="mr-1 h-3.5 w-3.5" />{dict.common.edit}
               </Button>
               {detail.status === 'ACTIVE' && (
-                <Button variant="outline" size="sm" onClick={() => { setDisposeForm({ status: 'DISPOSED', disposedAt: new Date().toISOString().slice(0, 10), disposalAmount: '', notes: '' }); setDisposeDialog(true) }}>處分/報廢</Button>
+                <Button variant="outline" size="sm" onClick={() => { setDisposeForm({ status: 'DISPOSED', disposedAt: new Date().toISOString().slice(0, 10), disposalAmount: '', notes: '' }); setDisposeDialog(true) }}>{dict.fixedAssets.statuses.DISPOSED}/報廢</Button>
               )}
             </div>
 
@@ -435,7 +437,7 @@ export default function FixedAssetsPage() {
 
               <TabsContent value="depreciation">
                 {detail.depreciations.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">尚無折舊排程（建立資產後系統自動產生）</p>
+                  <p className="py-6 text-center text-sm text-muted-foreground">{dict.common.noRecords}</p>
                 ) : (
                   <div className="overflow-x-auto max-h-72 overflow-y-auto">
                     <table className="w-full text-sm">
@@ -476,7 +478,7 @@ export default function FixedAssetsPage() {
       {detail && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>編輯固定資產 — {detail.assetNo}</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{dict.common.edit}{dict.fixedAssets.title} — {detail.assetNo}</DialogTitle></DialogHeader>
 
             <Tabs defaultValue="basic">
               <TabsList>
@@ -606,9 +608,9 @@ export default function FixedAssetsPage() {
             </Tabs>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditOpen(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setEditOpen(false)}>{dict.common.cancel}</Button>
               <Button onClick={handleEdit} disabled={saving || !editForm.name || !editForm.purchaseDate || !editForm.purchaseAmount}>
-                {saving ? '儲存中…' : '儲存變更'}
+                {saving ? dict.common.saving : dict.common.save}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -618,7 +620,7 @@ export default function FixedAssetsPage() {
       {/* ── Dispose Dialog ── */}
       <Dialog open={disposeDialog} onOpenChange={setDisposeDialog}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>資產處分</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.fixedAssets.statuses.DISPOSED}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>處分方式</Label>
               <Select value={disposeForm.status} onValueChange={v => setDisposeForm(f => ({ ...f, status: v ?? 'DISPOSED' }))}>
@@ -635,8 +637,8 @@ export default function FixedAssetsPage() {
             <div><Label>備註</Label><Textarea value={disposeForm.notes} onChange={e => setDisposeForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDisposeDialog(false)}>取消</Button>
-            <Button variant="destructive" onClick={handleDispose} disabled={saving}>確認處分</Button>
+            <Button variant="outline" onClick={() => setDisposeDialog(false)}>{dict.common.cancel}</Button>
+            <Button variant="destructive" onClick={handleDispose} disabled={saving}>{dict.common.confirm}{dict.fixedAssets.statuses.DISPOSED}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -644,7 +646,7 @@ export default function FixedAssetsPage() {
       {/* ── Create Dialog ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增固定資產</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.fixedAssets.newAsset}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div><Label>資產名稱 *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="mt-1" /></div>
@@ -676,8 +678,8 @@ export default function FixedAssetsPage() {
             <div><Label>備註</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
-            <Button onClick={handleCreate} disabled={saving || !form.name || !form.purchaseDate || !form.purchaseAmount}>建立資產</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreate} disabled={saving || !form.name || !form.purchaseDate || !form.purchaseAmount}>{dict.fixedAssets.newAsset}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

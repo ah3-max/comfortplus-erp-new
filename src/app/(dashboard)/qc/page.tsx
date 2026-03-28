@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -80,6 +81,7 @@ function fmtDate(d: string | null) {
 
 // ── New QC Form ─────────────────────────────────────────────────────────────
 function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
+  const { dict } = useI18n()
   const [inspectionType, setInspectionType] = useState('FINISHED_PRODUCT')
   const [batchNo, setBatchNo] = useState('')
   const [inspectionDate, setInspectionDate] = useState(new Date().toISOString().split('T')[0])
@@ -119,7 +121,7 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
         const err = await res.json()
         throw new Error(err.error)
       }
-      toast.success('QC 單已建立')
+      toast.success(dict.common.createSuccess)
       onCreated()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : '建立失敗')
@@ -132,13 +134,13 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
     <Card className="border-blue-200 bg-blue-50/40">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-          <ClipboardCheck className="h-4 w-4" />新建 QC 檢驗單
+          <ClipboardCheck className="h-4 w-4" />{dict.qcExt.newInspection}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* 檢驗類型 */}
         <div>
-          <Label className="text-xs text-slate-600 mb-2 block">檢驗類型 *</Label>
+          <Label className="text-xs text-slate-600 mb-2 block">{dict.common.type} *</Label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {Object.entries(INSPECTION_TYPE_LABEL).map(([key, label]) => (
               <button
@@ -159,7 +161,7 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {/* 商品搜尋 */}
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">關聯商品（選填）</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.product}（{dict.common.optional}）</Label>
             {selectedProduct ? (
               <div className="flex items-center justify-between rounded border bg-white px-3 py-2 text-sm">
                 <span><span className="font-mono text-xs text-slate-500 mr-1">{selectedProduct.sku}</span>{selectedProduct.name}</span>
@@ -193,34 +195,34 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
 
           {/* 批次號 */}
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">批次號 / Lot No.</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.qcExt.batchNo}</Label>
             <Input value={batchNo} onChange={e => setBatchNo(e.target.value)} className="text-sm h-9" placeholder="例：LOT-20260318" />
           </div>
 
           {/* 檢驗日期 */}
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">檢驗日期</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.qcExt.inspectionDate}</Label>
             <Input type="date" value={inspectionDate} onChange={e => setInspectionDate(e.target.value)} className="text-sm h-9" />
           </div>
 
           {/* 抽樣數 */}
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">抽樣數量</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.qcExt.sampleQty}</Label>
             <Input type="number" min={1} value={sampleSize} onChange={e => setSampleSize(e.target.value)} className="text-sm h-9" placeholder="例：50" />
           </div>
         </div>
 
         {/* 備註 */}
         <div>
-          <Label className="text-xs text-slate-600 mb-1.5 block">備註</Label>
+          <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.notes}</Label>
           <Input value={notes} onChange={e => setNotes(e.target.value)} className="text-sm h-9" placeholder="（選填）" />
         </div>
 
         <div className="flex gap-2 pt-1">
           <Button onClick={handleSubmit} disabled={saving} size="sm">
-            {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />建立中…</> : '建立 QC 單'}
+            {saving ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />{dict.common.saving}</> : dict.qcExt.newInspection}
           </Button>
-          <Button variant="outline" size="sm" onClick={onCancel}>取消</Button>
+          <Button variant="outline" size="sm" onClick={onCancel}>{dict.common.cancel}</Button>
         </div>
       </CardContent>
     </Card>
@@ -229,6 +231,7 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function QcPage() {
+  const { dict } = useI18n()
   const [records, setRecords] = useState<QcRecord[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -299,12 +302,12 @@ export default function QcPage() {
     })
     setCompleting(false)
     if (res.ok) {
-      toast.success('QC 已完成')
+      toast.success(dict.common.complete)
       setCompleteTarget(null)
       load()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '操作失敗')
+      toast.error(d.error ?? dict.common.error)
     }
   }
 
@@ -314,8 +317,8 @@ export default function QcPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ qcStatus: 'IN_PROGRESS' }),
     })
-    if (res.ok) { toast.success('已開始檢驗'); load() }
-    else { const d = await res.json().catch(() => ({})); toast.error(d.error ?? '操作失敗') }
+    if (res.ok) { toast.success(dict.common.success); load() }
+    else { const d = await res.json().catch(() => ({})); toast.error(d.error ?? dict.common.error) }
   }
 
   return (
@@ -330,7 +333,7 @@ export default function QcPage() {
           <p className="text-sm text-muted-foreground mt-0.5">QC Quality Control — 共 {total} 筆</p>
         </div>
         <Button onClick={() => setShowForm(s => !s)} className="gap-2">
-          <Plus className="h-4 w-4" />新增 QC 單
+          <Plus className="h-4 w-4" />{dict.qcExt.newInspection}
         </Button>
       </div>
 
@@ -364,7 +367,7 @@ export default function QcPage() {
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
         >
-          <option value="">全部狀態</option>
+          <option value="">{dict.common.all}{dict.common.status}</option>
           {Object.entries(STATUS_CONFIG).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>
           ))}
@@ -374,7 +377,7 @@ export default function QcPage() {
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
         >
-          <option value="">全部類型</option>
+          <option value="">{dict.common.all}{dict.common.type}</option>
           {Object.entries(INSPECTION_TYPE_LABEL).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
@@ -384,7 +387,7 @@ export default function QcPage() {
             onClick={() => { setStatusFilter(''); setTypeFilter('') }}
             className="text-xs text-red-500 hover:text-red-700 px-2"
           >
-            清除篩選
+            {dict.common.reset}
           </button>
         )}
       </div>
@@ -399,7 +402,7 @@ export default function QcPage() {
           ) : records.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <XCircle className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>目前無 QC 紀錄</p>
+              <p>{dict.qcExt.noInspections}</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -454,7 +457,7 @@ export default function QcPage() {
                     <div>
                       {resultCfg
                         ? <Badge className={`text-xs font-normal border-0 ${resultCfg.color}`}>{resultCfg.label}</Badge>
-                        : <span className="text-xs text-muted-foreground">待判定</span>}
+                        : <span className="text-xs text-muted-foreground">{dict.qcExt.result}</span>}
                       {r.resultSummary && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">{r.resultSummary}</p>}
                     </div>
                     <div className="flex items-center gap-1">
@@ -496,7 +499,7 @@ export default function QcPage() {
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1.5">判定結果 *</label>
+              <label className="text-xs font-medium text-slate-600 block mb-1.5">{dict.qcExt.result} *</label>
               <select
                 className="w-full border rounded-md px-3 py-2 text-sm"
                 value={completeForm.result}
@@ -509,7 +512,7 @@ export default function QcPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1.5">良品數量</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">{dict.qcExt.passQty}</label>
                 <Input
                   type="number" min={0}
                   value={completeForm.passedQty}
@@ -518,7 +521,7 @@ export default function QcPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1.5">不良品數量</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">{dict.qcExt.failQty}</label>
                 <Input
                   type="number" min={0}
                   value={completeForm.failedQty}
@@ -528,7 +531,7 @@ export default function QcPage() {
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-600 block mb-1.5">判定說明</label>
+              <label className="text-xs font-medium text-slate-600 block mb-1.5">{dict.common.description}</label>
               <Textarea
                 value={completeForm.resultSummary}
                 onChange={e => setCompleteForm(f => ({ ...f, resultSummary: e.target.value }))}
@@ -538,10 +541,10 @@ export default function QcPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCompleteTarget(null)} disabled={completing}>取消</Button>
+            <Button variant="outline" onClick={() => setCompleteTarget(null)} disabled={completing}>{dict.common.cancel}</Button>
             <Button onClick={handleComplete} disabled={completing}>
               {completing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              確認完成
+              {dict.common.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>

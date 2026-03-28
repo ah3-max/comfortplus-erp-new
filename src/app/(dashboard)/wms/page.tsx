@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -741,6 +742,7 @@ function LocationDialog({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function WmsPage() {
+  const { dict } = useI18n()
   const [activeTab, setActiveTab] = useState<Tab>('inbound')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -815,23 +817,23 @@ export default function WmsPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">WMS 倉庫管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.wms.title}</h1>
           <p className="text-sm text-muted-foreground">儲位管理、入庫出庫作業</p>
         </div>
         <div>
           {activeTab === 'inbound' && (
             <Button onClick={() => setShowInbound(true)} className="min-h-[44px]">
-              <Plus className="h-4 w-4 mr-2" />新增入庫
+              <Plus className="h-4 w-4 mr-2" />{dict.wms.newInbound}
             </Button>
           )}
           {activeTab === 'outbound' && (
             <Button onClick={() => setShowOutbound(true)} className="min-h-[44px]">
-              <Plus className="h-4 w-4 mr-2" />新增出庫
+              <Plus className="h-4 w-4 mr-2" />{dict.wms.newOutbound}
             </Button>
           )}
           {activeTab === 'locations' && (
             <Button onClick={() => setShowLocation(true)} className="min-h-[44px]">
-              <Plus className="h-4 w-4 mr-2" />新增儲位
+              <Plus className="h-4 w-4 mr-2" />{dict.wms.newLocation}
             </Button>
           )}
         </div>
@@ -859,7 +861,7 @@ export default function WmsPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-9 min-h-[44px]"
-          placeholder="搜尋..."
+          placeholder={dict.wms.searchPlaceholder}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
@@ -879,12 +881,12 @@ export default function WmsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>入庫單號</TableHead>
-                      <TableHead>類型</TableHead>
-                      <TableHead className="hidden sm:table-cell">品項</TableHead>
-                      <TableHead>狀態</TableHead>
+                      <TableHead>{dict.wms.inbound}單號</TableHead>
+                      <TableHead>{dict.common.type}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{dict.common.product}</TableHead>
+                      <TableHead>{dict.common.status}</TableHead>
                       <TableHead className="hidden md:table-cell">預計日期</TableHead>
-                      <TableHead className="hidden md:table-cell">建立日期</TableHead>
+                      <TableHead className="hidden md:table-cell">{dict.common.createdAt}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -892,14 +894,14 @@ export default function WmsPage() {
                       <TableRow>
                         <TableCell colSpan={6} className="py-16 text-center">
                           <ArrowDownToLine className="mx-auto h-10 w-10 text-muted-foreground/40 mb-2" />
-                          <p className="text-muted-foreground">尚無入庫單</p>
+                          <p className="text-muted-foreground">{dict.common.noRecords}</p>
                           <Button
                             variant="outline"
                             size="sm"
                             className="mt-3"
                             onClick={() => setShowInbound(true)}
                           >
-                            <Plus className="h-4 w-4 mr-1" />新增第一筆入庫單
+                            <Plus className="h-4 w-4 mr-1" />{dict.wms.newInbound}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -939,12 +941,12 @@ export default function WmsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>出庫單號</TableHead>
-                      <TableHead>類型</TableHead>
-                      <TableHead className="hidden sm:table-cell">品項</TableHead>
-                      <TableHead>狀態</TableHead>
+                      <TableHead>{dict.wms.outbound}單號</TableHead>
+                      <TableHead>{dict.common.type}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{dict.common.product}</TableHead>
+                      <TableHead>{dict.common.status}</TableHead>
                       <TableHead className="hidden md:table-cell">預計日期</TableHead>
-                      <TableHead className="hidden md:table-cell">建立日期</TableHead>
+                      <TableHead className="hidden md:table-cell">{dict.common.createdAt}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -952,14 +954,14 @@ export default function WmsPage() {
                       <TableRow>
                         <TableCell colSpan={6} className="py-16 text-center">
                           <ArrowUpFromLine className="mx-auto h-10 w-10 text-muted-foreground/40 mb-2" />
-                          <p className="text-muted-foreground">尚無出庫單</p>
+                          <p className="text-muted-foreground">{dict.common.noRecords}</p>
                           <Button
                             variant="outline"
                             size="sm"
                             className="mt-3"
                             onClick={() => setShowOutbound(true)}
                           >
-                            <Plus className="h-4 w-4 mr-1" />新增第一筆出庫單
+                            <Plus className="h-4 w-4 mr-1" />{dict.wms.newOutbound}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -1000,10 +1002,10 @@ export default function WmsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>庫存號碼</TableHead>
-                      <TableHead>品項</TableHead>
-                      <TableHead className="hidden sm:table-cell">倉庫 / 區域 / 儲位</TableHead>
-                      <TableHead className="text-right">總數量</TableHead>
-                      <TableHead className="text-right hidden sm:table-cell">可用</TableHead>
+                      <TableHead>{dict.common.product}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{dict.common.warehouse} / {dict.wms.zone} / {dict.wms.bin}</TableHead>
+                      <TableHead className="text-right">{dict.common.quantity}</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">{dict.inventoryExt.available}</TableHead>
                       <TableHead className="text-right hidden sm:table-cell">預留</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1012,7 +1014,7 @@ export default function WmsPage() {
                       <TableRow>
                         <TableCell colSpan={6} className="py-16 text-center">
                           <Warehouse className="mx-auto h-10 w-10 text-muted-foreground/40 mb-2" />
-                          <p className="text-muted-foreground">尚無 WMS 庫存紀錄</p>
+                          <p className="text-muted-foreground">{dict.wms.noResults}</p>
                         </TableCell>
                       </TableRow>
                     ) : inventory.map(inv => (
@@ -1048,14 +1050,14 @@ export default function WmsPage() {
               {locations.length === 0 ? (
                 <div className="py-16 text-center rounded-lg border bg-white">
                   <MapPin className="mx-auto h-10 w-10 text-muted-foreground/40 mb-2" />
-                  <p className="text-muted-foreground">尚無儲位資料</p>
+                  <p className="text-muted-foreground">{dict.common.noRecords}</p>
                   <Button
                     variant="outline"
                     size="sm"
                     className="mt-3"
                     onClick={() => setShowLocation(true)}
                   >
-                    <Plus className="h-4 w-4 mr-1" />新增第一個儲位
+                    <Plus className="h-4 w-4 mr-1" />{dict.wms.newLocation}
                   </Button>
                 </div>
               ) : (

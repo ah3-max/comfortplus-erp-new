@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -80,6 +81,7 @@ function varianceColor(variance: number) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function BudgetPage() {
+  const { dict } = useI18n()
   const [tab, setTab] = useState('budget')
   const [year, setYear] = useState(new Date().getFullYear())
   const [budgets, setBudgets] = useState<BudgetRow[]>([])
@@ -283,7 +285,7 @@ export default function BudgetPage() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">資金計畫 / 預算管理</h1>
+        <h1 className="text-xl font-bold">{dict.budget.title}</h1>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setYear(y => y - 1)}>{'<'}</Button>
           <span className="font-semibold">{year} 年</span>
@@ -302,15 +304,15 @@ export default function BudgetPage() {
           {/* Summary cards */}
           <div className="grid grid-cols-3 gap-3 mb-4">
             <Card><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">年度預算</p>
+              <p className="text-xs text-muted-foreground">{dict.budget.period}</p>
               <p className="text-lg font-bold">{fmt(budgetSummary.totalBudget)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">實際金額</p>
+              <p className="text-xs text-muted-foreground">{dict.budget.actualAmount}</p>
               <p className="text-lg font-bold">{fmt(budgetSummary.totalActual)}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">差異</p>
+              <p className="text-xs text-muted-foreground">{dict.budget.variance}</p>
               <p className={`text-lg font-bold ${varianceColor(budgetSummary.variance)}`}>
                 {budgetSummary.variance >= 0 ? '+' : ''}{fmt(budgetSummary.variance)}
               </p>
@@ -318,7 +320,7 @@ export default function BudgetPage() {
           </div>
 
           <div className="flex justify-end mb-2">
-            <Button size="sm" onClick={() => setBudgetDialog(true)}><Plus className="mr-1 h-4 w-4" />新增預算</Button>
+            <Button size="sm" onClick={() => setBudgetDialog(true)}><Plus className="mr-1 h-4 w-4" />{dict.budget.newBudget}</Button>
           </div>
 
           <Card>
@@ -327,19 +329,19 @@ export default function BudgetPage() {
                 <table className="w-full text-sm">
                   <thead><tr className="border-b text-xs text-muted-foreground">
                     <th className="px-4 py-2 text-left">月份</th>
-                    <th className="px-4 py-2 text-left">類別</th>
-                    <th className="px-4 py-2 text-left">說明</th>
-                    <th className="px-4 py-2 text-right">預算金額</th>
-                    <th className="px-4 py-2 text-right">實際金額</th>
-                    <th className="px-4 py-2 text-right">差異</th>
+                    <th className="px-4 py-2 text-left">{dict.budget.category}</th>
+                    <th className="px-4 py-2 text-left">{dict.common.description}</th>
+                    <th className="px-4 py-2 text-right">{dict.budget.budgetAmount}</th>
+                    <th className="px-4 py-2 text-right">{dict.budget.actualAmount}</th>
+                    <th className="px-4 py-2 text-right">{dict.budget.variance}</th>
                     <th className="px-4 py-2 text-right">達成率</th>
-                    <th className="px-4 py-2 text-center">操作</th>
+                    <th className="px-4 py-2 text-center">{dict.common.actions}</th>
                   </tr></thead>
                   <tbody>
                     {loading ? (
-                      <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">載入中…</td></tr>
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">{dict.common.loading}</td></tr>
                     ) : budgets.length === 0 ? (
-                      <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">尚無預算資料</td></tr>
+                      <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">{dict.budget.noBudgets}</td></tr>
                     ) : budgets.map(b => {
                       const variance = Number(b.actualAmount) - Number(b.budgetAmount)
                       const pct = Number(b.budgetAmount) > 0 ? (Number(b.actualAmount) / Number(b.budgetAmount) * 100) : 0
@@ -494,7 +496,7 @@ export default function BudgetPage() {
       {/* ── Create Budget Dialog ── */}
       <Dialog open={budgetDialog} onOpenChange={setBudgetDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增預算項目</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.budget.newBudget}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div><Label>月份（留空=年度）</Label>
@@ -518,8 +520,8 @@ export default function BudgetPage() {
             <div><Label>備註</Label><Textarea value={newBudget.notes} onChange={e => setNewBudget(b => ({ ...b, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBudgetDialog(false)}>取消</Button>
-            <Button onClick={handleSaveBudget} disabled={saving || !newBudget.description || !newBudget.budgetAmount}>儲存</Button>
+            <Button variant="outline" onClick={() => setBudgetDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleSaveBudget} disabled={saving || !newBudget.description || !newBudget.budgetAmount}>{dict.common.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -569,9 +571,9 @@ export default function BudgetPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setEditDialog(false); setSelectedBudget(null) }}>取消</Button>
+            <Button variant="outline" onClick={() => { setEditDialog(false); setSelectedBudget(null) }}>{dict.common.cancel}</Button>
             <Button onClick={handleEdit} disabled={saving || !editBudget.description || !editBudget.budgetAmount}>
-              {saving ? '儲存中…' : '儲存變更'}
+              {saving ? dict.common.saving : dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -580,14 +582,14 @@ export default function BudgetPage() {
       {/* ── Delete Confirm Dialog ── */}
       <Dialog open={deleteDialog} onOpenChange={open => { setDeleteDialog(open); if (!open) setSelectedBudget(null) }}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>確認刪除</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.confirm}{dict.common.delete}</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
             確定要刪除預算項目「{selectedBudget?.description}」嗎？此操作無法復原。
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteDialog(false); setSelectedBudget(null) }}>取消</Button>
+            <Button variant="outline" onClick={() => { setDeleteDialog(false); setSelectedBudget(null) }}>{dict.common.cancel}</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={saving}>
-              {saving ? '刪除中…' : '確認刪除'}
+              {saving ? dict.common.loading : dict.common.confirm + dict.common.delete}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -635,8 +637,8 @@ export default function BudgetPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCfDialog(false)}>取消</Button>
-            <Button onClick={handleSaveCf} disabled={saving || !newCf.description || !newCf.plannedAmount}>儲存</Button>
+            <Button variant="outline" onClick={() => setCfDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleSaveCf} disabled={saving || !newCf.description || !newCf.plannedAmount}>{dict.common.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -81,6 +82,7 @@ const TEMPLATE_LIST = [
 
 // ───────────────────────── component ──────────────────────
 export default function SettingsPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'SUPER_ADMIN' || session?.user?.role === 'GM'
 
@@ -250,7 +252,7 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">系統設定</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.settings.title}</h1>
         <p className="text-sm text-muted-foreground">管理公司資訊、用戶、功能與安全設定</p>
       </div>
 
@@ -262,12 +264,12 @@ export default function SettingsPage() {
 
       <Tabs defaultValue="info">
         <TabsList className="flex-wrap h-auto gap-1">
-          <TabsTrigger value="info" className="gap-1.5"><Building2 className="h-3.5 w-3.5" />資訊管理</TabsTrigger>
-          <TabsTrigger value="users" className="gap-1.5" onClick={loadUsers}><Users className="h-3.5 w-3.5" />用戶管理</TabsTrigger>
-          <TabsTrigger value="prefs" className="gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5" />自主設定</TabsTrigger>
+          <TabsTrigger value="info" className="gap-1.5"><Building2 className="h-3.5 w-3.5" />{dict.settingsExt.company}</TabsTrigger>
+          <TabsTrigger value="users" className="gap-1.5" onClick={loadUsers}><Users className="h-3.5 w-3.5" />{dict.users.title}</TabsTrigger>
+          <TabsTrigger value="prefs" className="gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5" />{dict.settingsExt.preferences}</TabsTrigger>
           <TabsTrigger value="other" className="gap-1.5"><Settings2 className="h-3.5 w-3.5" />其他管理</TabsTrigger>
-          <TabsTrigger value="security" className="gap-1.5" onClick={() => loadAudit(auditModule)}><Shield className="h-3.5 w-3.5" />資安管理</TabsTrigger>
-          <TabsTrigger value="download" className="gap-1.5"><Download className="h-3.5 w-3.5" />下載</TabsTrigger>
+          <TabsTrigger value="security" className="gap-1.5" onClick={() => loadAudit(auditModule)}><Shield className="h-3.5 w-3.5" />{dict.settingsExt.security}</TabsTrigger>
+          <TabsTrigger value="download" className="gap-1.5"><Download className="h-3.5 w-3.5" />{dict.common.download}</TabsTrigger>
         </TabsList>
 
         {/* ═══════════ 0.1 資訊管理 ═══════════ */}
@@ -321,7 +323,7 @@ export default function SettingsPage() {
             <div className="flex justify-end">
               <Button onClick={() => saveConfigs()} disabled={savingCfg}>
                 {savingCfg ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                儲存資訊
+                {dict.common.save}
               </Button>
             </div>
           )}
@@ -431,7 +433,7 @@ export default function SettingsPage() {
                     <div className="flex justify-end">
                       <Button onClick={savePerms} disabled={savingPerm}>
                         {savingPerm ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        儲存權限
+                        {dict.common.save}
                       </Button>
                     </div>
                   )}
@@ -491,7 +493,7 @@ export default function SettingsPage() {
             <div className="flex justify-end">
               <Button onClick={() => saveConfigs()} disabled={savingCfg}>
                 {savingCfg ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                儲存設定
+                {dict.common.save}
               </Button>
             </div>
           )}
@@ -552,7 +554,7 @@ export default function SettingsPage() {
             <div className="flex justify-end">
               <Button onClick={() => saveConfigs()} disabled={savingCfg}>
                 {savingCfg ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                儲存設定
+                {dict.common.save}
               </Button>
             </div>
           )}
@@ -594,7 +596,7 @@ export default function SettingsPage() {
             <div className="flex justify-end">
               <Button onClick={() => saveConfigs(['session_timeout_hours','max_login_attempts','password_min_length','require_2fa'])} disabled={savingCfg}>
                 {savingCfg ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                儲存設定
+                {dict.common.save}
               </Button>
             </div>
           )}
@@ -747,10 +749,10 @@ export default function SettingsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUserDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setUserDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleUserSave} disabled={savingUser}>
               {savingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {editUser ? '儲存' : '新增'}
+              {editUser ? dict.common.save : dict.common.add}
             </Button>
           </DialogFooter>
         </DialogContent>

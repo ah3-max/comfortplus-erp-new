@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -69,6 +70,7 @@ function formatDate(str: string) {
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const { dict } = useI18n()
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [shipFormOpen, setShipFormOpen] = useState(false)
@@ -115,7 +117,7 @@ export default function OrderDetailPage() {
   )
 
   if (!order) return (
-    <div className="flex h-full items-center justify-center text-muted-foreground">找不到此訂單</div>
+    <div className="flex h-full items-center justify-center text-muted-foreground">{dict.ordersExt.noOrders}</div>
   )
 
   const sc = orderStatusConfig[order.status] ?? { label: order.status, className: '' }
@@ -144,12 +146,12 @@ export default function OrderDetailPage() {
               setPayAmount(String(unpaid))
               setPayFormOpen(true)
             }}>
-              <DollarSign className="mr-2 h-4 w-4" />登錄付款
+              <DollarSign className="mr-2 h-4 w-4" />{dict.roleDashboard.registerPayment}
             </Button>
           )}
           {canShip && (
             <Button onClick={() => setShipFormOpen(true)}>
-              <Truck className="mr-2 h-4 w-4" />建立出貨單
+              <Truck className="mr-2 h-4 w-4" />{dict.shipmentsExt.newShipment}
             </Button>
           )}
         </div>
@@ -158,7 +160,7 @@ export default function OrderDetailPage() {
       <div className="grid grid-cols-3 gap-5">
         {/* 客戶資訊 */}
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">客戶資訊</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{dict.common.customer}</CardTitle></CardHeader>
           <CardContent className="space-y-1">
             <p className="font-semibold">{order.customer.name}</p>
             <p className="text-sm text-muted-foreground">{order.customer.code}</p>
@@ -169,19 +171,19 @@ export default function OrderDetailPage() {
 
         {/* 金額資訊 */}
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">金額資訊</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{dict.common.amount}</CardTitle></CardHeader>
           <CardContent className="space-y-1.5">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">訂單金額</span>
+              <span className="text-muted-foreground">{dict.orders.totalAmount}</span>
               <span className="font-bold">{formatCurrency(order.totalAmount)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">已收款</span>
+              <span className="text-muted-foreground">{dict.orders.paidAmount}</span>
               <span className="font-medium text-green-600">{formatCurrency(order.paidAmount)}</span>
             </div>
             {unpaid > 0 && (
               <div className="flex justify-between text-sm border-t pt-1.5">
-                <span className="text-muted-foreground">應收帳款</span>
+                <span className="text-muted-foreground">{dict.orders.unpaid}</span>
                 <span className="font-bold text-red-600">{formatCurrency(unpaid)}</span>
               </div>
             )}
@@ -190,19 +192,19 @@ export default function OrderDetailPage() {
 
         {/* 出貨資訊 */}
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">出貨資訊</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{dict.nav.shipments}</CardTitle></CardHeader>
           <CardContent className="space-y-1.5 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">預計出貨</span>
+              <span className="text-muted-foreground">{dict.ordersExt.expectedShipDate}</span>
               <span>{order.expectedShipDate ? formatDate(order.expectedShipDate) : '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">出貨單數</span>
+              <span className="text-muted-foreground">{dict.ordersExt.shipmentCount}</span>
               <span className="font-medium">{order.shipments.length} 筆</span>
             </div>
             {order.quotation && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">來源報價</span>
+                <span className="text-muted-foreground">{dict.quotations.title}</span>
                 <span className="font-mono text-xs">{order.quotation.quotationNo}</span>
               </div>
             )}
@@ -212,15 +214,15 @@ export default function OrderDetailPage() {
 
       {/* 訂單明細 */}
       <Card>
-        <CardHeader><CardTitle className="text-base">訂單明細</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{dict.common.detail}</CardTitle></CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>商品</TableHead>
-                <TableHead className="text-center w-20">訂購數</TableHead>
+                <TableHead>{dict.common.product}</TableHead>
+                <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
                 <TableHead className="text-center w-20">已出貨</TableHead>
-                <TableHead className="text-right w-28">單價</TableHead>
+                <TableHead className="text-right w-28">{dict.common.price}</TableHead>
                 <TableHead className="text-right w-20">折扣</TableHead>
                 <TableHead className="text-right w-28">小計</TableHead>
               </TableRow>
@@ -248,7 +250,7 @@ export default function OrderDetailPage() {
             </TableBody>
             <tfoot>
               <tr className="border-t bg-slate-50">
-                <td colSpan={5} className="px-4 py-2.5 text-right text-sm font-medium">合計</td>
+                <td colSpan={5} className="px-4 py-2.5 text-right text-sm font-medium">{dict.common.total}</td>
                 <td className="px-4 py-2.5 text-right font-bold">{formatCurrency(order.totalAmount)}</td>
               </tr>
             </tfoot>
@@ -259,16 +261,16 @@ export default function OrderDetailPage() {
       {/* 出貨記錄 */}
       {order.shipments.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">出貨記錄</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{dict.nav.shipments}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>出貨單號</TableHead>
-                  <TableHead className="w-24">狀態</TableHead>
+                  <TableHead>{dict.shipments.shipmentNo}</TableHead>
+                  <TableHead className="w-24">{dict.common.status}</TableHead>
                   <TableHead>出貨商品</TableHead>
-                  <TableHead className="w-24">物流商</TableHead>
-                  <TableHead className="w-32">追蹤單號</TableHead>
+                  <TableHead className="w-24">{dict.shipments.carrier}</TableHead>
+                  <TableHead className="w-32">{dict.shipments.trackingNo}</TableHead>
                   <TableHead className="w-24">出貨日</TableHead>
                 </TableRow>
               </TableHeader>
@@ -307,7 +309,7 @@ export default function OrderDetailPage() {
       {/* 備註 */}
       {order.notes && (
         <Card>
-          <CardHeader><CardTitle className="text-base">備註</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{dict.common.notes}</CardTitle></CardHeader>
           <CardContent><p className="text-sm text-muted-foreground">{order.notes}</p></CardContent>
         </Card>
       )}
@@ -323,20 +325,20 @@ export default function OrderDetailPage() {
       <Dialog open={payFormOpen} onOpenChange={(o) => !o && setPayFormOpen(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>登錄付款</DialogTitle>
+            <DialogTitle>{dict.roleDashboard.registerPayment}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-1">
             <div className="rounded-lg bg-slate-50 p-3 text-sm space-y-1">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">訂單總額</span>
+                <span className="text-muted-foreground">{dict.orders.totalAmount}</span>
                 <span className="font-medium">{formatCurrency(order.totalAmount)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">已收款</span>
+                <span className="text-muted-foreground">{dict.orders.paidAmount}</span>
                 <span className="font-medium text-green-600">{formatCurrency(order.paidAmount)}</span>
               </div>
               <div className="flex justify-between border-t pt-1">
-                <span className="text-muted-foreground">尚欠</span>
+                <span className="text-muted-foreground">{dict.ordersExt.owe}</span>
                 <span className="font-bold text-red-600">{formatCurrency(unpaid)}</span>
               </div>
             </div>
@@ -354,10 +356,10 @@ export default function OrderDetailPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayFormOpen(false)} disabled={paying}>取消</Button>
+            <Button variant="outline" onClick={() => setPayFormOpen(false)} disabled={paying}>{dict.common.cancel}</Button>
             <Button onClick={handlePayment} disabled={paying}>
               {paying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              確認收款
+              {dict.common.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>

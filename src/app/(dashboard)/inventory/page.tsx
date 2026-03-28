@@ -799,12 +799,12 @@ export default function InventoryPage() {
                 <button key={s} onClick={() => setTrStatus(s)}
                   className={cn('rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                     trStatus === s ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}>
-                  {s === '' ? '全部' : TRANSFER_STATUS_CFG[s]?.label}
+                  {s === '' ? dict.common.all : TRANSFER_STATUS_CFG[s]?.label}
                 </button>
               ))}
             </div>
             <Button onClick={() => setTrNewOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />新增調撥單
+              <Plus className="mr-2 h-4 w-4" />{dict.common.create}{dict.inventory.transfer}單
             </Button>
           </div>
 
@@ -815,11 +815,11 @@ export default function InventoryPage() {
                   <TableHead className="w-32">調撥單號</TableHead>
                   <TableHead>出庫倉庫</TableHead>
                   <TableHead>入庫倉庫</TableHead>
-                  <TableHead className="w-20">狀態</TableHead>
+                  <TableHead className="w-20">{dict.common.status}</TableHead>
                   <TableHead>品項</TableHead>
                   <TableHead className="w-32">申請人</TableHead>
-                  <TableHead className="w-28">建立日期</TableHead>
-                  <TableHead className="w-28">操作</TableHead>
+                  <TableHead className="w-28">{dict.common.createdAt}</TableHead>
+                  <TableHead className="w-28">{dict.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -829,7 +829,7 @@ export default function InventoryPage() {
                   </TableCell></TableRow>
                 ) : transfers.length === 0 ? (
                   <TableRow><TableCell colSpan={8} className="py-16 text-center text-muted-foreground">
-                    尚無調撥記錄
+                    {dict.common.noData}
                   </TableCell></TableRow>
                 ) : transfers.map(tr => {
                   const sc = TRANSFER_STATUS_CFG[tr.status] ?? { label: tr.status, cls: '' }
@@ -853,19 +853,19 @@ export default function InventoryPage() {
                           {tr.status === 'PENDING' && (
                             <button onClick={() => transferAction(tr.id, 'confirm')}
                               className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100">
-                              <CheckCircle2 className="h-3 w-3" />確認出庫
+                              <CheckCircle2 className="h-3 w-3" />{dict.common.confirm}出庫
                             </button>
                           )}
                           {(tr.status === 'IN_TRANSIT' || tr.status === 'PENDING') && (
                             <button onClick={() => transferAction(tr.id, 'complete')}
                               className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-1 text-xs text-green-700 hover:bg-green-100">
-                              <CheckCircle2 className="h-3 w-3" />完成
+                              <CheckCircle2 className="h-3 w-3" />{dict.common.complete}
                             </button>
                           )}
                           {!['COMPLETED', 'CANCELLED'].includes(tr.status) && (
                             <button onClick={() => transferAction(tr.id, 'cancel')}
                               className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100">
-                              <XCircle className="h-3 w-3" />取消
+                              <XCircle className="h-3 w-3" />{dict.common.cancel}
                             </button>
                           )}
                         </div>
@@ -888,12 +888,12 @@ export default function InventoryPage() {
                 <button key={s} onClick={() => setCtStatus(s)}
                   className={cn('rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                     ctStatus === s ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}>
-                  {s === '' ? '全部' : COUNT_STATUS_CFG[s]?.label}
+                  {s === '' ? dict.common.all : COUNT_STATUS_CFG[s]?.label}
                 </button>
               ))}
             </div>
             <Button onClick={() => setCtNewOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />建立盤點單
+              <Plus className="mr-2 h-4 w-4" />{dict.inventory.count}單
             </Button>
           </div>
 
@@ -901,14 +901,14 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">盤點單號</TableHead>
-                  <TableHead className="w-24">倉庫</TableHead>
-                  <TableHead className="w-20">狀態</TableHead>
-                  <TableHead className="w-28">盤點日期</TableHead>
+                  <TableHead className="w-32">{dict.inventory.count}單號</TableHead>
+                  <TableHead className="w-24">{dict.common.warehouse}</TableHead>
+                  <TableHead className="w-20">{dict.common.status}</TableHead>
+                  <TableHead className="w-28">{dict.inventory.count}{dict.common.date}</TableHead>
                   <TableHead className="w-20">品項數</TableHead>
-                  <TableHead>備註</TableHead>
-                  <TableHead className="w-32">建立人</TableHead>
-                  <TableHead className="w-32">操作</TableHead>
+                  <TableHead>{dict.common.notes}</TableHead>
+                  <TableHead className="w-32">{dict.common.createdBy}</TableHead>
+                  <TableHead className="w-32">{dict.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -918,7 +918,7 @@ export default function InventoryPage() {
                   </TableCell></TableRow>
                 ) : counts.length === 0 ? (
                   <TableRow><TableCell colSpan={8} className="py-16 text-center text-muted-foreground">
-                    尚無盤點記錄
+                    {dict.common.noData}
                   </TableCell></TableRow>
                 ) : counts.map(ct => {
                   const sc = COUNT_STATUS_CFG[ct.status] ?? { label: ct.status, cls: '' }
@@ -937,7 +937,7 @@ export default function InventoryPage() {
                           {ct.status === 'DRAFT' && (
                             <button onClick={() => countStatusUpdate(ct.id, 'COUNTING')}
                               className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100">
-                              開始盤點
+                              開始{dict.inventory.count}
                             </button>
                           )}
                           {ct.status === 'COUNTING' && (
@@ -949,7 +949,7 @@ export default function InventoryPage() {
                           {ct.status === 'REVIEWING' && (
                             <button onClick={() => countStatusUpdate(ct.id, 'COMPLETED')}
                               className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-1 text-xs text-green-700 hover:bg-green-100">
-                              完成盤點
+                              完成{dict.inventory.count}
                             </button>
                           )}
                         </div>
@@ -969,11 +969,11 @@ export default function InventoryPage() {
           <div className="flex items-center justify-between">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="搜尋報廢單或商品..."
+              <Input className="pl-9" placeholder={dict.inventoryExt.searchPlaceholder}
                 value={scSearch} onChange={e => setScSearch(e.target.value)} />
             </div>
             <Button variant="destructive" onClick={() => setScNewOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />登錄報廢
+              <Trash2 className="mr-2 h-4 w-4" />登錄{dict.inventory.scrap}
             </Button>
           </div>
 
@@ -981,13 +981,13 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">報廢單號</TableHead>
-                  <TableHead>商品</TableHead>
-                  <TableHead className="w-20">倉庫</TableHead>
-                  <TableHead className="w-20">批號</TableHead>
-                  <TableHead className="text-center w-20">數量</TableHead>
-                  <TableHead>報廢原因</TableHead>
-                  <TableHead className="w-28">報廢日期</TableHead>
+                  <TableHead className="w-32">{dict.inventory.scrap}單號</TableHead>
+                  <TableHead>{dict.common.product}</TableHead>
+                  <TableHead className="w-20">{dict.common.warehouse}</TableHead>
+                  <TableHead className="w-20">{dict.inventoryExt.lotNo}</TableHead>
+                  <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
+                  <TableHead>{dict.inventoryExt.scrapReason}</TableHead>
+                  <TableHead className="w-28">{dict.inventory.scrap}{dict.common.date}</TableHead>
                   <TableHead className="w-24">登錄人</TableHead>
                 </TableRow>
               </TableHeader>
@@ -998,7 +998,7 @@ export default function InventoryPage() {
                   </TableCell></TableRow>
                 ) : scraps.length === 0 ? (
                   <TableRow><TableCell colSpan={8} className="py-16 text-center text-muted-foreground">
-                    尚無報廢記錄
+                    {dict.common.noData}
                   </TableCell></TableRow>
                 ) : scraps.map(s => (
                   <TableRow key={s.id}>
@@ -1213,14 +1213,14 @@ export default function InventoryPage() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-36">時間</TableHead>
-                <TableHead>商品</TableHead>
-                <TableHead className="w-20">類型</TableHead>
-                <TableHead className="text-center w-20">數量</TableHead>
+                <TableHead>{dict.common.product}</TableHead>
+                <TableHead className="w-20">{dict.common.type}</TableHead>
+                <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
                 <TableHead className="text-center w-20">前庫存</TableHead>
                 <TableHead className="text-center w-20">後庫存</TableHead>
-                <TableHead className="w-16">倉庫</TableHead>
+                <TableHead className="w-16">{dict.common.warehouse}</TableHead>
                 <TableHead className="w-24">來源</TableHead>
-                <TableHead>備註</TableHead>
+                <TableHead>{dict.common.notes}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1230,7 +1230,7 @@ export default function InventoryPage() {
                 </TableCell></TableRow>
               ) : transactions.length === 0 ? (
                 <TableRow><TableCell colSpan={9} className="py-16 text-center text-muted-foreground">
-                  尚無異動記錄
+                  {dict.common.noData}
                 </TableCell></TableRow>
               ) : transactions.map(tx => {
                 const tc = TX_TYPE_CFG[tx.type] ?? { label: tx.type, color: 'text-slate-600', sign: '' }
@@ -1273,48 +1273,48 @@ export default function InventoryPage() {
       {/* Lot Edit Dialog */}
       <Dialog open={lotEditOpen} onOpenChange={o => !o && setLotEditOpen(false)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>編輯批號 {lotEditing?.lotNo}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.edit}{dict.inventoryExt.lotNo} {lotEditing?.lotNo}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>批號狀態</Label>
+                <Label>{dict.inventoryExt.lotNo}{dict.common.status}</Label>
                 <select value={lotForm.status} onChange={e => setLotForm(f => ({ ...f, status: e.target.value }))}
                   className="h-9 w-full rounded-md border px-3 text-sm">
                   {Object.entries(LOT_STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>儲位</Label>
+                <Label>{dict.inventoryExt.location}</Label>
                 <Input value={lotForm.location} onChange={e => setLotForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="A-01-03" />
               </div>
               <div className="space-y-1.5">
-                <Label>製造日</Label>
+                <Label>{dict.inventoryExt.manufactureDate}</Label>
                 <Input type="date" value={lotForm.manufactureDate}
                   onChange={e => setLotForm(f => ({ ...f, manufactureDate: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
-                <Label>效期</Label>
+                <Label>{dict.inventoryExt.expiryDate}</Label>
                 <Input type="date" value={lotForm.expiryDate}
                   onChange={e => setLotForm(f => ({ ...f, expiryDate: e.target.value }))} />
               </div>
               <div className="space-y-1.5 col-span-2">
-                <Label>來源工廠</Label>
+                <Label>{dict.inventoryExt.sourceFactory}</Label>
                 <Input value={lotForm.sourceFactory}
                   onChange={e => setLotForm(f => ({ ...f, sourceFactory: e.target.value }))}
                   placeholder="工廠名稱" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea rows={2} value={lotForm.notes}
                 onChange={e => setLotForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLotEditOpen(false)} disabled={lotSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setLotEditOpen(false)} disabled={lotSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleLotSave} disabled={lotSaving}>
-              {lotSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存
+              {lotSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1323,24 +1323,24 @@ export default function InventoryPage() {
       {/* New Transfer Dialog */}
       <Dialog open={trNewOpen} onOpenChange={o => !o && setTrNewOpen(false)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>新增調撥單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.create}{dict.inventory.transfer}單</DialogTitle></DialogHeader>
           <div className="space-y-4 py-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>出庫倉庫 <span className="text-red-500">*</span></Label>
+                <Label>{dict.inventoryExt.transferFrom} <span className="text-red-500">*</span></Label>
                 <select value={trForm.fromWarehouseId}
                   onChange={e => setTrForm(f => ({ ...f, fromWarehouseId: e.target.value }))}
                   className="h-9 w-full rounded-md border px-3 text-sm">
-                  <option value="">選擇倉庫</option>
+                  <option value="">{dict.common.select}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>入庫倉庫 <span className="text-red-500">*</span></Label>
+                <Label>{dict.inventoryExt.transferTo} <span className="text-red-500">*</span></Label>
                 <select value={trForm.toWarehouseId}
                   onChange={e => setTrForm(f => ({ ...f, toWarehouseId: e.target.value }))}
                   className="h-9 w-full rounded-md border px-3 text-sm">
-                  <option value="">選擇倉庫</option>
+                  <option value="">{dict.common.select}</option>
                   {warehouses.filter(w => w.id !== trForm.fromWarehouseId).map(w =>
                     <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
                 </select>
@@ -1349,9 +1349,9 @@ export default function InventoryPage() {
             <Separator />
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>調撥品項</Label>
+                <Label>{dict.inventoryExt.transferQty}品項</Label>
                 <button onClick={() => setTrForm(f => ({ ...f, items: [...f.items, { productId: '', productName: '', quantity: 1 }] }))}
-                  className="text-xs text-blue-600 hover:underline">+ 新增品項</button>
+                  className="text-xs text-blue-600 hover:underline">+ {dict.common.add}品項</button>
               </div>
               {trForm.items.map((item, idx) => (
                 <div key={idx} className="flex gap-2">
@@ -1362,7 +1362,7 @@ export default function InventoryPage() {
                         i === idx ? { ...it, productId: e.target.value, productName: p?.name ?? '' } : it) }))
                     }}
                     className="flex-1 h-9 rounded-md border px-3 text-sm">
-                    <option value="">選擇商品</option>
+                    <option value="">{dict.common.select}{dict.common.product}</option>
                     {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
                   </select>
                   <Input type="number" min={1} value={item.quantity} className="w-24"
@@ -1376,15 +1376,15 @@ export default function InventoryPage() {
               ))}
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Input value={trForm.notes} onChange={e => setTrForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="調撥原因..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTrNewOpen(false)} disabled={trSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setTrNewOpen(false)} disabled={trSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleNewTransfer} disabled={trSaving}>
-              {trSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立調撥單
+              {trSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}{dict.inventory.transfer}單
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1393,32 +1393,32 @@ export default function InventoryPage() {
       {/* New Count Dialog */}
       <Dialog open={ctNewOpen} onOpenChange={o => !o && setCtNewOpen(false)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>建立盤點單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.inventory.count}單</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
-              <Label>倉庫 <span className="text-red-500">*</span></Label>
+              <Label>{dict.common.warehouse} <span className="text-red-500">*</span></Label>
               <select value={ctForm.warehouseId} onChange={e => setCtForm(f => ({ ...f, warehouseId: e.target.value }))}
                 className="h-9 w-full rounded-md border px-3 text-sm">
-                <option value="">選擇倉庫</option>
+                <option value="">{dict.common.select}</option>
                 {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
               </select>
               <p className="text-xs text-muted-foreground">系統將自動快照該倉庫目前所有庫存作為基準數量</p>
             </div>
             <div className="space-y-1.5">
-              <Label>盤點日期</Label>
+              <Label>{dict.inventory.count}{dict.common.date}</Label>
               <Input type="date" value={ctForm.countDate}
                 onChange={e => setCtForm(f => ({ ...f, countDate: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Input value={ctForm.notes} onChange={e => setCtForm(f => ({ ...f, notes: e.target.value }))}
                 placeholder="盤點說明..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCtNewOpen(false)} disabled={ctSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setCtNewOpen(false)} disabled={ctSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleNewCount} disabled={ctSaving}>
-              {ctSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立盤點單
+              {ctSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.inventory.count}單
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1429,7 +1429,7 @@ export default function InventoryPage() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              盤點明細 {ctDetail?.countNo}
+              {dict.inventory.count}{dict.common.detail} {ctDetail?.countNo}
               {ctDetail && <Badge variant="outline" className={cn('ml-2 text-xs', COUNT_STATUS_CFG[ctDetail.status]?.cls)}>
                 {COUNT_STATUS_CFG[ctDetail.status]?.label}
               </Badge>}
@@ -1443,11 +1443,11 @@ export default function InventoryPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">商品</th>
-                      <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">系統數</th>
-                      <th className="px-3 py-2 text-center font-medium text-muted-foreground w-28">實盤數</th>
-                      <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">差異</th>
-                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">備註</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">{dict.common.product}</th>
+                      <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">{dict.inventoryExt.systemQty}</th>
+                      <th className="px-3 py-2 text-center font-medium text-muted-foreground w-28">{dict.inventoryExt.actualQty}</th>
+                      <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">{dict.inventoryExt.difference}</th>
+                      <th className="px-3 py-2 text-left font-medium text-muted-foreground">{dict.common.notes}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -1498,18 +1498,18 @@ export default function InventoryPage() {
               {ctDetail.status === 'COUNTING' && (
                 <div className="flex justify-between items-center">
                   <p className="text-xs text-muted-foreground">
-                    差異品項：{ctDetail.items.filter(i => i.variance !== 0).length} 項
+                    {dict.inventoryExt.difference}品項：{ctDetail.items.filter(i => i.variance !== 0).length} 項
                   </p>
-                  <Button size="sm" onClick={saveCountItems}>儲存盤點數量</Button>
+                  <Button size="sm" onClick={saveCountItems}>{dict.common.save}{dict.inventory.count}{dict.common.quantity}</Button>
                 </div>
               )}
               {ctDetail.status === 'REVIEWING' && (
                 <div className="flex justify-between items-center">
                   <p className="text-xs text-muted-foreground">
-                    差異品項：{ctDetail.items.filter(i => i.variance !== 0).length} 項，完成後將自動調整庫存
+                    {dict.inventoryExt.difference}品項：{ctDetail.items.filter(i => i.variance !== 0).length} 項，完成後將自動調整庫存
                   </p>
                   <Button size="sm" onClick={() => countStatusUpdate(ctDetail.id, 'COMPLETED')}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />確認完成，調整庫存
+                    <CheckCircle2 className="mr-2 h-4 w-4" />{dict.common.confirm}{dict.common.complete}，調整庫存
                   </Button>
                 </div>
               )}
@@ -1521,58 +1521,58 @@ export default function InventoryPage() {
       {/* New Scrap Dialog */}
       <Dialog open={scNewOpen} onOpenChange={o => !o && setScNewOpen(false)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>登錄報廢</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>登錄{dict.inventory.scrap}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
-              <Label>商品 <span className="text-red-500">*</span></Label>
+              <Label>{dict.common.product} <span className="text-red-500">*</span></Label>
               <select value={scForm.productId}
                 onChange={e => {
                   const p = products.find(p => p.id === e.target.value)
                   setScForm(f => ({ ...f, productId: e.target.value, productName: p?.name ?? '' }))
                 }}
                 className="h-9 w-full rounded-md border px-3 text-sm">
-                <option value="">選擇商品</option>
+                <option value="">{dict.common.select}{dict.common.product}</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>倉庫 <span className="text-red-500">*</span></Label>
+                <Label>{dict.common.warehouse} <span className="text-red-500">*</span></Label>
                 <select value={scForm.warehouseId}
                   onChange={e => setScForm(f => ({ ...f, warehouseId: e.target.value }))}
                   className="h-9 w-full rounded-md border px-3 text-sm">
-                  <option value="">選擇倉庫</option>
+                  <option value="">{dict.common.select}{dict.common.warehouse}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>報廢數量 <span className="text-red-500">*</span></Label>
+                <Label>{dict.inventory.scrap}{dict.common.quantity} <span className="text-red-500">*</span></Label>
                 <Input type="number" min={1} value={scForm.quantity}
                   onChange={e => setScForm(f => ({ ...f, quantity: e.target.value }))}
                   placeholder="0" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>報廢日期</Label>
+              <Label>{dict.inventory.scrap}{dict.common.date}</Label>
               <Input type="date" value={scForm.scrapDate}
                 onChange={e => setScForm(f => ({ ...f, scrapDate: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>報廢原因</Label>
+              <Label>{dict.inventoryExt.scrapReason}</Label>
               <Input value={scForm.reason}
                 onChange={e => setScForm(f => ({ ...f, reason: e.target.value }))}
                 placeholder="過期 / 損壞 / 品管不合格..." />
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea rows={2} value={scForm.notes}
                 onChange={e => setScForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setScNewOpen(false)} disabled={scSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setScNewOpen(false)} disabled={scSaving}>{dict.common.cancel}</Button>
             <Button variant="destructive" onClick={handleNewScrap} disabled={scSaving}>
-              {scSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}確認報廢
+              {scSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.confirm}{dict.inventory.scrap}
             </Button>
           </DialogFooter>
         </DialogContent>

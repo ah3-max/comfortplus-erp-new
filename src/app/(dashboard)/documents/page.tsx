@@ -340,7 +340,7 @@ export default function DocumentsPage() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">文件管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.documents.title}</h1>
           <p className="text-sm text-slate-500 mt-1">管理合約、發票、手冊、報告等重要文件</p>
         </div>
         <Button
@@ -351,7 +351,7 @@ export default function DocumentsPage() {
           }}
         >
           <Upload className="h-4 w-4 mr-2" />
-          上傳文件
+          {dict.documents.newVersion}
         </Button>
       </div>
 
@@ -505,7 +505,7 @@ export default function DocumentsPage() {
                   disabled={pagination.page <= 1}
                   onClick={() => loadDocuments(pagination.page - 1)}
                 >
-                  上一頁
+                  {dict.common.prevPage}
                 </Button>
                 <Button
                   variant="outline"
@@ -513,7 +513,7 @@ export default function DocumentsPage() {
                   disabled={pagination.page >= pagination.totalPages}
                   onClick={() => loadDocuments(pagination.page + 1)}
                 >
-                  下一頁
+                  {dict.common.nextPage}
                 </Button>
               </div>
             </div>
@@ -525,7 +525,7 @@ export default function DocumentsPage() {
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>上傳文件</DialogTitle>
+            <DialogTitle>{dict.documents.newVersion}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
@@ -634,7 +634,7 @@ export default function DocumentsPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>
-              取消
+              {dict.common.cancel}
             </Button>
             <Button onClick={handleUpload} disabled={uploading}>
               {uploading ? (
@@ -657,7 +657,7 @@ export default function DocumentsPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>編輯文件資訊</DialogTitle>
+            <DialogTitle>{dict.documents.title}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
@@ -708,7 +708,7 @@ export default function DocumentsPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editSaving}>
-              取消
+              {dict.common.cancel}
             </Button>
             <Button onClick={handleEdit} disabled={editSaving}>
               {editSaving ? (
@@ -728,7 +728,7 @@ export default function DocumentsPage() {
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>確認刪除文件？</DialogTitle>
+            <DialogTitle>{dict.common.deleteConfirm}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-600 py-2">
             即將刪除「<strong>{deleteTarget?.documentName}</strong>」（
@@ -740,7 +740,7 @@ export default function DocumentsPage() {
               onClick={() => setDeleteTarget(null)}
               disabled={deleting}
             >
-              取消
+              {dict.common.cancel}
             </Button>
             <Button
               variant="destructive"
