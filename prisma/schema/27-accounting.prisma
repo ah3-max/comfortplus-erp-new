@@ -84,6 +84,56 @@ model JournalEntry {
   @@index([referenceType, referenceId])
 }
 
+// 銀行帳戶（存摺/信用卡）
+model BankAccount {
+  id              String   @id @default(cuid())
+  accountName     String                   // 帳戶名稱（例：台灣銀行活存）
+  accountNo       String                   // 帳號
+  bankName        String                   // 銀行名稱
+  bankCode        String?                  // 銀行代碼
+  accountType     String   @default("CHECKING") // CHECKING / SAVINGS / CREDIT_CARD
+  currency        String   @default("TWD")
+  openingBalance  Decimal  @db.Decimal(14, 2) @default(0) // 期初餘額
+  currentBalance  Decimal  @db.Decimal(14, 2) @default(0) // 目前餘額
+  creditLimit     Decimal? @db.Decimal(14, 2)             // 信用卡額度
+  statementDay    Int?                     // 信用卡結帳日
+  paymentDay      Int?                     // 信用卡繳款日
+  isActive        Boolean  @default(true)
+  notes           String?
+  createdById     String
+  createdBy       User     @relation("BankAccountCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions    BankTransaction[]
+
+  @@index([accountType, isActive])
+}
+
+// 存摺/信用卡交易明細
+model BankTransaction {
+  id              String      @id @default(cuid())
+  bankAccountId   String
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  txDate          DateTime    @db.Date
+  description     String
+  direction       String                   // DEBIT（支出） / CREDIT（存入）
+  amount          Decimal     @db.Decimal(14, 2)
+  balance         Decimal     @db.Decimal(14, 2) @default(0) // 交易後餘額
+  referenceNo     String?                  // 票號/交易序號
+  category        String?                  // 費用類別
+  paymentRecordId String?                  // 關聯付款紀錄
+  isReconciled    Boolean     @default(false)
+  reconciledAt    DateTime?
+  notes           String?
+  createdById     String
+  createdBy       User        @relation("BankTxCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime    @default(now())
+
+  @@index([bankAccountId, txDate])
+  @@index([isReconciled])
+}
+
 // 傳票分錄
 model JournalEntryLine {
   id          String             @id @default(cuid())

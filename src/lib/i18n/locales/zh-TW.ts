@@ -97,6 +97,7 @@ const zhTW = {
     accountSummary: '科目摘要明細帳',
     accountMovement: '科目增減紀錄',
     periodClose: '期末結帳',
+    bankAccounts: '存摺/信用卡管理',
     vatLedger: '進項/銷項帳簿',
     cashBook: '現金出納帳',
     dailyMonthlySummary: '日/月合計表',

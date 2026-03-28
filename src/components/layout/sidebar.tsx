@@ -76,7 +76,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'alerts' | 'traceability' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
-  'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' |
+  'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
   'cashFlowStatement' | 'costDetail' | 'accountList' | 'incomeExpenseDetail' | 'retainedEarnings' |
   'dailyCashReport' | 'cashMovement' | 'cashPosition' | 'cashInoutDetail' |
@@ -172,6 +172,7 @@ const navGroups: NavGroup[] = [
       { href: '/finance/account-summary',    key: 'accountSummary',  icon: BookOpen },
       { href: '/finance/account-movement',       key: 'accountMovement',      icon: BookOpen },
       { href: '/period-close',                   key: 'periodClose',          icon: CalendarCheck2 },
+      { href: '/bank-accounts',                  key: 'bankAccounts',         icon: Landmark },
       { href: '/finance/vat-ledger',             key: 'vatLedger',            icon: Receipt },
       { href: '/finance/cash-book',              key: 'cashBook',             icon: CreditCard },
       { href: '/finance/daily-monthly-summary',  key: 'dailyMonthlySummary',  icon: CalendarDays },
