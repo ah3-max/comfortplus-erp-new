@@ -54,23 +54,12 @@ interface PurchaseOrder { id: string; poNo: string }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const FREIGHT_STATUSES: { value: FreightStatus; label: string }[] = [
-  { value: 'PENDING',    label: '待處理' },
-  { value: 'BOOKED',     label: '已訂艙' },
-  { value: 'LOADED',     label: '已裝船' },
-  { value: 'IN_TRANSIT', label: '運輸中' },
-  { value: 'ARRIVED',    label: '已抵港' },
-  { value: 'DELIVERING', label: '配送中' },
-  { value: 'RECEIVED',   label: '已簽收' },
-  { value: 'CANCELLED',  label: '已取消' },
+const FREIGHT_STATUS_VALUES: FreightStatus[] = [
+  'PENDING', 'BOOKED', 'LOADED', 'IN_TRANSIT', 'ARRIVED', 'DELIVERING', 'RECEIVED', 'CANCELLED',
 ]
 
-const CUSTOMS_STATUSES: { value: CustomsStatus; label: string }[] = [
-  { value: 'NOT_STARTED', label: '未開始' },
-  { value: 'SUBMITTED',   label: '已申報' },
-  { value: 'INSPECTING',  label: '查驗中' },
-  { value: 'CLEARED',     label: '已放行' },
-  { value: 'HELD',        label: '扣留中' },
+const CUSTOMS_STATUS_VALUES: CustomsStatus[] = [
+  'NOT_STARTED', 'SUBMITTED', 'INSPECTING', 'CLEARED', 'HELD',
 ]
 
 const CONTAINER_SIZES = ['20GP', '40GP', '40HQ', '45HQ', 'LCL']
@@ -102,13 +91,6 @@ function customsBadgeClass(s: CustomsStatus): string {
   }
 }
 
-function freightLabel(s: FreightStatus) {
-  return FREIGHT_STATUSES.find(x => x.value === s)?.label ?? s
-}
-
-function customsLabel(s: CustomsStatus) {
-  return CUSTOMS_STATUSES.find(x => x.value === s)?.label ?? s
-}
 
 function fmtDate(d: string | null) {
   if (!d) return '-'
@@ -156,11 +138,14 @@ const emptyEditForm = {
 // ── Progress Bar Component ────────────────────────────────────────────────────
 
 function StatusProgress({ status }: { status: FreightStatus }) {
+  const { dict } = useI18n()
+  const sf = dict.seaFreight
+  type FrSt = keyof typeof sf.statuses
   if (status === 'CANCELLED') {
     return (
       <div className="flex items-center gap-1 mt-3">
         <div className="h-1.5 flex-1 rounded-full bg-red-200" />
-        <span className="text-[10px] text-red-500 font-medium">已取消</span>
+        <span className="text-[10px] text-red-500 font-medium">{sf.statuses.CANCELLED}</span>
       </div>
     )
   }
@@ -183,9 +168,9 @@ function StatusProgress({ status }: { status: FreightStatus }) {
         })}
       </div>
       <div className="flex justify-between mt-0.5">
-        <span className="text-[10px] text-muted-foreground">待處理</span>
+        <span className="text-[10px] text-muted-foreground">{sf.statuses[FREIGHT_STEP_ORDER[0] as FrSt]}</span>
         <span className="text-[10px] text-muted-foreground">{idx + 1}/{total}</span>
-        <span className="text-[10px] text-muted-foreground">已簽收</span>
+        <span className="text-[10px] text-muted-foreground">{sf.statuses[FREIGHT_STEP_ORDER[FREIGHT_STEP_ORDER.length - 1] as FrSt]}</span>
       </div>
     </div>
   )
@@ -195,6 +180,9 @@ function StatusProgress({ status }: { status: FreightStatus }) {
 
 export default function SeaFreightPage() {
   const { dict } = useI18n()
+  const sf = dict.seaFreight
+  type FrSt = keyof typeof sf.statuses
+  type CuSt = keyof typeof sf.customs
   const [records, setRecords]           = useState<SeaFreight[]>([])
   const [loading, setLoading]           = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('_all')
@@ -223,7 +211,7 @@ export default function SeaFreightPage() {
     if (showActive) params.set('active', 'true')
     const res = await fetch(`/api/sea-freight?${params}`)
     if (res.ok) setRecords(await res.json())
-    else toast.error('載入海運資料失敗')
+    else toast.error(sf.loadFailed)
     setLoading(false)
   }, [filterStatus, showActive])
 
@@ -252,7 +240,7 @@ export default function SeaFreightPage() {
 
   async function handleCreate() {
     if (!createForm.portOfLoading || !createForm.portOfDischarge) {
-      toast.error('請填寫裝貨港與卸貨港')
+      toast.error(sf.portRequired)
       return
     }
     setSaving(true)
@@ -279,12 +267,12 @@ export default function SeaFreightPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('海運記錄已建立')
+      toast.success(sf.createSuccess)
       setCreateOpen(false)
       fetchRecords()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '建立失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -340,26 +328,26 @@ export default function SeaFreightPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('海運記錄已更新')
+      toast.success(sf.updateSuccess)
       setEditOpen(false)
       fetchRecords()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '更新失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
   // ── Delete helper ────────────────────────────────────────────────────
 
   async function handleDelete(record: SeaFreight) {
-    if (!confirm(`確定要刪除海運記錄 ${record.freightNo}？此操作無法復原。`)) return
+    if (!confirm(`${sf.deleteConfirm} ${record.freightNo}？`)) return
     const res = await fetch(`/api/sea-freight/${record.id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('海運記錄已刪除')
+      toast.success(sf.deleteSuccess)
       fetchRecords()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '刪除失敗')
+      toast.error(d.error ?? dict.common.deleteFailed)
     }
   }
 
@@ -373,7 +361,7 @@ export default function SeaFreightPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.seaFreight.title}</h1>
-          <p className="text-sm text-muted-foreground">共 {activeCount} 筆海運記錄</p>
+          <p className="text-sm text-muted-foreground">{dict.common.total} {activeCount} {sf.totalRecords}</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />{dict.common.create}
@@ -384,12 +372,12 @@ export default function SeaFreightPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <Select value={filterStatus} onValueChange={v => setFilterStatus(v ?? '_all')}>
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="全部狀態" />
+            <SelectValue placeholder={sf.allStatuses} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="_all">全部狀態</SelectItem>
-            {FREIGHT_STATUSES.map(s => (
-              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            <SelectItem value="_all">{sf.allStatuses}</SelectItem>
+            {FREIGHT_STATUS_VALUES.map(v => (
+              <SelectItem key={v} value={v}>{sf.statuses[v as FrSt]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -400,7 +388,7 @@ export default function SeaFreightPage() {
             checked={showActive}
             onChange={e => setShowActive(e.target.checked)}
           />
-          僅顯示進行中
+          {sf.showActive}
         </label>
       </div>
 
@@ -449,10 +437,10 @@ export default function SeaFreightPage() {
               {/* Status badges */}
               <div className="flex items-center gap-2 mt-3">
                 <Badge variant="outline" className={`text-xs ${freightBadgeClass(r.status)}`}>
-                  {freightLabel(r.status)}
+                  {sf.statuses[r.status as FrSt] ?? r.status}
                 </Badge>
                 <Badge variant="outline" className={`text-xs ${customsBadgeClass(r.customsStatus)}`}>
-                  通關：{customsLabel(r.customsStatus)}
+                  {sf.customsPrefix}：{sf.customs[r.customsStatus as CuSt] ?? r.customsStatus}
                 </Badge>
               </div>
 
@@ -485,12 +473,12 @@ export default function SeaFreightPage() {
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Calendar className="h-3 w-3" />
                   <span>ETD：{fmtDate(r.etd)}</span>
-                  {r.atd && <span className="text-green-600">(實 {fmtDate(r.atd)})</span>}
+                  {r.atd && <span className="text-green-600">({sf.actualDate} {fmtDate(r.atd)})</span>}
                 </div>
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Calendar className="h-3 w-3" />
                   <span>ETA：{fmtDate(r.eta)}</span>
-                  {r.ata && <span className="text-green-600">(實 {fmtDate(r.ata)})</span>}
+                  {r.ata && <span className="text-green-600">({sf.actualDate} {fmtDate(r.ata)})</span>}
                 </div>
               </div>
 
@@ -498,8 +486,8 @@ export default function SeaFreightPage() {
               {(r.productionOrder || r.purchaseOrder) && (
                 <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <FileText className="h-3 w-3" />
-                  {r.productionOrder && <span>生產單：{r.productionOrder.orderNo}</span>}
-                  {r.purchaseOrder && <span>採購單：{r.purchaseOrder.poNo}</span>}
+                  {r.productionOrder && <span>{sf.productionOrderCard}：{r.productionOrder.orderNo}</span>}
+                  {r.purchaseOrder && <span>{sf.purchaseOrderCard}：{r.purchaseOrder.poNo}</span>}
                 </div>
               )}
 
@@ -513,7 +501,7 @@ export default function SeaFreightPage() {
       {/* Empty state */}
       {!loading && records.length === 0 && (
         <div className="rounded-lg border-2 border-dashed p-16 text-center text-muted-foreground">
-          尚無海運記錄，請點擊「新增海運」建立第一筆
+          {sf.noData}
         </div>
       )}
 
@@ -526,18 +514,18 @@ export default function SeaFreightPage() {
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* Source type */}
             <div className="space-y-1.5">
-              <Label>關聯單據</Label>
+              <Label>{sf.linkedDoc}</Label>
               <Select
                 value={createForm.sourceType}
                 onValueChange={v => cf('sourceType', v ?? '_none')}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選擇關聯類型" />
+                  <SelectValue placeholder={sf.noLink} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">不關聯</SelectItem>
-                  <SelectItem value="production">生產工單</SelectItem>
-                  <SelectItem value="purchase">採購單</SelectItem>
+                  <SelectItem value="_none">{sf.noLink}</SelectItem>
+                  <SelectItem value="production">{sf.productionOrderRef}</SelectItem>
+                  <SelectItem value="purchase">{sf.purchaseOrderRef}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -545,7 +533,7 @@ export default function SeaFreightPage() {
             {/* Production order selector */}
             {createForm.sourceType === 'production' && (
               <div className="space-y-1.5">
-                <Label>生產工單</Label>
+                <Label>{sf.productionOrderRef}</Label>
                 <Select
                   value={createForm.productionOrderId || '_none'}
                   onValueChange={v => cf('productionOrderId', v === '_none' ? '' : (v ?? ''))}
@@ -566,7 +554,7 @@ export default function SeaFreightPage() {
             {/* Purchase order selector */}
             {createForm.sourceType === 'purchase' && (
               <div className="space-y-1.5">
-                <Label>採購單</Label>
+                <Label>{sf.purchaseOrderRef}</Label>
                 <Select
                   value={createForm.purchaseOrderId || '_none'}
                   onValueChange={v => cf('purchaseOrderId', v === '_none' ? '' : (v ?? ''))}
@@ -605,7 +593,7 @@ export default function SeaFreightPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>櫃型</Label>
+              <Label>{sf.containerType}</Label>
               <Select
                 value={createForm.containerSize || '_none'}
                 onValueChange={v => cf('containerSize', v === '_none' ? '' : (v ?? ''))}
@@ -625,7 +613,7 @@ export default function SeaFreightPage() {
             {/* Ports */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>裝貨港 <span className="text-red-500">*</span></Label>
+                <Label>{sf.portLoading} <span className="text-red-500">*</span></Label>
                 <Input
                   value={createForm.portOfLoading}
                   onChange={e => cf('portOfLoading', e.target.value)}
@@ -633,7 +621,7 @@ export default function SeaFreightPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>卸貨港 <span className="text-red-500">*</span></Label>
+                <Label>{sf.portDischarge} <span className="text-red-500">*</span></Label>
                 <Input
                   value={createForm.portOfDischarge}
                   onChange={e => cf('portOfDischarge', e.target.value)}
@@ -645,7 +633,7 @@ export default function SeaFreightPage() {
             {/* Dates */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>預計開航 (ETD)</Label>
+                <Label>{sf.etdFull}</Label>
                 <Input
                   type="date"
                   value={createForm.etd}
@@ -653,7 +641,7 @@ export default function SeaFreightPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>預計到港 (ETA)</Label>
+                <Label>{sf.etaFull}</Label>
                 <Input
                   type="date"
                   value={createForm.eta}
@@ -664,12 +652,11 @@ export default function SeaFreightPage() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea
                 value={createForm.notes}
                 onChange={e => cf('notes', e.target.value)}
                 rows={2}
-                placeholder="特殊說明..."
               />
             </div>
           </div>
@@ -696,7 +683,7 @@ export default function SeaFreightPage() {
             {/* Status selectors */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>運輸狀態</Label>
+                <Label>{sf.transportStatus}</Label>
                 <Select
                   value={editForm.status}
                   onValueChange={v => ef('status', v ?? 'PENDING')}
@@ -705,14 +692,14 @@ export default function SeaFreightPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {FREIGHT_STATUSES.map(s => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    {FREIGHT_STATUS_VALUES.map(v => (
+                      <SelectItem key={v} value={v}>{sf.statuses[v as FrSt]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>通關狀態</Label>
+                <Label>{sf.customsStatusLabel}</Label>
                 <Select
                   value={editForm.customsStatus}
                   onValueChange={v => ef('customsStatus', v ?? 'NOT_STARTED')}
@@ -721,8 +708,8 @@ export default function SeaFreightPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CUSTOMS_STATUSES.map(s => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    {CUSTOMS_STATUS_VALUES.map(v => (
+                      <SelectItem key={v} value={v}>{sf.customs[v as CuSt]}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -732,7 +719,7 @@ export default function SeaFreightPage() {
             {/* Vessel & Container */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>船名</Label>
+                <Label>{sf.vessel}</Label>
                 <Input
                   value={editForm.vesselName}
                   onChange={e => ef('vesselName', e.target.value)}
@@ -740,7 +727,7 @@ export default function SeaFreightPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>櫃號</Label>
+                <Label>{sf.containerNo}</Label>
                 <Input
                   value={editForm.containerNo}
                   onChange={e => ef('containerNo', e.target.value.toUpperCase())}
@@ -750,7 +737,7 @@ export default function SeaFreightPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>櫃型</Label>
+              <Label>{sf.containerType}</Label>
               <Select
                 value={editForm.containerSize || '_none'}
                 onValueChange={v => ef('containerSize', v === '_none' ? '' : (v ?? ''))}
@@ -770,14 +757,14 @@ export default function SeaFreightPage() {
             {/* Ports */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>裝貨港</Label>
+                <Label>{sf.portLoading}</Label>
                 <Input
                   value={editForm.portOfLoading}
                   onChange={e => ef('portOfLoading', e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>卸貨港</Label>
+                <Label>{sf.portDischarge}</Label>
                 <Input
                   value={editForm.portOfDischarge}
                   onChange={e => ef('portOfDischarge', e.target.value)}
@@ -788,11 +775,11 @@ export default function SeaFreightPage() {
             {/* Planned dates */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>預計開航 (ETD)</Label>
+                <Label>{sf.etdFull}</Label>
                 <Input type="date" value={editForm.etd} onChange={e => ef('etd', e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>預計到港 (ETA)</Label>
+                <Label>{sf.etaFull}</Label>
                 <Input type="date" value={editForm.eta} onChange={e => ef('eta', e.target.value)} />
               </div>
             </div>
@@ -800,11 +787,11 @@ export default function SeaFreightPage() {
             {/* Actual dates */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>實際開航 (ATD)</Label>
+                <Label>{sf.atd}</Label>
                 <Input type="date" value={editForm.atd} onChange={e => ef('atd', e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>實際到港 (ATA)</Label>
+                <Label>{sf.ata}</Label>
                 <Input type="date" value={editForm.ata} onChange={e => ef('ata', e.target.value)} />
               </div>
             </div>
@@ -812,7 +799,7 @@ export default function SeaFreightPage() {
             {/* Costs */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>運費</Label>
+                <Label>{sf.shippingCost}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -822,7 +809,7 @@ export default function SeaFreightPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>報關費</Label>
+                <Label>{sf.customsCost}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -835,12 +822,11 @@ export default function SeaFreightPage() {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea
                 value={editForm.notes}
                 onChange={e => ef('notes', e.target.value)}
                 rows={2}
-                placeholder="特殊說明..."
               />
             </div>
           </div>
