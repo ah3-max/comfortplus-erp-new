@@ -97,6 +97,7 @@ const en = {
     periodClose: 'Period Close',
     bankAccounts: 'Bank / Credit Card',
     cheques: 'Cheque Management',
+    vatFilings: 'VAT Filing',
     vatLedger: 'VAT Ledger',
     cashBook: 'Cash Book',
     dailyMonthlySummary: 'Daily/Monthly Summary',

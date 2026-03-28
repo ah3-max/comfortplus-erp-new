@@ -99,6 +99,7 @@ const zhTW = {
     periodClose: '期末結帳',
     bankAccounts: '存摺/信用卡管理',
     cheques: '支票交易管理',
+    vatFilings: '營業稅申報',
     vatLedger: '進項/銷項帳簿',
     cashBook: '現金出納帳',
     dailyMonthlySummary: '日/月合計表',

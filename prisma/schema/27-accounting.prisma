@@ -164,6 +164,31 @@ model Cheque {
   @@index([dueDate])
 }
 
+// 營業稅申報
+model VatFiling {
+  id            String   @id @default(cuid())
+  filingNo      String   @unique          // 申報單號
+  periodCode    String                    // e.g. "2024-01/02" (雙月) / "2024-01" (月)
+  startDate     DateTime @db.Date
+  endDate       DateTime @db.Date
+  outputTaxBase Decimal  @db.Decimal(14, 2) @default(0)  // 銷項稅基
+  outputTax     Decimal  @db.Decimal(14, 2) @default(0)  // 銷項稅額
+  inputTaxBase  Decimal  @db.Decimal(14, 2) @default(0)  // 進項稅基
+  inputTax      Decimal  @db.Decimal(14, 2) @default(0)  // 進項稅額
+  netTax        Decimal  @db.Decimal(14, 2) @default(0)  // 應納稅額（+繳納/-退稅）
+  status        String   @default("DRAFT")               // DRAFT / FILED / PAID
+  filedAt       DateTime?
+  paidAt        DateTime?
+  taxAuthRef    String?                   // 稅捐機關申報序號
+  notes         String?
+  createdById   String
+  createdBy     User     @relation("VatFilingCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([status])
+}
+
 // 傳票分錄
 model JournalEntryLine {
   id          String             @id @default(cuid())

@@ -129,6 +129,7 @@ model User {
   bankAccountsCreated    BankAccount[]          @relation("BankAccountCreatedBy")
   bankTransactionsCreated BankTransaction[]     @relation("BankTxCreatedBy")
   chequesCreated         Cheque[]               @relation("ChequeCreatedBy")
+  vatFilingsCreated      VatFiling[]            @relation("VatFilingCreatedBy")
 
   // ── P2-4 內部使用 + 不良品 ───────────────────────────
   internalUsesRequested  InternalUse[]          @relation("InternalUseRequested")
