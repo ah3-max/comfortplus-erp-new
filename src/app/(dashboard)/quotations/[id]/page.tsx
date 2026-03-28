@@ -51,23 +51,16 @@ type QuotationStatus =
   | 'EXPIRED'
   | 'CONVERTED'
 
-const statusConfig: Record<
-  QuotationStatus,
-  {
-    label: string
-    variant: 'default' | 'secondary' | 'outline' | 'destructive'
-    className?: string
-  }
-> = {
-  DRAFT:             { label: '草稿',      variant: 'outline' },
-  PENDING_APPROVAL:  { label: '待審批',    variant: 'secondary', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  APPROVED:          { label: '已核准',    variant: 'default',   className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  SENT:              { label: '已送出',    variant: 'secondary' },
-  CUSTOMER_REVIEWING:{ label: '客戶確認中', variant: 'secondary', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  ACCEPTED:          { label: '已接受',    variant: 'default',   className: 'bg-green-100 text-green-700 border-green-200' },
-  REJECTED:          { label: '已拒絕',    variant: 'destructive' },
-  EXPIRED:           { label: '已過期',    variant: 'outline',   className: 'text-muted-foreground' },
-  CONVERTED:         { label: '已轉訂單',  variant: 'default',   className: 'bg-blue-100 text-blue-700 border-blue-200' },
+const statusVariant: Record<QuotationStatus, { variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
+  DRAFT:              { variant: 'outline' },
+  PENDING_APPROVAL:   { variant: 'secondary', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  APPROVED:           { variant: 'default',   className: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  SENT:               { variant: 'secondary' },
+  CUSTOMER_REVIEWING: { variant: 'secondary', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  ACCEPTED:           { variant: 'default',   className: 'bg-green-100 text-green-700 border-green-200' },
+  REJECTED:           { variant: 'destructive' },
+  EXPIRED:            { variant: 'outline',   className: 'text-muted-foreground' },
+  CONVERTED:          { variant: 'default',   className: 'bg-blue-100 text-blue-700 border-blue-200' },
 }
 
 interface QuotationItem {
@@ -147,13 +140,12 @@ function formatDateTime(str: string) {
   })
 }
 
-const approvalRoleLabel: Record<string, string> = {
-  SALES_MANAGER: '業務主管',
-  GM: '總經理',
-  SUPER_ADMIN: '超級管理員',
-}
-
 function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
+  const { dict } = useI18n()
+  const qt = dict.quotations
+  type ApSt = keyof typeof qt.approvalStatuses
+  type ApRl = keyof typeof qt.approvalRoles
+
   if (approvals.length === 0) return null
 
   const triggerReason = approvals[0]?.triggerReason
@@ -163,7 +155,7 @@ function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <UserCheck className="h-4 w-4 text-muted-foreground" />
-          <CardTitle className="text-base">審批流程</CardTitle>
+          <CardTitle className="text-base">{qt.approvalTitle}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -171,7 +163,7 @@ function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
           <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
             <span>
-              <span className="font-semibold">觸發原因：</span>
+              <span className="font-semibold">{qt.triggerReasonPrefix}：</span>
               {triggerReason}
             </span>
           </div>
@@ -182,8 +174,7 @@ function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
             .sort((a, b) => a.approvalLevel - b.approvalLevel)
             .map((step, idx, arr) => {
               const isLast = idx === arr.length - 1
-              const roleLabel =
-                approvalRoleLabel[step.approverRole] ?? step.approverRole
+              const roleLabel = qt.approvalRoles[step.approverRole as ApRl] ?? step.approverRole
 
               return (
                 <div key={step.id} className="flex gap-3">
@@ -219,7 +210,7 @@ function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
                   <div className="flex-1 pb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">
-                        第 {step.approvalLevel} 關：{roleLabel}核准
+                        {step.approvalLevel} {qt.approvalStepLabel}：{roleLabel}{qt.approvalApproveAction}
                       </span>
                       <Badge
                         variant="outline"
@@ -233,19 +224,13 @@ function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
                                 : 'border-amber-300 bg-amber-50 text-amber-700'
                         }`}
                       >
-                        {step.status === 'APPROVED'
-                          ? '已核准'
-                          : step.status === 'REJECTED'
-                            ? '已退回'
-                            : step.status === 'SKIPPED'
-                              ? '已略過'
-                              : '等待中'}
+                        {qt.approvalStatuses[step.status as ApSt] ?? step.status}
                       </Badge>
                     </div>
 
                     {step.status === 'PENDING' && (
                       <p className="mt-1 text-xs text-amber-600">
-                        等待{roleLabel}核准中...
+                        {qt.waitingForApproval}
                       </p>
                     )}
 
@@ -286,7 +271,7 @@ function ApprovalPanel({ approvals }: { approvals: ApprovalStep[] }) {
                     )}
 
                     {step.status === 'SKIPPED' && (
-                      <p className="mt-1 text-xs text-slate-400">已略過（前一關退回）</p>
+                      <p className="mt-1 text-xs text-slate-400">{qt.skippedReason}</p>
                     )}
                   </div>
                 </div>
@@ -302,6 +287,8 @@ export default function QuotationDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const { dict } = useI18n()
+  const qt = dict.quotations
+  type QuotSt = keyof typeof qt.statuses
 
   const [quotation, setQuotation] = useState<Quotation | null>(null)
   const [relatedOrders, setRelatedOrders] = useState<RelatedOrder[]>([])
@@ -325,7 +312,7 @@ export default function QuotationDetailPage() {
     setLoading(true)
     const res = await fetch(`/api/quotations/${id}`)
     if (!res.ok) {
-      toast.error('找不到此報價單')
+      toast.error(qt.notFound)
       router.push('/quotations')
       return
     }
@@ -369,26 +356,26 @@ export default function QuotationDetailPage() {
     })
     setActionLoading(false)
     if (res.ok) {
-      toast.success('狀態已更新')
+      toast.success(qt.statusUpdated)
       fetchQuotation()
     } else {
-      toast.error('更新狀態失敗')
+      toast.error(qt.statusUpdateFailed)
     }
   }
 
   async function handleConvert() {
     if (!quotation) return
-    if (!confirm(`確定要將報價單 ${quotation.quotationNo} 轉為訂單嗎？`)) return
+    if (!confirm(`${qt.convertConfirmPrefix} ${quotation.quotationNo} ${qt.convertConfirmSuffix}`)) return
     setActionLoading(true)
     const res = await fetch(`/api/quotations/${id}/convert`, { method: 'POST' })
     setActionLoading(false)
     if (res.ok) {
       const data = await res.json()
-      toast.success(`已建立訂單 ${data.orderNo}`)
+      toast.success(`${qt.orderCreatedPrefix} ${data.orderNo}`)
       router.push(`/orders/${data.orderId}`)
     } else {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error ?? '轉換失敗')
+      toast.error(data.error ?? qt.convertFailed)
     }
   }
 
@@ -414,12 +401,12 @@ export default function QuotationDetailPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('報價單已更新')
+      toast.success(qt.updateSuccess)
       setEditOpen(false)
       fetchQuotation()
     } else {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error ?? '更新失敗')
+      toast.error(data.error ?? dict.common.updateFailed)
     }
   }
 
@@ -431,14 +418,14 @@ export default function QuotationDetailPage() {
     if (res.ok) {
       const data = await res.json()
       if (data.requiresApproval) {
-        toast.success('已送審，等待主管核准')
+        toast.success(qt.submitSuccess)
       } else {
-        toast.success('報價已直接送出（無需審批）')
+        toast.success(qt.submitDirectSuccess)
       }
       fetchQuotation()
     } else {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error ?? '送審失敗')
+      toast.error(data.error ?? qt.submitFailed)
     }
   }
 
@@ -452,13 +439,13 @@ export default function QuotationDetailPage() {
     })
     setApproving(false)
     if (res.ok) {
-      toast.success(approveAction === 'APPROVE' ? '已核准' : '已退回')
+      toast.success(approveAction === 'APPROVE' ? qt.approveSuccess : qt.rejectSuccess)
       setApproveOpen(false)
       setApproveComment('')
       fetchQuotation()
     } else {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error ?? '操作失敗')
+      toast.error(data.error ?? qt.approveFailed)
     }
   }
 
@@ -483,7 +470,8 @@ export default function QuotationDetailPage() {
 
   if (!quotation) return null
 
-  const sc = statusConfig[quotation.status] ?? { label: quotation.status, variant: 'outline' as const }
+  const sv = statusVariant[quotation.status] ?? { variant: 'outline' as const }
+  const sc = { label: qt.statuses[quotation.status as QuotSt] ?? quotation.status, ...sv }
   const isExpired =
     quotation.validUntil && new Date(quotation.validUntil) < new Date()
 
@@ -499,7 +487,7 @@ export default function QuotationDetailPage() {
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm text-muted-foreground">← 報價管理</span>
+            <span className="text-sm text-muted-foreground">← {qt.backToList}</span>
           </div>
           <div className="flex items-center gap-3 mt-0.5 flex-wrap">
             <h1 className="text-xl font-bold font-mono tracking-wide">
@@ -554,7 +542,7 @@ export default function QuotationDetailPage() {
                 className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
               >
                 <XCircle className="mr-2 h-4 w-4" />
-                退回
+                {qt.rejectBtn}
               </Button>
               <Button
                 onClick={() => {
@@ -565,7 +553,7 @@ export default function QuotationDetailPage() {
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                核准
+                {qt.approveBtn}
               </Button>
             </>
           )}
@@ -582,7 +570,7 @@ export default function QuotationDetailPage() {
                 ) : (
                   <Send className="mr-2 h-4 w-4" />
                 )}
-                送出報價
+                {qt.sendQuotation}
               </Button>
               <Button
                 variant="outline"
@@ -590,7 +578,7 @@ export default function QuotationDetailPage() {
                 disabled={actionLoading}
               >
                 <ShoppingCart className="mr-2 h-4 w-4" />
-                轉訂單
+                {qt.convertToOrderBtn}
               </Button>
             </>
           )}
@@ -608,7 +596,7 @@ export default function QuotationDetailPage() {
                 ) : (
                   <XCircle className="mr-2 h-4 w-4" />
                 )}
-                標記拒絕
+                {qt.markRejected}
               </Button>
               <Button
                 onClick={() => updateStatus('ACCEPTED')}
@@ -633,7 +621,7 @@ export default function QuotationDetailPage() {
                 disabled={actionLoading}
               >
                 <Pencil className="mr-2 h-4 w-4" />
-                編輯
+                {dict.common.edit}
               </Button>
               <Button
                 onClick={handleConvert}
@@ -657,7 +645,7 @@ export default function QuotationDetailPage() {
             }}
           >
             <FileText className="mr-2 h-4 w-4" />
-            匯出 PDF
+            {qt.exportPdf}
           </Button>
         </div>
       </div>
@@ -672,7 +660,7 @@ export default function QuotationDetailPage() {
             <p className="font-semibold text-sm leading-tight">{quotation.customer.name}</p>
             <p className="text-xs text-muted-foreground font-mono">{quotation.customer.code}</p>
             {quotation.customer.contactPerson && (
-              <p className="text-xs text-muted-foreground">聯絡：{quotation.customer.contactPerson}</p>
+              <p className="text-xs text-muted-foreground">{qt.contactPrefix}：{quotation.customer.contactPerson}</p>
             )}
             {quotation.customer.phone && (
               <p className="text-xs text-muted-foreground">{quotation.customer.phone}</p>
@@ -690,10 +678,10 @@ export default function QuotationDetailPage() {
                 {formatDate(quotation.validUntil)}
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground">未設定</p>
+              <p className="text-sm text-muted-foreground">{qt.notSet}</p>
             )}
             {isExpired && (
-              <p className="text-xs text-red-500 mt-0.5">已過期</p>
+              <p className="text-xs text-red-500 mt-0.5">{qt.statuses.EXPIRED}</p>
             )}
           </CardContent>
         </Card>
@@ -740,15 +728,15 @@ export default function QuotationDetailPage() {
                 <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
                 <TableHead className="text-center w-16">{dict.common.unit}</TableHead>
                 <TableHead className="text-right w-28">{dict.common.price}</TableHead>
-                <TableHead className="text-right w-20">折扣%</TableHead>
-                <TableHead className="text-right w-28">小計</TableHead>
+                <TableHead className="text-right w-20">{qt.discountHeader}</TableHead>
+                <TableHead className="text-right w-28">{qt.subtotalHeader}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {quotation.items.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="py-10 text-center text-muted-foreground text-sm">
-                    尚無明細項目
+                    {qt.noItems}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -812,7 +800,7 @@ export default function QuotationDetailPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base">關聯訂單</CardTitle>
+              <CardTitle className="text-base">{qt.relatedOrders}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -841,7 +829,7 @@ export default function QuotationDetailPage() {
                         onClick={() => router.push(`/orders/${order.id}`)}
                         className="h-7 px-2 text-xs"
                       >
-                        查看訂單 →
+                        {qt.viewOrder} →
                       </Button>
                     </div>
                   </div>
@@ -860,10 +848,10 @@ export default function QuotationDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-1">
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-              如需修改明細，請至列表頁重新建立報價單。
+              {qt.editHint}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-valid-until">有效期限</Label>
+              <Label htmlFor="edit-valid-until">{qt.validUntil}</Label>
               <Input
                 id="edit-valid-until"
                 type="date"
@@ -872,13 +860,12 @@ export default function QuotationDetailPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-notes">備註</Label>
+              <Label htmlFor="edit-notes">{dict.common.notes}</Label>
               <Textarea
                 id="edit-notes"
                 rows={4}
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
-                placeholder="輸入備註..."
                 className="resize-none"
               />
             </div>
@@ -904,22 +891,21 @@ export default function QuotationDetailPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {approveAction === 'APPROVE' ? '確認核准' : '退回報價單'}
+              {approveAction === 'APPROVE' ? qt.approveDialogTitle : qt.rejectDialogTitle}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             {approveAction === 'REJECT' && (
               <div className="rounded bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-                退回後報價單狀態將變為「已拒絕」，業務需重新建立報價單。
+                {qt.rejectWarning}
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>審批意見（選填）</Label>
+              <Label>{qt.approvalComment}</Label>
               <Textarea
                 rows={3}
                 value={approveComment}
                 onChange={(e) => setApproveComment(e.target.value)}
-                placeholder="輸入審批意見..."
                 className="resize-none"
               />
             </div>
@@ -942,7 +928,7 @@ export default function QuotationDetailPage() {
               }
             >
               {approving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {approveAction === 'APPROVE' ? '確認核准' : '確認退回'}
+              {approveAction === 'APPROVE' ? qt.confirmApprove : qt.confirmReject}
             </Button>
           </DialogFooter>
         </DialogContent>
