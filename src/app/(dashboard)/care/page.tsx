@@ -42,40 +42,6 @@ interface ServiceRequest {
 interface User     { id: string; name: string }
 interface Customer { id: string; name: string; code: string }
 
-/* ─── Constants ──────────────────────────────────────────── */
-const VISIT_TYPES: Record<string, string> = {
-  ROUTINE_VISIT: '定期巡訪', TRAINING: '教育訓練',
-  ONBOARDING: '新客戶上線', COMPLAINT_FOLLOW: '客訴跟進',
-  PRODUCT_DEMO: '產品示範', OTHER: '其他',
-}
-
-const SCHEDULE_STATUSES: Record<string, { label: string; color: string }> = {
-  SCHEDULED:   { label: '已排程', color: 'bg-blue-100 text-blue-700' },
-  IN_PROGRESS: { label: '進行中', color: 'bg-amber-100 text-amber-700' },
-  COMPLETED:   { label: '已完成', color: 'bg-green-100 text-green-700' },
-  CANCELLED:   { label: '已取消', color: 'bg-slate-100 text-slate-500' },
-}
-
-const REQUEST_TYPES: Record<string, string> = {
-  SKIN_ISSUE: '皮膚問題', PRODUCT_CHANGE: '產品更換',
-  TRAINING: '教育訓練', COMPLAINT: '客訴',
-  SUPPLY_ISSUE: '供應問題', NEW_ONBOARD: '新客戶上線', OTHER: '其他',
-}
-
-const URGENCIES: Record<string, { label: string; color: string }> = {
-  CRITICAL: { label: '緊急', color: 'bg-red-100 text-red-700' },
-  HIGH:     { label: '高',   color: 'bg-orange-100 text-orange-700' },
-  MEDIUM:   { label: '中',   color: 'bg-yellow-100 text-yellow-700' },
-  LOW:      { label: '低',   color: 'bg-slate-100 text-slate-600' },
-}
-
-const REQUEST_STATUSES: Record<string, { label: string; color: string }> = {
-  OPEN:        { label: '待處理', color: 'bg-red-100 text-red-700' },
-  ASSIGNED:    { label: '已指派', color: 'bg-purple-100 text-purple-700' },
-  IN_PROGRESS: { label: '處理中', color: 'bg-blue-100 text-blue-700' },
-  RESOLVED:    { label: '已解決', color: 'bg-green-100 text-green-700' },
-  CLOSED:      { label: '已關閉', color: 'bg-slate-100 text-slate-500' },
-}
 
 const emptySch = {
   customerId: '', supervisorId: '', scheduleDate: '',
@@ -91,6 +57,12 @@ const emptyReq = {
 /* ─── Component ──────────────────────────────────────────── */
 export default function CarePage() {
   const { dict } = useI18n()
+  const ca = dict.care
+  type SchSt = keyof typeof ca.scheduleStatuses
+  type ReqSt = keyof typeof ca.requestStatuses
+  type UrgSt = keyof typeof ca.urgencies
+  type VisTy = keyof typeof ca.visitTypes
+  type ReqTy = keyof typeof ca.requestTypes
   const [schedules, setSchedules]   = useState<CareSchedule[]>([])
   const [requests, setRequests]     = useState<ServiceRequest[]>([])
   const [users, setUsers]           = useState<User[]>([])
@@ -170,7 +142,7 @@ export default function CarePage() {
     setSaving(false); setSchOpen(false); load()
   }
   async function cancelSch(id: string) {
-    if (!confirm('確定取消此排程？')) return
+    if (!confirm(ca.cancelConfirm)) return
     await fetch(`/api/care/schedules/${id}`, { method: 'DELETE' })
     load()
   }
@@ -320,12 +292,12 @@ export default function CarePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>督導人員</Label>
+                    <Label>{ca.supervisorLabel}</Label>
                     <Select
                       value={schForm.supervisorId || '_none'}
                       onValueChange={v => setSchForm(f => ({ ...f, supervisorId: v === '_none' ? '' : (v ?? '') }))}
                     >
-                      <SelectTrigger><SelectValue placeholder="選擇督導" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="_none">— {dict.common.select} —</SelectItem>
                         {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
@@ -333,17 +305,17 @@ export default function CarePage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>排程日期 *</Label>
+                    <Label>{ca.scheduleDateLabel} *</Label>
                     <Input type="date" value={schForm.scheduleDate} onChange={e => setSchForm(f => ({ ...f, scheduleDate: e.target.value }))} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>拜訪類型</Label>
+                    <Label>{ca.visitTypeLabel}</Label>
                     <Select value={schForm.visitType} onValueChange={v => setSchForm(f => ({ ...f, visitType: v ?? 'ROUTINE_VISIT' }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(VISIT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        {Object.entries(ca.visitTypes).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -352,27 +324,27 @@ export default function CarePage() {
                     <Select value={schForm.status} onValueChange={v => setSchForm(f => ({ ...f, status: v ?? 'SCHEDULED' }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(SCHEDULE_STATUSES).map(([k, { label }]) => <SelectItem key={k} value={k}>{label}</SelectItem>)}
+                        {Object.entries(ca.scheduleStatuses).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <div>
-                  <Label>拜訪目的</Label>
-                  <Input value={schForm.purpose} onChange={e => setSchForm(f => ({ ...f, purpose: e.target.value }))} placeholder="拜訪目的…" />
+                  <Label>{ca.purposeLabel}</Label>
+                  <Input value={schForm.purpose} onChange={e => setSchForm(f => ({ ...f, purpose: e.target.value }))} />
                 </div>
                 {schEdit && (
                   <>
                     <div>
-                      <Label>拜訪內容</Label>
-                      <Textarea rows={2} value={schForm.content} onChange={e => setSchForm(f => ({ ...f, content: e.target.value }))} placeholder="拜訪內容記錄…" />
+                      <Label>{ca.contentLabel}</Label>
+                      <Textarea rows={2} value={schForm.content} onChange={e => setSchForm(f => ({ ...f, content: e.target.value }))} />
                     </div>
                     <div>
-                      <Label>結果/回饋</Label>
-                      <Textarea rows={2} value={schForm.result} onChange={e => setSchForm(f => ({ ...f, result: e.target.value }))} placeholder="拜訪結果…" />
+                      <Label>{ca.resultLabel}</Label>
+                      <Textarea rows={2} value={schForm.result} onChange={e => setSchForm(f => ({ ...f, result: e.target.value }))} />
                     </div>
                     <div>
-                      <Label>下次拜訪日期</Label>
+                      <Label>{ca.nextVisitDateLabel}</Label>
                       <Input type="date" value={schForm.nextVisitDate} onChange={e => setSchForm(f => ({ ...f, nextVisitDate: e.target.value }))} />
                     </div>
                   </>
@@ -406,15 +378,15 @@ export default function CarePage() {
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono text-xs text-slate-500">{s.scheduleNo}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${SCHEDULE_STATUSES[s.status]?.color}`}>
-                            {SCHEDULE_STATUSES[s.status]?.label}
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${ca.scheduleStatusColors[s.status as SchSt] ?? ''}`}>
+                            {ca.scheduleStatuses[s.status as SchSt] ?? s.status}
                           </span>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                            {VISIT_TYPES[s.visitType] ?? s.visitType}
+                            {ca.visitTypes[s.visitType as VisTy] ?? s.visitType}
                           </span>
                           {s.serviceRequests.length > 0 && (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600">
-                              {s.serviceRequests.length} 件服務需求
+                              {s.serviceRequests.length} {ca.serviceRequestCount}
                             </span>
                           )}
                         </div>
@@ -427,7 +399,7 @@ export default function CarePage() {
                         {s.purpose && <p className="text-sm text-slate-600 mt-1">{s.purpose}</p>}
                         {s.result  && <p className="text-sm text-green-700 mt-1 bg-green-50 rounded p-2">✓ {s.result}</p>}
                         {s.nextVisitDate && (
-                          <p className="text-sm text-blue-600 mt-1">下次拜訪：{s.nextVisitDate.substring(0, 10)}</p>
+                          <p className="text-sm text-blue-600 mt-1">{ca.nextVisitPrefix}：{s.nextVisitDate.substring(0, 10)}</p>
                         )}
 
                       </div>
@@ -481,20 +453,20 @@ export default function CarePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>需求類型</Label>
+                    <Label>{ca.requestTypeLabel}</Label>
                     <Select value={reqForm.requestType} onValueChange={v => setReqForm(f => ({ ...f, requestType: v ?? 'OTHER' }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(REQUEST_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        {Object.entries(ca.requestTypes).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>緊急程度</Label>
+                    <Label>{ca.urgencyLabel}</Label>
                     <Select value={reqForm.urgency} onValueChange={v => setReqForm(f => ({ ...f, urgency: v ?? 'MEDIUM' }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(URGENCIES).map(([k, { label }]) => <SelectItem key={k} value={k}>{label}</SelectItem>)}
+                        {Object.entries(ca.urgencies).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -505,7 +477,7 @@ export default function CarePage() {
                     <Select value={reqForm.status} onValueChange={v => setReqForm(f => ({ ...f, status: v ?? 'OPEN' }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {Object.entries(REQUEST_STATUSES).map(([k, { label }]) => <SelectItem key={k} value={k}>{label}</SelectItem>)}
+                        {Object.entries(ca.requestStatuses).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -517,7 +489,7 @@ export default function CarePage() {
                     >
                       <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="_none">— 未分配 —</SelectItem>
+                        <SelectItem value="_none">— {dict.common.unassigned} —</SelectItem>
                         {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -529,8 +501,8 @@ export default function CarePage() {
                 </div>
                 {reqEdit && (
                   <div>
-                    <Label>處理結果</Label>
-                    <Textarea rows={2} value={reqForm.resolution} onChange={e => setReqForm(f => ({ ...f, resolution: e.target.value }))} placeholder="記錄處理方式與結果…" />
+                    <Label>{ca.resolutionLabel}</Label>
+                    <Textarea rows={2} value={reqForm.resolution} onChange={e => setReqForm(f => ({ ...f, resolution: e.target.value }))} />
                   </div>
                 )}
               </div>
@@ -548,7 +520,7 @@ export default function CarePage() {
                   <TableRow>
                     <TableHead>{dict.common.customer}</TableHead>
                     <TableHead>{dict.common.type}</TableHead>
-                    <TableHead>緊急度</TableHead>
+                    <TableHead>{ca.urgencyHeader}</TableHead>
                     <TableHead>{dict.common.status}</TableHead>
                     <TableHead>{dict.common.description}</TableHead>
                     <TableHead>{dict.tasksExt.assignedTo}</TableHead>
@@ -568,15 +540,15 @@ export default function CarePage() {
                   {requests.map(r => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.customer.name}</TableCell>
-                      <TableCell className="text-sm text-slate-500">{REQUEST_TYPES[r.requestType] ?? r.requestType}</TableCell>
+                      <TableCell className="text-sm text-slate-500">{ca.requestTypes[r.requestType as ReqTy] ?? r.requestType}</TableCell>
                       <TableCell>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${URGENCIES[r.urgency]?.color}`}>
-                          {URGENCIES[r.urgency]?.label}
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${ca.urgencyColors[r.urgency as UrgSt] ?? ''}`}>
+                          {ca.urgencies[r.urgency as UrgSt] ?? r.urgency}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${REQUEST_STATUSES[r.status]?.color}`}>
-                          {REQUEST_STATUSES[r.status]?.label}
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${ca.requestStatusColors[r.status as ReqSt] ?? ''}`}>
+                          {ca.requestStatuses[r.status as ReqSt] ?? r.status}
                         </span>
                       </TableCell>
                       <TableCell className="max-w-xs truncate text-sm">{r.description}</TableCell>
@@ -604,27 +576,25 @@ export default function CarePage() {
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div>
-              <Label>拜訪內容</Label>
+              <Label>{ca.contentLabel}</Label>
               <Textarea
                 rows={2}
                 value={completeForm.content}
                 onChange={e => setCompleteForm(f => ({ ...f, content: e.target.value }))}
-                placeholder="紀錄本次拜訪內容…"
                 className="mt-1"
               />
             </div>
             <div>
-              <Label>結果/回饋 *</Label>
+              <Label>{ca.resultLabel} *</Label>
               <Textarea
                 rows={2}
                 value={completeForm.result}
                 onChange={e => setCompleteForm(f => ({ ...f, result: e.target.value }))}
-                placeholder="客戶回饋、待辦事項…"
                 className="mt-1"
               />
             </div>
             <div>
-              <Label>下次拜訪日期</Label>
+              <Label>{ca.nextVisitDateLabel}</Label>
               <Input
                 type="date"
                 value={completeForm.nextVisitDate}
