@@ -26,24 +26,6 @@ import { useI18n } from '@/lib/i18n/context'
 
 type ReceiptStatus = 'DRAFT' | 'CONFIRMED' | 'RECEIVED' | 'CANCELLED'
 
-const statusConfig: Record<ReceiptStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  DRAFT:     { label: '草稿', variant: 'outline' },
-  CONFIRMED: { label: '已確認', variant: 'secondary' },
-  RECEIVED:  { label: '已入庫', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED: { label: '已取消', variant: 'destructive' },
-}
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'DRAFT', label: '草稿' },
-  { value: 'CONFIRMED', label: '已確認' },
-  { value: 'RECEIVED', label: '已入庫' },
-]
-
 interface ReceiptItem {
   id: string; productId: string; productName: string; specification: string | null
   quantity: string; bomVersion: string | null; unit: string | null; memo: string | null
@@ -90,6 +72,25 @@ export default function ProductionReceiptsPage() {
   const { dict } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  const statusConfig: Record<ReceiptStatus, {
+    label: string
+    variant: 'default' | 'secondary' | 'outline' | 'destructive'
+    className?: string
+  }> = {
+    DRAFT:     { label: dict.productionReceipts.statuses.DRAFT, variant: 'outline' },
+    CONFIRMED: { label: dict.productionReceipts.statuses.CONFIRMED, variant: 'secondary' },
+    RECEIVED:  { label: dict.productionReceipts.statuses.RECEIVED, variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    CANCELLED: { label: dict.productionReceipts.statuses.CANCELLED, variant: 'destructive' },
+  }
+
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'DRAFT', label: dict.productionReceipts.statuses.DRAFT },
+    { value: 'CONFIRMED', label: dict.productionReceipts.statuses.CONFIRMED },
+    { value: 'RECEIVED', label: dict.productionReceipts.statuses.RECEIVED },
+  ]
+
   const [receipts, setReceipts] = useState<Receipt[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -139,7 +140,7 @@ export default function ProductionReceiptsPage() {
       fetch('/api/users?pageSize=100').then(r => r.json()),
       fetch('/api/products?pageSize=500').then(r => r.json()),
       fetch('/api/suppliers?pageSize=200').then(r => r.json()),
-      fetch('/api/production-orders?pageSize=200').then(r => r.json()),
+      fetch('/api/production').then(r => r.json()),
     ]).then(([wRes, uRes, pRes, sRes, poRes]) => {
       setWarehouses((wRes.data ?? wRes) || [])
       setUsers((uRes.data ?? uRes) || [])

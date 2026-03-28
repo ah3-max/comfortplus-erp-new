@@ -43,7 +43,7 @@ export default function PickingPage() {
 
   const statusConfig: Record<Status, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
     PENDING:   { label: dict.picking.statuses.PENDING, variant: 'outline' },
-    PICKING:   { label: '理貨中', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    PICKING:   { label: dict.picking.statuses.PICKING, variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
     PICKED:    { label: dict.picking.statuses.COMPLETED, variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
     CANCELLED: { label: dict.picking.statuses.CANCELLED, variant: 'destructive' },
   }
@@ -51,7 +51,7 @@ export default function PickingPage() {
   const statusFilters = [
     { value: '', label: dict.common.all },
     { value: 'PENDING', label: dict.picking.statuses.PENDING },
-    { value: 'PICKING', label: '理貨中' },
+    { value: 'PICKING', label: dict.picking.statuses.PICKING },
     { value: 'PICKED', label: dict.picking.statuses.COMPLETED },
   ]
   const [data, setData] = useState<PickingOrder[]>([])

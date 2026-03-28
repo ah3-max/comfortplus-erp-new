@@ -96,6 +96,11 @@ export default function PurchaseRequestsPage() {
   const [warehouses, setWarehouses] = useState<{ id: string; name: string; code: string }[]>([])
   const [users, setUsers] = useState<{ id: string; name: string }[]>([])
   const [products, setProducts] = useState<{ id: string; name: string; sku: string; unit: string | null }[]>([])
+  const [convertTarget, setConvertTarget] = useState<PurchaseRequest | null>(null)
+  const [convertOpen, setConvertOpen] = useState(false)
+  const [convertSupplierId, setConvertSupplierId] = useState('')
+  const [convertSuppliers, setConvertSuppliers] = useState<{ id: string; name: string; code: string }[]>([])
+  const [converting, setConverting] = useState(false)
 
   const fetchRequests = useCallback(async () => {
     setLoading(true)
@@ -514,6 +519,41 @@ export default function PurchaseRequestsPage() {
                 {editTarget ? dict.common.save : dict.common.create}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to Purchase Order Dialog */}
+      <Dialog open={convertOpen} onOpenChange={o => !o && setConvertOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>轉採購單</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              將請購單 <span className="font-mono font-medium text-slate-700">{convertTarget?.requestNumber}</span> 轉為採購單，
+              包含 {convertTarget?.items.length ?? 0} 項品項。
+            </p>
+            <div className="space-y-1.5">
+              <Label>供應商 *</Label>
+              <select
+                className="w-full rounded-md border px-3 py-2 text-sm"
+                value={convertSupplierId}
+                onChange={e => setConvertSupplierId(e.target.value)}
+              >
+                <option value="">選擇供應商</option>
+                {convertSuppliers.map(s => (
+                  <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConvertOpen(false)} disabled={converting}>{dict.common.cancel}</Button>
+            <Button onClick={handleConvertToPurchase} disabled={converting}>
+              {converting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <ShoppingCart className="mr-2 h-4 w-4" />確認轉採購
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -1803,6 +1803,7 @@ const zhTW = {
     noResults: '找不到符合的派貨單',
     noDispatch: '尚無派貨單',
     statuses: {
+      PENDING: '待派貨',
       DRAFT: '草稿',
       DISPATCHED: '已派出',
       DELIVERED: '已送達',
@@ -1826,6 +1827,7 @@ const zhTW = {
       DRAFT: '草稿',
       SUBMITTED: '待審核',
       APPROVED: '已核准',
+      ORDERED: '已下單',
       CONVERTED: '已轉採購單',
       REJECTED: '已退回',
       CANCELLED: '已取消',
@@ -1846,6 +1848,8 @@ const zhTW = {
     statuses: {
       DRAFT: '草稿',
       SENT: '已發送',
+      RESPONDED: '已回覆',
+      COMPLETED: '已完成',
       RECEIVED: '已收報價',
       COMPARED: '已比價',
       ORDERED: '已下單',
@@ -1867,8 +1871,10 @@ const zhTW = {
     noRequisitions: '尚無領料單',
     statuses: {
       DRAFT: '草稿',
+      CONFIRMED: '已確認',
       APPROVED: '已核准',
       ISSUED: '已出庫',
+      COMPLETED: '已完成',
       CANCELLED: '已取消',
     },
   },
@@ -1889,6 +1895,7 @@ const zhTW = {
     statuses: {
       DRAFT: '草稿',
       CONFIRMED: '已確認',
+      RECEIVED: '已入庫',
       STOCKED: '已入庫',
       CANCELLED: '已取消',
     },

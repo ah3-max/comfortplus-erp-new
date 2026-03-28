@@ -36,7 +36,7 @@ export default function DispatchPage() {
   const { dict } = useI18n()
 
   const statusConfig: Record<Status, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
-    PENDING:    { label: '待派貨', variant: 'outline' },
+    PENDING:    { label: dict.dispatch.statuses.PENDING, variant: 'outline' },
     DISPATCHED: { label: dict.dispatch.statuses.DISPATCHED, variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
     DELIVERED:  { label: dict.dispatch.statuses.DELIVERED, variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
     CANCELLED:  { label: dict.dispatch.statuses.CANCELLED, variant: 'destructive' },
@@ -44,7 +44,7 @@ export default function DispatchPage() {
 
   const statusFilters = [
     { value: '', label: dict.common.all },
-    { value: 'PENDING', label: '待派貨' },
+    { value: 'PENDING', label: dict.dispatch.statuses.PENDING },
     { value: 'DISPATCHED', label: dict.dispatch.statuses.DISPATCHED },
     { value: 'DELIVERED', label: dict.dispatch.statuses.DELIVERED },
   ]

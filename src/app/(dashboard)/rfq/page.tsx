@@ -71,8 +71,8 @@ export default function RFQPage() {
   }> = {
     DRAFT:     { label: dict.rfq.statuses.DRAFT, variant: 'outline' },
     SENT:      { label: dict.rfq.statuses.SENT, variant: 'secondary' },
-    RESPONDED: { label: '已回覆', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-    COMPLETED: { label: '已完成', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    RESPONDED: { label: dict.rfq.statuses.RESPONDED, variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    COMPLETED: { label: dict.rfq.statuses.COMPLETED, variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
     CANCELLED: { label: dict.rfq.statuses.CANCELLED, variant: 'destructive' },
   }
 
@@ -80,8 +80,8 @@ export default function RFQPage() {
     { value: '', label: dict.common.all },
     { value: 'DRAFT', label: dict.rfq.statuses.DRAFT },
     { value: 'SENT', label: dict.rfq.statuses.SENT },
-    { value: 'RESPONDED', label: '已回覆' },
-    { value: 'COMPLETED', label: '已完成' },
+    { value: 'RESPONDED', label: dict.rfq.statuses.RESPONDED },
+    { value: 'COMPLETED', label: dict.rfq.statuses.COMPLETED },
   ]
 
   const [rfqs, setRfqs] = useState<RFQ[]>([])

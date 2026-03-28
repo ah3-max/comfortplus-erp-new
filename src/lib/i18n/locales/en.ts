@@ -1772,6 +1772,7 @@ const en = {
     noResults: 'No matching dispatches found',
     noDispatch: 'No dispatch orders yet',
     statuses: {
+      PENDING: 'Pending',
       DRAFT: 'Draft',
       DISPATCHED: 'Dispatched',
       DELIVERED: 'Delivered',
@@ -1795,6 +1796,7 @@ const en = {
       DRAFT: 'Draft',
       SUBMITTED: 'Pending Approval',
       APPROVED: 'Approved',
+      ORDERED: 'Ordered',
       CONVERTED: 'Converted to PO',
       REJECTED: 'Rejected',
       CANCELLED: 'Cancelled',

@@ -48,19 +48,28 @@ export default function PurchasesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<PurchaseOrder | null>(null)
-
 
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (filterStatus) params.set('status', filterStatus)
-    const res = await fetch(`/api/purchases?${params}`)
-    setOrders(await res.json())
+    params.set('page', String(page))
+    params.set('pageSize', '50')
+    try {
+      const res = await fetch(`/api/purchases?${params}`)
+      const result = await res.json()
+      setOrders(Array.isArray(result) ? result : result.data ?? [])
+      setPagination(result.pagination ?? null)
+    } catch {
+      setOrders([])
+    }
     setLoading(false)
-  }, [search, filterStatus])
+  }, [search, filterStatus, page])
 
   useEffect(() => {
     const t = setTimeout(fetchOrders, 300)
@@ -109,7 +118,7 @@ export default function PurchasesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.purchases.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {orders.length} 筆
+            共 {pagination ? pagination.total : orders.length} 筆
             {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} 筆待到貨</span>}
           </p>
         </div>
@@ -128,11 +137,11 @@ export default function PurchasesPage() {
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder={dict.purchasesExt.searchPlaceholder}
-            value={search} onChange={(e) => setSearch(e.target.value)} />
+            value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {statusFilters.map(f => (
-            <button key={f.value} onClick={() => setFilterStatus(f.value)}
+            <button key={f.value} onClick={() => { setFilterStatus(f.value); setPage(1) }}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                 filterStatus === f.value ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
               }`}>
@@ -259,6 +268,25 @@ export default function PurchasesPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4">
+          <p className="text-sm text-muted-foreground">
+            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={pagination.page <= 1}
+              onClick={() => setPage(p => p - 1)}>
+              {dict.common.prevPage}
+            </Button>
+            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
+              onClick={() => setPage(p => p + 1)}>
+              {dict.common.nextPage}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <PurchaseForm open={formOpen} onClose={() => setFormOpen(false)}
         onSuccess={fetchOrders} order={editTarget as Parameters<typeof PurchaseForm>[0]['order']} />

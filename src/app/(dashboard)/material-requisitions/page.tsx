@@ -26,26 +26,6 @@ import { useI18n } from '@/lib/i18n/context'
 
 type RequisitionStatus = 'DRAFT' | 'CONFIRMED' | 'ISSUED' | 'COMPLETED' | 'CANCELLED'
 
-const statusConfig: Record<RequisitionStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  DRAFT:     { label: '草稿', variant: 'outline' },
-  CONFIRMED: { label: '已確認', variant: 'secondary' },
-  ISSUED:    { label: '已發料', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  COMPLETED: { label: '已完成', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED: { label: '已取消', variant: 'destructive' },
-}
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'DRAFT', label: '草稿' },
-  { value: 'CONFIRMED', label: '已確認' },
-  { value: 'ISSUED', label: '已發料' },
-  { value: 'COMPLETED', label: '已完成' },
-]
-
 interface RequisitionItem {
   id: string; productId: string; productName: string; specification: string | null
   quantity: string; bomVersion: string | null; unit: string | null; memo: string | null
@@ -91,6 +71,26 @@ export default function MaterialRequisitionsPage() {
   const { dict } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  const statusConfig: Record<RequisitionStatus, {
+    label: string
+    variant: 'default' | 'secondary' | 'outline' | 'destructive'
+    className?: string
+  }> = {
+    DRAFT:     { label: dict.materialRequisitions.statuses.DRAFT, variant: 'outline' },
+    CONFIRMED: { label: dict.materialRequisitions.statuses.CONFIRMED, variant: 'secondary' },
+    ISSUED:    { label: dict.materialRequisitions.statuses.ISSUED, variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    COMPLETED: { label: dict.materialRequisitions.statuses.COMPLETED, variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    CANCELLED: { label: dict.materialRequisitions.statuses.CANCELLED, variant: 'destructive' },
+  }
+
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'DRAFT', label: dict.materialRequisitions.statuses.DRAFT },
+    { value: 'CONFIRMED', label: dict.materialRequisitions.statuses.CONFIRMED },
+    { value: 'ISSUED', label: dict.materialRequisitions.statuses.ISSUED },
+    { value: 'COMPLETED', label: dict.materialRequisitions.statuses.COMPLETED },
+  ]
   const [requisitions, setRequisitions] = useState<Requisition[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -138,7 +138,7 @@ export default function MaterialRequisitionsPage() {
       fetch('/api/warehouses?pageSize=100').then(r => r.json()),
       fetch('/api/users?pageSize=100').then(r => r.json()),
       fetch('/api/products?pageSize=500').then(r => r.json()),
-      fetch('/api/production-orders?pageSize=200').then(r => r.json()),
+      fetch('/api/production').then(r => r.json()),
     ]).then(([wRes, uRes, pRes, poRes]) => {
       setWarehouses((wRes.data ?? wRes) || [])
       setUsers((uRes.data ?? uRes) || [])

@@ -16,7 +16,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import {
   Plus, Loader2, Factory, Package, Ship, Search, Pencil, Calendar,
-  ArrowRight, XCircle,
+  ArrowRight, XCircle, ClipboardList, PackageCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -162,6 +162,10 @@ export default function ProductionPage() {
   const [purchases, setPurchases]   = useState<PurchaseOption[]>([])
   const [suppliers, setSuppliers]   = useState<SupplierOption[]>([])
 
+  // Create requisition/receipt
+  const [creatingRequisition, setCreatingRequisition] = useState<string | null>(null)
+  const [creatingReceipt, setCreatingReceipt] = useState<string | null>(null)
+
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating]     = useState(false)
@@ -248,6 +252,107 @@ export default function ProductionPage() {
     setAdvancing(null)
     if (res.ok) { toast.success(dict.production.statuses.CANCELLED); fetchOrders() }
     else { const d = await res.json().catch(() => ({})); toast.error(d.error ?? dict.common.error) }
+  }
+
+  // ── Create Requisition / Receipt handlers ──────────────────────────────
+  async function handleCreateRequisition(o: ProductionOrder) {
+    setCreatingRequisition(o.id)
+    try {
+      // Need warehouses for from/to - use first two available
+      const wRes = await fetch('/api/warehouses?pageSize=10')
+      const wData = await wRes.json()
+      const warehouses = wData.data ?? wData ?? []
+      if (warehouses.length < 1) { toast.error('請先建立倉庫'); return }
+
+      // Get products from purchase order items
+      const poRes = await fetch(`/api/purchases/${o.purchaseOrder.id}`)
+      if (!poRes.ok) { toast.error('無法取得採購單資料'); return }
+      const poData = await poRes.json()
+      const items = (poData.items ?? []).map((item: { productId: string; product?: { name: string }; quantity: number }) => ({
+        productId: item.productId,
+        productName: item.product?.name ?? '',
+        quantity: Number(item.quantity),
+        unit: '',
+        bomVersion: '',
+        specification: '',
+        memo: '',
+      }))
+
+      if (items.length === 0) { toast.error('採購單無品項，無法建立領料單'); return }
+
+      const res = await fetch('/api/material-requisitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productionOrderId: o.id,
+          fromWarehouseId: warehouses[0].id,
+          toWarehouseId: warehouses.length > 1 ? warehouses[1].id : warehouses[0].id,
+          date: new Date().toISOString().slice(0, 10),
+          notes: `由生產單 ${o.productionNo} 自動建立`,
+          items,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error ?? '建立失敗')
+      }
+      const data = await res.json()
+      toast.success(`已建立領料單 ${data.requisitionNumber ?? ''}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '建立領料單失敗')
+    } finally {
+      setCreatingRequisition(null)
+    }
+  }
+
+  async function handleCreateReceipt(o: ProductionOrder) {
+    setCreatingReceipt(o.id)
+    try {
+      // Need a receiving warehouse
+      const wRes = await fetch('/api/warehouses?pageSize=10')
+      const wData = await wRes.json()
+      const warehouses = wData.data ?? wData ?? []
+      if (warehouses.length < 1) { toast.error('請先建立倉庫'); return }
+
+      // Get products from purchase order items
+      const poRes = await fetch(`/api/purchases/${o.purchaseOrder.id}`)
+      if (!poRes.ok) { toast.error('無法取得採購單資料'); return }
+      const poData = await poRes.json()
+      const items = (poData.items ?? []).map((item: { productId: string; product?: { name: string }; quantity: number }) => ({
+        productId: item.productId,
+        productName: item.product?.name ?? '',
+        quantity: Number(item.quantity),
+        unit: '',
+        bomVersion: '',
+        specification: '',
+        memo: '',
+      }))
+
+      if (items.length === 0) { toast.error('採購單無品項，無法建立入庫單'); return }
+
+      const res = await fetch('/api/production-receipts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          factoryId: o.factory.id,
+          receivingWarehouseId: warehouses[0].id,
+          productionOrderId: o.id,
+          date: new Date().toISOString().slice(0, 10),
+          notes: `由生產單 ${o.productionNo} 自動建立`,
+          items,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error ?? '建立失敗')
+      }
+      const data = await res.json()
+      toast.success(`已建立入庫單 ${data.receiptNumber ?? ''}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '建立入庫單失敗')
+    } finally {
+      setCreatingReceipt(null)
+    }
   }
 
   // ── Create handler ────────────────────────────────────────────────────────
@@ -557,7 +662,7 @@ export default function ProductionPage() {
 
                   {/* ── Quick action buttons ── */}
                   {!isTerminal && (
-                    <div className="mt-3 pt-3 border-t flex items-center gap-2">
+                    <div className="mt-3 pt-3 border-t flex flex-wrap items-center gap-2">
                       {nextStatus && nextLabel && (
                         <Button
                           size="sm"
@@ -572,6 +677,30 @@ export default function ProductionPage() {
                           {nextLabel}
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        disabled={creatingRequisition === o.id}
+                        onClick={() => handleCreateRequisition(o)}
+                      >
+                        {creatingRequisition === o.id
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <ClipboardList className="h-3 w-3" />}
+                        建領料單
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        disabled={creatingReceipt === o.id}
+                        onClick={() => handleCreateReceipt(o)}
+                      >
+                        {creatingReceipt === o.id
+                          ? <Loader2 className="h-3 w-3 animate-spin" />
+                          : <PackageCheck className="h-3 w-3" />}
+                        建入庫單
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"

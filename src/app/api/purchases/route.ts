@@ -11,25 +11,49 @@ export async function GET(req: NextRequest) {
   const search    = searchParams.get('search')    ?? ''
   const status    = searchParams.get('status')    ?? ''
   const orderType = searchParams.get('orderType') ?? ''
+  const pageParam = searchParams.get('page')
+  const page      = pageParam ? Math.max(1, Number(pageParam)) : null
+  const pageSize  = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
 
-  const orders = await prisma.purchaseOrder.findMany({
-    where: {
-      ...(search && {
-        OR: [
-          { poNo:     { contains: search, mode: 'insensitive' } },
-          { supplier: { name: { contains: search, mode: 'insensitive' } } },
-          { projectNo: { contains: search, mode: 'insensitive' } },
-        ],
+  const where = {
+    ...(search && {
+      OR: [
+        { poNo:     { contains: search, mode: 'insensitive' as const } },
+        { supplier: { name: { contains: search, mode: 'insensitive' as const } } },
+        { projectNo: { contains: search, mode: 'insensitive' as const } },
+      ],
+    }),
+    ...(status    && { status:    status    as never }),
+    ...(orderType && { orderType: orderType as never }),
+  }
+
+  const include = {
+    supplier:  { select: { id: true, name: true, code: true } },
+    createdBy: { select: { id: true, name: true } },
+    items: { include: { product: { select: { sku: true, name: true, unit: true } } } },
+    _count: { select: { receipts: true } },
+  }
+
+  // When page param is provided, return paginated format
+  if (page) {
+    const [orders, total] = await Promise.all([
+      prisma.purchaseOrder.findMany({
+        where, include,
+        orderBy: { createdAt: 'desc' },
+        take: pageSize,
+        skip: (page - 1) * pageSize,
       }),
-      ...(status    && { status:    status    as never }),
-      ...(orderType && { orderType: orderType as never }),
-    },
-    include: {
-      supplier:  { select: { id: true, name: true, code: true } },
-      createdBy: { select: { id: true, name: true } },
-      items: { include: { product: { select: { sku: true, name: true, unit: true } } } },
-      _count: { select: { receipts: true } },
-    },
+      prisma.purchaseOrder.count({ where }),
+    ])
+    return NextResponse.json({
+      data: orders,
+      pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+    })
+  }
+
+  // Without page param, return flat array (backward compatible)
+  const orders = await prisma.purchaseOrder.findMany({
+    where, include,
     orderBy: { createdAt: 'desc' },
   })
 
