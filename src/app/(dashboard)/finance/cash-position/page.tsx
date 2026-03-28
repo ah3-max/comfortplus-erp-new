@@ -8,6 +8,7 @@ import {
 import { Loader2, ChevronLeft, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface AccountRow {
   account: string; incoming: number; outgoing: number; balance: number; lastTx: string
@@ -22,6 +23,7 @@ function fmt(n: number) {
 }
 
 export default function CashPositionPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const [asOf, setAsOf] = useState(today)
   const [data, setData] = useState<PositionData | null>(null)
@@ -33,16 +35,16 @@ export default function CashPositionPage() {
       const res = await fetch(`/api/finance/cash-position?asOf=${asOf}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
-  }, [asOf])
+  }, [asOf, dict])
 
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">資金情況表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.cashPosition}</h1>
           <p className="text-sm text-muted-foreground">各帳戶當前餘額一覽</p>
         </div>
       </div>
@@ -51,7 +53,7 @@ export default function CashPositionPage() {
           <label className="text-xs font-medium text-muted-foreground">截止日期</label>
           <input type="date" value={asOf} onChange={e => setAsOf(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
-        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}</Button>
       </div>
       {data && (
         <>
@@ -98,7 +100,7 @@ export default function CashPositionPage() {
           </div>
         </>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請點擊查詢載入資料</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

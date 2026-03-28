@@ -8,6 +8,7 @@ import {
 import { Loader2, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface InOutRow { key: string; incoming: number; outgoing: number; net: number }
 interface InOutData {
@@ -22,6 +23,7 @@ function fmt(n: number) {
 }
 
 export default function CashInOutDetailPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -36,26 +38,26 @@ export default function CashInOutDetailPage() {
       const res = await fetch(`/api/finance/cash-inout-detail?startDate=${startDate}&endDate=${endDate}&groupBy=${groupBy}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
-  }, [startDate, endDate, groupBy])
+  }, [startDate, endDate, groupBy, dict])
 
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">資金收支明細</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.cashInoutDetail}</h1>
           <p className="text-sm text-muted-foreground">按付款方式、類型或月份分類的收支統計</p>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.startDate}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.endDate}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
@@ -66,7 +68,7 @@ export default function CashInOutDetailPage() {
             <option value="month">月份</option>
           </select>
         </div>
-        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}</Button>
       </div>
       {data && (
         <>
@@ -110,7 +112,7 @@ export default function CashInOutDetailPage() {
                       </TableRow>
                     ))}
                     <TableRow className="border-t-2 bg-slate-50 font-semibold text-sm">
-                      <TableCell>合計</TableCell>
+                      <TableCell>{dict.common.total}</TableCell>
                       <TableCell className="text-right font-mono text-green-700">${fmt(data.summary.totalIncoming)}</TableCell>
                       <TableCell className="text-right font-mono text-red-600">${fmt(data.summary.totalOutgoing)}</TableCell>
                       <TableCell className={`text-right font-mono ${data.summary.netFlow >= 0 ? '' : 'text-red-600'}`}>
@@ -124,7 +126,7 @@ export default function CashInOutDetailPage() {
           </div>
         </>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請點擊查詢載入資料</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

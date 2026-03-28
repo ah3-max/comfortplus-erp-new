@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -107,6 +108,7 @@ const ta  = `${sel} resize-none`
 // ═══════════════════════════════════════════════════════════════════════
 
 export default function IncidentsPage() {
+  const { dict } = useI18n()
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [total,     setTotal]     = useState(0)
   const [loading,   setLoading]   = useState(true)
@@ -163,11 +165,11 @@ export default function IncidentsPage() {
         <div className="p-4 border-b space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold">客訴與照護事件中心</h1>
+              <h1 className="text-lg font-bold">{dict.nav.incidents}</h1>
               <p className="text-xs text-muted-foreground">共 {total} 件</p>
             </div>
             <Button size="sm" onClick={() => setNewOpen(true)}>
-              <Plus className="mr-1 h-3.5 w-3.5" />新增
+              <Plus className="mr-1 h-3.5 w-3.5" />{dict.common.create}
             </Button>
           </div>
 
@@ -190,7 +192,7 @@ export default function IncidentsPage() {
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8 h-8 text-sm" placeholder="搜尋案件、客戶..."
+            <Input className="pl-8 h-8 text-sm" placeholder={dict.common.searchPlaceholder}
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
@@ -219,7 +221,7 @@ export default function IncidentsPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : filtered.length === 0 ? (
-            <p className="py-12 text-center text-muted-foreground text-sm">尚無事件紀錄</p>
+            <p className="py-12 text-center text-muted-foreground text-sm">{dict.common.noRecords}</p>
           ) : filtered.map(incident => {
             const sc  = STATUS_CONFIG[incident.status]   ?? STATUS_CONFIG.OPEN
             const sev = SEVERITY_CONFIG[incident.severity] ?? SEVERITY_CONFIG.MEDIUM
@@ -284,7 +286,7 @@ export default function IncidentsPage() {
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <div className="text-center space-y-2">
               <FileText className="h-12 w-12 mx-auto opacity-30" />
-              <p>選擇左側案件查看詳細資訊</p>
+              <p>{dict.common.noData}</p>
             </div>
           </div>
         )}

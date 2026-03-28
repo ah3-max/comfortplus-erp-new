@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -27,6 +28,7 @@ function fmt(n: number) {
 }
 
 export default function AccountMovementPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
 
@@ -65,7 +67,7 @@ export default function AccountMovementPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">科目增減紀錄</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.accountMovement}</h1>
           <p className="text-sm text-muted-foreground">各科目期初餘額、本期增減、期末餘額</p>
         </div>
       </div>
@@ -79,15 +81,15 @@ export default function AccountMovementPage() {
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.startDate}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.endDate}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
         </Button>
         {period && (
           <p className="text-xs text-muted-foreground self-end pb-2">
@@ -150,7 +152,7 @@ export default function AccountMovementPage() {
         </div>
       ) : (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請點擊查詢載入資料
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

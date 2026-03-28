@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
@@ -30,6 +31,7 @@ function fmt(n: number) {
 }
 
 export default function VatLedgerPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -131,22 +133,22 @@ export default function VatLedgerPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">進項/銷項帳簿</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.vatLedger}</h1>
           <p className="text-sm text-muted-foreground">銷貨發票（銷項）與進貨發票（進項）明細</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.startDate}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.endDate}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
         </Button>
       </div>
 

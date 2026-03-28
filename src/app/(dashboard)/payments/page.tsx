@@ -22,6 +22,7 @@ import {
   MoreHorizontal, Pencil, Trash2, Receipt, Banknote, MinusCircle, Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 /* ─── Types ─────────────────────────────────────────────── */
 type PaymentDirection = 'INCOMING' | 'OUTGOING'
@@ -52,18 +53,18 @@ interface SalesOrder { id: string; orderNo: string; customer: { id: string; name
 interface PurchaseOrder { id: string; orderNo: string; supplier: { id: string; name: string } }
 
 /* ─── Constants ──────────────────────────────────────────── */
-const DIRECTION_CONFIG: Record<PaymentDirection, { label: string; color: string }> = {
-  INCOMING: { label: '收款', color: 'bg-green-100 text-green-700' },
-  OUTGOING: { label: '付款', color: 'bg-red-100 text-red-700' },
+const DIRECTION_COLOR: Record<PaymentDirection, string> = {
+  INCOMING: 'bg-green-100 text-green-700',
+  OUTGOING: 'bg-red-100 text-red-700',
 }
 
-const TYPE_CONFIG: Record<PaymentType, { label: string; color: string }> = {
-  DEPOSIT:    { label: '訂金', color: 'bg-blue-100 text-blue-700' },
-  PROGRESS:   { label: '期款', color: 'bg-amber-100 text-amber-700' },
-  FINAL:      { label: '尾款', color: 'bg-teal-100 text-teal-700' },
-  FULL:       { label: '全額', color: 'bg-indigo-100 text-indigo-700' },
-  REFUND:     { label: '退款', color: 'bg-red-100 text-red-600' },
-  ADJUSTMENT: { label: '調整', color: 'bg-slate-100 text-slate-600' },
+const TYPE_COLOR: Record<PaymentType, string> = {
+  DEPOSIT:    'bg-blue-100 text-blue-700',
+  PROGRESS:   'bg-amber-100 text-amber-700',
+  FINAL:      'bg-teal-100 text-teal-700',
+  FULL:       'bg-indigo-100 text-indigo-700',
+  REFUND:     'bg-red-100 text-red-600',
+  ADJUSTMENT: 'bg-slate-100 text-slate-600',
 }
 
 const PAYMENT_METHODS = [
@@ -106,6 +107,7 @@ const emptyForm = {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function PaymentsPage() {
+  const { dict } = useI18n()
   const [payments, setPayments]       = useState<Payment[]>([])
   const [customers, setCustomers]     = useState<Customer[]>([])
   const [suppliers, setSuppliers]     = useState<Supplier[]>([])
@@ -203,13 +205,13 @@ export default function PaymentsPage() {
       toast.error('請填寫有效金額'); return
     }
     if (!createForm.paymentDate) {
-      toast.error('請選擇付款日期'); return
+      toast.error(`請選擇${dict.payments.paymentDate}`); return
     }
     if (createForm.direction === 'INCOMING' && !createForm.customerId) {
-      toast.error('收款必須選擇客戶'); return
+      toast.error(`收款必須選擇${dict.common.customer}`); return
     }
     if (createForm.direction === 'OUTGOING' && !createForm.supplierId) {
-      toast.error('付款必須選擇供應商'); return
+      toast.error(`付款必須選擇${dict.common.supplier}`); return
     }
     setSaving(true)
     const body = {
@@ -234,12 +236,12 @@ export default function PaymentsPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('收付款已新增')
+      toast.success(dict.common.createSuccess)
       setCreateOpen(false)
       fetchPayments()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '新增失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -273,12 +275,12 @@ export default function PaymentsPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('收付款已更新')
+      toast.success(dict.common.updateSuccess)
       setEditOpen(false)
       fetchPayments()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '更新失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -287,11 +289,11 @@ export default function PaymentsPage() {
     if (!confirm(`確定要刪除 ${p.paymentNo} 嗎？刪除後將重新計算關聯訂單已付金額。`)) return
     const res = await fetch(`/api/payments/${p.id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('收付款已刪除')
+      toast.success(dict.common.deleteSuccess)
       fetchPayments()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '刪除失敗')
+      toast.error(d.error ?? dict.common.deleteFailed)
     }
   }
 
@@ -325,12 +327,12 @@ export default function PaymentsPage() {
     })
     setWritingOff(false)
     if (res.ok) {
-      toast.success('核銷單已建立')
+      toast.success(dict.common.createSuccess)
       setWriteOffTarget(null)
       fetchPayments()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '核銷失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -486,8 +488,8 @@ export default function PaymentsPage() {
               </TableRow>
             ) : (
               filteredPayments.map(p => {
-                const dir = DIRECTION_CONFIG[p.direction]
-                const typ = TYPE_CONFIG[p.type] ?? { label: p.type, color: 'bg-slate-100 text-slate-600' }
+                const dir = { color: DIRECTION_COLOR[p.direction], label: (dict.payments.directions as Record<string, string>)[p.direction] ?? p.direction }
+                const typ = { label: (dict.payments.types as Record<string, string>)[p.type] ?? p.type, color: TYPE_COLOR[p.type] ?? 'bg-slate-100 text-slate-600' }
                 const counterparty = p.direction === 'INCOMING'
                   ? p.customer?.name
                   : p.supplier?.name

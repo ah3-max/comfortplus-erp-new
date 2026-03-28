@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -21,20 +22,6 @@ import { toast } from 'sonner'
 
 type Status = 'PENDING' | 'PICKING' | 'PICKED' | 'CANCELLED'
 
-const statusConfig: Record<Status, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
-  PENDING:   { label: '待理貨', variant: 'outline' },
-  PICKING:   { label: '理貨中', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  PICKED:    { label: '已完成', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED: { label: '已取消', variant: 'destructive' },
-}
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'PENDING', label: '待理貨' },
-  { value: 'PICKING', label: '理貨中' },
-  { value: 'PICKED', label: '已完成' },
-]
-
 interface PickingOrder {
   id: string; pickingNumber: string; date: string; status: Status; createdAt: string
   scheduledDate: string | null; shippingAddress: string | null
@@ -51,7 +38,22 @@ function formatDate(str: string) {
 }
 
 export default function PickingPage() {
+  const { dict } = useI18n()
   const router = useRouter()
+
+  const statusConfig: Record<Status, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
+    PENDING:   { label: dict.picking.statuses.PENDING, variant: 'outline' },
+    PICKING:   { label: '理貨中', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    PICKED:    { label: dict.picking.statuses.COMPLETED, variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    CANCELLED: { label: dict.picking.statuses.CANCELLED, variant: 'destructive' },
+  }
+
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'PENDING', label: dict.picking.statuses.PENDING },
+    { value: 'PICKING', label: '理貨中' },
+    { value: 'PICKED', label: dict.picking.statuses.COMPLETED },
+  ]
   const [data, setData] = useState<PickingOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -100,7 +102,7 @@ export default function PickingPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">理貨單管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.picking.title}</h1>
           <p className="text-sm text-muted-foreground">
             共 {pagination?.total ?? data.length} 筆
             {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} 筆待理貨</span>}
@@ -111,7 +113,7 @@ export default function PickingPage() {
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋單號或客戶..."
+          <Input className="pl-9" placeholder={dict.picking.searchPlaceholder}
             value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -128,14 +130,14 @@ export default function PickingPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-36">理貨單號</TableHead>
-              <TableHead>銷貨單</TableHead>
-              <TableHead>客戶</TableHead>
-              <TableHead>倉庫</TableHead>
-              <TableHead className="w-20">狀態</TableHead>
-              <TableHead className="w-16">品項</TableHead>
+              <TableHead className="w-36">{dict.picking.pickingNo}</TableHead>
+              <TableHead>{dict.salesInvoices.invoiceNo}</TableHead>
+              <TableHead>{dict.common.customer}</TableHead>
+              <TableHead>{dict.common.warehouse}</TableHead>
+              <TableHead className="w-20">{dict.common.status}</TableHead>
+              <TableHead className="w-16">{dict.common.pieces}</TableHead>
               <TableHead className="w-24">出貨日</TableHead>
-              <TableHead className="w-24">派貨單</TableHead>
+              <TableHead className="w-24">{dict.dispatch.dispatchNo}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -145,7 +147,7 @@ export default function PickingPage() {
             ) : data.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="py-16 text-center">
                 <ClipboardCheck className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground">{search || filterStatus ? '找不到符合的理貨單' : '尚無理貨單'}</p>
+                <p className="text-muted-foreground">{search || filterStatus ? dict.picking.noResults : dict.picking.noPicking}</p>
               </TableCell></TableRow>
             ) : data.map(d => {
               const sc = statusConfig[d.status] ?? { label: d.status, variant: 'outline' }
@@ -223,8 +225,8 @@ export default function PickingPage() {
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁</p>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)}>上一頁</Button>
-            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>下一頁</Button>
+            <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
+            <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>
           </div>
         </div>
       )}

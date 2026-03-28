@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -87,6 +88,7 @@ const CURRENT_YEAR = new Date().getFullYear()
 const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
 
 export default function FinancePage() {
+  const { dict } = useI18n()
   const [tab, setTab] = useState('income')
   const [year, setYear] = useState(CURRENT_YEAR)
   const [month, setMonth] = useState<number | ''>('')
@@ -255,7 +257,7 @@ export default function FinancePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">財務報表</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.nav.finance}</h1>
         <p className="text-sm text-muted-foreground">損益表 · 資產負債表 · 傳票管理 · 餘額試算表</p>
       </div>
 
@@ -280,7 +282,7 @@ export default function FinancePage() {
               <option value="">全年</option>
               {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
             </select>
-            <Button variant="outline" size="sm" onClick={fetchIncome}>重新整理</Button>
+            <Button variant="outline" size="sm" onClick={fetchIncome}>{dict.common.refresh}</Button>
           </div>
 
           {loadingIncome ? (
@@ -355,7 +357,7 @@ export default function FinancePage() {
         {/* ── 資產負債表 ── */}
         <TabsContent value="balance" className="space-y-4 mt-4">
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={fetchBalance}>重新整理</Button>
+            <Button variant="outline" size="sm" onClick={fetchBalance}>{dict.common.refresh}</Button>
             {balanceSheet && (
               <p className="text-sm text-muted-foreground">截至 {new Date(balanceSheet.asOf).toLocaleDateString('zh-TW')}</p>
             )}
@@ -431,7 +433,7 @@ export default function FinancePage() {
         <TabsContent value="journal" className="space-y-4 mt-4">
           <div className="flex items-center gap-3">
             <Button onClick={() => setShowJournalDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />新增傳票
+              <Plus className="mr-2 h-4 w-4" />{dict.common.create}傳票
             </Button>
           </div>
 
@@ -525,8 +527,8 @@ export default function FinancePage() {
             <div className="flex items-center justify-between pt-2">
               <p className="text-sm text-muted-foreground">共 {journalPagination.total} 筆</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={journalPage <= 1} onClick={() => setJournalPage(p => p - 1)}>上一頁</Button>
-                <Button variant="outline" size="sm" disabled={journalPage >= journalPagination.totalPages} onClick={() => setJournalPage(p => p + 1)}>下一頁</Button>
+                <Button variant="outline" size="sm" disabled={journalPage <= 1} onClick={() => setJournalPage(p => p - 1)}>{dict.common.prevPage}</Button>
+                <Button variant="outline" size="sm" disabled={journalPage >= journalPagination.totalPages} onClick={() => setJournalPage(p => p + 1)}>{dict.common.nextPage}</Button>
               </div>
             </div>
           )}
@@ -535,7 +537,7 @@ export default function FinancePage() {
         <TabsContent value="trial" className="space-y-4 mt-4">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2 text-sm">
-              <label className="text-muted-foreground">期間</label>
+              <label className="text-muted-foreground">{dict.reportsExt.period}</label>
               <input type="date" value={trialStart} onChange={e => setTrialStart(e.target.value)}
                 className="rounded-md border px-3 py-1.5 text-sm" />
               <span className="text-muted-foreground">至</span>
@@ -543,7 +545,7 @@ export default function FinancePage() {
                 className="rounded-md border px-3 py-1.5 text-sm" />
             </div>
             <Button variant="outline" size="sm" onClick={() => fetchTrialBalance(trialStart, trialEnd)}>
-              查詢
+              {dict.reportsExt.generate}
             </Button>
             {trialData && (
               <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${trialData.isBalanced ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>
@@ -627,7 +629,7 @@ export default function FinancePage() {
       {/* New Journal Entry Dialog */}
       <Dialog open={showJournalDialog} onOpenChange={setShowJournalDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增傳票</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.create}傳票</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
@@ -675,9 +677,9 @@ export default function FinancePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowJournalDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowJournalDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={submitJournal} disabled={submitting || !isBalanced}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}建立傳票
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dict.common.create}傳票
             </Button>
           </DialogFooter>
         </DialogContent>

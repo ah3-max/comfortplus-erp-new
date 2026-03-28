@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,6 +32,7 @@ function ToggleSwitch({ checked, onChange, disabled }: { checked: boolean; onCha
 }
 
 export default function DiscountRulesPage() {
+  const { dict } = useI18n()
   const [rules, setRules] = useState<DiscountRule[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('SALES')
@@ -61,8 +63,8 @@ export default function DiscountRulesPage() {
       }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('折扣規則已建立'); setDialog(false); load() }
-    else toast.error('建立失敗')
+    if (res.ok) { toast.success(dict.common.createSuccess); setDialog(false); load() }
+    else toast.error(dict.common.saveFailed)
   }
 
   async function toggleActive(rule: DiscountRule) {
@@ -78,11 +80,11 @@ export default function DiscountRulesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">折扣規則</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.discountRules.title}</h1>
           <p className="text-sm text-muted-foreground">管理銷售與採購折扣</p>
         </div>
         <Button onClick={() => { setForm({ ...form, ruleType: tab }); setDialog(true) }}>
-          <Plus className="h-4 w-4 mr-1" />新增規則
+          <Plus className="h-4 w-4 mr-1" />{dict.discountRules.newRule}
         </Button>
       </div>
 
@@ -96,7 +98,7 @@ export default function DiscountRulesPage() {
           {loading ? (
             <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : rules.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">暫無折扣規則</div>
+            <div className="text-center py-16 text-muted-foreground">{dict.discountRules.noRules}</div>
           ) : (
             <div className="rounded-md border overflow-x-auto">
               <table className="w-full text-sm">
@@ -129,35 +131,35 @@ export default function DiscountRulesPage() {
 
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增折扣規則</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.discountRules.newRule}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>名稱</Label>
+              <Label>{dict.discountRules.ruleName}</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="mt-1" placeholder="VIP 客戶 5% 折扣" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>折扣類型</Label>
+                <Label>{dict.discountRules.discountType}</Label>
                 <Select value={form.discountType} onValueChange={(v: string | null) => setForm(f => ({ ...f, discountType: v ?? 'PERCENTAGE' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PERCENTAGE">百分比</SelectItem>
-                    <SelectItem value="FIXED_AMOUNT">固定金額</SelectItem>
+                    <SelectItem value="PERCENTAGE">{dict.discountRules.types.PERCENTAGE}</SelectItem>
+                    <SelectItem value="FIXED_AMOUNT">{dict.discountRules.types.FIXED_AMOUNT}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>折扣值</Label>
+                <Label>{dict.discountRules.value}</Label>
                 <Input type="number" value={form.discountValue} onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))} className="mt-1" placeholder={form.discountType === 'PERCENTAGE' ? '5' : '100'} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>最低數量（選填）</Label>
+                <Label>{dict.discountRules.minQty}</Label>
                 <Input type="number" value={form.minQty} onChange={e => setForm(f => ({ ...f, minQty: e.target.value }))} className="mt-1" />
               </div>
               <div>
-                <Label>最低金額（選填）</Label>
+                <Label>{dict.discountRules.minAmount}</Label>
                 <Input type="number" value={form.minAmount} onChange={e => setForm(f => ({ ...f, minAmount: e.target.value }))} className="mt-1" />
               </div>
             </div>
@@ -167,9 +169,9 @@ export default function DiscountRulesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={saving || !form.name || !form.discountValue}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

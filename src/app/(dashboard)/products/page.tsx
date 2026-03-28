@@ -145,16 +145,16 @@ export default function ProductsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-28">SKU</TableHead>
-              <TableHead>商品名稱</TableHead>
-              <TableHead className="w-20">分類</TableHead>
-              <TableHead className="w-20">系列/尺寸</TableHead>
+              <TableHead className="w-28">{dict.products.sku}</TableHead>
+              <TableHead>{dict.products.name}</TableHead>
+              <TableHead className="w-20">{dict.products.category}</TableHead>
+              <TableHead className="w-20">{dict.products.series}/{dict.products.size}</TableHead>
               <TableHead className="w-24">包裝</TableHead>
-              {canSeeCost && <TableHead className="text-right w-24">成本價</TableHead>}
-              <TableHead className="text-right w-24">建議售價</TableHead>
+              {canSeeCost && <TableHead className="text-right w-24">{dict.products.costPrice}</TableHead>}
+              <TableHead className="text-right w-24">{dict.products.sellingPrice}</TableHead>
               {canSeeCost && <TableHead className="text-right w-24">毛利率</TableHead>}
               {canSeeManager && !canSeeCost && <TableHead className="text-right w-24">最低售價</TableHead>}
-              <TableHead className="text-center w-20">庫存</TableHead>
+              <TableHead className="text-center w-20">{dict.products.stock}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -168,7 +168,7 @@ export default function ProductsPage() {
             ) : products.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={canSeeCost ? 10 : 8} className="py-16 text-center text-muted-foreground">
-                  {search || filterCategory ? '找不到符合的商品' : '尚無商品資料，點擊右上角新增'}
+                  {search || filterCategory ? dict.productsExt.noResults : dict.productsExt.noProducts}
                 </TableCell>
               </TableRow>
             ) : products.map(p => {
@@ -186,7 +186,7 @@ export default function ProductsPage() {
                   <TableCell>
                     <div className="font-medium">{p.name}</div>
                     {p.specification && <div className="text-xs text-muted-foreground">{p.specification}</div>}
-                    {!p.isActive && <Badge variant="outline" className="text-xs border-red-200 text-red-500 mt-0.5">停售</Badge>}
+                    {!p.isActive && <Badge variant="outline" className="text-xs border-red-200 text-red-500 mt-0.5">{dict.productsExt.statusInactive}</Badge>}
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${colorClass}`}>
@@ -225,7 +225,7 @@ export default function ProductsPage() {
                         {isLow && <AlertTriangle className="h-3.5 w-3.5" />}
                         {inv.quantity}
                       </span>
-                    ) : <Badge variant="outline">未設定</Badge>}
+                    ) : <Badge variant="outline">{dict.common.unassigned}</Badge>}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -234,10 +234,10 @@ export default function ProductsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => { setEditTarget(p); setFormOpen(true) }}>
-                          <Pencil className="mr-2 h-4 w-4" />編輯
+                          <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDelete(p.id, p.name)} variant="destructive">
-                          <Trash2 className="mr-2 h-4 w-4" />停售
+                          <Trash2 className="mr-2 h-4 w-4" />{dict.productsExt.statusInactive}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

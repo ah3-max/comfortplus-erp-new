@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -597,6 +598,7 @@ function MeetingForm({ initial, users, onSaved, onCancel }: {
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function BusinessCalendarPage() {
+  const { dict } = useI18n()
   const [activeTab, setActiveTab] = useState<'calendar' | 'promo' | 'meetings' | 'todo'>('calendar')
 
   const [events,   setEvents]   = useState<BusinessEvent[]>([])
@@ -708,7 +710,7 @@ export default function BusinessCalendarPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <CalendarCheck className="h-6 w-6 text-blue-600" />業務行事曆 & 會議管理
+            <CalendarCheck className="h-6 w-6 text-blue-600" />{dict.businessCalendar.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {events.length} 個活動 · {activePromos.length} 個大檔期進行中 · {meetings.length} 筆會議記錄

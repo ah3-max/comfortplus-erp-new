@@ -303,7 +303,7 @@ export default function ShipmentsPage() {
   const signLabel: Record<SignStatus, string> = {
     PENDING:  dict.shipmentsExt.signStatuses.PENDING,
     SIGNED:   dict.shipmentsExt.signStatuses.SIGNED,
-    REJECTED: dict.shipmentsExt.signStatuses.FAILED,
+    REJECTED: '拒收',
   }
   const anomalyLabel: Record<AnomalyStatus, string> = {
     NORMAL: '正常', DELAY: '延誤', LOST: '遺失', DAMAGE: '損毀', PARTIAL: '部分短缺',
@@ -528,9 +528,9 @@ export default function ShipmentsPage() {
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={pagination.page <= 1}
-                  onClick={() => setPage(p => p - 1)}>上一頁</Button>
+                  onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
                 <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => setPage(p => p + 1)}>下一頁</Button>
+                  onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>
               </div>
             </div>
           )}
@@ -810,7 +810,7 @@ export default function ShipmentsPage() {
                     <TableCell className="text-sm text-muted-foreground">—</TableCell>
                     <TableCell className="text-sm text-muted-foreground">—</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="border-green-400 text-green-600 text-xs">啟用</Badge>
+                      <Badge variant="outline" className="border-green-400 text-green-600 text-xs">{dict.common.active}</Badge>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -829,7 +829,7 @@ export default function ShipmentsPage() {
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>物流商</Label>
+                <Label>{dict.shipments.carrier}</Label>
                 <Select value={updForm.logisticsProviderId}
                   onValueChange={(v) => setUpdForm(f => ({ ...f, logisticsProviderId: v ?? '' }))}>
                   <SelectTrigger><SelectValue placeholder="選擇物流商" /></SelectTrigger>
@@ -840,7 +840,7 @@ export default function ShipmentsPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>追蹤號</Label>
+                <Label>{dict.shipments.trackingNo}</Label>
                 <Input value={updForm.trackingNo} onChange={e => setUpdForm(f => ({ ...f, trackingNo: e.target.value }))}
                   placeholder="宅配追蹤號" />
               </div>
@@ -869,7 +869,7 @@ export default function ShipmentsPage() {
                   placeholder="30x20x15 cm" />
               </div>
               <div className="space-y-1.5">
-                <Label>預計到貨日</Label>
+                <Label>{dict.shipmentsExt.deliveryDate}</Label>
                 <Input type="date" value={updForm.expectedDeliveryDate}
                   onChange={e => setUpdForm(f => ({ ...f, expectedDeliveryDate: e.target.value }))} />
               </div>
@@ -877,7 +877,7 @@ export default function ShipmentsPage() {
             <Separator />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>簽收狀態</Label>
+                <Label>{dict.shipments.signStatus}</Label>
                 <Select value={updForm.signStatus} onValueChange={(v) => setUpdForm(f => ({ ...f, signStatus: v ?? 'PENDING' }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -909,9 +909,9 @@ export default function ShipmentsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUpdOpen(false)} disabled={updSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setUpdOpen(false)} disabled={updSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleUpdateSave} disabled={updSaving}>
-              {updSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存
+              {updSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -957,9 +957,9 @@ export default function ShipmentsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTripNewOpen(false)} disabled={tripSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setTripNewOpen(false)} disabled={tripSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleCreateTrip} disabled={tripSaving}>
-              {tripSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立
+              {tripSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -997,7 +997,7 @@ export default function ShipmentsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setTripDetailOpen(false)}>關閉</Button>
+            <Button variant="outline" onClick={() => setTripDetailOpen(false)}>{dict.common.close}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

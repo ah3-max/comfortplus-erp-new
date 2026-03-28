@@ -415,7 +415,7 @@ export default function HRPage() {
           <DialogHeader><DialogTitle>新增人事任命</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>員工</Label>
+              <Label>{dict.hr.employee}</Label>
               <Select value={apptForm.userId || 'none'} onValueChange={(v: string | null) => setApptForm(f => ({ ...f, userId: (v ?? '') === 'none' ? '' : (v ?? '') }))}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="選擇員工" /></SelectTrigger>
                 <SelectContent>
@@ -447,8 +447,8 @@ export default function HRPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApptDialog(false)}>取消</Button>
-            <Button onClick={createAppointment} disabled={!apptForm.userId || !apptForm.effectiveDate}>建立</Button>
+            <Button variant="outline" onClick={() => setApptDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={createAppointment} disabled={!apptForm.userId || !apptForm.effectiveDate}>{dict.common.create}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -459,7 +459,7 @@ export default function HRPage() {
           <DialogHeader><DialogTitle>新增出勤記錄</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>員工</Label>
+              <Label>{dict.hr.employee}</Label>
               <Select value={attForm.userId || 'none'} onValueChange={v => setAttForm(f => ({ ...f, userId: v === 'none' ? '' : (v ?? '') }))}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="選擇員工" /></SelectTrigger>
                 <SelectContent>{employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
@@ -481,8 +481,8 @@ export default function HRPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAttDialog(false)}>取消</Button>
-            <Button onClick={createAttendance} disabled={!attForm.userId}>建立</Button>
+            <Button variant="outline" onClick={() => setAttDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={createAttendance} disabled={!attForm.userId}>{dict.common.create}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -493,7 +493,7 @@ export default function HRPage() {
           <DialogHeader><DialogTitle>新增薪資記錄 ({payYear}/{String(payMonth).padStart(2,'0')})</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>員工</Label>
+              <Label>{dict.hr.employee}</Label>
               <Select value={payForm.userId || 'none'} onValueChange={v => setPayForm(f => ({ ...f, userId: v === 'none' ? '' : (v ?? '') }))}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="選擇員工" /></SelectTrigger>
                 <SelectContent>{employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
@@ -518,7 +518,7 @@ export default function HRPage() {
             </div>
             {payForm.baseSalary && (
               <div className="rounded bg-slate-50 px-3 py-2 text-sm">
-                實發薪資：<strong className="text-green-700">${fmt(
+                {dict.hr.salary}：<strong className="text-green-700">${fmt(
                   [payForm.baseSalary, payForm.allowances, payForm.overtimePay, payForm.bonus].reduce((s, v) => s + (Number(v)||0), 0) -
                   [payForm.deductions, payForm.laborInsurance, payForm.healthInsurance, payForm.tax].reduce((s, v) => s + (Number(v)||0), 0)
                 )}</strong>
@@ -526,9 +526,9 @@ export default function HRPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setPayDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={createPayroll} disabled={savingPay || !payForm.userId || !payForm.baseSalary}>
-              {savingPay && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立
+              {savingPay && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

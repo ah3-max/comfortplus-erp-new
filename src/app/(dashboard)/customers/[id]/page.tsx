@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -210,6 +211,7 @@ interface TimelineEvent {
 export default function CustomerDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
+  const { dict } = useI18n()
   const [customer, setCustomer]   = useState<Customer | null>(null)
   const [loading, setLoading]     = useState(true)
   const [editOpen, setEditOpen]   = useState(false)
@@ -420,7 +422,7 @@ export default function CustomerDetailPage() {
   }
 
   if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-  if (!customer) return <div className="text-center py-20 text-muted-foreground">找不到客戶資料</div>
+  if (!customer) return <div className="text-center py-20 text-muted-foreground">{dict.common.noData}</div>
 
   const typeName   = customerTypes.find(t => t.value === customer.type)?.label ?? customer.type
   const statusName = devStatusOptions.find(s => s.value === customer.devStatus)?.label ?? customer.devStatus
@@ -475,7 +477,7 @@ export default function CustomerDetailPage() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="mr-2 h-4 w-4" />編輯客戶</Button>
+        <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="mr-2 h-4 w-4" />{dict.common.edit}{dict.common.customer}</Button>
       </div>
 
       {/* Summary cards */}
@@ -508,8 +510,8 @@ export default function CustomerDetailPage() {
           <p className="text-xs text-muted-foreground">拜訪 {customer._count.visitRecords} / 電訪 {customer._count.callRecords}</p>
         </div>
         <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-muted-foreground">負責業務</p>
-          <p className="mt-1 text-sm font-bold text-slate-700">{customer.salesRep?.name ?? '未指派'}</p>
+          <p className="text-xs text-muted-foreground">{dict.customers.salesRep}</p>
+          <p className="mt-1 text-sm font-bold text-slate-700">{customer.salesRep?.name ?? dict.common.unassigned}</p>
           {customer.region && <p className="text-xs text-muted-foreground mt-0.5">{regionName}</p>}
         </div>
       </div>
@@ -616,10 +618,10 @@ export default function CustomerDetailPage() {
                     <Label htmlFor="hasSample" className="cursor-pointer">已提供樣品</Label>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowLogForm(false)} disabled={submittingLog}>取消</Button>
+                    <Button variant="outline" onClick={() => setShowLogForm(false)} disabled={submittingLog}>{dict.common.cancel}</Button>
                     <Button onClick={handleSubmitLog} disabled={submittingLog}>
                       {submittingLog && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      儲存記錄
+                      {dict.common.save}
                     </Button>
                   </div>
                 </div>
@@ -674,7 +676,7 @@ export default function CustomerDetailPage() {
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-muted-foreground">完整互動歷程（所有聯繫、拜訪、報價、訂單）</p>
-                <button onClick={loadTimeline} className="text-xs text-blue-600 hover:underline">重新整理</button>
+                <button onClick={loadTimeline} className="text-xs text-blue-600 hover:underline">{dict.common.refresh}</button>
               </div>
               {tlLoading ? (
                 <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -740,10 +742,10 @@ export default function CustomerDetailPage() {
                     { label: '客戶類型',   value: customerTypes.find(t => t.value === customer.type)?.label ?? customer.type },
                     { label: '客戶層級',   value: { HEADQUARTERS: '總部', BRANCH: '分院/分館', STANDALONE: '單一機構' }[customer.orgLevel ?? ''] },
                     { label: '床數',       value: customer.bedCount != null ? `${customer.bedCount} 床` : null },
-                    { label: '業務區域',   value: regionName },
+                    { label: dict.customers.region,   value: regionName },
                     { label: '分院/館別', value: customer.branchName },
                     { label: '社團法人',   value: customer.isCorporateFoundation ? (customer.corporateFoundationName ?? '是') : null },
-                    { label: '統一編號',   value: customer.taxId },
+                    { label: dict.customersExt.taxId,   value: customer.taxId },
                   ].filter(r => r.value).map(row => (
                     <div key={row.label} className="rounded-lg bg-slate-50 p-3">
                       <p className="text-xs text-muted-foreground">{row.label}</p>
@@ -758,12 +760,12 @@ export default function CustomerDetailPage() {
                 <div className="space-y-4">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">聯絡資訊</h3>
                   {[
-                    { icon: User,           label: '主要聯絡人', value: customer.contactPerson },
-                    { icon: Phone,          label: '電話',       value: customer.phone },
+                    { icon: User,           label: dict.customersExt.contactPerson, value: customer.contactPerson },
+                    { icon: Phone,          label: dict.common.phone,       value: customer.phone },
                     { icon: MessageCircle,  label: 'LINE',       value: customer.lineId },
-                    { icon: Mail,           label: 'Email',      value: customer.email },
-                    { icon: MapPin,         label: '地址',       value: customer.address },
-                    { icon: Building2,      label: '業務區域',   value: regionName },
+                    { icon: Mail,           label: dict.common.email,      value: customer.email },
+                    { icon: MapPin,         label: dict.common.address,       value: customer.address },
+                    { icon: Building2,      label: dict.customers.region,   value: regionName },
                   ].filter(r => r.value).map(row => (
                     <div key={row.label} className="flex items-start gap-3">
                       <row.icon className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
@@ -776,12 +778,12 @@ export default function CustomerDetailPage() {
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">業務與財務資訊</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: '開發狀態', value: statusName },
-                      { label: '客戶來源', value: sourceName },
-                      { label: '付款條件', value: customer.paymentTerms },
-                      { label: '統一編號', value: customer.taxId },
-                      { label: '信用額度', value: customer.creditLimit ? fmt(customer.creditLimit) : null },
-                      { label: '負責業務', value: customer.salesRep?.name },
+                      { label: dict.customers.devStatus, value: statusName },
+                      { label: dict.customersExt.source, value: sourceName },
+                      { label: dict.customersExt.paymentTerms, value: customer.paymentTerms },
+                      { label: dict.customersExt.taxId, value: customer.taxId },
+                      { label: dict.customersExt.creditLimit, value: customer.creditLimit ? fmt(customer.creditLimit) : null },
+                      { label: dict.customers.salesRep, value: customer.salesRep?.name },
                     ].filter(r => r.value).map(row => (
                       <div key={row.label} className="rounded-lg bg-slate-50 p-3">
                         <p className="text-xs text-muted-foreground">{row.label}</p>

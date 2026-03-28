@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -34,6 +35,7 @@ function fmt(n: number) {
 }
 
 export default function AccountListPage() {
+  const { dict } = useI18n()
   const [type, setType] = useState('all')
   const [includeBalance, setIncludeBalance] = useState(false)
   const [data, setData] = useState<AccountData | null>(null)
@@ -57,7 +59,7 @@ export default function AccountListPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">科目明細表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.accountList}</h1>
           <p className="text-sm text-muted-foreground">會計科目表及期間餘額</p>
         </div>
       </div>
@@ -83,7 +85,7 @@ export default function AccountListPage() {
           <label htmlFor="inclBal" className="text-sm cursor-pointer">顯示餘額</label>
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
         </Button>
       </div>
 
@@ -162,7 +164,7 @@ export default function AccountListPage() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請點擊查詢載入科目表
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

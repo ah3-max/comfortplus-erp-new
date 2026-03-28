@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, TrendingUp, Users, Package, DollarSign, Award, BarChart2, PieChart, TrendingDown, ShoppingBag, Clock, CheckCircle2 } from 'lucide-react'
 import {
@@ -94,6 +95,7 @@ const tabs = [
 ]
 
 export default function ReportsPage() {
+  const { dict } = useI18n()
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [months, setMonths] = useState(6)
@@ -125,7 +127,7 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">銷售報表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.reports.title}</h1>
           <p className="text-sm text-muted-foreground">業務概況與趨勢分析</p>
         </div>
         <div className="flex gap-1.5">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -149,6 +150,7 @@ function getAutoDateFields(nextStatus: ProductionStatus): Record<string, string>
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ProductionPage() {
+  const { dict } = useI18n()
   const [orders, setOrders]         = useState<ProductionOrder[]>([])
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
@@ -231,7 +233,7 @@ export default function ProductionPage() {
       fetchOrders()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '操作失敗')
+      toast.error(d.error ?? dict.common.error)
     }
   }
 
@@ -244,8 +246,8 @@ export default function ProductionPage() {
       body: JSON.stringify({ status: 'CANCELLED' }),
     })
     setAdvancing(null)
-    if (res.ok) { toast.success('已取消'); fetchOrders() }
-    else { const d = await res.json().catch(() => ({})); toast.error(d.error ?? '操作失敗') }
+    if (res.ok) { toast.success(dict.production.statuses.CANCELLED); fetchOrders() }
+    else { const d = await res.json().catch(() => ({})); toast.error(d.error ?? dict.common.error) }
   }
 
   // ── Create handler ────────────────────────────────────────────────────────
@@ -256,7 +258,7 @@ export default function ProductionPage() {
 
   async function handleCreate() {
     if (!createForm.purchaseOrderId || !createForm.factoryId || !createForm.orderQty) {
-      toast.error('請填寫採購單、工廠與訂購數量')
+      toast.error(dict.common.required)
       return
     }
     setCreating(true)
@@ -386,11 +388,11 @@ export default function ProductionPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">OEM 生產追蹤</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.production.title}</h1>
           <p className="text-sm text-muted-foreground">共 {filtered.length} 筆生產單</p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />新增生產單
+          <Plus className="mr-2 h-4 w-4" />{dict.production.newOrder}
         </Button>
       </div>
 
@@ -411,7 +413,7 @@ export default function ProductionPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="_none">全部狀態</SelectItem>
+            <SelectItem value="_none">{dict.common.all}{dict.common.status}</SelectItem>
             {Object.entries(statusLabel).map(([k, l]) => (
               <SelectItem key={k} value={k}>{l}</SelectItem>
             ))}
@@ -423,7 +425,7 @@ export default function ProductionPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="_none">全部工廠</SelectItem>
+            <SelectItem value="_none">{dict.common.all}{dict.production.factory}</SelectItem>
             {suppliers.map(s => (
               <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
             ))}
@@ -592,7 +594,7 @@ export default function ProductionPage() {
       <Dialog open={createOpen} onOpenChange={o => !o && setCreateOpen(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>新增生產單</DialogTitle>
+            <DialogTitle>{dict.production.newOrder}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
@@ -636,7 +638,7 @@ export default function ProductionPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>訂購數量 <span className="text-red-500">*</span></Label>
+              <Label>{dict.production.orderQty} <span className="text-red-500">*</span></Label>
               <Input
                 type="number"
                 min={1}
@@ -657,10 +659,10 @@ export default function ProductionPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>取消</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={creating}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={creating}>
               {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              新增
+              {dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -671,7 +673,7 @@ export default function ProductionPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              編輯生產單 {editTarget?.productionNo}
+              {dict.common.edit}{dict.production.productionNo} {editTarget?.productionNo}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
@@ -696,7 +698,7 @@ export default function ProductionPage() {
             {/* Quantity fields */}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>已生產數量</Label>
+                <Label>{dict.production.producedQty}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -792,10 +794,10 @@ export default function ProductionPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
             <Button onClick={handleUpdate} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              儲存
+              {dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

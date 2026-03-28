@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,6 +17,7 @@ interface RegionMap {
 }
 
 export default function RegionMappingPage() {
+  const { dict } = useI18n()
   const [mappings, setMappings] = useState<RegionMap[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -43,8 +45,8 @@ export default function RegionMappingPage() {
       body: JSON.stringify({ ...form, district: form.district || null, deliveryZone: form.deliveryZone || null }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已儲存'); setDialog(false); load() }
-    else toast.error('儲存失敗')
+    if (res.ok) { toast.success(dict.common.saveSuccess); setDialog(false); load() }
+    else toast.error(dict.common.saveFailed)
   }
 
   // Group by city
@@ -58,23 +60,23 @@ export default function RegionMappingPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">映射中心</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.regionMapping.title}</h1>
           <p className="text-sm text-muted-foreground">地區 → 業務區域 / 配送區域對應</p>
         </div>
         <Button onClick={() => { setForm({ city: '', district: '', region: '', deliveryZone: '' }); setDialog(true) }}>
-          <Plus className="h-4 w-4 mr-1" />新增對應
+          <Plus className="h-4 w-4 mr-1" />{dict.regionMapping.newMapping}
         </Button>
       </div>
 
       <div className="relative w-64">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input className="pl-9" placeholder="搜尋城市/區域..." value={search} onChange={e => setSearch(e.target.value)} />
+        <Input className="pl-9" placeholder={dict.regionMapping.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : Object.keys(grouped).length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">暫無對應資料</div>
+        <div className="text-center py-16 text-muted-foreground">{dict.regionMapping.noMappings}</div>
       ) : (
         <div className="space-y-4">
           {Object.entries(grouped).map(([city, items]) => (
@@ -117,18 +119,18 @@ export default function RegionMappingPage() {
 
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>地區對應</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.regionMapping.newMapping}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>城市</Label>
+              <Label>{dict.regionMapping.city}</Label>
               <Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className="mt-1" placeholder="台北市" />
             </div>
             <div>
-              <Label>區/鄉鎮（選填）</Label>
+              <Label>{dict.regionMapping.district}</Label>
               <Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} className="mt-1" placeholder="信義區" />
             </div>
             <div>
-              <Label>業務區域</Label>
+              <Label>{dict.regionMapping.region}</Label>
               <Input value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))} className="mt-1" placeholder="北北桃" />
             </div>
             <div>
@@ -137,9 +139,9 @@ export default function RegionMappingPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleSave} disabled={saving || !form.city || !form.region}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

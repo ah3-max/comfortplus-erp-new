@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -22,6 +23,7 @@ const TYPE_CONFIG: Record<string, { label: string; title: string; color: string;
 }
 
 export default function PaymentSummaryPage() {
+  const { dict } = useI18n()
   const [year, setYear] = useState(new Date().getFullYear())
   const [type, setType] = useState('OUTGOING')
   const [data, setData] = useState<PayData | null>(null)
@@ -35,7 +37,7 @@ export default function PaymentSummaryPage() {
       const res = await fetch(`/api/finance/payment-summary?year=${year}&type=${type}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [year, type])
 
@@ -50,7 +52,7 @@ export default function PaymentSummaryPage() {
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">類型</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.type}</label>
           <select value={type} onChange={e => setType(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
             <option value="OUTGOING">付款單</option>
             <option value="INCOMING">收款單</option>
@@ -63,7 +65,7 @@ export default function PaymentSummaryPage() {
             {Array.from({ length: 5 }, (_, i) => currentYear - i).map(y => <option key={y} value={y}>{y} 年</option>)}
           </select>
         </div>
-        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}</Button>
       </div>
       {data && (
         <>
@@ -122,7 +124,7 @@ export default function PaymentSummaryPage() {
           </div>
         </>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請選擇條件後點擊查詢</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

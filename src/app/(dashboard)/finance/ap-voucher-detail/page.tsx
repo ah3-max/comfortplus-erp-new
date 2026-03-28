@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -31,6 +32,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 function fmt(n: number) { return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
 
 export default function APVoucherDetailPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -47,7 +49,7 @@ export default function APVoucherDetailPage() {
       const res = await fetch(`/api/finance/ap-voucher-detail?${params}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate, status])
 

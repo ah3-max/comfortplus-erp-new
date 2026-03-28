@@ -150,7 +150,7 @@ export default function CashMovementPage() {
           </div>
         </>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請點擊查詢載入資料</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

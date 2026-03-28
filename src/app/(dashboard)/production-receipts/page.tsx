@@ -87,6 +87,7 @@ const emptyForm: FormData = {
 }
 
 export default function ProductionReceiptsPage() {
+  const { dict } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [receipts, setReceipts] = useState<Receipt[]>([])
@@ -252,7 +253,7 @@ export default function ProductionReceiptsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">生產入庫管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.productionReceipts.title}管理</h1>
           <p className="text-sm text-muted-foreground">
             共 {pagination ? pagination.total : receipts.length} 筆
             {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
@@ -260,7 +261,7 @@ export default function ProductionReceiptsPage() {
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />新增入庫單
+          <Plus className="mr-2 h-4 w-4" />{dict.productionReceipts.newReceipt}
         </Button>
       </div>
 
@@ -268,7 +269,7 @@ export default function ProductionReceiptsPage() {
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋單號或工廠名稱..."
+          <Input className="pl-9" placeholder={dict.productionReceipts.searchPlaceholder}
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -290,13 +291,13 @@ export default function ProductionReceiptsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">入庫單號</TableHead>
+              <TableHead className="w-40">{dict.productionReceipts.receiptNo}</TableHead>
               <TableHead>工廠</TableHead>
               <TableHead>收貨倉</TableHead>
-              <TableHead>生產工單</TableHead>
-              <TableHead className="w-24">狀態</TableHead>
+              <TableHead>{dict.productionReceipts.productionOrder}</TableHead>
+              <TableHead className="w-24">{dict.common.status}</TableHead>
               <TableHead className="w-20 text-center">品項數</TableHead>
-              <TableHead className="w-24">日期</TableHead>
+              <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -313,11 +314,11 @@ export default function ProductionReceiptsPage() {
                   <div className="flex flex-col items-center gap-3">
                     <FileText className="h-10 w-10 text-muted-foreground/50" />
                     <p className="text-muted-foreground">
-                      {search || filterStatus ? '找不到符合的入庫單' : '尚無入庫單資料'}
+                      {search || filterStatus ? dict.productionReceipts.noResults : dict.productionReceipts.noReceipts}
                     </p>
                     {!search && !filterStatus && (
                       <Button variant="outline" size="sm" onClick={openCreate}>
-                        <Plus className="mr-2 h-4 w-4" />新增第一筆入庫單
+                        <Plus className="mr-2 h-4 w-4" />{dict.productionReceipts.newReceipt}
                       </Button>
                     )}
                   </div>
@@ -391,7 +392,7 @@ export default function ProductionReceiptsPage() {
             <div className="flex flex-col items-center gap-3">
               <FileText className="h-10 w-10 text-muted-foreground/50" />
               <p className="text-muted-foreground">
-                {search || filterStatus ? '找不到符合的入庫單' : '尚無入庫單資料'}
+                {search || filterStatus ? dict.productionReceipts.noResults : dict.productionReceipts.noReceipts}
               </p>
             </div>
           </div>
@@ -433,11 +434,11 @@ export default function ProductionReceiptsPage() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
               onClick={() => setPage(p => p - 1)}>
-              上一頁
+              {dict.common.prevPage}
             </Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
               onClick={() => setPage(p => p + 1)}>
-              下一頁
+              {dict.common.nextPage}
             </Button>
           </div>
         </div>
@@ -447,7 +448,7 @@ export default function ProductionReceiptsPage() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editTarget ? '編輯入庫單' : '新增入庫單'}</DialogTitle>
+            <DialogTitle>{editTarget ? `${dict.common.edit}${dict.productionReceipts.title}` : dict.productionReceipts.newReceipt}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4">
@@ -470,7 +471,7 @@ export default function ProductionReceiptsPage() {
                 </select>
               </div>
               <div>
-                <Label>日期</Label>
+                <Label>{dict.common.date}</Label>
                 <Input type="date" value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
               </div>
@@ -478,7 +479,7 @@ export default function ProductionReceiptsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>生產工單</Label>
+                <Label>{dict.productionReceipts.productionOrder}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.productionOrderId} onChange={e => setForm(f => ({ ...f, productionOrderId: e.target.value }))}>
                   <option value="">選擇生產工單 (選填)</option>
@@ -486,7 +487,7 @@ export default function ProductionReceiptsPage() {
                 </select>
               </div>
               <div>
-                <Label>承辦人</Label>
+                <Label>{dict.materialRequisitions.requester}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
                   <option value="">選擇承辦人</option>
@@ -498,7 +499,7 @@ export default function ProductionReceiptsPage() {
             {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-base font-semibold">明細項目</Label>
+                <Label className="text-base font-semibold">{dict.materialRequisitions.items}</Label>
                 <Button variant="outline" size="sm"
                   onClick={() => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }))}>
                   <Plus className="mr-1 h-3 w-3" />新增品項
@@ -516,7 +517,7 @@ export default function ProductionReceiptsPage() {
                       </select>
                     </div>
                     <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs">數量</Label>
+                      <Label className="text-xs">{dict.common.quantity}</Label>
                       <Input type="number" min={1} value={item.quantity}
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
@@ -526,7 +527,7 @@ export default function ProductionReceiptsPage() {
                         onChange={e => updateItem(idx, 'bomVersion', e.target.value)} />
                     </div>
                     <div className="col-span-3 md:col-span-2">
-                      <Label className="text-xs">單位</Label>
+                      <Label className="text-xs">{dict.common.unit}</Label>
                       <Input value={item.unit} readOnly className="bg-slate-100" />
                     </div>
                     <div className="col-span-1 md:col-span-2 flex items-end">
@@ -543,16 +544,16 @@ export default function ProductionReceiptsPage() {
             </div>
 
             <div>
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setFormOpen(false)}>{dict.common.cancel}</Button>
               <Button onClick={handleSubmit} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editTarget ? '更新' : '建立'}
+                {editTarget ? dict.common.save : dict.common.create}
               </Button>
             </div>
           </div>

@@ -465,12 +465,12 @@ export default function EInvoicesPage() {
             {form.invoiceType === 'B2B' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label>買方統一編號</Label>
+                  <Label>{dict.eInvoices.buyerTaxId}</Label>
                   <Input value={form.buyerTaxId}
                     onChange={e => setForm(f => ({ ...f, buyerTaxId: e.target.value }))} placeholder="12345678" />
                 </div>
                 <div>
-                  <Label>買方名稱</Label>
+                  <Label>{dict.eInvoices.buyerName}</Label>
                   <Input value={form.buyerName}
                     onChange={e => setForm(f => ({ ...f, buyerName: e.target.value }))} />
                 </div>
@@ -487,22 +487,22 @@ export default function EInvoicesPage() {
                   }} />
               </div>
               <div>
-                <Label>營業稅</Label>
+                <Label>{dict.eInvoices.taxAmount}</Label>
                 <Input type="number" min={0} value={form.taxAmount}
                   onChange={e => setForm(f => ({ ...f, taxAmount: Number(e.target.value), totalAmount: f.subtotal + Number(e.target.value) }))} />
               </div>
               <div>
-                <Label>含稅金額</Label>
+                <Label>{dict.eInvoices.totalAmount}</Label>
                 <Input type="number" min={0} value={form.totalAmount}
                   onChange={e => setForm(f => ({ ...f, totalAmount: Number(e.target.value) }))} />
               </div>
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setFormOpen(false)}>{dict.common.cancel}</Button>
               <Button onClick={handleSubmit} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                建立
+                {dict.common.create}
               </Button>
             </div>
           </div>

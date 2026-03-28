@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -73,6 +74,7 @@ function daysSince(dateStr: string | null | undefined): number | null {
 function CreateLeadDialog({ open, onClose, onSuccess }: {
   open: boolean; onClose: () => void; onSuccess: () => void
 }) {
+  const { dict } = useI18n()
   const [salesReps, setSalesReps] = useState<SalesRep[]>([])
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -116,42 +118,42 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
       body: JSON.stringify(form),
     })
     setLoading(false)
-    if (res.ok) { toast.success('新增商機成功'); onSuccess(); onClose() }
-    else { const d = await res.json(); toast.error(d.error ?? '操作失敗') }
+    if (res.ok) { toast.success(dict.pipelineExt.added); onSuccess(); onClose() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.error) }
   }
 
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>新增商機</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{dict.pipelineExt.newOpportunity}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <Label>客戶名稱 <span className="text-red-500">*</span></Label>
+              <Label>{dict.customers.name} <span className="text-red-500">*</span></Label>
               <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="請輸入客戶名稱" required />
             </div>
             <div className="space-y-1.5">
-              <Label>客戶類型 <span className="text-red-500">*</span></Label>
+              <Label>{dict.customers.type} <span className="text-red-500">*</span></Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.type} onChange={e => set('type', e.target.value)} required>
-                <option value="">選擇類型</option>
+                <option value="">{dict.common.select}{dict.common.type}</option>
                 {customerTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>所屬區域</Label>
+              <Label>{dict.customers.region}</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.region} onChange={e => set('region', e.target.value)}>
-                <option value="">選擇區域</option>
+                <option value="">{dict.common.select}{dict.common.region}</option>
                 {regionOptions.map(r => <option key={r.value} value={r.value}>{r.value}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>聯絡人</Label>
+              <Label>{dict.customers.contact}</Label>
               <Input value={form.contactPerson} onChange={e => set('contactPerson', e.target.value)} placeholder="聯絡人姓名" />
             </div>
             <div className="space-y-1.5">
-              <Label>電話</Label>
+              <Label>{dict.customers.phone}</Label>
               <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="02-XXXX-XXXX" />
             </div>
           </div>
@@ -160,14 +162,14 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>開發狀態</Label>
+              <Label>{dict.customers.devStatus}</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.devStatus} onChange={e => set('devStatus', e.target.value)}>
                 {devStatusOptions.filter(s => s.value !== 'OTHER').map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>客戶等級</Label>
+              <Label>{dict.customers.grade}</Label>
               <div className="flex gap-1">
                 {['A', 'B', 'C', 'D'].map(g => (
                   <button key={g} type="button"
@@ -184,41 +186,41 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
               <Label>客戶來源</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.source} onChange={e => set('source', e.target.value)}>
-                <option value="">請選擇</option>
+                <option value="">{dict.common.select}</option>
                 {sourceOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>負責業務</Label>
+              <Label>{dict.customers.salesRep}</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.salesRepId} onChange={e => set('salesRepId', e.target.value)}>
-                <option value="">未指派</option>
+                <option value="">{dict.common.unassigned}</option>
                 {salesReps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>成交機率（%）</Label>
+              <Label>{dict.pipelineExt.probabilityLabel}</Label>
               <Input type="number" value={form.winRate} onChange={e => set('winRate', e.target.value)}
                 placeholder="0" min={0} max={100} />
             </div>
             <div className="space-y-1.5">
-              <Label>預估月採購量（元）</Label>
+              <Label>{dict.pipeline.monthlyVolume}（元）</Label>
               <Input type="number" value={form.estimatedMonthlyVolume}
                 onChange={e => set('estimatedMonthlyVolume', e.target.value)} placeholder="0" min={0} />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{dict.common.notes}</Label>
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="備註事項..." />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>取消</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>{dict.common.cancel}</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              新增商機
+              {dict.pipelineExt.newOpportunity}
             </Button>
           </DialogFooter>
         </form>
@@ -232,6 +234,7 @@ function PipelineCard({ customer, onStatusChange }: {
   customer: Customer
   onStatusChange: (id: string, newStatus: string) => void
 }) {
+  const { dict } = useI18n()
   const router = useRouter()
   const volume = customer.estimatedMonthlyVolume ? Number(customer.estimatedMonthlyVolume) : 0
   const winRate = customer.winRate ?? 0
@@ -300,14 +303,14 @@ function PipelineCard({ customer, onStatusChange }: {
       {/* Sales rep */}
       <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
         <User className="h-3 w-3" />
-        <span>{customer.salesRep?.name ?? '未指派'}</span>
+        <span>{customer.salesRep?.name ?? dict.common.unassigned}</span>
       </div>
 
       {/* Win rate progress bar */}
       {customer.winRate != null && (
         <div className="mb-2">
           <div className="flex items-center justify-between text-[10px] mb-0.5">
-            <span className="text-muted-foreground">成交機率</span>
+            <span className="text-muted-foreground">{dict.pipelineExt.probability}</span>
             <span className="font-medium">{winRate}%</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-slate-100">
@@ -326,7 +329,7 @@ function PipelineCard({ customer, onStatusChange }: {
       {volume > 0 && (
         <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
           <DollarSign className="h-3 w-3" />
-          <span>預估月量 ${formatCurrency(volume)}</span>
+          <span>{dict.pipeline.monthlyVolume} ${formatCurrency(volume)}</span>
         </div>
       )}
 
@@ -335,7 +338,7 @@ function PipelineCard({ customer, onStatusChange }: {
         <Clock className="h-3 w-3" />
         {daysSinceContact != null ? (
           <span className={daysSinceContact > 30 ? 'text-red-500 font-medium' : daysSinceContact > 14 ? 'text-amber-500' : ''}>
-            {daysSinceContact === 0 ? '今日聯繫' : `${daysSinceContact} 天前聯繫`}
+            {daysSinceContact === 0 ? dict.pipelineExt.today : `${daysSinceContact} 天前聯繫`}
           </span>
         ) : (
           <span className="text-red-400">尚無聯繫紀錄</span>
@@ -363,6 +366,7 @@ function PipelineCard({ customer, onStatusChange }: {
 
 /* ── Main Page ── */
 export default function PipelinePage() {
+  const { dict } = useI18n()
   const router = useRouter()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
@@ -379,10 +383,10 @@ export default function PipelinePage() {
       const data = await res.json()
       setCustomers(Array.isArray(data) ? data : [])
     } catch {
-      toast.error('載入客戶資料失敗')
+      toast.error(dict.pipelineExt.loadFailed)
     }
     setLoading(false)
-  }, [])
+  }, [dict])
 
   useEffect(() => {
     fetchCustomers()
@@ -464,10 +468,10 @@ export default function PipelinePage() {
     })
 
     if (res.ok) {
-      toast.success(`已更新為${devStatusOptions.find(s => s.value === newStatus)?.label ?? newStatus}`)
+      toast.success(dict.common.updateSuccess)
       setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, devStatus: newStatus } : c))
     } else {
-      toast.error('狀態更新失敗')
+      toast.error(dict.common.updateFailed)
     }
   }
 
@@ -476,17 +480,17 @@ export default function PipelinePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">銷售漏斗</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.pipeline.title}</h1>
           <p className="text-sm text-muted-foreground">
             客戶開發管線 — 追蹤從潛在客戶到成交的完整歷程
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push('/customers')}>
-            <ChevronRight className="mr-1 h-4 w-4" />客戶列表
+            <ChevronRight className="mr-1 h-4 w-4" />{dict.nav.customers}
           </Button>
           <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />新增商機
+            <Plus className="mr-2 h-4 w-4" />{dict.pipelineExt.newOpportunity}
           </Button>
         </div>
       </div>
@@ -499,7 +503,7 @@ export default function PipelinePage() {
               <TrendingUp className="h-4 w-4 text-blue-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">進行中商機</p>
+              <p className="text-xs text-muted-foreground">{dict.pipeline.totalLeads}</p>
               <p className="text-lg font-bold">{stats.totalLeads}</p>
             </div>
           </CardContent>
@@ -510,7 +514,7 @@ export default function PipelinePage() {
               <DollarSign className="h-4 w-4 text-green-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">已成交</p>
+              <p className="text-xs text-muted-foreground">{dict.customers.devStatuses.CLOSED}</p>
               <p className="text-lg font-bold">{stats.closedCount} <span className="text-xs font-normal text-muted-foreground">({stats.conversionRate}%)</span></p>
             </div>
           </CardContent>
@@ -521,7 +525,7 @@ export default function PipelinePage() {
               <TrendingUp className="h-4 w-4 text-amber-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">加權管線價值</p>
+              <p className="text-xs text-muted-foreground">{dict.pipeline.weightedValue}</p>
               <p className="text-lg font-bold">${formatCurrency(stats.weightedValue)}</p>
             </div>
           </CardContent>
@@ -532,7 +536,7 @@ export default function PipelinePage() {
               <DollarSign className="h-4 w-4 text-purple-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">總預估月量</p>
+              <p className="text-xs text-muted-foreground">{dict.pipeline.monthlyVolume}</p>
               <p className="text-lg font-bold">${formatCurrency(stats.totalVolume)}</p>
             </div>
           </CardContent>
@@ -543,17 +547,17 @@ export default function PipelinePage() {
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative w-56">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋客戶名稱..."
+          <Input className="pl-9" placeholder={dict.pipelineExt.customerPlaceholder}
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm"
           value={filterSalesRep} onChange={e => setFilterSalesRep(e.target.value)}>
-          <option value="">全部業務</option>
+          <option value="">{dict.common.all}{dict.common.salesRep}</option>
           {salesReps.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
         </select>
         <select className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm"
           value={filterGrade} onChange={e => setFilterGrade(e.target.value)}>
-          <option value="">全部等級</option>
+          <option value="">{dict.common.all}{dict.customers.grade}</option>
           {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g} 級</option>)}
         </select>
         {(search || filterSalesRep || filterGrade) && (
@@ -601,7 +605,7 @@ export default function PipelinePage() {
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
                   {stageCustomers.length === 0 ? (
                     <p className="text-xs text-muted-foreground text-center py-8">
-                      暫無客戶
+                      {dict.pipelineExt.noOpportunitiesInStage}
                     </p>
                   ) : (
                     stageCustomers.map(c => (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -57,6 +58,7 @@ function fmt(v: string | number): string {
 }
 
 export default function CustomReportPage() {
+  const { dict } = useI18n()
   const [preset, setPreset] = useState(PRESET_REPORTS[0].id)
   const [year, setYear] = useState(new Date().getFullYear())
   const [rows, setRows] = useState<ReportRow[] | null>(null)
@@ -73,7 +75,7 @@ export default function CustomReportPage() {
       if (!res.ok) throw new Error()
       const data = await res.json()
       setRows(selectedPreset.transform(data))
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [preset, year, selectedPreset])
 
@@ -108,7 +110,7 @@ export default function CustomReportPage() {
               {Array.from({ length: 5 }, (_, i) => currentYear - i).map(y => <option key={y} value={y}>{y} 年</option>)}
             </select>
           </div>
-          <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}產出報表</Button>
+          <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}</Button>
         </div>
       </div>
       {rows && (
@@ -141,7 +143,7 @@ export default function CustomReportPage() {
           </div>
         </>
       )}
-      {!rows && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請選擇報表類型後點擊產出</div>}
+      {!rows && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

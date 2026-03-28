@@ -144,6 +144,7 @@ function fmtMonthKey(year: number, month: number) {
 // ---------------------------------------------------------------------------
 
 export default function CalendarPage() {
+  const { dict } = useI18n()
   const today     = new Date()
   const todayStr  = `${today.getFullYear()}-${padTwo(today.getMonth() + 1)}-${padTwo(today.getDate())}`
 
@@ -356,7 +357,7 @@ export default function CalendarPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-6 w-6 text-blue-600" />
-          <h1 className="text-2xl font-bold text-slate-900">業務行事曆</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.calendar.title}</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -385,7 +386,7 @@ export default function CalendarPage() {
             className="ml-1 min-h-[36px] active:scale-[0.97] transition-transform"
           >
             <Plus className="h-4 w-4 mr-1" />
-            新增事件
+            {dict.businessCalendar.newEvent}
           </Button>
         </div>
       </div>
@@ -402,9 +403,9 @@ export default function CalendarPage() {
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="sm" onClick={goToday} className="min-h-[36px]">
-          今天
+          {dict.calendar.today}
         </Button>
-        {loading && <span className="text-sm text-slate-400">載入中…</span>}
+        {loading && <span className="text-sm text-slate-400">{dict.common.loading}</span>}
       </div>
 
       {/* ── Main Layout ──────────────────────────────────────────────────── */}
@@ -532,7 +533,7 @@ export default function CalendarPage() {
                 </div>
 
                 {selectedEvents.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">無事件</p>
+                  <p className="text-sm text-slate-400 text-center py-6">{dict.calendar.noEvents}</p>
                 ) : (
                   <div className="space-y-2">
                     {selectedEvents.map(e => (
@@ -620,7 +621,7 @@ export default function CalendarPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5 text-blue-600" />
-              {editingEvent ? '編輯事件' : '新增事件'}
+              {editingEvent ? dict.common.edit : dict.businessCalendar.newEvent}
             </DialogTitle>
           </DialogHeader>
 
@@ -763,14 +764,14 @@ export default function CalendarPage() {
               disabled={saving}
               className="min-h-[44px]"
             >
-              取消
+              {dict.common.cancel}
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving}
               className="min-h-[44px] active:scale-[0.97] transition-transform"
             >
-              {saving ? '儲存中…' : editingEvent ? '更新事件' : '建立事件'}
+              {saving ? dict.common.saving : editingEvent ? dict.common.updateSuccess : dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -782,7 +783,7 @@ export default function CalendarPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" />
-              確認刪除
+              {dict.common.deleteConfirm}
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-600 py-2">
@@ -795,7 +796,7 @@ export default function CalendarPage() {
               disabled={deleting}
               className="min-h-[44px]"
             >
-              取消
+              {dict.common.cancel}
             </Button>
             <Button
               variant="destructive"
@@ -803,7 +804,7 @@ export default function CalendarPage() {
               disabled={deleting}
               className="min-h-[44px] active:scale-[0.97] transition-transform"
             >
-              {deleting ? '刪除中…' : '確認刪除'}
+              {deleting ? dict.common.loading : dict.common.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

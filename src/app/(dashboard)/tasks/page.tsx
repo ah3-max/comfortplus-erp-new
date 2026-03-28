@@ -73,6 +73,7 @@ const emptyForm = {
 type QuickTab = 'today' | 'week' | 'overdue' | 'done' | 'all'
 
 export default function TasksPage() {
+  const { dict } = useI18n()
   const [tasks, setTasks]         = useState<Task[]>([])
   const [users, setUsers]         = useState<User[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -150,8 +151,8 @@ export default function TasksPage() {
     { key: 'today',   label: '今日到期',  icon: <CalendarDays className="h-3.5 w-3.5" />,  count: todayCount,   urgentColor: todayCount > 0 },
     { key: 'week',    label: '本週到期',  icon: <Timer className="h-3.5 w-3.5" />,          count: weekCount },
     { key: 'overdue', label: '逾期待辦',  icon: <AlertTriangle className="h-3.5 w-3.5" />,  count: overdueCount, urgentColor: overdueCount > 0 },
-    { key: 'done',    label: '已完成',    icon: <CalendarCheck className="h-3.5 w-3.5" />,  count: doneCount },
-    { key: 'all',     label: '全部',      icon: <ListTodo className="h-3.5 w-3.5" />,        count: tasks.length },
+    { key: 'done',    label: dict.tasks.statuses.DONE,    icon: <CalendarCheck className="h-3.5 w-3.5" />,  count: doneCount },
+    { key: 'all',     label: dict.common.all,      icon: <ListTodo className="h-3.5 w-3.5" />,        count: tasks.length },
   ]
 
   function openNew() {
@@ -215,13 +216,13 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">任務中心</h1>
-          <p className="text-sm text-slate-500 mt-1">管理業務任務與跟進事項</p>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.tasks.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{dict.tasks.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant={view === 'kanban' ? 'default' : 'outline'} size="sm" onClick={() => setView('kanban')}>看板</Button>
-          <Button variant={view === 'list'   ? 'default' : 'outline'} size="sm" onClick={() => setView('list')}>清單</Button>
-          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />新增工作</Button>
+          <Button variant={view === 'kanban' ? 'default' : 'outline'} size="sm" onClick={() => setView('kanban')}>{dict.tasks.kanban}</Button>
+          <Button variant={view === 'list'   ? 'default' : 'outline'} size="sm" onClick={() => setView('list')}>{dict.tasks.list}</Button>
+          <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />{dict.tasks.newTask}</Button>
         </div>
       </div>
 
@@ -250,16 +251,16 @@ export default function TasksPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? '編輯工作' : '新增工作'}</DialogTitle>
+            <DialogTitle>{editing ? dict.common.edit : dict.tasks.newTask}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label>標題 *</Label>
+              <Label>{dict.common.name} *</Label>
               <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="工作標題" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>工作類型</Label>
+                <Label>{dict.common.type}</Label>
                 <Select value={form.taskType} onValueChange={v => setForm(f => ({ ...f, taskType: v ?? 'FOLLOW_UP' }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -283,7 +284,7 @@ export default function TasksPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>狀態</Label>
+                <Label>{dict.common.status}</Label>
                 <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v ?? 'PENDING' }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -294,17 +295,17 @@ export default function TasksPage() {
                 </Select>
               </div>
               <div>
-                <Label>截止日期</Label>
+                <Label>{dict.tasksExt.dueDate}</Label>
                 <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
               </div>
             </div>
             <div>
-              <Label>關聯客戶</Label>
+              <Label>{dict.common.customer}</Label>
               <Select
                 value={form.customerId || '_none'}
                 onValueChange={v => setForm(f => ({ ...f, customerId: v === '_none' ? '' : (v ?? '') }))}
               >
-                <SelectTrigger><SelectValue placeholder="選擇客戶（可不填）" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={dict.common.select + dict.common.customer} /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="_none">— 無 —</SelectItem>
                   {customers.map(c => (
@@ -314,14 +315,14 @@ export default function TasksPage() {
               </Select>
             </div>
             <div>
-              <Label>負責人</Label>
+              <Label>{dict.tasksExt.assignedTo}</Label>
               <Select
                 value={form.assignedToId || '_none'}
                 onValueChange={v => setForm(f => ({ ...f, assignedToId: v === '_none' ? '' : (v ?? '') }))}
               >
-                <SelectTrigger><SelectValue placeholder="選擇負責人" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— 選擇 —</SelectItem>
+                  <SelectItem value="_none">— {dict.common.select} —</SelectItem>
                   {users.map(u => (
                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                   ))}
@@ -329,17 +330,17 @@ export default function TasksPage() {
               </Select>
             </div>
             <div>
-              <Label>工作說明</Label>
+              <Label>{dict.common.description}</Label>
               <Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="描述工作內容…" />
             </div>
             <div>
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="備註…" />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
-            <Button onClick={save} disabled={saving || !form.title}>{saving ? '儲存中…' : '儲存'}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={save} disabled={saving || !form.title}>{saving ? dict.common.saving : dict.common.save}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -349,7 +350,7 @@ export default function TasksPage() {
         <Select value={filterPriority || '_all'} onValueChange={v => setFilterPriority(v === '_all' ? '' : (v ?? ''))}>
           <SelectTrigger className="w-32"><SelectValue placeholder="全部優先級" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="_all">全部優先級</SelectItem>
+            <SelectItem value="_all">{dict.common.all}優先級</SelectItem>
             {Object.entries(PRIORITIES).map(([k, { label }]) => (
               <SelectItem key={k} value={k}>{label}</SelectItem>
             ))}
@@ -360,13 +361,13 @@ export default function TasksPage() {
           size="sm"
           onClick={() => setFilterMy(v => !v)}
         >
-          我的工作
+          {dict.tasks.myTasks}
         </Button>
-        <span className="text-sm text-slate-500 ml-auto">{visibleTasks.length} 筆</span>
+        <span className="text-sm text-slate-500 ml-auto">{visibleTasks.length} {dict.common.items}</span>
       </div>
 
       {loading ? (
-        <div className="text-center py-20 text-slate-400">載入中…</div>
+        <div className="text-center py-20 text-slate-400">{dict.common.loading}</div>
       ) : view === 'kanban' ? (
         /* Kanban View */
         <div className="grid grid-cols-3 gap-4">
@@ -414,19 +415,19 @@ export default function TasksPage() {
                       {/* Quick status buttons */}
                       <div className="flex gap-1 pt-1 border-t">
                         {col === 'PENDING' && (
-                          <button onClick={() => quickStatus(task.id, 'IN_PROGRESS')} className="text-xs text-blue-600 hover:underline">→ 進行中</button>
+                          <button onClick={() => quickStatus(task.id, 'IN_PROGRESS')} className="text-xs text-blue-600 hover:underline">→ {dict.tasks.statuses.IN_PROGRESS}</button>
                         )}
                         {col === 'IN_PROGRESS' && (
-                          <button onClick={() => quickStatus(task.id, 'DONE')} className="text-xs text-green-600 hover:underline">→ 完成</button>
+                          <button onClick={() => quickStatus(task.id, 'DONE')} className="text-xs text-green-600 hover:underline">→ {dict.tasks.statuses.DONE}</button>
                         )}
                         {col !== 'DONE' && (
-                          <button onClick={() => quickStatus(task.id, 'CANCELLED')} className="text-xs text-slate-400 hover:underline ml-auto">取消</button>
+                          <button onClick={() => quickStatus(task.id, 'CANCELLED')} className="text-xs text-slate-400 hover:underline ml-auto">{dict.common.cancel}</button>
                         )}
                       </div>
                     </div>
                   ))}
                   {colTasks.length === 0 && (
-                    <p className="text-center text-sm text-slate-400 py-8">無工作</p>
+                    <p className="text-center text-sm text-slate-400 py-8">{dict.common.noData}</p>
                   )}
                 </div>
               </div>
@@ -440,13 +441,13 @@ export default function TasksPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>標題</TableHead>
-                  <TableHead>類型</TableHead>
+                  <TableHead>{dict.common.name}</TableHead>
+                  <TableHead>{dict.common.type}</TableHead>
                   <TableHead>優先級</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>客戶</TableHead>
-                  <TableHead>負責人</TableHead>
-                  <TableHead>截止日</TableHead>
+                  <TableHead>{dict.common.status}</TableHead>
+                  <TableHead>{dict.common.customer}</TableHead>
+                  <TableHead>{dict.tasksExt.assignedTo}</TableHead>
+                  <TableHead>{dict.tasksExt.dueDate}</TableHead>
                   <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
@@ -455,8 +456,7 @@ export default function TasksPage() {
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-16 text-slate-400">
                       <ListTodo className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      {quickTab === 'today' ? '今天沒有到期工作' :
-                       quickTab === 'overdue' ? '沒有逾期待辦' : '沒有工作項目'}
+                      {dict.common.noData}
                     </TableCell>
                   </TableRow>
                 )}
@@ -495,10 +495,10 @@ export default function TasksPage() {
                     <TableCell>
                       <div className="flex gap-1">
                         {task.status === 'PENDING' && (
-                          <button onClick={() => quickStatus(task.id, 'IN_PROGRESS')} className="text-xs text-blue-500 hover:underline mr-1">開始</button>
+                          <button onClick={() => quickStatus(task.id, 'IN_PROGRESS')} className="text-xs text-blue-500 hover:underline mr-1">{dict.tasks.statuses.IN_PROGRESS}</button>
                         )}
                         {task.status === 'IN_PROGRESS' && (
-                          <button onClick={() => quickStatus(task.id, 'DONE')} className="text-xs text-green-600 hover:underline mr-1">完成</button>
+                          <button onClick={() => quickStatus(task.id, 'DONE')} className="text-xs text-green-600 hover:underline mr-1">{dict.common.complete}</button>
                         )}
                         <button onClick={() => openEdit(task)} className="text-slate-400 hover:text-slate-600">
                           <Pencil className="h-4 w-4" />

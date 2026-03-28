@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,6 +39,7 @@ const DEFAULT_FORM = { planYear: now.getFullYear(), planMonth: now.getMonth() + 
 const DEFAULT_ITEM = (): FormItem => ({ productId: '', supplierId: '', requiredQty: 1, unitPrice: 0, notes: '', lineNo: 1 })
 
 export default function PurchasePlansPage() {
+  const { dict } = useI18n()
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [year, setYear] = useState(now.getFullYear())
@@ -97,8 +99,8 @@ export default function PurchasePlansPage() {
       }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('採購計畫已建立'); setCreateDialog(false); load() }
-    else { const d = await res.json(); toast.error(d.error ?? '建立失敗') }
+    if (res.ok) { toast.success(dict.common.createSuccess); setCreateDialog(false); load() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
   }
 
   async function doAction(id: string, action: string) {
@@ -107,8 +109,8 @@ export default function PurchasePlansPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     })
-    if (res.ok) { toast.success('操作成功'); load(); setDetail(null) }
-    else { const d = await res.json(); toast.error(d.error ?? '操作失敗') }
+    if (res.ok) { toast.success(dict.common.success); load(); setDetail(null) }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
   }
 
   const totalBudget = items.reduce((s, i) => s + (i.unitPrice * i.requiredQty), 0)
@@ -117,10 +119,10 @@ export default function PurchasePlansPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">採購計畫</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.purchasePlans.title}</h1>
           <p className="text-sm text-muted-foreground">月度採購計畫與預算管理</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" />新增計畫</Button>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" />{dict.purchasePlans.newPlan}</Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -131,7 +133,7 @@ export default function PurchasePlansPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : plans.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">本年度無採購計畫</div>
+        <div className="text-center py-16 text-muted-foreground">{dict.purchasePlans.noPlans}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map(p => {
@@ -208,7 +210,7 @@ export default function PurchasePlansPage() {
       {/* Create Dialog */}
       <Dialog open={createDialog} onOpenChange={setCreateDialog}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle><ShoppingBag className="inline h-4 w-4 mr-2" />新增採購計畫</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle><ShoppingBag className="inline h-4 w-4 mr-2" />{dict.purchasePlans.newPlan}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -221,8 +223,8 @@ export default function PurchasePlansPage() {
               </div>
             </div>
             <div>
-              <Label>備註</Label>
-              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" placeholder="選填" />
+              <Label>{dict.common.notes}</Label>
+              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" placeholder={dict.common.optional} />
             </div>
 
             <div>
@@ -275,9 +277,9 @@ export default function PurchasePlansPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setCreateDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={doCreate} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}建立計畫
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}{dict.purchasePlans.newPlan}
             </Button>
           </DialogFooter>
         </DialogContent>

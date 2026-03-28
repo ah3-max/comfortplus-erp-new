@@ -57,12 +57,11 @@ export default function ARAPTurnoverPage() {
       <div className="flex items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">年度</label>
-
           <select value={year} onChange={e => setYear(Number(e.target.value))} className="rounded-md border px-3 py-2 text-sm">
             {Array.from({ length: 5 }, (_, i) => currentYear - i).map(y => <option key={y} value={y}>{y} 年</option>)}
           </select>
         </div>
-        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}</Button>
       </div>
       {data && (
         <div className="space-y-5">
@@ -103,7 +102,7 @@ export default function ARAPTurnoverPage() {
           </div>
         </div>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請選擇年度後點擊查詢</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

@@ -8,6 +8,7 @@ import {
 import { Loader2, ChevronLeft, TrendingUp, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface DayRow {
   date: string; incoming: number; outgoing: number; net: number
@@ -24,6 +25,7 @@ function fmt(n: number) {
 }
 
 export default function DailyCashReportPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
   const [startDate, setStartDate] = useState(firstOfMonth)
@@ -37,29 +39,29 @@ export default function DailyCashReportPage() {
       const res = await fetch(`/api/finance/daily-cash-report?startDate=${startDate}&endDate=${endDate}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
-  }, [startDate, endDate])
+  }, [startDate, endDate, dict])
 
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">資金日報表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.dailyCashReport}</h1>
           <p className="text-sm text-muted-foreground">每日現金收支與累計餘額</p>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.startDate}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.endDate}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
-        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}</Button>
       </div>
       {data && (
         <>
@@ -80,7 +82,7 @@ export default function DailyCashReportPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-28">日期</TableHead>
+                  <TableHead className="w-28">{dict.common.date}</TableHead>
                   <TableHead className="text-right w-28 text-green-700">日收入</TableHead>
                   <TableHead className="text-right w-28 text-red-600">日支出</TableHead>
                   <TableHead className="text-right w-24">淨額</TableHead>
@@ -117,7 +119,7 @@ export default function DailyCashReportPage() {
           </div>
         </>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請點擊查詢載入資料</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

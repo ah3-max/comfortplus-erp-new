@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useI18n } from '@/lib/i18n/context'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -23,10 +24,6 @@ import { toast } from 'sonner'
 // ── Types ────────────────────────────────────────────────────────────────────
 type Tab = 'stock' | 'lots' | 'transfer' | 'count' | 'scrap' | 'reports' | 'history'
 
-const INV_CATEGORY_LABELS: Record<string, string> = {
-  FINISHED_GOODS: '成品', OEM_PENDING: 'OEM待交', IN_TRANSIT: '在途',
-  PACKAGING: '包材', RAW_MATERIAL: '原物料', DEFECTIVE: '不良品', GIFT_PROMO: '贈品',
-}
 const INV_CATEGORY_COLORS: Record<string, string> = {
   FINISHED_GOODS: 'bg-blue-100 text-blue-700',
   OEM_PENDING:    'bg-purple-100 text-purple-700',
@@ -36,34 +33,34 @@ const INV_CATEGORY_COLORS: Record<string, string> = {
   DEFECTIVE:      'bg-red-100 text-red-700',
   GIFT_PROMO:     'bg-pink-100 text-pink-700',
 }
-const LOT_STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  AVAILABLE:   { label: '可用',  cls: 'bg-green-100 text-green-700 border-green-200' },
-  LOCKED:      { label: '鎖定',  cls: 'bg-amber-100 text-amber-700 border-amber-200' },
-  PENDING_QC:  { label: '待驗',  cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-  DEFECTIVE:   { label: '不良',  cls: 'bg-red-100 text-red-700 border-red-200' },
-  SCRAPPED:    { label: '已報廢', cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+const LOT_STATUS_CLS: Record<string, string> = {
+  AVAILABLE:   'bg-green-100 text-green-700 border-green-200',
+  LOCKED:      'bg-amber-100 text-amber-700 border-amber-200',
+  PENDING_QC:  'bg-blue-100 text-blue-700 border-blue-200',
+  DEFECTIVE:   'bg-red-100 text-red-700 border-red-200',
+  SCRAPPED:    'bg-slate-100 text-slate-500 border-slate-200',
 }
-const TRANSFER_STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  PENDING:    { label: '待出庫', cls: 'bg-amber-100 text-amber-700' },
-  IN_TRANSIT: { label: '轉運中', cls: 'bg-blue-100 text-blue-700' },
-  COMPLETED:  { label: '已完成', cls: 'bg-green-100 text-green-700' },
-  CANCELLED:  { label: '已取消', cls: 'bg-slate-100 text-slate-500' },
+const TRANSFER_STATUS_CLS: Record<string, string> = {
+  PENDING:    'bg-amber-100 text-amber-700',
+  IN_TRANSIT: 'bg-blue-100 text-blue-700',
+  COMPLETED:  'bg-green-100 text-green-700',
+  CANCELLED:  'bg-slate-100 text-slate-500',
 }
-const COUNT_STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  DRAFT:     { label: '草稿',   cls: 'border-slate-300 text-slate-600' },
-  COUNTING:  { label: '盤點中', cls: 'bg-blue-100 text-blue-700' },
-  REVIEWING: { label: '複核中', cls: 'bg-amber-100 text-amber-700' },
-  COMPLETED: { label: '已完成', cls: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: '已取消', cls: 'bg-slate-100 text-slate-500' },
+const COUNT_STATUS_CLS: Record<string, string> = {
+  DRAFT:     'border-slate-300 text-slate-600',
+  COUNTING:  'bg-blue-100 text-blue-700',
+  REVIEWING: 'bg-amber-100 text-amber-700',
+  COMPLETED: 'bg-green-100 text-green-700',
+  CANCELLED: 'bg-slate-100 text-slate-500',
 }
-const TX_TYPE_CFG: Record<string, { label: string; color: string; sign: string }> = {
-  IN:           { label: '入庫',   color: 'text-green-600', sign: '+' },
-  OUT:          { label: '出庫',   color: 'text-red-600',   sign: '-' },
-  TRANSFER_IN:  { label: '調撥入', color: 'text-blue-600',  sign: '+' },
-  TRANSFER_OUT: { label: '調撥出', color: 'text-purple-600',sign: '-' },
-  ADJUSTMENT:   { label: '盤點',   color: 'text-blue-600',  sign: '±' },
-  SCRAP:        { label: '報廢',   color: 'text-red-600',   sign: '-' },
-  RETURN:       { label: '退貨',   color: 'text-amber-600', sign: '+' },
+const TX_TYPE_META: Record<string, { color: string; sign: string }> = {
+  IN:           { color: 'text-green-600', sign: '+' },
+  OUT:          { color: 'text-red-600',   sign: '-' },
+  TRANSFER_IN:  { color: 'text-blue-600',  sign: '+' },
+  TRANSFER_OUT: { color: 'text-purple-600',sign: '-' },
+  ADJUSTMENT:   { color: 'text-blue-600',  sign: '±' },
+  SCRAP:        { color: 'text-red-600',   sign: '-' },
+  RETURN:       { color: 'text-amber-600', sign: '+' },
 }
 
 function fmt(v: string | number) {
@@ -144,7 +141,49 @@ interface ProductOption   { id: string; sku: string; name: string; unit: string 
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function InventoryPage() {
+  const { dict } = useI18n()
   const router = useRouter()
+
+  // Build label maps from dict (inside component so dict is available)
+  const INV_CATEGORY_LABELS: Record<string, string> = {
+    FINISHED_GOODS: dict.inventory.categories.FINISHED_GOODS,
+    OEM_PENDING:    dict.inventory.categories.OEM_PENDING,
+    IN_TRANSIT:     dict.inventory.categories.IN_TRANSIT,
+    PACKAGING:      dict.inventory.categories.PACKAGING,
+    RAW_MATERIAL:   dict.inventory.categories.RAW_MATERIAL,
+    DEFECTIVE:      dict.inventory.categories.DEFECTIVE,
+    GIFT_PROMO:     dict.inventory.categories.GIFT_PROMO,
+  }
+  const LOT_STATUS_CFG: Record<string, { label: string; cls: string }> = {
+    AVAILABLE:  { label: dict.inventoryExt.lotStatuses.AVAILABLE,   cls: LOT_STATUS_CLS.AVAILABLE },
+    LOCKED:     { label: dict.inventoryExt.lotStatuses.LOCKED,      cls: LOT_STATUS_CLS.LOCKED },
+    PENDING_QC: { label: dict.inventoryExt.lotStatuses.PENDING_QC,  cls: LOT_STATUS_CLS.PENDING_QC },
+    DEFECTIVE:  { label: dict.inventoryExt.lotStatuses.DEFECTIVE,   cls: LOT_STATUS_CLS.DEFECTIVE },
+    SCRAPPED:   { label: dict.inventoryExt.lotStatuses.SCRAPPED,    cls: LOT_STATUS_CLS.SCRAPPED },
+  }
+  const TRANSFER_STATUS_CFG: Record<string, { label: string; cls: string }> = {
+    PENDING:    { label: dict.inventoryExt.transferStatuses.PENDING,    cls: TRANSFER_STATUS_CLS.PENDING },
+    IN_TRANSIT: { label: dict.inventoryExt.transferStatuses.IN_TRANSIT, cls: TRANSFER_STATUS_CLS.IN_TRANSIT },
+    COMPLETED:  { label: dict.inventoryExt.transferStatuses.COMPLETED,  cls: TRANSFER_STATUS_CLS.COMPLETED },
+    CANCELLED:  { label: dict.inventoryExt.transferStatuses.CANCELLED,  cls: TRANSFER_STATUS_CLS.CANCELLED },
+  }
+  const COUNT_STATUS_CFG: Record<string, { label: string; cls: string }> = {
+    DRAFT:     { label: dict.inventoryExt.countStatuses.DRAFT,     cls: COUNT_STATUS_CLS.DRAFT },
+    COUNTING:  { label: dict.inventoryExt.countStatuses.COUNTING,  cls: COUNT_STATUS_CLS.COUNTING },
+    REVIEWING: { label: dict.inventoryExt.countStatuses.REVIEWING, cls: COUNT_STATUS_CLS.REVIEWING },
+    COMPLETED: { label: dict.inventoryExt.countStatuses.COMPLETED, cls: COUNT_STATUS_CLS.COMPLETED },
+    CANCELLED: { label: dict.inventoryExt.countStatuses.CANCELLED, cls: COUNT_STATUS_CLS.CANCELLED },
+  }
+  const TX_TYPE_CFG: Record<string, { label: string; color: string; sign: string }> = {
+    IN:           { label: dict.inventoryExt.txTypes.IN,           ...TX_TYPE_META.IN },
+    OUT:          { label: dict.inventoryExt.txTypes.OUT,          ...TX_TYPE_META.OUT },
+    TRANSFER_IN:  { label: dict.inventoryExt.txTypes.TRANSFER_IN,  ...TX_TYPE_META.TRANSFER_IN },
+    TRANSFER_OUT: { label: dict.inventoryExt.txTypes.TRANSFER_OUT, ...TX_TYPE_META.TRANSFER_OUT },
+    ADJUSTMENT:   { label: dict.inventoryExt.txTypes.ADJUSTMENT,   ...TX_TYPE_META.ADJUSTMENT },
+    SCRAP:        { label: dict.inventoryExt.txTypes.SCRAP,        ...TX_TYPE_META.SCRAP },
+    RETURN:       { label: dict.inventoryExt.txTypes.RETURN,       ...TX_TYPE_META.RETURN },
+  }
+
   const [activeTab, setActiveTab] = useState<Tab>('stock')
 
   // Inventory tab
@@ -333,12 +372,12 @@ export default function InventoryPage() {
       body: JSON.stringify({ action }),
     })
     if (res.ok) {
-      toast.success(action === 'complete' ? '調撥已完成，庫存已更新' : action === 'confirm' ? '調撥已確認出庫' : '調撥已取消')
+      toast.success(action === 'complete' ? '調撥已完成，庫存已更新' : action === 'confirm' ? '調撥已確認出庫' : dict.inventoryExt.transferStatuses.CANCELLED)
       fetchTransfers()
       fetchInventory()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '操作失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -354,13 +393,13 @@ export default function InventoryPage() {
     })
     setTrSaving(false)
     if (res.ok) {
-      toast.success('調撥單已建立')
+      toast.success(dict.common.createSuccess)
       setTrNewOpen(false)
       setTrForm({ fromWarehouseId: '', toWarehouseId: '', notes: '', items: [{ productId: '', productName: '', quantity: 1 }] })
       fetchTransfers()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '建立失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -375,13 +414,13 @@ export default function InventoryPage() {
     })
     setCtSaving(false)
     if (res.ok) {
-      toast.success('盤點單已建立')
+      toast.success(dict.common.createSuccess)
       setCtNewOpen(false)
       setCtForm({ warehouseId: '', notes: '', countDate: '' })
       fetchCounts()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '建立失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -400,7 +439,7 @@ export default function InventoryPage() {
       body: JSON.stringify({ status }),
     })
     if (res.ok) {
-      toast.success(status === 'COMPLETED' ? '盤點已完成，庫存已調整' : '狀態已更新')
+      toast.success(status === 'COMPLETED' ? '盤點已完成，庫存已調整' : dict.common.updateSuccess)
       fetchCounts()
       if (ctDetail?.id === id) {
         const r2 = await fetch(`/api/inventory/count/${id}`)
@@ -408,7 +447,7 @@ export default function InventoryPage() {
       }
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '操作失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -422,8 +461,8 @@ export default function InventoryPage() {
         items: ctDetail.items.map(i => ({ id: i.id, countedQty: i.countedQty, notes: i.notes })),
       }),
     })
-    if (res.ok) toast.success('盤點數量已儲存')
-    else toast.error('儲存失敗')
+    if (res.ok) toast.success(dict.common.saveSuccess)
+    else toast.error(dict.common.saveFailed)
   }
 
   // ── Scrap Actions ───────────────────────────────────────────────────────
@@ -437,14 +476,14 @@ export default function InventoryPage() {
     })
     setScSaving(false)
     if (res.ok) {
-      toast.success('報廢記錄已建立，庫存已扣除')
+      toast.success(dict.common.createSuccess)
       setScNewOpen(false)
       setScForm({ productId: '', productName: '', warehouseId: '', quantity: '', reason: '', notes: '', scrapDate: '' })
       fetchScraps()
       fetchInventory()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '操作失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -471,19 +510,19 @@ export default function InventoryPage() {
       body: JSON.stringify(lotForm),
     })
     setLotSaving(false)
-    if (res.ok) { toast.success('批號已更新'); setLotEditOpen(false); fetchLots() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(dict.common.updateSuccess); setLotEditOpen(false); fetchLots() }
+    else toast.error(dict.common.updateFailed)
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'stock',    label: '即時庫存', icon: <Package className="h-4 w-4" /> },
-    { key: 'lots',     label: '批號管理', icon: <CalendarDays className="h-4 w-4" /> },
-    { key: 'transfer', label: '調撥管理', icon: <ArrowLeftRight className="h-4 w-4" /> },
-    { key: 'count',    label: '盤點管理', icon: <ClipboardList className="h-4 w-4" /> },
-    { key: 'scrap',    label: '報廢管理', icon: <Trash2 className="h-4 w-4" /> },
-    { key: 'reports',  label: '庫存報表', icon: <BarChart3 className="h-4 w-4" /> },
-    { key: 'history',  label: '異動記錄', icon: <History className="h-4 w-4" /> },
+    { key: 'stock',    label: dict.inventoryExt.tabs.stock,    icon: <Package className="h-4 w-4" /> },
+    { key: 'lots',     label: dict.inventoryExt.tabs.lots,     icon: <CalendarDays className="h-4 w-4" /> },
+    { key: 'transfer', label: dict.inventoryExt.tabs.transfer, icon: <ArrowLeftRight className="h-4 w-4" /> },
+    { key: 'count',    label: dict.inventoryExt.tabs.count,    icon: <ClipboardList className="h-4 w-4" /> },
+    { key: 'scrap',    label: dict.inventoryExt.tabs.scrap,    icon: <Trash2 className="h-4 w-4" /> },
+    { key: 'reports',  label: dict.inventoryExt.tabs.reports,  icon: <BarChart3 className="h-4 w-4" /> },
+    { key: 'history',  label: dict.inventoryExt.tabs.history,  icon: <History className="h-4 w-4" /> },
   ]
 
   return (
@@ -491,7 +530,7 @@ export default function InventoryPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">庫存管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.inventory.title}</h1>
           <p className="text-sm text-muted-foreground">WMS 全模組</p>
         </div>
         <div className="flex items-center gap-2">
@@ -501,10 +540,10 @@ export default function InventoryPage() {
             if (invWarehouse) params.set('warehouseId', invWarehouse)
             window.open(`/api/inventory/export?${params}`, '_blank')
           }}>
-            <Download className="mr-2 h-4 w-4" />匯出庫存
+            <Download className="mr-2 h-4 w-4" />{dict.inventoryExt.exportReport}
           </Button>
           <Button variant="outline" onClick={() => router.push('/warehouses')}>
-            <Warehouse className="mr-2 h-4 w-4" />倉庫管理
+            <Warehouse className="mr-2 h-4 w-4" />{dict.common.warehouse}
           </Button>
         </div>
       </div>
@@ -512,10 +551,10 @@ export default function InventoryPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: '商品種類',   value: inventory.length,   icon: <Package className="h-4 w-4 text-blue-600" />,    cls: 'bg-blue-50' },
-          { label: '低庫存警示', value: lowStockCount,       icon: <AlertTriangle className="h-4 w-4 text-red-600" />,cls: 'bg-red-50',   highlight: lowStockCount > 0 },
-          { label: '近效期批號', value: expirySoonCount,     icon: <CalendarDays className="h-4 w-4 text-amber-600" />,cls: 'bg-amber-50',highlight: expirySoonCount > 0 },
-          { label: '庫存總值',   value: fmt(totalValue),    icon: <BarChart3 className="h-4 w-4 text-green-600" />,  cls: 'bg-green-50' },
+          { label: '商品種類',               value: inventory.length,   icon: <Package className="h-4 w-4 text-blue-600" />,    cls: 'bg-blue-50' },
+          { label: dict.dashboard.stockAlert, value: lowStockCount,       icon: <AlertTriangle className="h-4 w-4 text-red-600" />,cls: 'bg-red-50',   highlight: lowStockCount > 0 },
+          { label: '近效期批號',             value: expirySoonCount,     icon: <CalendarDays className="h-4 w-4 text-amber-600" />,cls: 'bg-amber-50',highlight: expirySoonCount > 0 },
+          { label: '庫存總值',               value: fmt(totalValue),    icon: <BarChart3 className="h-4 w-4 text-green-600" />,  cls: 'bg-green-50' },
         ].map(({ label, value, icon, cls, highlight }) => (
           <Card key={label} className={highlight ? 'border-red-200' : ''}>
             <CardContent className="p-4">
@@ -552,24 +591,24 @@ export default function InventoryPage() {
           <div className="flex flex-wrap gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="搜尋商品名稱、SKU..."
+              <Input className="pl-9" placeholder={dict.inventoryExt.searchPlaceholder}
                 value={invSearch} onChange={e => setInvSearch(e.target.value)} />
             </div>
             <select value={invWarehouse} onChange={e => setInvWarehouse(e.target.value)}
               className="h-9 rounded-md border px-3 text-sm">
-              <option value="">全部倉庫</option>
+              <option value="">{dict.common.all}{dict.common.warehouse}</option>
               {warehouses.map(w => <option key={w.id} value={w.code}>{w.name} ({w.code})</option>)}
             </select>
             <select value={invCategory} onChange={e => setInvCategory(e.target.value)}
               className="h-9 rounded-md border px-3 text-sm">
-              <option value="">全部分類</option>
+              <option value="">{dict.common.all}{dict.inventory.category}</option>
               {Object.entries(INV_CATEGORY_LABELS).map(([k, v]) =>
                 <option key={k} value={k}>{v}</option>)}
             </select>
             <button onClick={() => setShowLowStock(!showLowStock)}
               className={cn('rounded-full border px-3 py-1 text-xs font-medium flex items-center gap-1 transition-colors',
                 showLowStock ? 'border-red-500 bg-red-500 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}>
-              <AlertTriangle className="h-3 w-3" />低庫存
+              <AlertTriangle className="h-3 w-3" />{dict.dashboard.belowSafety}
             </button>
           </div>
 
@@ -577,17 +616,17 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-28">SKU</TableHead>
-                  <TableHead>商品名稱</TableHead>
-                  <TableHead className="w-24">庫存分類</TableHead>
-                  <TableHead className="w-20">倉庫</TableHead>
-                  <TableHead className="text-center w-20">庫存量</TableHead>
-                  <TableHead className="text-center w-20">鎖定量</TableHead>
-                  <TableHead className="text-center w-20">可用量</TableHead>
-                  <TableHead className="text-center w-20">安全庫存</TableHead>
-                  <TableHead className="text-center w-24">狀態</TableHead>
+                  <TableHead className="w-28">{dict.products.sku}</TableHead>
+                  <TableHead>{dict.products.name}</TableHead>
+                  <TableHead className="w-24">{dict.inventory.category}</TableHead>
+                  <TableHead className="w-20">{dict.common.warehouse}</TableHead>
+                  <TableHead className="text-center w-20">{dict.inventory.quantity}</TableHead>
+                  <TableHead className="text-center w-20">{dict.inventoryExt.lockedQty}</TableHead>
+                  <TableHead className="text-center w-20">{dict.inventoryExt.available}</TableHead>
+                  <TableHead className="text-center w-20">{dict.inventory.safetyStock}</TableHead>
+                  <TableHead className="text-center w-24">{dict.common.status}</TableHead>
                   <TableHead className="text-right w-28">庫存值</TableHead>
-                  <TableHead className="w-16 text-center">操作</TableHead>
+                  <TableHead className="w-16 text-center">{dict.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -597,7 +636,7 @@ export default function InventoryPage() {
                   </TableCell></TableRow>
                 ) : inventory.length === 0 ? (
                   <TableRow><TableCell colSpan={11} className="py-16 text-center text-muted-foreground">
-                    尚無庫存資料
+                    {dict.common.noData}
                   </TableCell></TableRow>
                 ) : inventory.map(item => {
                   const isLow  = item.quantity <= item.safetyStock && item.safetyStock > 0
@@ -628,10 +667,10 @@ export default function InventoryPage() {
                       </TableCell>
                       <TableCell className="text-center text-sm text-muted-foreground">{item.safetyStock}</TableCell>
                       <TableCell className="text-center">
-                        {isZero ? <Badge variant="destructive" className="text-xs">缺貨</Badge>
+                        {isZero ? <Badge variant="destructive" className="text-xs">{dict.dashboard.stockZero}</Badge>
                           : isLow ? <Badge variant="outline" className="border-amber-400 text-amber-600 text-xs">
-                            <AlertTriangle className="mr-1 h-3 w-3" />低庫存</Badge>
-                          : <Badge variant="outline" className="border-green-400 text-green-600 text-xs">正常</Badge>}
+                            <AlertTriangle className="mr-1 h-3 w-3" />{dict.dashboard.belowSafety}</Badge>
+                          : <Badge variant="outline" className="border-green-400 text-green-600 text-xs">{dict.dashboard.normal}</Badge>}
                       </TableCell>
                       <TableCell className="text-right text-sm">
                         {fmt(item.quantity * Number(item.product.costPrice))}
@@ -639,7 +678,7 @@ export default function InventoryPage() {
                       <TableCell className="text-center">
                         <button onClick={() => { setAdjustTarget(item); setAdjustOpen(true) }}
                           className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <SlidersHorizontal className="h-3.5 w-3.5" />調整
+                          <SlidersHorizontal className="h-3.5 w-3.5" />{dict.inventory.adjust}
                         </button>
                       </TableCell>
                     </TableRow>
@@ -657,18 +696,18 @@ export default function InventoryPage() {
           <div className="flex flex-wrap gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="搜尋批號、商品、工廠..."
+              <Input className="pl-9" placeholder={dict.inventoryExt.searchPlaceholder}
                 value={lotsSearch} onChange={e => setLotsSearch(e.target.value)} />
             </div>
             <select value={lotsStatus} onChange={e => setLotsStatus(e.target.value)}
               className="h-9 rounded-md border px-3 text-sm">
-              <option value="">全部狀態</option>
+              <option value="">{dict.common.all}{dict.common.status}</option>
               {Object.entries(LOT_STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
             <button onClick={() => setLotsExpiry(!lotsExpiry)}
               className={cn('rounded-full border px-3 py-1 text-xs font-medium flex items-center gap-1 transition-colors',
                 lotsExpiry ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}>
-              <CalendarDays className="h-3 w-3" />近效期
+              <CalendarDays className="h-3 w-3" />近{dict.inventoryExt.expiryDate}
             </button>
           </div>
 
@@ -676,17 +715,17 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">批號</TableHead>
-                  <TableHead>商品</TableHead>
-                  <TableHead className="w-20">倉庫</TableHead>
-                  <TableHead className="w-24">儲位</TableHead>
-                  <TableHead className="w-24">庫存分類</TableHead>
-                  <TableHead className="w-20">狀態</TableHead>
-                  <TableHead className="text-center w-20">數量</TableHead>
-                  <TableHead className="w-28">製造日</TableHead>
-                  <TableHead className="w-28">效期</TableHead>
-                  <TableHead className="w-28">來源工廠</TableHead>
-                  <TableHead className="w-20">操作</TableHead>
+                  <TableHead className="w-32">{dict.inventoryExt.lotNo}</TableHead>
+                  <TableHead>{dict.common.product}</TableHead>
+                  <TableHead className="w-20">{dict.common.warehouse}</TableHead>
+                  <TableHead className="w-24">{dict.inventoryExt.location}</TableHead>
+                  <TableHead className="w-24">{dict.inventory.category}</TableHead>
+                  <TableHead className="w-20">{dict.common.status}</TableHead>
+                  <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
+                  <TableHead className="w-28">{dict.inventoryExt.manufactureDate}</TableHead>
+                  <TableHead className="w-28">{dict.inventoryExt.expiryDate}</TableHead>
+                  <TableHead className="w-28">{dict.inventoryExt.sourceFactory}</TableHead>
+                  <TableHead className="w-20">{dict.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -696,7 +735,7 @@ export default function InventoryPage() {
                   </TableCell></TableRow>
                 ) : lots.length === 0 ? (
                   <TableRow><TableCell colSpan={11} className="py-16 text-center text-muted-foreground">
-                    尚無批號資料
+                    {dict.common.noData}
                   </TableCell></TableRow>
                 ) : lots.map(lot => {
                   const sc = LOT_STATUS_CFG[lot.status] ?? { label: lot.status, cls: '' }
@@ -739,7 +778,7 @@ export default function InventoryPage() {
                       <TableCell>
                         <button onClick={() => openLotEdit(lot)}
                           className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <SlidersHorizontal className="h-3 w-3" />編輯
+                          <SlidersHorizontal className="h-3 w-3" />{dict.common.edit}
                         </button>
                       </TableCell>
                     </TableRow>

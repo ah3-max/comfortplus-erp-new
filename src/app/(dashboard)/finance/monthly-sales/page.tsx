@@ -8,6 +8,7 @@ import {
 import { Loader2, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface MonthRow { month: number; count: number; totalAmount: number; avgAmount: number }
 interface SalesData { year: number; grandTotal: number; totalOrders: number; rows: MonthRow[] }
@@ -16,6 +17,7 @@ const MONTH_LABELS = ['', '1月', '2月', '3月', '4月', '5月', '6月', '7月'
 function fmt(n: number) { return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
 
 export default function MonthlySalesPage() {
+  const { dict } = useI18n()
   const [year, setYear] = useState(new Date().getFullYear())
   const [data, setData] = useState<SalesData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -27,16 +29,16 @@ export default function MonthlySalesPage() {
       const res = await fetch(`/api/finance/monthly-sales?year=${year}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
-  }, [year])
+  }, [year, dict])
 
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">月銷售合計表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.monthlySales}</h1>
           <p className="text-sm text-muted-foreground">每月銷售訂單金額統計</p>
         </div>
       </div>

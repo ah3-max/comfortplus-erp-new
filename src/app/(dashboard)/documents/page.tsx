@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -150,6 +151,7 @@ function FileTypeIcon({ mimeType, fileName }: { mimeType: string | null; fileNam
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function DocumentsPage() {
+  const { dict } = useI18n()
   // List state
   const [documents, setDocuments] = useState<DocumentRecord[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)

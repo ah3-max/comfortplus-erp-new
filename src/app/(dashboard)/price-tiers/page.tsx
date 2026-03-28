@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -66,6 +67,7 @@ function fmt(n: number | string | null | undefined) {
 }
 
 export default function PriceTiersPage() {
+  const { dict } = useI18n()
   const [tab, setTab] = useState('tiers')
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
@@ -95,7 +97,7 @@ export default function PriceTiersPage() {
       const result = await res.json()
       setProducts(result.data ?? [])
       setEdits({})
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoadingProducts(false) }
   }, [search])
 
@@ -106,7 +108,7 @@ export default function PriceTiersPage() {
       const result = await res.json()
       setCustomerLevels(result.data ?? [])
       setLevelEdits({})
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoadingLevels(false) }
   }, [])
 
@@ -116,7 +118,7 @@ export default function PriceTiersPage() {
       const res = await fetch('/api/special-prices')
       const result = await res.json()
       setSpecialPrices(result.data ?? [])
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoadingSpecial(false) }
   }, [])
 
@@ -157,7 +159,7 @@ export default function PriceTiersPage() {
         Object.entries(vals).map(([k, v]) => [k, v === '' ? null : Number(v)])
       ),
     }))
-    if (!items.length) { toast.info('無變更'); return }
+    if (!items.length) { toast.info(dict.common.noData); return }
     setSaving(true)
     try {
       const res = await fetch('/api/price-tiers', {
@@ -165,15 +167,15 @@ export default function PriceTiersPage() {
         body: JSON.stringify({ items }),
       })
       if (!res.ok) throw new Error()
-      toast.success('已儲存')
+      toast.success(dict.common.saveSuccess)
       fetchProducts()
-    } catch { toast.error('儲存失敗') }
+    } catch { toast.error(dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
   async function saveLevels() {
     const items = Object.entries(levelEdits).map(([customerId, priceLevel]) => ({ customerId, priceLevel }))
-    if (!items.length) { toast.info('無變更'); return }
+    if (!items.length) { toast.info(dict.common.noData); return }
     setSaving(true)
     try {
       const res = await fetch('/api/customers/price-level', {
@@ -181,15 +183,15 @@ export default function PriceTiersPage() {
         body: JSON.stringify({ items }),
       })
       if (!res.ok) throw new Error()
-      toast.success('已儲存')
+      toast.success(dict.common.saveSuccess)
       fetchLevels()
-    } catch { toast.error('儲存失敗') }
+    } catch { toast.error(dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
   async function submitSpecialPrice() {
     if (!spForm.customerId || !spForm.productId || !spForm.price) {
-      toast.error('請填寫必填欄位'); return
+      toast.error(dict.common.required); return
     }
     setSaving(true)
     try {
@@ -198,26 +200,26 @@ export default function PriceTiersPage() {
         body: JSON.stringify(spForm),
       })
       if (!res.ok) throw new Error()
-      toast.success('已儲存')
+      toast.success(dict.common.saveSuccess)
       setShowSpecialDialog(false)
       setSpForm({ customerId: '', productId: '', price: '', effectiveDate: '', expiryDate: '', notes: '' })
       fetchSpecialPrices()
-    } catch { toast.error('儲存失敗') }
+    } catch { toast.error(dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
   async function deleteSpecialPrice(id: string) {
-    if (!confirm('確定刪除此特殊定價？')) return
+    if (!confirm(dict.common.deleteConfirm)) return
     const res = await fetch(`/api/special-prices?id=${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('已刪除'); fetchSpecialPrices() }
-    else toast.error('刪除失敗')
+    if (res.ok) { toast.success(dict.common.deleteSuccess); fetchSpecialPrices() }
+    else toast.error(dict.common.deleteFailed)
   }
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">多級單價管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.priceTiers.title}</h1>
           <p className="text-sm text-muted-foreground">
             商品 A~J 級定價 · 客戶價格等級 · 特殊定價
           </p>
@@ -246,7 +248,7 @@ export default function PriceTiersPage() {
             </div>
             <Button onClick={saveTiers} disabled={saving || !Object.keys(edits).length}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              儲存變更 {Object.keys(edits).length > 0 && `(${Object.keys(edits).length})`}
+              {dict.common.save} {Object.keys(edits).length > 0 && `(${Object.keys(edits).length})`}
             </Button>
           </div>
 
@@ -270,7 +272,7 @@ export default function PriceTiersPage() {
                 ) : products.length === 0 ? (
                   <TableRow><TableCell colSpan={13} className="py-16 text-center">
                     <Layers className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
-                    <p className="text-muted-foreground">尚無品項</p>
+                    <p className="text-muted-foreground">{dict.priceTiers.noTiers}</p>
                   </TableCell></TableRow>
                 ) : products.map(p => (
                   <TableRow key={p.id} className={edits[p.id] ? 'bg-blue-50/40' : ''}>
@@ -303,7 +305,7 @@ export default function PriceTiersPage() {
           <div className="flex items-center gap-3">
             <Button onClick={saveLevels} disabled={saving || !Object.keys(levelEdits).length}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              儲存變更 {Object.keys(levelEdits).length > 0 && `(${Object.keys(levelEdits).length})`}
+              {dict.common.save} {Object.keys(levelEdits).length > 0 && `(${Object.keys(levelEdits).length})`}
             </Button>
           </div>
 
@@ -324,7 +326,7 @@ export default function PriceTiersPage() {
                   </TableCell></TableRow>
                 ) : customerLevels.length === 0 ? (
                   <TableRow><TableCell colSpan={4} className="py-16 text-center text-muted-foreground">
-                    尚無客戶價格等級設定
+                    {dict.priceTiers.noTiers}
                   </TableCell></TableRow>
                 ) : customerLevels.map(row => {
                   const currentLevel = levelEdits[row.customerId] ?? row.priceLevel
@@ -365,7 +367,7 @@ export default function PriceTiersPage() {
         <TabsContent value="special" className="space-y-4 mt-4">
           <div className="flex items-center gap-3">
             <Button onClick={() => setShowSpecialDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />新增特殊定價
+              <Plus className="mr-2 h-4 w-4" />{dict.priceTiers.newTier}
             </Button>
           </div>
 
@@ -389,7 +391,7 @@ export default function PriceTiersPage() {
                   </TableCell></TableRow>
                 ) : specialPrices.length === 0 ? (
                   <TableRow><TableCell colSpan={7} className="py-16 text-center text-muted-foreground">
-                    尚無特殊定價
+                    {dict.priceTiers.noTiers}
                   </TableCell></TableRow>
                 ) : specialPrices.map(sp => (
                   <TableRow key={sp.id}>
@@ -422,7 +424,7 @@ export default function PriceTiersPage() {
       <Dialog open={showSpecialDialog} onOpenChange={setShowSpecialDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>新增特殊定價</DialogTitle>
+            <DialogTitle>{dict.priceTiers.newTier}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
@@ -467,9 +469,9 @@ export default function PriceTiersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSpecialDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowSpecialDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={submitSpecialPrice} disabled={saving}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}儲存
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dict.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

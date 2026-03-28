@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,6 +45,7 @@ const CATEGORIES = [
 function fmt(n: number) { return n.toLocaleString('zh-TW') }
 
 export default function ExpensesPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const isFinance = ['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)
@@ -110,11 +112,11 @@ export default function ExpensesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">費用報銷</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.expenses.title}</h1>
           <p className="text-sm text-muted-foreground">管理差旅、辦公等費用報銷單</p>
         </div>
         <Button onClick={() => { setForm({ title: '', notes: '' }); setItems([{ date: new Date().toISOString().slice(0, 10), category: 'TRANSPORT', description: '', amount: 0, lineNo: 1 }]); setShowDialog(true) }}>
-          <Plus className="h-4 w-4 mr-1" />新增費用單
+          <Plus className="h-4 w-4 mr-1" />{dict.expenses.newExpense}
         </Button>
       </div>
 
@@ -149,7 +151,7 @@ export default function ExpensesPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : reports.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">暫無費用單</div>
+        <div className="text-center py-16 text-muted-foreground">{dict.expenses.noExpenses}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {reports.map(r => {
@@ -178,7 +180,7 @@ export default function ExpensesPage() {
       {/* Create dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增費用單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.expenses.newExpense}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>標題</Label>
@@ -217,9 +219,9 @@ export default function ExpensesPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={saving || !form.title}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Receipt className="mr-2 h-4 w-4" />}建立
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Receipt className="mr-2 h-4 w-4" />}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -253,12 +255,12 @@ export default function ExpensesPage() {
                 </div>
                 <div className="flex gap-2 justify-end flex-wrap">
                   {detailReport.status === 'DRAFT' && (
-                    <Button size="sm" onClick={() => doAction(detailReport.id, 'SUBMIT')}>提交審核</Button>
+                    <Button size="sm" onClick={() => doAction(detailReport.id, 'SUBMIT')}>{dict.common.submit}</Button>
                   )}
                   {detailReport.status === 'SUBMITTED' && isFinance && (
                     <>
-                      <Button size="sm" variant="outline" className="text-red-600" onClick={() => doAction(detailReport.id, 'REJECT')}>退回</Button>
-                      <Button size="sm" onClick={() => doAction(detailReport.id, 'APPROVE')}>核准</Button>
+                      <Button size="sm" variant="outline" className="text-red-600" onClick={() => doAction(detailReport.id, 'REJECT')}>{dict.common.reject}</Button>
+                      <Button size="sm" onClick={() => doAction(detailReport.id, 'APPROVE')}>{dict.common.approve}</Button>
                     </>
                   )}
                   {detailReport.status === 'APPROVED' && isFinance && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -101,6 +102,7 @@ function contractToEditForm(c: ContractBase): EditForm {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ContractsPage() {
+  const { dict } = useI18n()
   const [contracts, setContracts] = useState<ContractBase[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -269,40 +271,40 @@ export default function ContractsPage() {
   return (
     <div className="space-y-4 p-4 md:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">合約管理</h1>
+        <h1 className="text-xl font-bold">{dict.contracts.title}</h1>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1 h-4 w-4" />新增合約
+          <Plus className="mr-1 h-4 w-4" />{dict.contracts.newContract}
         </Button>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <Input placeholder="搜尋合約號/標題…" value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
+        <Input placeholder={dict.contracts.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
         <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? '')}>
-          <SelectTrigger className="h-8 w-32"><SelectValue placeholder="全部狀態" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-32"><SelectValue placeholder={dict.common.all + dict.common.status} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部狀態</SelectItem>
+            <SelectItem value="">{dict.common.all + dict.common.status}</SelectItem>
             {Object.entries(STATUS_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={v => setTypeFilter(v ?? '')}>
-          <SelectTrigger className="h-8 w-32"><SelectValue placeholder="全部類型" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-32"><SelectValue placeholder={dict.common.all + dict.common.type} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部類型</SelectItem>
+            <SelectItem value="">{dict.common.all + dict.common.type}</SelectItem>
             {Object.entries(CONTRACT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
         <Button variant={expiringSoon ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setExpiringSoon(e => !e)}>
-          <AlertTriangle className="mr-1 h-4 w-4" />即將到期
+          <AlertTriangle className="mr-1 h-4 w-4" />{dict.roleDashboard.expiringSoon}
         </Button>
       </div>
 
       {/* Cards */}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {loading ? (
-          <p className="col-span-full py-8 text-center text-muted-foreground">載入中…</p>
+          <p className="col-span-full py-8 text-center text-muted-foreground">{dict.common.loading}</p>
         ) : contracts.length === 0 ? (
-          <p className="col-span-full py-8 text-center text-muted-foreground">沒有符合的合約</p>
+          <p className="col-span-full py-8 text-center text-muted-foreground">{dict.contracts.noContracts}</p>
         ) : contracts.map(c => {
           const days = daysUntil(c.effectiveTo)
           const warn = c.status === 'ACTIVE' && days <= c.reminderDays && days >= 0
@@ -356,7 +358,7 @@ export default function ContractsPage() {
               {/* Edit button — always available for non-terminated/expired */}
               {!['TERMINATED', 'EXPIRED'].includes(detail.status) && (
                 <Button size="sm" variant="outline" onClick={() => openEdit(detail)}>
-                  <Pencil className="mr-1 h-4 w-4" />編輯
+                  <Pencil className="mr-1 h-4 w-4" />{dict.common.edit}
                 </Button>
               )}
               {detail.status === 'ACTIVE' && (
@@ -364,7 +366,7 @@ export default function ContractsPage() {
                   <Button size="sm" variant="outline" onClick={() => { setRenewDate(detail.effectiveTo.slice(0, 10)); setRenewDialog(true) }}>
                     <RefreshCw className="mr-1 h-4 w-4" />續約
                   </Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleTerminate(detail.id)}>終止合約</Button>
+                  <Button size="sm" variant="destructive" onClick={() => handleTerminate(detail.id)}>{dict.contracts.statuses.TERMINATED}</Button>
                 </>
               )}
               {detail.status === 'DRAFT' && (
@@ -399,7 +401,7 @@ export default function ContractsPage() {
 
               <TabsContent value="schedules">
                 {detail.schedules.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-muted-foreground">尚無付款排程</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">{dict.common.noRecords}</p>
                 ) : (
                   <div className="space-y-2">
                     {detail.schedules.map(s => (
@@ -429,7 +431,7 @@ export default function ContractsPage() {
       {/* ── Edit Dialog ── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>編輯合約</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.edit}{dict.contracts.title}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>合約標題 *</Label>
               <Input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} className="mt-1" />
@@ -459,8 +461,8 @@ export default function ContractsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>取消</Button>
-            <Button onClick={handleEdit} disabled={saving || !editForm.title || !editForm.effectiveFrom || !editForm.effectiveTo}>儲存</Button>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
+            <Button onClick={handleEdit} disabled={saving || !editForm.title || !editForm.effectiveFrom || !editForm.effectiveTo}>{dict.common.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -468,14 +470,14 @@ export default function ContractsPage() {
       {/* ── Renew Dialog ── */}
       <Dialog open={renewDialog} onOpenChange={setRenewDialog}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>合約續約</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.contracts.title}續約</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>新到期日 *</Label><Input type="date" value={renewDate} onChange={e => setRenewDate(e.target.value)} className="mt-1" /></div>
             <div><Label>備註</Label><Textarea value={renewNote} onChange={e => setRenewNote(e.target.value)} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRenewDialog(false)}>取消</Button>
-            <Button onClick={handleRenew} disabled={saving || !renewDate}>確認續約</Button>
+            <Button variant="outline" onClick={() => setRenewDialog(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleRenew} disabled={saving || !renewDate}>{dict.common.confirm}續約</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -483,7 +485,7 @@ export default function ContractsPage() {
       {/* ── Create Dialog ── */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增合約</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.contracts.newContract}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>合約標題 *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="mt-1" /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -530,8 +532,8 @@ export default function ContractsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
-            <Button onClick={handleCreate} disabled={saving || !form.title || !form.effectiveFrom || !form.effectiveTo}>建立合約</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreate} disabled={saving || !form.title || !form.effectiveFrom || !form.effectiveTo}>{dict.contracts.newContract}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -104,6 +105,7 @@ const emptyOrder = {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function ChannelsPage() {
+  const { dict } = useI18n()
   const [channels, setChannels]       = useState<SalesChannel[]>([])
   const [orders, setOrders]           = useState<ChannelOrder[]>([])
   const [products, setProducts]       = useState<Product[]>([])
@@ -335,7 +337,7 @@ export default function ChannelsPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">線上通路管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.channels.title}</h1>
           <p className="text-sm text-slate-500 mt-1">管理各電商平台通路與通路訂單</p>
         </div>
       </div>
@@ -347,7 +349,7 @@ export default function ChannelsPage() {
             <Store className="h-8 w-8 text-blue-500" />
             <div>
               <p className="text-2xl font-bold">{activeChannels}</p>
-              <p className="text-sm text-slate-500">啟用中通路</p>
+              <p className="text-sm text-slate-500">{dict.channels.channelMgmt}</p>
             </div>
           </CardContent>
         </Card>
@@ -356,7 +358,7 @@ export default function ChannelsPage() {
             <ShoppingBag className="h-8 w-8 text-orange-500" />
             <div>
               <p className="text-2xl font-bold">{totalOrders}</p>
-              <p className="text-sm text-slate-500">通路訂單數</p>
+              <p className="text-sm text-slate-500">{dict.channels.channelOrders}</p>
             </div>
           </CardContent>
         </Card>
@@ -375,8 +377,8 @@ export default function ChannelsPage() {
 
       {/* Tab Bar */}
       <div className="border-b flex gap-0">
-        <button className={tabStyle('channels')} onClick={() => setTab('channels')}>通路管理</button>
-        <button className={tabStyle('orders')}   onClick={() => setTab('orders')}>通路訂單</button>
+        <button className={tabStyle('channels')} onClick={() => setTab('channels')}>{dict.channels.channelMgmt}</button>
+        <button className={tabStyle('orders')}   onClick={() => setTab('orders')}>{dict.channels.channelOrders}</button>
       </div>
 
       {/* ─── Channels Tab ─────────────────────────────────── */}
@@ -384,7 +386,7 @@ export default function ChannelsPage() {
         <div className="space-y-4">
           <div className="flex justify-end">
             <Button onClick={openNewChannel}>
-              <Plus className="h-4 w-4 mr-2" />新增通路
+              <Plus className="h-4 w-4 mr-2" />{dict.channelsExt.newChannel}
             </Button>
           </div>
 
@@ -392,7 +394,7 @@ export default function ChannelsPage() {
           <Dialog open={chOpen} onOpenChange={setChOpen}>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>{chEdit ? '編輯通路' : '新增通路'}</DialogTitle>
+                <DialogTitle>{chEdit ? dict.common.edit : dict.channelsExt.newChannel}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="grid grid-cols-2 gap-3">
@@ -461,12 +463,12 @@ export default function ChannelsPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setChOpen(false)}>取消</Button>
+                <Button variant="outline" onClick={() => setChOpen(false)}>{dict.common.cancel}</Button>
                 <Button
                   onClick={saveChannel}
                   disabled={saving || !chForm.code || !chForm.name}
                 >
-                  {saving ? '儲存中...' : '儲存'}
+                  {saving ? dict.common.saving : dict.common.save}
                 </Button>
               </div>
             </DialogContent>
@@ -480,7 +482,7 @@ export default function ChannelsPage() {
           ) : channels.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
               <Store className="h-10 w-10 mx-auto mb-2 opacity-30" />
-              尚無通路，點擊右上角新增
+              {dict.channelsExt.noChannels}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -623,7 +625,7 @@ export default function ChannelsPage() {
             <div className="flex-1" />
 
             <Button onClick={openNewOrder}>
-              <Plus className="h-4 w-4 mr-2" />新增通路訂單
+              <Plus className="h-4 w-4 mr-2" />{dict.channels.channelOrders}
             </Button>
           </div>
 
@@ -631,7 +633,7 @@ export default function ChannelsPage() {
           <Dialog open={ordOpen} onOpenChange={setOrdOpen}>
             <DialogContent className="sm:max-w-2xl">
               <DialogHeader>
-                <DialogTitle>{ordEdit ? '編輯通路訂單' : '新增通路訂單'}</DialogTitle>
+                <DialogTitle>{ordEdit ? dict.common.edit : dict.channels.channelOrders}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto">
                 {/* Channel + Status */}
@@ -808,12 +810,12 @@ export default function ChannelsPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setOrdOpen(false)}>取消</Button>
+                <Button variant="outline" onClick={() => setOrdOpen(false)}>{dict.common.cancel}</Button>
                 <Button
                   onClick={saveOrder}
                   disabled={saving || !ordForm.channelId || !ordForm.buyerName || ordForm.items.every(i => !i.productId)}
                 >
-                  {saving ? '儲存中...' : '儲存'}
+                  {saving ? dict.common.saving : dict.common.save}
                 </Button>
               </div>
             </DialogContent>

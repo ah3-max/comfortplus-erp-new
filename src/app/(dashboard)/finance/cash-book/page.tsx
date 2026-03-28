@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -25,6 +26,7 @@ function fmt(n: number) {
 }
 
 export default function CashBookPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
   const [startDate, setStartDate] = useState(firstOfMonth)
@@ -52,18 +54,18 @@ export default function CashBookPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">現金出納帳</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.cashBook}</h1>
           <p className="text-sm text-muted-foreground">收付款逐筆明細與累計餘額</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.startDate}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.endDate}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
@@ -74,7 +76,7 @@ export default function CashBookPage() {
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
         </Button>
       </div>
 
@@ -168,7 +170,7 @@ export default function CashBookPage() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請點擊查詢載入資料
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ import {
   Bot, CheckCircle2, XCircle, Loader2, RefreshCw, Server, Cpu,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface HealthData {
   config: {
@@ -27,6 +28,7 @@ interface HealthData {
 }
 
 export default function AiSettingsPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const role = (session?.user?.role as string) ?? ''
   const isAdmin = ['SUPER_ADMIN', 'GM'].includes(role)
@@ -88,7 +90,7 @@ export default function AiSettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">AI 設定</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.settings.title} — AI</h1>
         <p className="text-sm text-muted-foreground">管理 AI 助手的模型連線設定</p>
       </div>
 
@@ -100,7 +102,7 @@ export default function AiSettingsPage() {
               <Bot className="h-5 w-5 text-violet-500" />
               連線狀態
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loading} title={dict.common.refresh}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -108,7 +110,7 @@ export default function AiSettingsPage() {
         <CardContent className="space-y-3">
           {loading ? (
             <div className="flex items-center gap-2 text-muted-foreground py-4">
-              <Loader2 className="h-4 w-4 animate-spin" /> 檢查中...
+              <Loader2 className="h-4 w-4 animate-spin" /> {dict.common.loading}
             </div>
           ) : health ? (
             <>
@@ -156,7 +158,7 @@ export default function AiSettingsPage() {
               )}
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">無法取得狀態</p>
+            <p className="text-sm text-muted-foreground">{dict.common.loadFailed}</p>
           )}
         </CardContent>
       </Card>
@@ -235,6 +237,7 @@ export default function AiSettingsPage() {
           <><Bot className="h-4 w-4 mr-2" /> 測試 AI 連線</>
         )}
       </Button>
+
     </div>
   )
 }

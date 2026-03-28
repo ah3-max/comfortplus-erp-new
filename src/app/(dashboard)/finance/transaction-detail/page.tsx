@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -44,6 +45,7 @@ function fmt(n: number) {
 }
 
 export default function TransactionDetailPage() {
+  const { dict } = useI18n()
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
   const [startDate, setStartDate] = useState(firstOfMonth)
@@ -64,7 +66,7 @@ export default function TransactionDetailPage() {
       if (!res.ok) throw new Error()
       setData(await res.json())
       setPage(p)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate, entryType, status])
 
@@ -95,32 +97,32 @@ export default function TransactionDetailPage() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">狀態</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.status}</label>
           <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
             <option value="POSTED">已過帳</option>
             <option value="DRAFT">草稿</option>
-            <option value="">全部</option>
+            <option value="">{dict.common.all}</option>
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">類型</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.common.type}</label>
           <select value={entryType} onChange={e => setEntryType(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="">全部</option>
+            <option value="">{dict.common.all}</option>
             <option value="MANUAL">手動</option>
             <option value="AUTO">自動</option>
             <option value="ADJUSTMENT">調整</option>
             <option value="CLOSING">結帳</option>
           </select>
         </div>
-        <Button onClick={() => fetchData(1)} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={() => fetchData(1)} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}</Button>
       </div>
       {data && (
         <>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>共 {data.pagination.total} 筆 · 第 {data.pagination.page}/{data.pagination.totalPages} 頁</span>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" disabled={page <= 1 || loading} onClick={() => fetchData(page - 1)}>上一頁</Button>
-              <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages || loading} onClick={() => fetchData(page + 1)}>下一頁</Button>
+              <Button size="sm" variant="outline" disabled={page <= 1 || loading} onClick={() => fetchData(page - 1)}>{dict.common.prevPage}</Button>
+              <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages || loading} onClick={() => fetchData(page + 1)}>{dict.common.nextPage}</Button>
             </div>
           </div>
           <div className="rounded-lg border bg-white overflow-hidden">
@@ -187,7 +189,7 @@ export default function TransactionDetailPage() {
           </div>
         </>
       )}
-      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">請點擊查詢載入資料</div>}
+      {!data && !loading && <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">{dict.reportsExt.noData}</div>}
     </div>
   )
 }

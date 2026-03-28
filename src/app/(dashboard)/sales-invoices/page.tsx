@@ -587,7 +587,7 @@ export default function SalesInvoicesPage() {
                       </select>
                     </div>
                     <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs">數量</Label>
+                      <Label className="text-xs">{dict.common.quantity}</Label>
                       <Input type="number" min={1} value={item.quantity}
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
@@ -634,16 +634,16 @@ export default function SalesInvoicesPage() {
             </div>
 
             <div>
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setFormOpen(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setFormOpen(false)}>{dict.common.cancel}</Button>
               <Button onClick={handleSubmit} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editTarget ? '更新' : '建立'}
+                {editTarget ? dict.common.save : dict.common.create}
               </Button>
             </div>
           </div>

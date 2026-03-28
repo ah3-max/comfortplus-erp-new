@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,6 +35,7 @@ const CATS = ['LAPTOP', 'PHONE', 'PROJECTOR', 'VEHICLE', 'OTHER']
 const CAT_LABELS: Record<string, string> = { LAPTOP: '筆電', PHONE: '手機', PROJECTOR: '投影機', VEHICLE: '車輛', OTHER: '其他' }
 
 export default function AssetLoansPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const [loans, setLoans] = useState<AssetLoan[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,8 +61,8 @@ export default function AssetLoansPage() {
       body: JSON.stringify({ ...form, borrowerId: form.borrowerId || session?.user?.id, expectedReturnDate: form.expectedReturnDate || null }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('借用記錄已建立'); setDialog(false); load() }
-    else toast.error('建立失敗')
+    if (res.ok) { toast.success(dict.assetLoans.newLoan); setDialog(false); load() }
+    else toast.error(dict.common.saveFailed)
   }
 
   async function returnAsset(id: string) {
@@ -69,18 +71,18 @@ export default function AssetLoansPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'RETURN' }),
     })
-    if (res.ok) { toast.success('已歸還'); load() }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(dict.assetLoans.actualReturn); load() }
+    else toast.error(dict.common.saveFailed)
   }
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">資產借用管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.assetLoans.title}</h1>
           <p className="text-sm text-muted-foreground">管理公司設備借用與歸還</p>
         </div>
-        <Button onClick={() => setDialog(true)}><Plus className="h-4 w-4 mr-1" />新增借用</Button>
+        <Button onClick={() => setDialog(true)}><Plus className="h-4 w-4 mr-1" />{dict.assetLoans.newLoan}</Button>
       </div>
 
       <div className="flex items-center gap-3">
@@ -96,7 +98,7 @@ export default function AssetLoansPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : loans.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">暫無借用記錄</div>
+        <div className="text-center py-16 text-muted-foreground">{dict.assetLoans.noLoans}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {loans.map(l => {
@@ -114,13 +116,13 @@ export default function AssetLoansPage() {
                 </CardHeader>
                 <CardContent className="pt-0 space-y-1 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">分類</span><span>{CAT_LABELS[l.category] ?? l.category}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">借用人</span><span>{l.borrower.name}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">借用日</span><span>{l.borrowDate?.slice(0, 10)}</span></div>
-                  {l.expectedReturnDate && <div className="flex justify-between"><span className="text-muted-foreground">預計歸還</span><span>{l.expectedReturnDate.slice(0, 10)}</span></div>}
-                  {l.actualReturnDate && <div className="flex justify-between"><span className="text-muted-foreground">實際歸還</span><span>{l.actualReturnDate.slice(0, 10)}</span></div>}
+                  <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.borrower}</span><span>{l.borrower.name}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.loanDate}</span><span>{l.borrowDate?.slice(0, 10)}</span></div>
+                  {l.expectedReturnDate && <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.returnDate}</span><span>{l.expectedReturnDate.slice(0, 10)}</span></div>}
+                  {l.actualReturnDate && <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.actualReturn}</span><span>{l.actualReturnDate.slice(0, 10)}</span></div>}
                   {l.status === 'BORROWED' && (
                     <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => returnAsset(l.id)}>
-                      <RotateCcw className="h-3.5 w-3.5 mr-1" />歸還
+                      <RotateCcw className="h-3.5 w-3.5 mr-1" />{dict.assetLoans.statuses.RETURNED}
                     </Button>
                   )}
                 </CardContent>
@@ -132,14 +134,14 @@ export default function AssetLoansPage() {
 
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增借用</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.assetLoans.newLoan}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>設備名稱</Label>
+              <Label>{dict.assetLoans.asset}</Label>
               <Input value={form.assetName} onChange={e => setForm(f => ({ ...f, assetName: e.target.value }))} className="mt-1" placeholder="MacBook Pro 14" />
             </div>
             <div>
-              <Label>資產編號（選填）</Label>
+              <Label>{dict.assetLoans.loanNo}</Label>
               <Input value={form.assetCode} onChange={e => setForm(f => ({ ...f, assetCode: e.target.value }))} className="mt-1" placeholder="IT-001" />
             </div>
             <div>
@@ -150,18 +152,18 @@ export default function AssetLoansPage() {
               </Select>
             </div>
             <div>
-              <Label>借用日期</Label>
+              <Label>{dict.assetLoans.loanDate}</Label>
               <Input type="date" value={form.borrowDate} onChange={e => setForm(f => ({ ...f, borrowDate: e.target.value }))} className="mt-1" />
             </div>
             <div>
-              <Label>預計歸還日（選填）</Label>
+              <Label>{dict.assetLoans.returnDate}</Label>
               <Input type="date" value={form.expectedReturnDate} onChange={e => setForm(f => ({ ...f, expectedReturnDate: e.target.value }))} className="mt-1" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={saving || !form.assetName}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>

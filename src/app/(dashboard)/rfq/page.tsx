@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -23,26 +24,6 @@ import {
 import { toast } from 'sonner'
 
 type RFQStatus = 'DRAFT' | 'SENT' | 'RESPONDED' | 'COMPLETED' | 'CANCELLED'
-
-const statusConfig: Record<RFQStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  DRAFT:     { label: '草稿', variant: 'outline' },
-  SENT:      { label: '已送出', variant: 'secondary' },
-  RESPONDED: { label: '已回覆', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  COMPLETED: { label: '已完成', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED: { label: '已取消', variant: 'destructive' },
-}
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'DRAFT', label: '草稿' },
-  { value: 'SENT', label: '已送出' },
-  { value: 'RESPONDED', label: '已回覆' },
-  { value: 'COMPLETED', label: '已完成' },
-]
 
 interface RFQItem {
   id: string; productId: string; quantity: string; specification: string | null
