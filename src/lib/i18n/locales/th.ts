@@ -98,6 +98,8 @@ const th = {
     abcAnalysis: 'วิเคราะห์ ABC สินค้า',
     grossMargin: 'วิเคราะห์กำไรขั้นต้น',
     reorderCycle: 'วงจรการสั่งซื้อของลูกค้า',
+    deliveryPerformance: 'อัตราการส่งมอบตรงเวลา',
+    deadStock: 'วิเคราะห์สินค้าค้างสต็อก',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',

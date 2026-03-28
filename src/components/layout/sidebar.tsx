@@ -79,7 +79,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
-  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' |
+  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' | 'deliveryPerformance' | 'deadStock' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -137,6 +137,7 @@ const navGroups: NavGroup[] = [
       { href: '/traceability',     key: 'traceability',   icon: SearchCode },
       { href: '/expiry-tracking',   key: 'expiryTracking',   icon: Clock },
       { href: '/inventory-movement', key: 'inventoryMovement', icon: BarChart3 },
+      { href: '/dead-stock',         key: 'deadStock',         icon: PackageX },
       { href: '/sales-analysis',    key: 'salesAnalysis',    icon: TrendingUp },
       { href: '/gross-margin',      key: 'grossMargin',      icon: DollarSign },
       { href: '/wms',           key: 'wms',          icon: Warehouse },
@@ -150,6 +151,7 @@ const navGroups: NavGroup[] = [
       { href: '/dispatch',     key: 'dispatch',    icon: Truck },
       { href: '/pickup',       key: 'pickup',      icon: Package },
       { href: '/logistics',    key: 'logistics',   icon: Navigation },
+      { href: '/delivery-performance', key: 'deliveryPerformance', icon: BarChart3 },
     ],
   },
   {

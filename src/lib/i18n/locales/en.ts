@@ -98,6 +98,8 @@ const en = {
     abcAnalysis: 'Product ABC Analysis',
     grossMargin: 'Gross Margin Analysis',
     reorderCycle: 'Customer Reorder Cycle',
+    deliveryPerformance: 'Delivery On-Time Rate',
+    deadStock: 'Dead Stock Analysis',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

@@ -100,6 +100,8 @@ const zhTW = {
     abcAnalysis: '品項 ABC 分析',
     grossMargin: '毛利分析',
     reorderCycle: '客戶下單週期分析',
+    deliveryPerformance: '出貨準時率分析',
+    deadStock: '庫存呆滯分析',
     arAging: '應收帳齡',
     finance: '財務報表',
     apAging: '應付帳齡',
