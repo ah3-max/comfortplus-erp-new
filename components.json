@@ -1,4 +1,3 @@
-claude "請輸出 CLAUDE.md 的完整內容"cat CLAUDE.md 2>/dev/null || echo "沒有 CLAUDE.md"
 {
   "$schema": "https://ui.shadcn.com/schema.json",
   "style": "base-nova",
