@@ -1745,10 +1745,17 @@ const en = {
     noResults: 'No matching invoices found',
     noInvoices: 'No invoice records yet',
     statuses: {
-      DRAFT: 'Draft',
-      ISSUED: 'Issued',
-      VOID: 'Void',
-      ALLOWANCE: 'Allowance',
+      CREATED: 'Created',
+      APPROVED: 'Approved',
+      VOIDED: 'Voided',
+      CREDIT_NOTE: 'Credit Note',
+    },
+    transmitStatuses: {
+      PENDING: 'Pending',
+      PROCESSING: 'Processing',
+      TRANSMITTED: 'Transmitted',
+      FAILED: 'Failed',
+      EMAIL_SENT: 'Email Sent',
     },
   },
 

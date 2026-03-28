@@ -25,34 +25,20 @@ import { useI18n } from '@/lib/i18n/context'
 type EInvoiceStatus = 'CREATED' | 'APPROVED' | 'VOIDED' | 'CREDIT_NOTE'
 type TransmitStatus = 'PENDING' | 'PROCESSING' | 'TRANSMITTED' | 'FAILED' | 'EMAIL_SENT'
 
-const statusConfig: Record<EInvoiceStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  CREATED:     { label: '已建立', variant: 'outline' },
-  APPROVED:    { label: '已核准', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  VOIDED:      { label: '已作廢', variant: 'destructive' },
-  CREDIT_NOTE: { label: '折讓', variant: 'secondary' },
+const statusVariant: Record<EInvoiceStatus, { variant: 'default' | 'secondary' | 'outline' | 'destructive'; className?: string }> = {
+  CREATED:     { variant: 'outline' },
+  APPROVED:    { variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+  VOIDED:      { variant: 'destructive' },
+  CREDIT_NOTE: { variant: 'secondary' },
 }
 
-const transmitConfig: Record<TransmitStatus, {
-  label: string
-  className: string
-}> = {
-  PENDING:     { label: '待傳送', className: 'bg-slate-100 text-slate-600' },
-  PROCESSING:  { label: '傳送中', className: 'bg-blue-100 text-blue-600' },
-  TRANSMITTED: { label: '已傳送', className: 'bg-green-100 text-green-700' },
-  FAILED:      { label: '傳送失敗', className: 'bg-red-100 text-red-600' },
-  EMAIL_SENT:  { label: 'Email已寄', className: 'bg-teal-100 text-teal-700' },
+const transmitCls: Record<TransmitStatus, string> = {
+  PENDING:     'bg-slate-100 text-slate-600',
+  PROCESSING:  'bg-blue-100 text-blue-600',
+  TRANSMITTED: 'bg-green-100 text-green-700',
+  FAILED:      'bg-red-100 text-red-600',
+  EMAIL_SENT:  'bg-teal-100 text-teal-700',
 }
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'CREATED', label: '已建立' },
-  { value: 'APPROVED', label: '已核准' },
-  { value: 'VOIDED', label: '已作廢' },
-]
 
 interface EInvoice {
   id: string; invoiceNumber: string; date: string; status: EInvoiceStatus
@@ -92,6 +78,15 @@ function formatDate(str: string) {
 
 export default function EInvoicesPage() {
   const { dict } = useI18n()
+  const ei = dict.eInvoices
+  type EIS = keyof typeof ei.statuses
+  type TRS = keyof typeof ei.transmitStatuses
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'CREATED', label: ei.statuses.CREATED },
+    { value: 'APPROVED', label: ei.statuses.APPROVED },
+    { value: 'VOIDED', label: ei.statuses.VOIDED },
+  ]
   const [invoices, setInvoices] = useState<EInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -298,8 +293,10 @@ export default function EInvoicesPage() {
               </TableRow>
             ) : (
               invoices.map((inv) => {
-                const sc = statusConfig[inv.status] ?? { label: inv.status, variant: 'outline' }
-                const tc = transmitConfig[inv.transmitStatus] ?? { label: inv.transmitStatus, className: '' }
+                const sv = statusVariant[inv.status] ?? { variant: 'outline' as const }
+                const scLabel = ei.statuses[inv.status as EIS] ?? inv.status
+                const tcCls = transmitCls[inv.transmitStatus] ?? ''
+                const tcLabel = ei.transmitStatuses[inv.transmitStatus as TRS] ?? inv.transmitStatus
                 return (
                   <TableRow key={inv.id} className="group hover:bg-slate-50/80">
                     <TableCell className="font-mono text-sm font-medium">{inv.invoiceNumber}</TableCell>
@@ -315,11 +312,11 @@ export default function EInvoicesPage() {
                     <TableCell className="text-right">{formatCurrency(inv.subtotal)}</TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(inv.totalAmount)}</TableCell>
                     <TableCell>
-                      <Badge variant={sc.variant} className={sc.className}>{sc.label}</Badge>
+                      <Badge variant={sv.variant} className={sv.className}>{scLabel}</Badge>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tc.className}`}>
-                        {tc.label}
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tcCls}`}>
+                        {tcLabel}
                       </span>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{formatDate(inv.createdAt)}</TableCell>
@@ -330,12 +327,12 @@ export default function EInvoicesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
                           {inv.status === 'CREATED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'APPROVED', '核准')}>
+                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'APPROVED', ei.statuses.APPROVED)}>
                               <CheckCircle2 className="mr-2 h-4 w-4" />核准發票
                             </DropdownMenuItem>
                           )}
                           {inv.status === 'APPROVED' && inv.transmitStatus === 'PENDING' && (
-                            <DropdownMenuItem onClick={() => updateTransmit(inv.id, 'TRANSMITTED', '傳送')}>
+                            <DropdownMenuItem onClick={() => updateTransmit(inv.id, 'TRANSMITTED', ei.transmitStatuses.TRANSMITTED)}>
                               <Send className="mr-2 h-4 w-4" />標記已傳送
                             </DropdownMenuItem>
                           )}
@@ -375,14 +372,16 @@ export default function EInvoicesPage() {
           </div>
         ) : (
           invoices.map((inv) => {
-            const sc = statusConfig[inv.status] ?? { label: inv.status, variant: 'outline' as const }
-            const tc = transmitConfig[inv.transmitStatus] ?? { label: inv.transmitStatus, className: '' }
+            const sv2 = statusVariant[inv.status] ?? { variant: 'outline' as const }
+            const scLabel2 = ei.statuses[inv.status as EIS] ?? inv.status
+            const tcCls2 = transmitCls[inv.transmitStatus] ?? ''
+            const tcLabel2 = ei.transmitStatuses[inv.transmitStatus as TRS] ?? inv.transmitStatus
             return (
               <div key={inv.id}
                 className="rounded-lg border bg-white p-4 space-y-2 active:scale-[0.97] transition-transform">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-sm font-medium">{inv.invoiceNumber}</span>
-                  <Badge variant={sc.variant} className={sc.className}>{sc.label}</Badge>
+                  <Badge variant={sv2.variant} className={sv2.className}>{scLabel2}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{inv.customer.name}</span>
@@ -392,8 +391,8 @@ export default function EInvoicesPage() {
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">{formatCurrency(inv.totalAmount)}</span>
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tc.className}`}>
-                    {tc.label}
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tcCls2}`}>
+                    {tcLabel2}
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground text-right">{formatDate(inv.createdAt)}</div>

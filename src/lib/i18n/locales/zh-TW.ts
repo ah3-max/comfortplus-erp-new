@@ -1776,10 +1776,17 @@ const zhTW = {
     noResults: '找不到符合的發票',
     noInvoices: '尚無發票記錄',
     statuses: {
-      DRAFT: '草稿',
-      ISSUED: '已開立',
-      VOID: '已作廢',
-      ALLOWANCE: '已折讓',
+      CREATED: '已建立',
+      APPROVED: '已核准',
+      VOIDED: '已作廢',
+      CREDIT_NOTE: '折讓單',
+    },
+    transmitStatuses: {
+      PENDING: '待傳送',
+      PROCESSING: '傳送中',
+      TRANSMITTED: '已傳送',
+      FAILED: '傳送失敗',
+      EMAIL_SENT: 'Email已送',
     },
   },
 
