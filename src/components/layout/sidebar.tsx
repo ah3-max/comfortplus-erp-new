@@ -79,7 +79,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
-  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' | 'deliveryPerformance' | 'deadStock' |
+  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' | 'deliveryPerformance' | 'deadStock' | 'meetingRecords' | 'salespersonPerformance' | 'returnAnalysis' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -124,6 +124,9 @@ const navGroups: NavGroup[] = [
       { href: '/pipeline',            key: 'pipeline',       icon: Target },
       { href: '/sales-opportunities', key: 'opportunities',  icon: Briefcase },
       { href: '/tasks',               key: 'tasks',          icon: ListTodo },
+      { href: '/meeting-records',       key: 'meetingRecords',      icon: CalendarDays },
+      { href: '/return-analysis',       key: 'returnAnalysis',      icon: RotateCcw },
+      { href: '/salesperson-performance', key: 'salespersonPerformance', icon: Users },
     ],
   },
   {
