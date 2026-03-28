@@ -1558,6 +1558,443 @@ async function main() {
     }
   } catch (e) { console.error('❌ MeetingRecord 失敗:', e) }
 
+  // ========== Announcement ==========
+  try {
+    const adminForAnn = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+    if (adminForAnn) {
+      const announcements = [
+        {
+          title: '【重要】2026年Q2倉儲作業調整公告',
+          content: '因應業務量增加，龜山主倉自4月1日起實施新批次管理制度，所有出貨需掃描批號確認。請倉管人員於3月31日前完成系統教育訓練。',
+          category: 'POLICY',
+          priority: 'HIGH',
+          isPinned: true,
+          isPublished: true,
+          publishedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+          expiresAt: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+          targetRoles: ['WAREHOUSE', 'WAREHOUSE_MANAGER'],
+          createdById: adminForAnn.id,
+        },
+        {
+          title: '系統維護通知：3/30 凌晨 02:00-04:00',
+          content: '本系統將於 2026-03-30 凌晨 02:00 至 04:00 進行例行維護更新。期間系統暫停服務，請提前完成相關作業。',
+          category: 'IT',
+          priority: 'URGENT',
+          isPinned: true,
+          isPublished: true,
+          publishedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000),
+          expiresAt: new Date(Date.now() + 3 * 24 * 3600 * 1000),
+          targetRoles: [],
+          createdById: adminForAnn.id,
+        },
+        {
+          title: '2026年Q1業績達成總結',
+          content: 'Q1業績達成率87%，感謝全體業務同仁努力。Q2目標提升至1,200萬，詳細分解目標請見附件。',
+          category: 'GENERAL',
+          priority: 'NORMAL',
+          isPinned: false,
+          isPublished: true,
+          publishedAt: new Date(Date.now() - 10 * 24 * 3600 * 1000),
+          targetRoles: ['SALES', 'SALES_MANAGER', 'GM'],
+          createdById: adminForAnn.id,
+        },
+        {
+          title: '新人事規定：差旅費用申報流程更新',
+          content: '自4月起差旅費用申報需檢附電子發票，並於出差後7天內提交。詳細規定請參閱HR公告。',
+          category: 'HR',
+          priority: 'NORMAL',
+          isPinned: false,
+          isPublished: false,
+          targetRoles: [],
+          createdById: adminForAnn.id,
+        },
+      ]
+      for (const ann of announcements) {
+        const exists = await prisma.announcement.findFirst({ where: { title: ann.title } })
+        if (!exists) await prisma.announcement.create({ data: ann })
+      }
+      console.log('✅ Announcement 建立完成 (4 筆)')
+    }
+  } catch (e) { console.error('❌ Announcement 失敗:', e) }
+
+  // ========== AssetLoan ==========
+  try {
+    const adminForLoan = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+    const salesUserLoan = await prisma.user.findFirst({ where: { email: 'sales@comfortplus.com' } })
+    const warehouseUserLoan = await prisma.user.findFirst({ where: { email: 'warehouse@comfortplus.com' } })
+    if (adminForLoan && salesUserLoan && warehouseUserLoan) {
+      const loans = [
+        {
+          assetName: 'MacBook Pro 16吋',
+          assetCode: 'FA-2022-001-3',
+          category: 'LAPTOP',
+          borrowerId: salesUserLoan.id,
+          borrowDate: new Date(Date.now() - 30 * 24 * 3600 * 1000),
+          expectedReturnDate: new Date(Date.now() + 60 * 24 * 3600 * 1000),
+          status: 'BORROWED',
+          condition: '良好',
+          notes: '業務外訪使用',
+          createdById: adminForLoan.id,
+        },
+        {
+          assetName: 'iPhone 15 Pro（公務機）',
+          assetCode: 'PHONE-2024-002',
+          category: 'PHONE',
+          borrowerId: salesUserLoan.id,
+          borrowDate: new Date(Date.now() - 60 * 24 * 3600 * 1000),
+          expectedReturnDate: new Date(Date.now() + 120 * 24 * 3600 * 1000),
+          status: 'BORROWED',
+          condition: '良好',
+          notes: '業務專用門號',
+          createdById: adminForLoan.id,
+        },
+        {
+          assetName: 'EPSON 投影機 EB-2247U',
+          assetCode: 'PROJ-2023-001',
+          category: 'PROJECTOR',
+          borrowerId: warehouseUserLoan.id,
+          borrowDate: new Date(Date.now() - 10 * 24 * 3600 * 1000),
+          expectedReturnDate: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+          actualReturnDate: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+          status: 'RETURNED',
+          condition: '良好，已清潔',
+          notes: '教育訓練使用',
+          createdById: adminForLoan.id,
+        },
+        {
+          assetName: '手推搬運車 #3',
+          assetCode: 'WH-CART-003',
+          category: 'OTHER',
+          borrowerId: warehouseUserLoan.id,
+          borrowDate: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+          expectedReturnDate: new Date(Date.now() + 2 * 24 * 3600 * 1000),
+          status: 'OVERDUE',
+          condition: '正常使用中',
+          notes: '盤點作業使用，逾期未還',
+          createdById: adminForLoan.id,
+        },
+      ]
+      for (const loan of loans) {
+        const exists = await prisma.assetLoan.findFirst({ where: { assetCode: loan.assetCode, borrowerId: loan.borrowerId } })
+        if (!exists) await prisma.assetLoan.create({ data: loan })
+      }
+      console.log('✅ AssetLoan 建立完成 (4 筆)')
+    }
+  } catch (e) { console.error('❌ AssetLoan 失敗:', e) }
+
+  // ========== PurchasePlan + PurchasePlanItem ==========
+  try {
+    const procUser = await prisma.user.findFirst({ where: { email: 'procurement@comfortplus.com' } })
+    const adminForPP = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+    const productsForPP = await prisma.product.findMany({ take: 5, select: { id: true } })
+    const supplierForPP = await prisma.supplier.findFirst()
+    const creatorId = procUser?.id ?? adminForPP?.id
+    if (creatorId && productsForPP.length >= 3) {
+      const plans = [
+        {
+          planNo: 'PP-2026-03',
+          planYear: 2026,
+          planMonth: 3,
+          status: 'APPROVED',
+          totalBudget: 1850000,
+          notes: '3月採購計畫，含越南進口批次',
+          createdById: creatorId,
+          items: [
+            { productId: productsForPP[0].id, requiredQty: 5000, unitPrice: 185, supplierId: supplierForPP?.id, expectedDate: new Date('2026-03-20'), lineNo: 1 },
+            { productId: productsForPP[1].id, requiredQty: 3000, unitPrice: 190, supplierId: supplierForPP?.id, expectedDate: new Date('2026-03-25'), lineNo: 2 },
+            { productId: productsForPP[2].id, requiredQty: 2000, unitPrice: 195, supplierId: supplierForPP?.id, expectedDate: new Date('2026-03-28'), lineNo: 3 },
+          ],
+        },
+        {
+          planNo: 'PP-2026-04',
+          planYear: 2026,
+          planMonth: 4,
+          status: 'DRAFT',
+          totalBudget: 2200000,
+          notes: '4月採購計畫草稿，Q2首批',
+          createdById: creatorId,
+          items: [
+            { productId: productsForPP[0].id, requiredQty: 6000, unitPrice: 185, supplierId: supplierForPP?.id, expectedDate: new Date('2026-04-15'), lineNo: 1 },
+            { productId: productsForPP[3]?.id ?? productsForPP[0].id, requiredQty: 4000, unitPrice: 188, supplierId: supplierForPP?.id, expectedDate: new Date('2026-04-20'), lineNo: 2 },
+          ],
+        },
+      ]
+      for (const plan of plans) {
+        const exists = await prisma.purchasePlan.findFirst({ where: { planNo: plan.planNo } })
+        if (!exists) {
+          const { items, ...planData } = plan
+          await prisma.purchasePlan.create({
+            data: {
+              ...planData,
+              items: { create: items },
+            },
+          })
+        }
+      }
+      console.log('✅ PurchasePlan (2) + PurchasePlanItem 建立完成')
+    }
+  } catch (e) { console.error('❌ PurchasePlan 失敗:', e) }
+
+  // ========== ApprovalRequest + ApprovalStep ==========
+  try {
+    const salesUserApproval = await prisma.user.findFirst({ where: { email: 'sales@comfortplus.com' } })
+    const managerUserApproval = await prisma.user.findFirst({ where: { email: 'manager@comfortplus.com' } })
+    const adminForApproval2 = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+    const approvalTemplate = await prisma.approvalTemplate.findFirst({ where: { module: 'ORDER' } })
+    if (salesUserApproval && managerUserApproval && adminForApproval2) {
+      const approvalRequests = [
+        {
+          requestNo: 'APR-2026-001',
+          templateId: approvalTemplate?.id,
+          module: 'ORDER',
+          entityId: 'SO-LARGE-001',
+          entityLabel: '大型訂單 #SO-2026-018（總額 58萬）',
+          status: 'APPROVED',
+          currentStep: 2,
+          requestedById: salesUserApproval.id,
+          completedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+          notes: '大額訂單需主管簽核',
+          steps: [
+            { stepOrder: 1, stepName: '業務主管審核', approverId: managerUserApproval.id, status: 'APPROVED', action: 'APPROVE', comment: '訂單金額合理，客戶信用良好，同意', actedAt: new Date(Date.now() - 6 * 24 * 3600 * 1000) },
+            { stepOrder: 2, stepName: '總經理核准', approverId: adminForApproval2.id, status: 'APPROVED', action: 'APPROVE', comment: '核准', actedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000) },
+          ],
+        },
+        {
+          requestNo: 'APR-2026-002',
+          module: 'PURCHASE_REQUEST',
+          entityId: 'PR-2026-005',
+          entityLabel: '採購請購單 #PR-2026-005（護理墊 5000包）',
+          status: 'PENDING',
+          currentStep: 1,
+          requestedById: salesUserApproval.id,
+          notes: '急用補貨，請優先審核',
+          steps: [
+            { stepOrder: 1, stepName: '採購主管確認', approverId: managerUserApproval.id, status: 'PENDING' },
+            { stepOrder: 2, stepName: '財務審核', status: 'PENDING' },
+          ],
+        },
+        {
+          requestNo: 'APR-2026-003',
+          module: 'INTERNAL_USE',
+          entityId: 'IU-2026-010',
+          entityLabel: '內部領用單 #IU-2026-010（樣品 20包）',
+          status: 'REJECTED',
+          currentStep: 1,
+          requestedById: salesUserApproval.id,
+          completedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000),
+          notes: '業務樣品申請',
+          steps: [
+            { stepOrder: 1, stepName: '倉管主管審核', approverId: adminForApproval2.id, status: 'REJECTED', action: 'REJECT', comment: '本月樣品預算已用盡，請下月再申請', actedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000) },
+          ],
+        },
+      ]
+      for (const req of approvalRequests) {
+        const exists = await prisma.approvalRequest.findFirst({ where: { requestNo: req.requestNo } })
+        if (!exists) {
+          const { steps, ...reqData } = req
+          await prisma.approvalRequest.create({
+            data: {
+              ...reqData,
+              steps: { create: steps },
+            },
+          })
+        }
+      }
+      console.log('✅ ApprovalRequest (3) + ApprovalStep 建立完成')
+    }
+  } catch (e) { console.error('❌ ApprovalRequest 失敗:', e) }
+
+  // ========== ExpenseItem（補充至已有的 ExpenseReport）==========
+  try {
+    const expReport = await prisma.expenseReport.findFirst({ where: { reportNo: 'EXP-2026-001' } })
+    if (expReport) {
+      const existingItems = await prisma.expenseItem.findMany({ where: { reportId: expReport.id } })
+      if (existingItems.length === 0) {
+        await prisma.expenseItem.createMany({
+          data: [
+            { reportId: expReport.id, date: new Date('2026-03-05'), category: 'TRANSPORT', description: '拜訪台中博愛醫院高鐵票', amount: 1490, lineNo: 1 },
+            { reportId: expReport.id, date: new Date('2026-03-10'), category: 'MEAL', description: '客戶餐敘（3人）', amount: 2160, lineNo: 2 },
+            { reportId: expReport.id, date: new Date('2026-03-15'), category: 'TRANSPORT', description: '高雄拜訪計程車費', amount: 1200, lineNo: 3 },
+          ],
+        })
+        console.log('✅ ExpenseItem 補充至 EXP-2026-001 完成')
+      } else {
+        console.log('✅ ExpenseItem 已存在，跳過')
+      }
+    } else {
+      // 若 ExpenseReport 尚未建立，建立一筆含 ExpenseItem 的報告
+      const adminForEI = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+      if (adminForEI) {
+        const existingER = await prisma.expenseReport.findFirst({ where: { reportNo: 'EXP-2026-SEED' } })
+        if (!existingER) {
+          await prisma.expenseReport.create({
+            data: {
+              reportNo: 'EXP-2026-SEED',
+              title: 'Seed 測試費用報告',
+              department: '業務部',
+              status: 'DRAFT',
+              totalAmount: 3850,
+              submittedById: adminForEI.id,
+              items: {
+                create: [
+                  { date: new Date(Date.now() - 7 * 24 * 3600 * 1000), category: 'TRANSPORT', description: '台北→台中高鐵票', amount: 1490, lineNo: 1 },
+                  { date: new Date(Date.now() - 5 * 24 * 3600 * 1000), category: 'MEAL', description: '客戶午餐（2人）', amount: 1200, lineNo: 2 },
+                  { date: new Date(Date.now() - 3 * 24 * 3600 * 1000), category: 'HOTEL', description: '台中住宿一晚', amount: 1160, lineNo: 3 },
+                ],
+              },
+            },
+          })
+        }
+        console.log('✅ ExpenseItem（含 ExpenseReport）建立完成')
+      }
+    }
+  } catch (e) { console.error('❌ ExpenseItem 失敗:', e) }
+
+  // ========== CashFlowPlan ==========
+  try {
+    const adminForCF = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+    if (adminForCF) {
+      const cashFlows = [
+        { planYear: 2026, planMonth: 4, flowType: 'INFLOW', category: 'SALES_RECEIPT', description: '4月預計銷售回款', plannedAmount: 1050000, actualAmount: 0, notes: '含Q1應收帳款收回', createdById: adminForCF.id },
+        { planYear: 2026, planMonth: 4, flowType: 'INFLOW', category: 'AR_COLLECTION', description: '4月應收帳款收回', plannedAmount: 380000, actualAmount: 0, notes: '逾期帳款追回', createdById: adminForCF.id },
+        { planYear: 2026, planMonth: 4, flowType: 'OUTFLOW', category: 'PAYMENT', description: '4月供應商貨款支付', plannedAmount: 750000, actualAmount: 0, notes: '越南廠商尾款', createdById: adminForCF.id },
+        { planYear: 2026, planMonth: 4, flowType: 'OUTFLOW', category: 'SALARY', description: '4月員工薪資', plannedAmount: 420000, actualAmount: 0, notes: '含勞健保', createdById: adminForCF.id },
+        { planYear: 2026, planMonth: 4, flowType: 'OUTFLOW', category: 'RENT', description: '4月倉租+辦公室租金', plannedAmount: 85000, actualAmount: 0, notes: '龜山倉 55000 + 辦公室 30000', createdById: adminForCF.id },
+        { planYear: 2026, planMonth: 3, flowType: 'INFLOW', category: 'SALES_RECEIPT', description: '3月銷售回款（實際）', plannedAmount: 1000000, actualAmount: 882500, notes: '3月達成率88.3%', createdById: adminForCF.id },
+        { planYear: 2026, planMonth: 3, flowType: 'OUTFLOW', category: 'PAYMENT', description: '3月採購付款（實際）', plannedAmount: 680000, actualAmount: 645000, notes: '提前付款享折扣', createdById: adminForCF.id },
+      ]
+      for (const cf of cashFlows) {
+        const exists = await prisma.cashFlowPlan.findFirst({
+          where: { planYear: cf.planYear, planMonth: cf.planMonth, flowType: cf.flowType, category: cf.category },
+        })
+        if (!exists) await prisma.cashFlowPlan.create({ data: cf })
+      }
+      console.log('✅ CashFlowPlan 建立完成 (7 筆)')
+    }
+  } catch (e) { console.error('❌ CashFlowPlan 失敗:', e) }
+
+  // ========== FixedAssetDepreciation ==========
+  try {
+    const assets = await prisma.fixedAsset.findMany({ take: 3, select: { id: true, assetNo: true, purchaseAmount: true, salvageValue: true, usefulLifeYears: true } })
+    if (assets.length > 0) {
+      for (const asset of assets) {
+        const annualDepr = (Number(asset.purchaseAmount) - Number(asset.salvageValue)) / asset.usefulLifeYears
+        const monthlyDepr = Math.round(annualDepr / 12)
+        // seed 3 months: Jan, Feb, Mar 2026
+        const months = [
+          { periodYear: 2026, periodMonth: 1, openingBookValue: Number(asset.purchaseAmount) - monthlyDepr * 0 },
+          { periodYear: 2026, periodMonth: 2, openingBookValue: Number(asset.purchaseAmount) - monthlyDepr * 1 },
+          { periodYear: 2026, periodMonth: 3, openingBookValue: Number(asset.purchaseAmount) - monthlyDepr * 2 },
+        ]
+        for (const m of months) {
+          const exists = await prisma.fixedAssetDepreciation.findUnique({
+            where: { assetId_periodYear_periodMonth: { assetId: asset.id, periodYear: m.periodYear, periodMonth: m.periodMonth } },
+          })
+          if (!exists) {
+            await prisma.fixedAssetDepreciation.create({
+              data: {
+                assetId: asset.id,
+                periodYear: m.periodYear,
+                periodMonth: m.periodMonth,
+                openingBookValue: m.openingBookValue,
+                depreciationAmt: monthlyDepr,
+                closingBookValue: m.openingBookValue - monthlyDepr,
+                isPosted: m.periodMonth < 3,
+                postedAt: m.periodMonth < 3 ? new Date(`2026-0${m.periodMonth}-28`) : null,
+              },
+            })
+          }
+        }
+      }
+      console.log('✅ FixedAssetDepreciation 建立完成')
+    }
+  } catch (e) { console.error('❌ FixedAssetDepreciation 失敗:', e) }
+
+  // ========== ImportCostItem ==========
+  try {
+    const imp1 = await prisma.importProject.findFirst({ where: { projectNo: 'IMP-2026-001' } })
+    const imp2 = await prisma.importProject.findFirst({ where: { projectNo: 'IMP-2026-002' } })
+    const supplierForICI = await prisma.supplier.findFirst()
+    if (imp1) {
+      const costItems1 = [
+        { projectId: imp1.id, category: 'GOODS', description: '成人紙尿布 ADL-001 M號 5000包', currency: 'USD', amount: 80000, amountTWD: 2600000, invoiceNo: 'VN-INV-2026-001', invoiceDate: new Date('2026-01-10'), supplierId: supplierForICI?.id },
+        { projectId: imp1.id, category: 'FREIGHT', description: '海運費（基隆港）', currency: 'USD', amount: 2800, amountTWD: 91000, invoiceNo: 'SHIP-2026-0115', invoiceDate: new Date('2026-01-15') },
+        { projectId: imp1.id, category: 'CUSTOMS_DUTY', description: '進口關稅（稅率5%）', currency: 'TWD', amount: 130000, amountTWD: 130000 },
+        { projectId: imp1.id, category: 'AGENT_FEE', description: '清關代理費', currency: 'TWD', amount: 25000, amountTWD: 25000, invoiceNo: 'CA-2026-001' },
+      ]
+      for (const ci of costItems1) {
+        const exists = await prisma.importCostItem.findFirst({ where: { projectId: ci.projectId, category: ci.category, description: ci.description } })
+        if (!exists) await prisma.importCostItem.create({ data: ci })
+      }
+    }
+    if (imp2) {
+      const costItems2 = [
+        { projectId: imp2.id, category: 'GOODS', description: '成人紙尿布 ADL-002 L號 4000包', currency: 'USD', amount: 66000, amountTWD: 2164800, invoiceNo: 'VN-INV-2026-002', invoiceDate: new Date('2026-03-05'), supplierId: supplierForICI?.id },
+        { projectId: imp2.id, category: 'FREIGHT', description: '海運費（基隆港）Q2批次', currency: 'USD', amount: 2500, amountTWD: 82000, invoiceNo: 'SHIP-2026-0310', invoiceDate: new Date('2026-03-10') },
+        { projectId: imp2.id, category: 'INSURANCE', description: '貨物保險費', currency: 'USD', amount: 180, amountTWD: 5904, notes: '保險比率 0.2%' },
+      ]
+      for (const ci of costItems2) {
+        const exists = await prisma.importCostItem.findFirst({ where: { projectId: ci.projectId, category: ci.category, description: ci.description } })
+        if (!exists) await prisma.importCostItem.create({ data: ci })
+      }
+    }
+    console.log('✅ ImportCostItem 建立完成')
+  } catch (e) { console.error('❌ ImportCostItem 失敗:', e) }
+
+  // ========== ContractPaySchedule ==========
+  try {
+    const contract1 = await prisma.contract.findFirst({ where: { contractNo: 'CT-2026-001' } })
+    const contract2 = await prisma.contract.findFirst({ where: { contractNo: 'CT-2025-002' } })
+    if (contract1) {
+      const schedules1 = [
+        { contractId: contract1.id, dueDate: new Date('2026-01-31'), amount: 300000, description: '1月份供貨款', isPaid: true, paidAt: new Date('2026-02-05') },
+        { contractId: contract1.id, dueDate: new Date('2026-02-28'), amount: 300000, description: '2月份供貨款', isPaid: true, paidAt: new Date('2026-03-03') },
+        { contractId: contract1.id, dueDate: new Date('2026-03-31'), amount: 300000, description: '3月份供貨款', isPaid: false },
+        { contractId: contract1.id, dueDate: new Date('2026-04-30'), amount: 300000, description: '4月份供貨款', isPaid: false },
+      ]
+      for (const s of schedules1) {
+        const exists = await prisma.contractPaySchedule.findFirst({ where: { contractId: s.contractId, dueDate: s.dueDate } })
+        if (!exists) await prisma.contractPaySchedule.create({ data: s })
+      }
+    }
+    if (contract2) {
+      const schedules2 = [
+        { contractId: contract2.id, dueDate: new Date('2025-06-30'), amount: 240000, description: 'Q2結算款', isPaid: true, paidAt: new Date('2025-07-10') },
+        { contractId: contract2.id, dueDate: new Date('2025-09-30'), amount: 240000, description: 'Q3結算款', isPaid: true, paidAt: new Date('2025-10-08') },
+        { contractId: contract2.id, dueDate: new Date('2025-12-31'), amount: 240000, description: 'Q4結算款', isPaid: false },
+      ]
+      for (const s of schedules2) {
+        const exists = await prisma.contractPaySchedule.findFirst({ where: { contractId: s.contractId, dueDate: s.dueDate } })
+        if (!exists) await prisma.contractPaySchedule.create({ data: s })
+      }
+    }
+    console.log('✅ ContractPaySchedule 建立完成')
+  } catch (e) { console.error('❌ ContractPaySchedule 失敗:', e) }
+
+  // ========== AfterSalesLog ==========
+  try {
+    const adminForASL = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+    if (adminForASL) {
+      const asOrders = await prisma.afterSalesOrder.findMany({ take: 3, orderBy: { createdAt: 'asc' } })
+      if (asOrders.length > 0) {
+        const logs = [
+          { orderId: asOrders[0].id, logType: 'CONTACT', content: '電話聯繫林護理長，確認問題批次為 LOT-VN-202603，共3件滲漏。客戶要求3日內處理。', createdById: adminForASL.id },
+          { orderId: asOrders[0].id, logType: 'VISIT', content: '派業務人員現場查看，確認為腰貼黏性不足導致移位滲漏，已現場更換備品12包。', createdById: adminForASL.id },
+          { orderId: asOrders[0].id, logType: 'REPLACEMENT', content: '快遞補送 M號 1箱（80包）至客戶，問題批次回收3包供QC追查。', createdById: adminForASL.id },
+          { orderId: asOrders[1].id, logType: 'CONTACT', content: '電話確認護墊黏性問題，客戶張主任表示影響約5位住民，需要實際到訪評估。', createdById: adminForASL.id },
+          { orderId: asOrders[1].id, logType: 'REPAIR', content: '現場評估完成，問題為護墊尺寸與床墊不符，建議改用長型護墊，已留樣品2包試用。', createdById: adminForASL.id },
+          { orderId: asOrders[2].id, logType: 'REPLACEMENT', content: '包裝破損 XL號 1箱已完成更換，快遞送達簽收，客戶滿意。', createdById: adminForASL.id },
+          { orderId: asOrders[2].id, logType: 'RESOLVED', content: '案件結案，客戶確認問題解決，已記錄損壞原因為物流搬運碰撞，通報倉儲改善包裝。', createdById: adminForASL.id },
+        ]
+        for (const log of logs) {
+          const exists = await prisma.afterSalesLog.findFirst({ where: { orderId: log.orderId, logType: log.logType, content: log.content } })
+          if (!exists) await prisma.afterSalesLog.create({ data: log })
+        }
+        console.log('✅ AfterSalesLog 建立完成 (7 筆)')
+      }
+    }
+  } catch (e) { console.error('❌ AfterSalesLog 失敗:', e) }
+
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('admin@comfortplus.com       / admin1234       (超級管理員)')
   console.log('gm@comfortplus.com          / gm12345678      (總經理)')

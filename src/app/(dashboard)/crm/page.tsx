@@ -201,9 +201,12 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
     if (!feedbackText.trim()) return
     setSaving(true)
     try {
-      // Simple PATCH to update the sample record
-      const res = await fetch(`/api/qc`, { method: 'GET' }) // Placeholder - in real app we'd have /api/samples/[id]
-      // For now just update local state and show success
+      const res = await fetch(`/api/samples/${sampleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ followUpResult: feedbackText, hasFeedback: true }),
+      })
+      if (!res.ok) throw new Error('儲存失敗')
       setSamples(prev => prev.filter(s => s.id !== sampleId))
       setFeedbackId(null); setFeedbackText('')
       toast.success('回饋已記錄')
