@@ -9,16 +9,6 @@ import { useI18n } from '@/lib/i18n/context'
 import { Plus, Search, ShoppingBag, Store, Package, Link as LinkIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: '待處理', CONFIRMED: '已確認', SHIPPED: '已出貨',
-  DELIVERED: '已送達', COMPLETED: '已完成', CANCELLED: '已取消', RETURNED: '已退貨',
-}
-const STATUS_COLORS: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-700', CONFIRMED: 'bg-blue-100 text-blue-700',
-  SHIPPED: 'bg-indigo-100 text-indigo-700', DELIVERED: 'bg-cyan-100 text-cyan-700',
-  COMPLETED: 'bg-emerald-100 text-emerald-700', CANCELLED: 'bg-gray-100 text-gray-500',
-  RETURNED: 'bg-red-100 text-red-700',
-}
 
 interface ChannelOrderItem {
   id: string
@@ -52,6 +42,10 @@ interface Product { id: string; sku: string; name: string; sellingPrice: number 
 
 export default function ChannelOrdersPage() {
   const { dict } = useI18n()
+  const d = dict.channelOrders
+  type StatusKey = keyof typeof d.statuses
+  const getStatusLabel = (s: string) => d.statuses[s as StatusKey] ?? s
+  const getStatusColor = (s: string) => d.statusColors[s as StatusKey] ?? 'bg-gray-100 text-gray-500'
   const [orders, setOrders] = useState<ChannelOrder[]>([])
   const [channels, setChannels] = useState<SalesChannel[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -78,7 +72,7 @@ export default function ChannelOrdersPage() {
         fetch('/api/channels'),
         fetch('/api/products?pageSize=500'),
       ])
-      if (ordRes.ok) setOrders(await ordRes.json())
+      if (ordRes.ok) { const d = await ordRes.json(); setOrders(Array.isArray(d) ? d : (d.data ?? [])) }
       if (chRes.ok) {
         const d = await chRes.json()
         setChannels(d.data ?? d)
@@ -146,32 +140,32 @@ export default function ChannelOrdersPage() {
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.channelOrders ?? '通路訂單'}</h1>
+          <h1 className="text-2xl font-bold">{d.title}</h1>
           <p className="text-sm text-gray-500 mt-0.5">電商平台訂單管理（蝦皮、momo、PChome 等）</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus size={16} />新增訂單
+          <Plus size={16} />{d.newOrder}
         </Button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">訂單總數</div>
+          <div className="text-xs text-gray-400 mb-1">{d.totalOrders}</div>
           <div className="text-2xl font-bold">{filtered.length}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
           <div className="text-xs text-gray-400 mb-1 flex items-center gap-1">
-            <ShoppingBag size={12} className="text-yellow-500" />待處理
+            <ShoppingBag size={12} className="text-yellow-500" />{d.pending}
           </div>
           <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">通路收入</div>
+          <div className="text-xs text-gray-400 mb-1">{d.revenue}</div>
           <div className="text-xl font-bold">NT${totalRevenue.toLocaleString()}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">通路數</div>
+          <div className="text-xs text-gray-400 mb-1">{d.channelCount}</div>
           <div className="text-2xl font-bold">{channels.length}</div>
         </div>
       </div>
@@ -185,13 +179,13 @@ export default function ChannelOrdersPage() {
         </div>
         <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)}
           className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">全部通路</option>
+          <option value="">{d.allChannels}</option>
           {channels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">全部狀態</option>
-          {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          <option value="">{d.allStatuses}</option>
+          {Object.keys(d.statuses).map(k => <option key={k} value={k}>{getStatusLabel(k)}</option>)}
         </select>
       </div>
 
@@ -201,7 +195,7 @@ export default function ChannelOrdersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {['平台訂單號', '通路', '買家', '金額', '平台費', '實收', '狀態', '下單時間', '內部訂單'].map(h => (
+                {[d.platformOrderNo, d.channel, d.buyerName, d.orderAmount, d.platformFee, d.netAmount, dict.common.status, d.orderedAt, d.linkedOrder].map(h => (
                   <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">{h}</th>
                 ))}
               </tr>
@@ -213,7 +207,7 @@ export default function ChannelOrdersPage() {
                 <tr>
                   <td colSpan={9} className="text-center py-14 text-gray-400">
                     <Store size={36} className="mx-auto mb-2 opacity-30" />
-                    <p>無通路訂單資料</p>
+                    <p>{d.noOrders}</p>
                   </td>
                 </tr>
               ) : filtered.map(o => (
@@ -234,13 +228,13 @@ export default function ChannelOrdersPage() {
                   <td className="px-4 py-2.5 text-gray-500">{o.platformFee ? `NT$${Number(o.platformFee).toLocaleString()}` : '-'}</td>
                   <td className="px-4 py-2.5 text-emerald-700 font-medium">{o.netAmount ? `NT$${Number(o.netAmount).toLocaleString()}` : '-'}</td>
                   <td className="px-4 py-2.5">
-                    <Badge className={STATUS_COLORS[o.status] ?? 'bg-gray-100 text-gray-500'}>{STATUS_LABELS[o.status] ?? o.status}</Badge>
+                    <Badge className={getStatusColor(o.status)}>{getStatusLabel(o.status)}</Badge>
                   </td>
                   <td className="px-4 py-2.5 text-xs text-gray-500">{new Date(o.orderedAt).toLocaleDateString('zh-TW')}</td>
                   <td className="px-4 py-2.5 text-xs">
                     {o.salesOrder ? (
                       <span className="text-blue-600 flex items-center gap-1"><LinkIcon size={11} />{o.salesOrder.orderNo}</span>
-                    ) : <span className="text-gray-300">未關聯</span>}
+                    ) : <span className="text-gray-300">{d.notLinked}</span>}
                   </td>
                 </tr>
               ))}
@@ -252,11 +246,11 @@ export default function ChannelOrdersPage() {
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增通路訂單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{d.newOrder}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">通路 *</div>
+                <div className="text-xs text-gray-500 mb-1">{d.channel} *</div>
                 <select value={form.channelId} onChange={e => setForm(f => ({ ...f, channelId: e.target.value }))}
                   className="w-full border rounded-md px-3 h-9 text-sm bg-white">
                   <option value="">請選擇</option>
@@ -264,35 +258,35 @@ export default function ChannelOrdersPage() {
                 </select>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">平台訂單號 *</div>
+                <div className="text-xs text-gray-500 mb-1">{d.platformOrderNo} *</div>
                 <Input value={form.channelOrderNo} onChange={e => setForm(f => ({ ...f, channelOrderNo: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">買家姓名</div>
+                <div className="text-xs text-gray-500 mb-1">{d.buyerName}</div>
                 <Input value={form.buyerName} onChange={e => setForm(f => ({ ...f, buyerName: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">聯絡電話</div>
+                <div className="text-xs text-gray-500 mb-1">{d.buyerPhone}</div>
                 <Input value={form.buyerPhone} onChange={e => setForm(f => ({ ...f, buyerPhone: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">收件地址</div>
+              <div className="text-xs text-gray-500 mb-1">{d.buyerAddress}</div>
               <Input value={form.buyerAddress} onChange={e => setForm(f => ({ ...f, buyerAddress: e.target.value }))} className="h-9" />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">平台抽成費</div>
+                <div className="text-xs text-gray-500 mb-1">{d.platformFee}</div>
                 <Input type="number" value={form.platformFee} onChange={e => setForm(f => ({ ...f, platformFee: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">運費</div>
+                <div className="text-xs text-gray-500 mb-1">{d.shippingFee}</div>
                 <Input type="number" value={form.shippingFee} onChange={e => setForm(f => ({ ...f, shippingFee: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">下單日期</div>
+                <div className="text-xs text-gray-500 mb-1">{d.orderedAt}</div>
                 <Input type="date" value={form.orderedAt} onChange={e => setForm(f => ({ ...f, orderedAt: e.target.value }))} className="h-9" />
               </div>
             </div>
@@ -323,7 +317,7 @@ export default function ChannelOrdersPage() {
               ))}
               <Button variant="outline" size="sm" className="h-7 text-xs mt-0.5"
                 onClick={() => setFormItems(prev => [...prev, { productId: '', quantity: '1', unitPrice: '' }])}>
-                <Plus size={11} className="mr-1" />加品項
+                <Plus size={11} className="mr-1" />{d.addItem}
               </Button>
             </div>
 
@@ -332,8 +326,8 @@ export default function ChannelOrdersPage() {
               <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="h-9" />
             </div>
             <div className="flex gap-2 pt-1">
-              <Button onClick={handleCreate} className="flex-1">新增</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+              <Button onClick={handleCreate} className="flex-1">{dict.common.create}</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>{dict.common.cancel}</Button>
             </div>
           </div>
         </DialogContent>
@@ -347,20 +341,20 @@ export default function ChannelOrdersPage() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Store size={16} />{selected.channelOrderNo}
-                  <Badge className={STATUS_COLORS[selected.status]}>{STATUS_LABELS[selected.status]}</Badge>
+                  <Badge className={getStatusColor(selected.status)}>{getStatusLabel(selected.status)}</Badge>
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-3 mt-2 text-sm">
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    ['通路', selected.channel.name],
-                    ['平台', selected.channel.platform],
-                    ['買家', selected.buyerName ?? '-'],
-                    ['電話', selected.buyerPhone ?? '-'],
-                    ['訂單金額', `NT$${Number(selected.orderAmount).toLocaleString()}`],
-                    ['實收金額', selected.netAmount ? `NT$${Number(selected.netAmount).toLocaleString()}` : '-'],
-                    ['平台費', selected.platformFee ? `NT$${Number(selected.platformFee).toLocaleString()}` : '-'],
-                    ['下單時間', new Date(selected.orderedAt).toLocaleDateString('zh-TW')],
+                    [d.channel, selected.channel.name],
+                    ['Platform', selected.channel.platform],
+                    [d.buyerName, selected.buyerName ?? '-'],
+                    [d.buyerPhone, selected.buyerPhone ?? '-'],
+                    [d.orderAmount, `NT$${Number(selected.orderAmount).toLocaleString()}`],
+                    [d.netAmount, selected.netAmount ? `NT$${Number(selected.netAmount).toLocaleString()}` : '-'],
+                    [d.platformFee, selected.platformFee ? `NT$${Number(selected.platformFee).toLocaleString()}` : '-'],
+                    [d.orderedAt, new Date(selected.orderedAt).toLocaleDateString('zh-TW')],
                   ].map(([k, v]) => (
                     <div key={k} className="bg-gray-50 rounded p-2">
                       <div className="text-gray-400">{k}</div>
@@ -370,13 +364,13 @@ export default function ChannelOrdersPage() {
                 </div>
                 {selected.buyerAddress && (
                   <div className="text-xs bg-gray-50 rounded p-2">
-                    <div className="text-gray-400 mb-0.5">收件地址</div>
+                    <div className="text-gray-400 mb-0.5">{d.buyerAddress}</div>
                     <div>{selected.buyerAddress}</div>
                   </div>
                 )}
                 {selected.salesOrder && (
                   <div className="text-xs bg-blue-50 text-blue-700 rounded p-2 flex items-center gap-1.5">
-                    <LinkIcon size={11} />已關聯內部訂單：{selected.salesOrder.orderNo}
+                    <LinkIcon size={11} />{d.linkedOrder}：{selected.salesOrder.orderNo}
                   </div>
                 )}
                 {selected.items.length > 0 && (
@@ -401,14 +395,14 @@ export default function ChannelOrdersPage() {
                 {/* Status Actions */}
                 {!['COMPLETED', 'CANCELLED', 'RETURNED'].includes(selected.status) && (
                   <div>
-                    <div className="text-xs font-medium text-gray-400 mb-1.5">更新狀態</div>
+                    <div className="text-xs font-medium text-gray-400 mb-1.5">{d.updateStatus}</div>
                     <div className="flex flex-wrap gap-2">
-                      {Object.entries(STATUS_LABELS)
-                        .filter(([k]) => k !== selected.status && !['PENDING'].includes(k))
-                        .map(([k, v]) => (
+                      {Object.keys(d.statuses)
+                        .filter(k => k !== selected.status && !['PENDING'].includes(k))
+                        .map(k => (
                           <Button key={k} size="sm" variant="outline" className="h-7 text-xs"
                             onClick={() => handleStatusUpdate(selected.id, k)}>
-                            → {v}
+                            → {getStatusLabel(k)}
                           </Button>
                         ))}
                     </div>

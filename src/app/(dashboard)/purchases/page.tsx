@@ -93,7 +93,7 @@ export default function PurchasesPage() {
     else { const d = await res.json(); toast.error(d.error ?? dict.common.deleteFailed) }
   }
 
-  const pendingCount = orders.filter(o => o.status === 'CONFIRMED').length
+  const pendingCount = orders.filter(o => ['CONFIRMED', 'PARTIAL'].includes(o.status)).length
 
   const purchaseTypeLabels: Record<string, string> = {
     FINISHED_GOODS:     '成品', OEM: 'OEM',

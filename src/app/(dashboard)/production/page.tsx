@@ -192,7 +192,10 @@ export default function ProductionPage() {
     if (filterStatus)  params.set('status', filterStatus)
     if (filterFactory) params.set('factoryId', filterFactory)
     const res = await fetch(`/api/production?${params}`)
-    if (res.ok) setOrders(await res.json())
+    if (res.ok) {
+      const d = await res.json()
+      setOrders(Array.isArray(d) ? d : (d.data ?? []))
+    }
     setLoading(false)
   }, [filterStatus, filterFactory])
 
@@ -201,8 +204,8 @@ export default function ProductionPage() {
       fetch('/api/purchases'),
       fetch('/api/suppliers'),
     ])
-    if (poRes.ok)  setPurchases(await poRes.json())
-    if (supRes.ok) setSuppliers(await supRes.json())
+    if (poRes.ok)  { const d = await poRes.json();  setPurchases(Array.isArray(d) ? d : (d.data ?? [])) }
+    if (supRes.ok) { const d = await supRes.json(); setSuppliers(Array.isArray(d) ? d : (d.data ?? [])) }
   }, [])
 
   useEffect(() => { fetchOptions() }, [fetchOptions])

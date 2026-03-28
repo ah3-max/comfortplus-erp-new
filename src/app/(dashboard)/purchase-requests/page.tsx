@@ -245,15 +245,7 @@ export default function PurchaseRequestsPage() {
     if (!convertSupplierId) { toast.error('請選擇供應商'); return }
     setConverting(true)
     try {
-      // 1. Update status to ORDERED
-      const statusRes = await fetch(`/api/purchase-requests/${convertTarget.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ statusOnly: true, status: 'ORDERED' }),
-      })
-      if (!statusRes.ok) throw new Error('更新狀態失敗')
-
-      // 2. Create purchase order
+      // 1. Create purchase order first (so status only changes on success)
       const items = convertTarget.items.map(i => ({
         productId: i.product.id,
         quantity: Number(i.quantity),
@@ -272,6 +264,15 @@ export default function PurchaseRequestsPage() {
       })
       if (!poRes.ok) throw new Error('建立採購單失敗')
       const poData = await poRes.json()
+
+      // 2. Only update PR status after PO is created successfully
+      const statusRes = await fetch(`/api/purchase-requests/${convertTarget.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusOnly: true, status: 'ORDERED' }),
+      })
+      if (!statusRes.ok) throw new Error('採購單已建立，但更新請購單狀態失敗，請手動更新')
+
       toast.success(`已建立採購單 ${poData.poNo}`)
       setConvertOpen(false)
       fetchRequests()
