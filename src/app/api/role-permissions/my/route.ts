@@ -2,32 +2,80 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
-// Default modules per role (same as main route — keep in sync)
+// Default modules per role (keep in sync with /api/role-permissions/route.ts)
 const ROLE_DEFAULTS: Record<string, string[]> = {
   SUPER_ADMIN: ['*'],
   GM: ['*'],
   SALES_MANAGER: [
-    'dashboard', 'dailyReport', 'crm', 'calendar',
-    'customers', 'quotations', 'orders', 'pipeline', 'tasks',
-    'products', 'inventory', 'shipments', 'channels', 'payments', 'care', 'reports',
+    'dashboard', 'dailyReport', 'quickInput', 'crm', 'alerts', 'calendar', 'businessCalendar',
+    'customers', 'keyAccounts', 'incidents', 'quotations', 'orders', 'salesInvoices', 'eInvoices',
+    'marginCalc', 'kpi', 'pipeline', 'opportunities', 'tasks',
+    'products', 'inventory', 'shipments', 'pickup',
+    'channels', 'payments', 'arAging', 'budget', 'expenses', 'contracts',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'reports', 'documents', 'announcements',
   ],
   SALES: [
-    'dashboard', 'dailyReport', 'crm', 'calendar',
-    'customers', 'quotations', 'orders', 'pipeline', 'tasks', 'products', 'shipments', 'care',
+    'dashboard', 'dailyReport', 'quickInput', 'crm', 'calendar',
+    'customers', 'keyAccounts', 'quotations', 'orders', 'salesInvoices',
+    'kpi', 'pipeline', 'opportunities', 'tasks',
+    'products', 'shipments', 'pickup',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'announcements',
   ],
-  CARE_SUPERVISOR: ['dashboard', 'calendar', 'customers', 'care', 'tasks', 'crm'],
-  ECOMMERCE: ['dashboard', 'products', 'orders', 'channels', 'inventory', 'shipments', 'payments', 'reports'],
-  CS: ['dashboard', 'customers', 'orders', 'shipments', 'care'],
+  CARE_SUPERVISOR: [
+    'dashboard', 'calendar', 'businessCalendar', 'crm', 'alerts',
+    'customers', 'keyAccounts', 'incidents', 'tasks',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'announcements',
+  ],
+  ECOMMERCE: [
+    'dashboard', 'dailyReport',
+    'orders', 'salesInvoices', 'eInvoices', 'kpi',
+    'products', 'inventory',
+    'shipments',
+    'channels', 'retail', 'payments', 'arAging',
+    'afterSales',
+    'reports', 'announcements',
+  ],
+  CS: [
+    'dashboard', 'crm', 'calendar',
+    'customers', 'orders', 'tasks',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'announcements',
+  ],
   WAREHOUSE_MANAGER: [
-    'dashboard', 'products', 'inventory', 'warehouses', 'shipments', 'logistics',
-    'purchases', 'qc', 'packaging', 'seaFreight', 'reports',
+    'dashboard', 'quickInput', 'alerts',
+    'orders', 'salesInvoices',
+    'products', 'inventory', 'warehouses', 'stockCounts', 'internalUse', 'traceability', 'wms',
+    'shipments', 'picking', 'dispatch', 'pickup', 'logistics',
+    'purchases', 'purchaseRequests', 'suppliers', 'qc', 'packaging', 'seaFreight',
+    'importProjects', 'purchasePlans',
+    'reports', 'documents', 'announcements',
   ],
-  WAREHOUSE: ['dashboard', 'inventory', 'warehouses', 'shipments', 'logistics', 'packaging'],
+  WAREHOUSE: [
+    'dashboard', 'quickInput',
+    'inventory', 'warehouses', 'stockCounts', 'wms',
+    'shipments', 'picking', 'dispatch', 'pickup', 'logistics', 'packaging',
+    'announcements',
+  ],
   PROCUREMENT: [
-    'dashboard', 'products', 'inventory', 'purchases', 'suppliers',
-    'production', 'qc', 'packaging', 'seaFreight', 'payments', 'reports',
+    'dashboard', 'alerts',
+    'products', 'inventory', 'warehouses',
+    'purchases', 'purchaseRequests', 'rfq', 'suppliers', 'production',
+    'materialRequisitions', 'productionReceipts', 'qc', 'packaging',
+    'seaFreight', 'importProjects', 'purchasePlans',
+    'payments', 'apAging', 'budget',
+    'reports', 'documents', 'announcements',
   ],
-  FINANCE: ['dashboard', 'orders', 'payments', 'reports', 'purchases', 'inventory', 'channels'],
+  FINANCE: [
+    'dashboard',
+    'orders', 'salesInvoices', 'eInvoices',
+    'products',
+    'contracts', 'fixedAssets', 'budget', 'expenses', 'finance',
+    'channels', 'retail', 'payments', 'arAging', 'apAging', 'priceTiers', 'discountRules',
+    'approvals', 'reports', 'documents', 'auditLog', 'announcements',
+  ],
 }
 
 // GET /api/role-permissions/my — returns current user's allowed module list

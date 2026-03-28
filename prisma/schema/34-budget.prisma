@@ -1,0 +1,39 @@
+// ========== 資金計畫 + 預算管理 (Cash Flow & Budget) ==========
+
+model Budget {
+  id           String   @id @default(cuid())
+  budgetYear   Int
+  budgetMonth  Int?     // null = annual budget, 1-12 = monthly
+  department   String?
+  category     String   // REVENUE | COGS | OPEX | CAPEX | HR | MARKETING | LOGISTICS | OTHER
+  description  String
+  budgetAmount Decimal  @db.Decimal(14, 2)
+  actualAmount Decimal  @default(0) @db.Decimal(14, 2)  // populated from actuals
+  notes        String?
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy    User     @relation("BudgetCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([budgetYear, budgetMonth, category, department])
+}
+
+model CashFlowPlan {
+  id           String   @id @default(cuid())
+  planYear     Int
+  planMonth    Int      // 1-12
+  flowType     String   // INFLOW | OUTFLOW
+  category     String   // SALES_RECEIPT | AR_COLLECTION | LOAN | EQUITY | PAYMENT | SALARY | RENT | TAX | INVESTMENT | OTHER
+  description  String
+  plannedAmount Decimal @db.Decimal(14, 2)
+  actualAmount  Decimal @default(0) @db.Decimal(14, 2)
+  notes        String?
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy    User     @relation("CashFlowCreatedBy", fields: [createdById], references: [id])
+
+  @@index([planYear, planMonth, flowType])
+}

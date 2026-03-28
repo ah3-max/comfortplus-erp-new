@@ -67,6 +67,32 @@ model Product {
   productRecalls     ProductRecall[]
   productSuppliers   ProductSupplier[]
   pickupItems        WarehousePickupItem[]
+  salesInvoiceItems  SalesInvoiceItem[]    @relation("SalesInvoiceItemProduct")
+
+  // ── P0-P1 新增關聯 ──────────────────────────────────
+  requisitionItems     MaterialRequisitionItem[]  @relation("RequisitionItemProduct")
+  productionReceiptItems ProductionReceiptItem[]  @relation("ReceiptItemProduct")
+  purchaseRequestItems PurchaseRequestItem[]      @relation("PurchaseRequestItemProduct")
+  rfqItems             RFQItem[]                  @relation("RFQItemProduct")
+  pickingOrderItems    PickingOrderItem[]         @relation("PickingItemProduct")
+  dispatchOrderItems   DispatchOrderItem[]        @relation("DispatchItemProduct")
+  wmsInventories       WmsInventory[]             @relation("WmsInventoryProduct")
+  wmsInboundItems      WmsInboundItem[]           @relation("WmsInboundItemProduct")
+  wmsOutboundItems     WmsOutboundItem[]          @relation("WmsOutboundItemProduct")
+
+  // ── P2-1 多級單價 ────────────────────────────────────
+  priceTiers           ProductPriceTier?
+  specialPrices        SpecialPrice[]             @relation("ProductSpecialPrices")
+
+  // ── P2-4 內部使用 + 不良品 ───────────────────────────
+  internalUseItems     InternalUseItem[]          @relation("InternalUseItemProduct")
+  defectiveGoods       DefectiveGoods[]           @relation("DefectiveGoodsProduct")
+
+  // ── P3-4 售後管理 ────────────────────────────────────
+  afterSalesConsumptions AfterSalesConsumption[]  @relation("AfterSalesProduct")
+
+  // ── 採購計畫 ────────────────────────────────────────
+  purchasePlanItems      PurchasePlanItem[]       @relation("PurchasePlanProduct")
 }
 
 // ========== 商品-廠商中介表（多廠商支援）==========

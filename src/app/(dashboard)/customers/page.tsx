@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -64,7 +64,8 @@ export default function CustomersPage() {
   const [filterKeyAccount, setFilterKeyAccount] = useState(false)
   const [page, setPage]                       = useState(1)
   const [pagination, setPagination]           = useState<{page:number;pageSize:number;total:number;totalPages:number}|null>(null)
-  const [formOpen, setFormOpen]               = useState(false)
+  const sp = useSearchParams()
+  const [formOpen, setFormOpen]               = useState(sp.get('action') === 'new')
   const [editTarget, setEditTarget]           = useState<Customer | null>(null)
 
   // Quick prospect creation state

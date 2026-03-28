@@ -6,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   TrendingUp, TrendingDown, Users, Target,
   FileText, AlertTriangle, Phone, MapPin,
-  CheckCircle2, Clock,
+  CheckCircle2, Clock, ListTodo, ShoppingCart, Plus,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import {
-  fmt, DashboardLoading, DashboardHeader, RankingCard, SectionHeader,
+  fmt, DashboardLoading, DashboardHeader, RankingCard, SectionHeader, QuickAction,
 } from './shared'
 
 interface SalesManagerData {
@@ -100,6 +100,15 @@ export function SalesManagerDashboard() {
             <p className="text-indigo-300 text-xs">{dict.roleDashboard.monthAccum}</p>
           </div>
         </div>
+      </div>
+
+      {/* ── Quick Actions ── */}
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        <QuickAction label="指派任務" href="/tasks?action=new" icon={ListTodo} color="bg-rose-600" />
+        <QuickAction label="快速下單" href="/orders?action=new" icon={ShoppingCart} color="bg-emerald-600" />
+        <QuickAction label="新增客戶" href="/customers?action=new" icon={Users} color="bg-cyan-600" />
+        <QuickAction label="新增報價" href="/quotations?action=new" icon={Plus} color="bg-blue-600" />
+        <QuickAction label="拜訪紀錄" href="/quick-input" icon={MapPin} color="bg-violet-600" />
       </div>
 
       {/* ── Team KPI Target ── */}

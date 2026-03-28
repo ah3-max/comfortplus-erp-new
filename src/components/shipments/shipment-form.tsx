@@ -42,7 +42,13 @@ interface ShipmentFormProps {
   preselectedOrderId?: string
 }
 
-const carriers = ['黑貓宅急便', '宅配通', '新竹物流', '嘉里大榮', '順豐速運', '自取', '其他']
+const deliveryMethods = [
+  { value: 'OWN_FLEET', label: '自行配送（自有車隊）' },
+  { value: 'EXPRESS', label: '宅配' },
+  { value: 'FREIGHT', label: '貨運' },
+  { value: 'SELF_PICKUP', label: '客戶自取' },
+]
+const carriers = ['（自行配送）', '黑貓宅急便', '宅配通', '新竹物流', '嘉里大榮', '順豐速運', '其他']
 
 export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: ShipmentFormProps) {
   const [orderSearch, setOrderSearch] = useState('')
@@ -50,7 +56,8 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showOrderList, setShowOrderList] = useState(false)
 
-  const [carrier, setCarrier] = useState('')
+  const [deliveryMethod, setDeliveryMethod] = useState('OWN_FLEET')
+  const [carrier, setCarrier] = useState('（自行配送）')
   const [trackingNo, setTrackingNo] = useState('')
   const [address, setAddress] = useState('')
   const [notes, setNotes] = useState('')
@@ -63,7 +70,8 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
       setOrderSearch('')
       setSelectedOrder(null)
       setShowOrderList(false)
-      setCarrier('')
+      setDeliveryMethod('OWN_FLEET')
+      setCarrier('（自行配送）')
       setTrackingNo('')
       setAddress('')
       setNotes('')
@@ -138,6 +146,7 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         orderId: selectedOrder.id,
+        deliveryMethod,
         carrier: carrier || null,
         trackingNo: trackingNo || null,
         address: address || null,
@@ -267,28 +276,51 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
 
           <Separator />
 
-          {/* 物流資訊 */}
+          {/* 配送方式 */}
           <div>
-            <p className="mb-3 text-sm font-medium text-muted-foreground">物流資訊</p>
+            <p className="mb-3 text-sm font-medium text-muted-foreground">配送方式</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {deliveryMethods.map(m => (
+                <button key={m.value} type="button"
+                  onClick={() => {
+                    setDeliveryMethod(m.value)
+                    if (m.value === 'OWN_FLEET') setCarrier('（自行配送）')
+                    else if (m.value === 'SELF_PICKUP') setCarrier('（客戶自取）')
+                    else setCarrier('')
+                  }}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-all active:scale-[0.97] ${
+                    deliveryMethod === m.value
+                      ? 'border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600'
+                      : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>物流商</Label>
-                <select
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={carrier}
-                  onChange={(e) => setCarrier(e.target.value)}
-                >
-                  <option value="">選擇物流商</option>
-                  {carriers.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>追蹤單號</Label>
-                <Input value={trackingNo}
-                  onChange={(e) => setTrackingNo(e.target.value)}
-                  placeholder="物流追蹤號碼" />
-              </div>
-              <div className="col-span-2 space-y-1.5">
+              {deliveryMethod !== 'OWN_FLEET' && deliveryMethod !== 'SELF_PICKUP' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>物流商</Label>
+                    <select
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      value={carrier}
+                      onChange={(e) => setCarrier(e.target.value)}
+                    >
+                      <option value="">選擇物流商</option>
+                      {carriers.filter(c => !c.startsWith('（')).map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>追蹤單號</Label>
+                    <Input value={trackingNo}
+                      onChange={(e) => setTrackingNo(e.target.value)}
+                      placeholder="物流追蹤號碼" />
+                  </div>
+                </>
+              )}
+              <div className={deliveryMethod !== 'OWN_FLEET' && deliveryMethod !== 'SELF_PICKUP' ? 'col-span-2 space-y-1.5' : 'col-span-2 space-y-1.5'}>
                 <Label>收貨地址</Label>
                 <Input value={address}
                   onChange={(e) => setAddress(e.target.value)}

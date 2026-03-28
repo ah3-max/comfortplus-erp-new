@@ -202,11 +202,12 @@ export function SalesDashboard() {
       )}
 
       {/* ── Quick Actions ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        <QuickAction label="快速下單" href="/orders?action=new" icon={ShoppingCart} color="bg-emerald-600" />
+        <QuickAction label="新增客戶" href="/customers?action=new" icon={Users} color="bg-rose-600" />
         <QuickAction label={rd.newQuote} href="/quotations?action=new" icon={Plus} color="bg-blue-600" />
-        <QuickAction label={rd.newOrder} href="/orders?action=new" icon={ShoppingCart} color="bg-emerald-600" />
-        <QuickAction label={rd.visitRecord} href="/crm" icon={MapPin} color="bg-violet-600" />
-        <QuickAction label={rd.callRecord} href="/crm" icon={Phone} color="bg-amber-600" />
+        <QuickAction label={rd.visitRecord} href="/quick-input" icon={MapPin} color="bg-violet-600" />
+        <QuickAction label={rd.callRecord} href="/quick-input" icon={Phone} color="bg-amber-600" />
       </div>
 
       {/* ── Quotations + Orders ── */}

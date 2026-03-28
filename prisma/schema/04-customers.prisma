@@ -153,6 +153,22 @@ model Customer {
   businessEvents       BusinessEvent[]     @relation("CustomerBusinessEvents")
   meetingRecords       MeetingRecord[]     @relation("CustomerMeetingRecords")
   warehousePickups     WarehousePickup[]
+  salesInvoices        SalesInvoice[]
+
+  // ── P0-P1 新增關聯 ──────────────────────────────────
+  eInvoices            EInvoice[]             @relation("CustomerEInvoice")
+  pickingOrders        PickingOrder[]         @relation("PickingCustomer")
+  dispatchOrders       DispatchOrder[]        @relation("DispatchCustomer")
+
+  // ── P2-1 多級單價 ────────────────────────────────────
+  priceLevel           CustomerPriceLevel?    @relation("CustomerPriceLevel")
+  specialPrices        SpecialPrice[]         @relation("CustomerSpecialPrices")
+
+  // ── P3-3 合約管理 ────────────────────────────────────
+  contracts            Contract[]             @relation("ContractCustomer")
+
+  // ── P3-4 售後管理 ────────────────────────────────────
+  afterSalesOrders     AfterSalesOrder[]      @relation("AfterSalesCustomer")
 }
 
 // ── 客戶聯絡人 ──────────────────────────────────────

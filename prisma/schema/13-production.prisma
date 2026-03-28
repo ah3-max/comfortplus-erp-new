@@ -32,6 +32,10 @@ model ProductionOrder {
   seaFreights      SeaFreight[]
   qualityChecks    QualityCheck[]
   factoryIncidents FactoryIncident[]
+
+  // ── P0-P1 新增關聯 ──────────────────────────────────
+  materialRequisitions MaterialRequisition[]
+  productionReceipts   ProductionReceipt[]     @relation("ReceiptFromProduction")
 }
 
 // ========== 海運追蹤 ==========
@@ -135,4 +139,5 @@ model SeaFreight {
 
   inboundRecords      InboundRecord[]
   supplierInvoices    SupplierInvoice[]
+  importProjects      ImportProject[]   @relation("ImportProjectFreight")
 }

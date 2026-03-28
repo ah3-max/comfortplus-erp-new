@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -15,7 +16,9 @@ interface ARItem {
   customerName: string
   customerCode: string
   salesRep: string
+  orderId: string | null
   orderNo: string
+  invoiceId: string | null
   invoiceNo: string
   amount: number
   paid: number
@@ -286,8 +289,24 @@ export default function ARAgingPage() {
                     return (
                       <TableRow key={item.id} className="hover:bg-slate-50/80">
                         <TableCell className="text-sm">{item.customerName}</TableCell>
-                        <TableCell className="text-xs font-mono text-muted-foreground">{item.orderNo}</TableCell>
-                        <TableCell className="text-xs font-mono text-muted-foreground">{item.invoiceNo}</TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {item.orderId && item.orderNo !== '-' ? (
+                            <Link href={`/orders/${item.orderId}`} className="text-blue-600 hover:underline">
+                              {item.orderNo}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">{item.orderNo}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">
+                          {item.invoiceId && item.invoiceNo !== '-' ? (
+                            <Link href={`/sales-invoices/${item.invoiceId}`} className="text-blue-600 hover:underline">
+                              {item.invoiceNo}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">{item.invoiceNo}</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-right">{fmt(item.amount)}</TableCell>
                         <TableCell className="text-sm text-right text-muted-foreground">{fmt(item.paid)}</TableCell>
                         <TableCell className="text-sm text-right font-medium">{fmt(item.balance)}</TableCell>

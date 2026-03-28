@@ -1,0 +1,79 @@
+// ========== 進口費用管理 (Import Cost Management) ==========
+
+model ImportProject {
+  id            String    @id @default(cuid())
+  projectNo     String    @unique
+  name          String
+  description   String?
+  supplierId    String?
+  freightId     String?       // link to SeaFreight if any
+  status        String    @default("OPEN")  // OPEN | IN_PROGRESS | CUSTOMS | RECEIVED | CLOSED | CANCELLED
+  etd           DateTime?     // Estimated departure
+  eta           DateTime?     // Estimated arrival
+  actualArrival DateTime?
+  currency      String    @default("USD")
+  exchangeRate  Decimal?  @db.Decimal(10, 4)
+  totalCost     Decimal?  @db.Decimal(14, 2)  // sum of all cost items
+  notes         String?
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  supplier    Supplier?        @relation("ImportProjectSupplier", fields: [supplierId], references: [id])
+  freight     SeaFreight?      @relation("ImportProjectFreight",  fields: [freightId],  references: [id])
+  createdBy   User             @relation("ImportProjectCreatedBy", fields: [createdById], references: [id])
+  costItems   ImportCostItem[]
+  payments    ImportPayment[]
+  customs     ImportCustoms[]
+}
+
+model ImportCostItem {
+  id          String   @id @default(cuid())
+  projectId   String
+  category    String   // GOODS | FREIGHT | INSURANCE | CUSTOMS_DUTY | VAT | INSPECTION | AGENT_FEE | OTHER
+  description String
+  currency    String   @default("USD")
+  amount      Decimal  @db.Decimal(14, 2)
+  amountTWD   Decimal? @db.Decimal(14, 2)
+  invoiceNo   String?
+  invoiceDate DateTime? @db.Date
+  supplierId  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  project  ImportProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  supplier Supplier?     @relation("ImportCostItemSupplier", fields: [supplierId], references: [id])
+}
+
+model ImportPayment {
+  id            String    @id @default(cuid())
+  projectId     String
+  paymentType   String    // DEPOSIT | PROGRESS | FINAL | FULL
+  currency      String    @default("USD")
+  amount        Decimal   @db.Decimal(14, 2)
+  amountTWD     Decimal?  @db.Decimal(14, 2)
+  exchangeRate  Decimal?  @db.Decimal(10, 4)
+  paymentDate   DateTime  @db.Date
+  remittanceRef String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  project ImportProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ImportCustoms {
+  id              String    @id @default(cuid())
+  projectId       String
+  declarationNo   String?
+  declaredAt      DateTime? @db.Date
+  customsValue    Decimal?  @db.Decimal(14, 2)
+  dutyRate        Decimal?  @db.Decimal(6, 4)
+  dutyAmount      Decimal?  @db.Decimal(14, 2)
+  vatAmount       Decimal?  @db.Decimal(14, 2)
+  status          String    @default("PENDING")  // PENDING | SUBMITTED | CLEARED | HELD
+  clearedAt       DateTime?
+  notes           String?
+  createdAt       DateTime  @default(now())
+
+  project ImportProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}

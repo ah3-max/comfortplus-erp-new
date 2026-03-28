@@ -1,31 +1,126 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  CalendarDays,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Edit,
+  Trash2,
+} from 'lucide-react'
+import { toast } from 'sonner'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type CalEventType = 'visit' | 'call' | 'task' | 'care' | 'schedule' | 'biz'
+type UiEventType  = 'MEETING' | 'VISIT' | 'DELIVERY' | 'PRODUCTION' | 'HOLIDAY' | 'OTHER'
 
 interface CalEvent {
-  id: string
-  date: string           // YYYY-MM-DD
-  type: 'visit' | 'call' | 'task' | 'care' | 'schedule'
-  title: string
-  customer: string | null
-  user: string
-  color: string
-  status?: string
-  priority?: string
+  id:          string
+  date:        string        // YYYY-MM-DD
+  type:        CalEventType
+  title:       string
+  customer:    string | null
+  user:        string
+  color:       string
+  status?:     string
+  priority?:   string
+  // Extended — only set for type === 'biz'
+  eventType?:  UiEventType
+  startTime?:  string        // HH:MM
+  endDate?:    string        // YYYY-MM-DD
+  endTime?:    string        // HH:MM
+  description?: string
+  isAllDay?:   boolean
+  isEditable?: boolean
 }
 
-const TYPE_LABELS: Record<string, string> = {
+interface EventFormState {
+  title:       string
+  eventType:   UiEventType
+  startDate:   string
+  startTime:   string
+  endDate:     string
+  endTime:     string
+  description: string
+  isAllDay:    boolean
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+
+const UI_EVENT_TYPES: { value: UiEventType; label: string; color: string }[] = [
+  { value: 'MEETING',    label: '會議',   color: '#6366f1' },
+  { value: 'VISIT',      label: '拜訪',   color: '#3b82f6' },
+  { value: 'DELIVERY',   label: '送貨',   color: '#f59e0b' },
+  { value: 'PRODUCTION', label: '生產',   color: '#8b5cf6' },
+  { value: 'HOLIDAY',    label: '假日',   color: '#ef4444' },
+  { value: 'OTHER',      label: '其他',   color: '#64748b' },
+]
+
+const UI_EVENT_TYPE_MAP = Object.fromEntries(
+  UI_EVENT_TYPES.map(t => [t.value, t])
+) as Record<UiEventType, { value: UiEventType; label: string; color: string }>
+
+const TYPE_LABELS: Record<CalEventType, string> = {
   visit:    '拜訪',
   call:     '電訪',
   task:     '工作',
   care:     '督導',
   schedule: '行程',
+  biz:      '行事',
 }
 
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+const FILTER_TYPES: { key: string; label: string; color: string }[] = [
+  { key: '',         label: '全部', color: '#64748b' },
+  { key: 'visit',    label: '拜訪', color: '#3b82f6' },
+  { key: 'call',     label: '電訪', color: '#8b5cf6' },
+  { key: 'task',     label: '工作', color: '#10b981' },
+  { key: 'care',     label: '督導', color: '#14b8a6' },
+  { key: 'schedule', label: '行程', color: '#f59e0b' },
+  { key: 'biz',      label: '事件', color: '#6366f1' },
+]
+
+const EMPTY_FORM: EventFormState = {
+  title:       '',
+  eventType:   'MEETING',
+  startDate:   '',
+  startTime:   '09:00',
+  endDate:     '',
+  endTime:     '10:00',
+  description: '',
+  isAllDay:    false,
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate()
@@ -35,24 +130,60 @@ function getFirstDayOfWeek(year: number, month: number) {
   return new Date(year, month - 1, 1).getDay()
 }
 
+function padTwo(n: number) {
+  return String(n).padStart(2, '0')
+}
+
+function fmtMonthKey(year: number, month: number) {
+  return `${year}-${padTwo(month)}`
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export default function CalendarPage() {
-  const today    = new Date()
-  const [year,  setYear]  = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth() + 1)
-  const [events, setEvents] = useState<CalEvent[]>([])
-  const [loading, setLoading] = useState(false)
-  const [selected, setSelected] = useState<string | null>(null)   // selected date YYYY-MM-DD
+  const today     = new Date()
+  const todayStr  = `${today.getFullYear()}-${padTwo(today.getMonth() + 1)}-${padTwo(today.getDate())}`
+
+  const [year,     setYear]     = useState(today.getFullYear())
+  const [month,    setMonth]    = useState(today.getMonth() + 1)
+  const [events,   setEvents]   = useState<CalEvent[]>([])
+  const [loading,  setLoading]  = useState(false)
+  const [selected, setSelected] = useState<string | null>(null)
   const [typeFilter, setTypeFilter] = useState<string>('')
 
-  async function load(y: number, m: number) {
-    setLoading(true)
-    const res = await fetch(`/api/calendar?year=${y}&month=${m}`)
-    const data = await res.json()
-    setEvents(Array.isArray(data) ? data : [])
-    setLoading(false)
-  }
+  // Dialog state
+  const [dialogOpen,   setDialogOpen]   = useState(false)
+  const [editingEvent, setEditingEvent] = useState<CalEvent | null>(null)
+  const [form,         setForm]         = useState<EventFormState>(EMPTY_FORM)
+  const [saving,       setSaving]       = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<CalEvent | null>(null)
+  const [deleteOpen,   setDeleteOpen]   = useState(false)
+  const [deleting,     setDeleting]     = useState(false)
 
-  useEffect(() => { load(year, month) }, [year, month])
+  // ---------------------------------------------------------------------------
+  // Data fetching
+  // ---------------------------------------------------------------------------
+
+  const load = useCallback(async (y: number, m: number) => {
+    setLoading(true)
+    try {
+      const res  = await fetch(`/api/calendar?month=${fmtMonthKey(y, m)}`)
+      const data = await res.json()
+      setEvents(Array.isArray(data) ? data : [])
+    } catch {
+      toast.error('無法載入行事曆資料')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load(year, month) }, [year, month, load])
+
+  // ---------------------------------------------------------------------------
+  // Navigation
+  // ---------------------------------------------------------------------------
 
   function prev() {
     if (month === 1) { setYear(y => y - 1); setMonth(12) }
@@ -62,13 +193,18 @@ export default function CalendarPage() {
     if (month === 12) { setYear(y => y + 1); setMonth(1) }
     else setMonth(m => m + 1)
   }
-  function goToday() { setYear(today.getFullYear()); setMonth(today.getMonth() + 1) }
+  function goToday() {
+    setYear(today.getFullYear())
+    setMonth(today.getMonth() + 1)
+  }
 
-  const days       = getDaysInMonth(year, month)
-  const firstDow   = getFirstDayOfWeek(year, month)
-  const todayStr   = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  // ---------------------------------------------------------------------------
+  // Derived data
+  // ---------------------------------------------------------------------------
 
-  // events grouped by date
+  const days     = getDaysInMonth(year, month)
+  const firstDow = getFirstDayOfWeek(year, month)
+
   const byDate = useMemo(() => {
     const map: Record<string, CalEvent[]> = {}
     events.forEach(e => {
@@ -78,39 +214,152 @@ export default function CalendarPage() {
     return map
   }, [events])
 
-  // selected day events (with type filter)
   const selectedEvents = useMemo(() => {
     if (!selected) return []
     const evs = byDate[selected] ?? []
     return typeFilter ? evs.filter(e => e.type === typeFilter) : evs
   }, [selected, byDate, typeFilter])
 
-  // total counts
   const counts = useMemo(() => {
-    const c: Record<string, number> = { visit: 0, call: 0, task: 0, care: 0, schedule: 0 }
+    const c: Record<string, number> = {}
+    FILTER_TYPES.forEach(f => { if (f.key) c[f.key] = 0 })
     events.forEach(e => { c[e.type] = (c[e.type] ?? 0) + 1 })
     return c
   }, [events])
 
   function dateStr(d: number) {
-    return `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    return `${year}-${padTwo(month)}-${padTwo(d)}`
   }
 
-  const FILTER_TYPES = [
-    { key: '', label: '全部', color: '#64748b' },
-    { key: 'visit',    label: '拜訪', color: '#3b82f6' },
-    { key: 'call',     label: '電訪', color: '#8b5cf6' },
-    { key: 'task',     label: '工作', color: '#10b981' },
-    { key: 'care',     label: '督導', color: '#14b8a6' },
-    { key: 'schedule', label: '行程', color: '#f59e0b' },
-  ]
+  // ---------------------------------------------------------------------------
+  // Dialog helpers
+  // ---------------------------------------------------------------------------
+
+  function openCreateDialog(defaultDate?: string) {
+    const ds = defaultDate ?? todayStr
+    setEditingEvent(null)
+    setForm({ ...EMPTY_FORM, startDate: ds, endDate: ds })
+    setDialogOpen(true)
+  }
+
+  function openEditDialog(event: CalEvent) {
+    if (!event.isEditable) return
+    setEditingEvent(event)
+    setForm({
+      title:       event.title,
+      eventType:   (event.eventType as UiEventType) ?? 'OTHER',
+      startDate:   event.date,
+      startTime:   event.startTime ?? '09:00',
+      endDate:     event.endDate   ?? event.date,
+      endTime:     event.endTime   ?? '10:00',
+      description: event.description ?? '',
+      isAllDay:    event.isAllDay  ?? false,
+    })
+    setDialogOpen(true)
+  }
+
+  function setField<K extends keyof EventFormState>(key: K, value: EventFormState[K]) {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  // ---------------------------------------------------------------------------
+  // CRUD operations
+  // ---------------------------------------------------------------------------
+
+  async function handleSave() {
+    if (!form.title.trim()) { toast.error('請輸入標題'); return }
+    if (!form.startDate)    { toast.error('請選擇開始日期'); return }
+
+    setSaving(true)
+    try {
+      const payload = {
+        title:       form.title.trim(),
+        eventType:   form.eventType,
+        startDate:   form.startDate,
+        startTime:   form.isAllDay ? '' : form.startTime,
+        endDate:     form.endDate || form.startDate,
+        endTime:     form.isAllDay ? '' : form.endTime,
+        description: form.description,
+        isAllDay:    form.isAllDay,
+      }
+
+      if (editingEvent) {
+        const res = await fetch(`/api/calendar/${editingEvent.id}`, {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error ?? '更新失敗')
+        }
+        toast.success('事件已更新')
+      } else {
+        const res = await fetch('/api/calendar', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(payload),
+        })
+        if (!res.ok) {
+          const err = await res.json()
+          throw new Error(err.error ?? '建立失敗')
+        }
+        toast.success('事件已建立')
+      }
+
+      setDialogOpen(false)
+      await load(year, month)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : '操作失敗')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function confirmDelete(event: CalEvent) {
+    setDeleteTarget(event)
+    setDeleteOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/calendar/${deleteTarget.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error ?? '刪除失敗')
+      }
+      toast.success('事件已刪除')
+      setDeleteOpen(false)
+      setDeleteTarget(null)
+      if (selected) {
+        const remaining = (byDate[selected] ?? []).filter(e => e.id !== deleteTarget.id)
+        if (remaining.length === 0) setSelected(null)
+      }
+      await load(year, month)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : '刪除失敗')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <div className="space-y-4 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-900">業務行事曆</h1>
+      {/* ── Page Header ─────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
+          <CalendarDays className="h-6 w-6 text-blue-600" />
+          <h1 className="text-2xl font-bold text-slate-900">業務行事曆</h1>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Type filter chips */}
           {FILTER_TYPES.map(f => (
             <button
               key={f.key}
@@ -124,62 +373,94 @@ export default function CalendarPage() {
             >
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: f.color }} />
               {f.label}
-              {f.key && <span className="opacity-70">({counts[f.key as keyof typeof counts]})</span>}
+              {f.key && <span className="opacity-70">({counts[f.key] ?? 0})</span>}
             </button>
           ))}
+
+          {/* Add event */}
+          <Button
+            size="sm"
+            onClick={() => openCreateDialog()}
+            className="ml-1 min-h-[36px] active:scale-[0.97] transition-transform"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            新增事件
+          </Button>
         </div>
       </div>
 
-      {/* Month navigation */}
+      {/* ── Month Navigation ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={prev}><ChevronLeft className="h-4 w-4" /></Button>
-        <h2 className="text-xl font-semibold w-32 text-center">{year} 年 {month} 月</h2>
-        <Button variant="outline" size="icon" onClick={next}><ChevronRight className="h-4 w-4" /></Button>
-        <Button variant="outline" size="sm" onClick={goToday}>今天</Button>
-        {loading && <span className="text-sm text-slate-400 ml-2">載入中…</span>}
+        <Button variant="outline" size="icon" onClick={prev} className="min-h-[44px] min-w-[44px]">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <h2 className="text-xl font-semibold w-36 text-center select-none">
+          {year} 年 {month} 月
+        </h2>
+        <Button variant="outline" size="icon" onClick={next} className="min-h-[44px] min-w-[44px]">
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={goToday} className="min-h-[36px]">
+          今天
+        </Button>
+        {loading && <span className="text-sm text-slate-400">載入中…</span>}
       </div>
 
+      {/* ── Main Layout ──────────────────────────────────────────────────── */}
       <div className="flex gap-4">
         {/* Calendar Grid */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <Card>
             <CardContent className="p-3">
               {/* Weekday headers */}
               <div className="grid grid-cols-7 mb-1">
                 {WEEKDAYS.map((d, i) => (
-                  <div key={d} className={`text-center text-xs font-medium py-2 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-500'}`}>
+                  <div
+                    key={d}
+                    className={`text-center text-xs font-medium py-2 ${
+                      i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-500'
+                    }`}
+                  >
                     {d}
                   </div>
                 ))}
               </div>
+
               {/* Day cells */}
               <div className="grid grid-cols-7 gap-px bg-slate-100">
                 {/* Leading empty cells */}
                 {Array.from({ length: firstDow }).map((_, i) => (
                   <div key={`empty-${i}`} className="bg-white min-h-[80px]" />
                 ))}
-                {/* Day cells */}
+
+                {/* Actual days */}
                 {Array.from({ length: days }, (_, i) => i + 1).map(day => {
-                  const ds    = dateStr(day)
-                  const isToday   = ds === todayStr
+                  const ds         = dateStr(day)
+                  const isToday    = ds === todayStr
                   const isSelected = ds === selected
-                  const dayEvs = (byDate[ds] ?? []).filter(e => !typeFilter || e.type === typeFilter)
-                  const dow = (firstDow + day - 1) % 7
+                  const dayEvs     = (byDate[ds] ?? []).filter(e => !typeFilter || e.type === typeFilter)
+                  const dow        = (firstDow + day - 1) % 7
 
                   return (
                     <div
                       key={day}
                       onClick={() => setSelected(ds === selected ? null : ds)}
                       className={`bg-white min-h-[80px] p-1.5 cursor-pointer transition-colors ${
-                        isSelected ? 'ring-2 ring-blue-400 ring-inset' :
-                        isToday    ? 'ring-1 ring-blue-200 ring-inset' : 'hover:bg-slate-50'
+                        isSelected
+                          ? 'ring-2 ring-blue-400 ring-inset'
+                          : isToday
+                          ? 'ring-1 ring-blue-200 ring-inset'
+                          : 'hover:bg-slate-50'
                       }`}
                     >
-                      <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
-                        isToday ? 'bg-blue-500 text-white' :
-                        dow === 0 ? 'text-red-500' :
-                        dow === 6 ? 'text-blue-500' : 'text-slate-700'
-                      }`}>
+                      <div
+                        className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${
+                          isToday    ? 'bg-blue-500 text-white'
+                          : dow === 0 ? 'text-red-500'
+                          : dow === 6 ? 'text-blue-500'
+                          : 'text-slate-700'
+                        }`}
+                      >
                         {day}
                       </div>
                       <div className="space-y-0.5">
@@ -205,60 +486,122 @@ export default function CalendarPage() {
           </Card>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-2 px-1">
+          <div className="flex flex-wrap items-center gap-3 mt-2 px-1">
             {[
+              { color: '#6366f1', label: '會議/事件' },
               { color: '#3b82f6', label: '客戶拜訪' },
               { color: '#8b5cf6', label: '電訪' },
-              { color: '#ef4444', label: '緊急工作' },
-              { color: '#f59e0b', label: '高優先工作' },
+              { color: '#ef4444', label: '緊急/假日' },
+              { color: '#f59e0b', label: '高優先/送貨' },
               { color: '#10b981', label: '一般工作' },
               { color: '#14b8a6', label: '督導排程' },
             ].map(l => (
               <div key={l.label} className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: l.color }} />
+                <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
                 <span className="text-xs text-slate-500">{l.label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Side panel: selected day events */}
+        {/* ── Side Panel: Selected day events ─────────────────────────── */}
         {selected && (
           <div className="w-72 shrink-0">
             <Card className="sticky top-4">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-semibold text-slate-800">{selected}</h3>
-                  <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-600 text-lg leading-none">×</button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => openCreateDialog(selected)}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-0.5" />
+                      新增
+                    </Button>
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="text-slate-400 hover:text-slate-600 text-lg leading-none ml-1 min-h-[28px] min-w-[28px] flex items-center justify-center"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
+
                 {selectedEvents.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-6">無事件</p>
                 ) : (
                   <div className="space-y-2">
                     {selectedEvents.map(e => (
-                      <div key={e.id} className="border-l-4 pl-3 py-1.5" style={{ borderColor: e.color }}>
+                      <div
+                        key={e.id}
+                        className="border-l-4 pl-3 py-1.5 group relative"
+                        style={{ borderColor: e.color }}
+                      >
+                        {/* Type badge + actions */}
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <span
-                            className="text-xs px-1.5 py-0.5 rounded text-white"
+                            className="text-xs px-1.5 py-0.5 rounded text-white shrink-0"
                             style={{ backgroundColor: e.color }}
                           >
-                            {TYPE_LABELS[e.type]}
+                            {e.isEditable && e.eventType
+                              ? UI_EVENT_TYPE_MAP[e.eventType]?.label ?? TYPE_LABELS[e.type]
+                              : TYPE_LABELS[e.type]}
                           </span>
                           {e.priority && (
-                            <span className="text-xs text-slate-400">{
-                              e.priority === 'URGENT' ? '緊急' :
-                              e.priority === 'HIGH'   ? '高'   :
-                              e.priority === 'MEDIUM' ? '中'   : '低'
-                            }</span>
+                            <span className="text-xs text-slate-400">
+                              {e.priority === 'URGENT' ? '緊急'
+                                : e.priority === 'HIGH'   ? '高'
+                                : e.priority === 'MEDIUM' ? '中'
+                                : '低'}
+                            </span>
                           )}
-                          {e.status && (
+                          {e.status && !e.isEditable && (
                             <span className="text-xs text-slate-400 ml-auto">{e.status}</span>
                           )}
+
+                          {/* Edit / Delete — only for biz events */}
+                          {e.isEditable && (
+                            <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => openEditDialog(e)}
+                                className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
+                                title="編輯"
+                              >
+                                <Edit className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => confirmDelete(e)}
+                                className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
+                                title="刪除"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </div>
+
                         <p className="text-sm font-medium text-slate-800 leading-snug">{e.title}</p>
+
                         {e.customer && (
                           <p className="text-xs text-slate-500 mt-0.5">👤 {e.customer}</p>
                         )}
+
+                        {!e.isAllDay && e.startTime && (
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            🕐 {e.startTime}{e.endTime ? ` – ${e.endTime}` : ''}
+                          </p>
+                        )}
+                        {e.isAllDay && (
+                          <Badge variant="secondary" className="text-xs mt-0.5">全天</Badge>
+                        )}
+
+                        {e.description && (
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{e.description}</p>
+                        )}
+
                         <p className="text-xs text-slate-400 mt-0.5">{e.user}</p>
                       </div>
                     ))}
@@ -269,6 +612,201 @@ export default function CalendarPage() {
           </div>
         )}
       </div>
+
+      {/* ── Create / Edit Dialog ─────────────────────────────────────── */}
+      <Dialog open={dialogOpen} onOpenChange={open => { if (!saving) setDialogOpen(open) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-blue-600" />
+              {editingEvent ? '編輯事件' : '新增事件'}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Title */}
+            <div className="space-y-1.5">
+              <Label htmlFor="ev-title">
+                標題 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="ev-title"
+                value={form.title}
+                onChange={e => setField('title', e.target.value)}
+                placeholder="請輸入事件標題"
+                className="min-h-[44px]"
+              />
+            </div>
+
+            {/* Event Type */}
+            <div className="space-y-1.5">
+              <Label>事件類型</Label>
+              <Select
+                value={form.eventType}
+                onValueChange={v => setField('eventType', v as UiEventType)}
+              >
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {UI_EVENT_TYPES.map(t => (
+                    <SelectItem key={t.value} value={t.value}>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: t.color }}
+                        />
+                        {t.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* All-day toggle */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.isAllDay}
+                onClick={() => setField('isAllDay', !form.isAllDay)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  form.isAllDay ? 'bg-blue-600' : 'bg-slate-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                    form.isAllDay ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <Label className="cursor-pointer select-none" onClick={() => setField('isAllDay', !form.isAllDay)}>
+                全天事件
+              </Label>
+            </div>
+
+            {/* Start date + time */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ev-start-date">
+                  開始日期 <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="ev-start-date"
+                  type="date"
+                  value={form.startDate}
+                  onChange={e => setField('startDate', e.target.value)}
+                  className="min-h-[44px]"
+                />
+              </div>
+              {!form.isAllDay && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="ev-start-time">開始時間</Label>
+                  <Input
+                    id="ev-start-time"
+                    type="time"
+                    value={form.startTime}
+                    onChange={e => setField('startTime', e.target.value)}
+                    className="min-h-[44px]"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* End date + time (optional) */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ev-end-date">結束日期（選填）</Label>
+                <Input
+                  id="ev-end-date"
+                  type="date"
+                  value={form.endDate}
+                  min={form.startDate}
+                  onChange={e => setField('endDate', e.target.value)}
+                  className="min-h-[44px]"
+                />
+              </div>
+              {!form.isAllDay && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="ev-end-time">結束時間（選填）</Label>
+                  <Input
+                    id="ev-end-time"
+                    type="time"
+                    value={form.endTime}
+                    onChange={e => setField('endTime', e.target.value)}
+                    className="min-h-[44px]"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="ev-desc">備註（選填）</Label>
+              <Textarea
+                id="ev-desc"
+                value={form.description}
+                onChange={e => setField('description', e.target.value)}
+                placeholder="請輸入備註說明…"
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={saving}
+              className="min-h-[44px]"
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="min-h-[44px] active:scale-[0.97] transition-transform"
+            >
+              {saving ? '儲存中…' : editingEvent ? '更新事件' : '建立事件'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ───────────────────────────────── */}
+      <Dialog open={deleteOpen} onOpenChange={open => { if (!deleting) setDeleteOpen(open) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              確認刪除
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600 py-2">
+            確定要刪除事件「<span className="font-semibold text-slate-800">{deleteTarget?.title}</span>」嗎？此操作無法復原。
+          </p>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteOpen(false)}
+              disabled={deleting}
+              className="min-h-[44px]"
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="min-h-[44px] active:scale-[0.97] transition-transform"
+            >
+              {deleting ? '刪除中…' : '確認刪除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

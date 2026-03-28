@@ -189,6 +189,46 @@ export async function GET(req: NextRequest) {
     results.overdueReceivables = { status: 'error', error: (e as Error).message }
   }
 
+  // ══════════════════════════════════════════════════
+  //  車輛到期檢查推播
+  // ══════════════════════════════════════════════════
+  try {
+    const warn30 = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const vehicles = await prisma.vehicle.findMany({ where: { isActive: true } })
+    let alertCount = 0
+
+    for (const v of vehicles) {
+      const alerts: string[] = []
+      if (v.insuranceExpiry && v.insuranceExpiry < warn30) alerts.push(`保險${v.insuranceExpiry < now ? '已過期' : '即將到期'}(${v.insuranceExpiry.toISOString().slice(0, 10)})`)
+      if (v.inspectionExpiry && v.inspectionExpiry < warn30) alerts.push(`驗車${v.inspectionExpiry < now ? '已過期' : '即將到期'}(${v.inspectionExpiry.toISOString().slice(0, 10)})`)
+      if (v.licenseTaxExpiry && v.licenseTaxExpiry < warn30) alerts.push(`牌照稅${v.licenseTaxExpiry < now ? '已過期' : '即將到期'}(${v.licenseTaxExpiry.toISOString().slice(0, 10)})`)
+      if (v.fuelTaxExpiry && v.fuelTaxExpiry < warn30) alerts.push(`燃料稅${v.fuelTaxExpiry < now ? '已過期' : '即將到期'}(${v.fuelTaxExpiry.toISOString().slice(0, 10)})`)
+
+      // 保養到期
+      const latestMaint = await prisma.vehicleMaintenance.findFirst({
+        where: { vehicleId: v.id },
+        orderBy: { serviceDate: 'desc' },
+      })
+      if (latestMaint?.nextServiceDate && latestMaint.nextServiceDate < warn30) {
+        alerts.push(`定期保養${latestMaint.nextServiceDate < now ? '已逾期' : '即將到期'}(${latestMaint.nextServiceDate.toISOString().slice(0, 10)})`)
+      }
+
+      if (alerts.length > 0) {
+        alertCount++
+        await notifyManagers({
+          title: `車輛 ${v.plateNo} 有 ${alerts.length} 項待處理`,
+          message: alerts.join('、'),
+          linkUrl: '/logistics',
+          category: 'VEHICLE_ALERT',
+          priority: alerts.some(a => a.includes('已過期') || a.includes('已逾期')) ? 'URGENT' : 'HIGH',
+        })
+      }
+    }
+    results.vehicleAlerts = { status: 'ok', data: { checked: vehicles.length, alerted: alertCount } }
+  } catch (e) {
+    results.vehicleAlerts = { status: 'error', error: (e as Error).message }
+  }
+
   return NextResponse.json({
     ok: Object.values(results).every(r => r.status === 'ok'),
     timestamp: now.toISOString(),

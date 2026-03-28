@@ -169,6 +169,23 @@ export async function notifyManagers(options: Omit<NotifyOptions, 'userIds'>): P
 }
 
 /**
+ * Notify users by specific role(s).
+ */
+export async function notifyByRole(roles: string[], options: Omit<NotifyOptions, 'userIds'>): Promise<void> {
+  const users = await prisma.user.findMany({
+    where: { role: { in: roles as any[] }, isActive: true },
+    select: { id: true },
+  })
+
+  if (users.length > 0) {
+    await notify({
+      ...options,
+      userIds: users.map(u => u.id),
+    })
+  }
+}
+
+/**
  * Check which notification channels are configured.
  */
 export function getNotifyChannels(): { inApp: boolean; line: boolean; email: boolean } {

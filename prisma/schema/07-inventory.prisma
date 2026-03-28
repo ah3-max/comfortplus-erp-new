@@ -64,6 +64,20 @@ model Warehouse {
   outboundRecords   OutboundRecord[]
   pickingStrategy   WarehousePickingStrategy?
   countSchedules    StockCountSchedule[]
+  salesInvoices     SalesInvoice[]          @relation("SalesInvoiceWarehouse")
+
+  // ── P0-P1 新增關聯 ──────────────────────────────────
+  requisitionsFrom    MaterialRequisition[]   @relation("ReqFromWarehouse")
+  requisitionsTo      MaterialRequisition[]   @relation("ReqToWarehouse")
+  receiptsReceiving   ProductionReceipt[]     @relation("ReceiptWarehouse")
+  purchaseRequestWH   PurchaseRequest[]       @relation("PurchaseRequestWarehouse")
+  pickingOrdersWH     PickingOrder[]          @relation("PickingWarehouse")
+  dispatchOrdersWH    DispatchOrder[]         @relation("DispatchWarehouse")
+  wmsZones            WmsZone[]               @relation("WmsZoneWarehouse")
+
+  // ── P2-4 內部使用 + 不良品 ───────────────────────────
+  internalUses        InternalUse[]           @relation("InternalUseWarehouse")
+  defectiveGoods      DefectiveGoods[]        @relation("DefectiveGoodsWarehouse")
 }
 
 // ========== 倉位管理 ==========
@@ -201,6 +215,8 @@ model InventoryLot {
   countItems    StockCountItem[]
   scrapRecords  StockScrap[]
   batchCostAllocations BatchCostAllocation[]
+  internalUseItems     InternalUseItem[]  @relation("InternalUseItemLot")
+  defectiveGoods       DefectiveGoods[]   @relation("DefectiveGoodsLot")
 }
 
 // ========== 調撥管理 ==========

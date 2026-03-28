@@ -793,3 +793,105 @@ enum PickupStatus {
   DEDUCTED        // 已扣庫存
   REJECTED        // 核對異常（數量/品項不對）
 }
+
+// ── 銷貨單 ──────────────────────────────────────
+enum SalesInvoiceStatus {
+  DRAFT       // 草稿
+  CONFIRMED   // 已確認
+  SHIPPED     // 已出貨
+  RETURNED    // 已退貨
+  CANCELLED   // 已取消
+}
+
+enum ApprovalStatus {
+  PENDING     // 待審批
+  APPROVED    // 已批准
+  REJECTED    // 已拒絕
+}
+
+// ── 領料單 ──────────────────────────────────────
+enum RequisitionStatus {
+  DRAFT       // 草稿
+  CONFIRMED   // 已確認
+  ISSUED      // 已發料
+  COMPLETED   // 已完成
+  CANCELLED   // 已取消
+}
+
+// ── 生產入庫 ──────────────────────────────────────
+enum ReceiptStatus {
+  DRAFT       // 草稿
+  CONFIRMED   // 已確認
+  RECEIVED    // 已入庫
+  CANCELLED   // 已取消
+}
+
+// ── 電子發票 ──────────────────────────────────────
+enum EInvoiceType {
+  B2B         // B2B 存證
+  B2C         // B2C 存證
+}
+
+enum EInvoiceStatus {
+  CREATED     // 新增
+  APPROVED    // 已批准
+  VOIDED      // 已作廢
+  CREDIT_NOTE // 折讓
+}
+
+enum TransmitStatus {
+  PENDING     // 待傳送
+  PROCESSING  // 傳送中
+  TRANSMITTED // 傳送完畢
+  FAILED      // 傳送失敗
+  EMAIL_SENT  // Email傳送完成
+}
+
+// ── 請購單 ──────────────────────────────────────
+enum PurchaseRequestStatus {
+  DRAFT       // 草稿
+  SUBMITTED   // 已提交
+  APPROVED    // 已核准
+  ORDERED     // 已下單
+  CANCELLED   // 已取消
+}
+
+// ── 詢價單 ──────────────────────────────────────
+enum RFQStatus {
+  DRAFT       // 草稿
+  SENT        // 已送出
+  RESPONDED   // 已回覆
+  COMPLETED   // 已完成
+  CANCELLED   // 已取消
+}
+
+// ── 理貨單 ──────────────────────────────────────
+enum PickingStatus {
+  PENDING     // 待理貨
+  PICKING     // 理貨中
+  PICKED      // 已完成
+  CANCELLED   // 已取消
+}
+
+// ── 派貨單 ──────────────────────────────────────
+enum DispatchStatus {
+  PENDING     // 待派貨
+  DISPATCHED  // 已派貨
+  DELIVERED   // 已送達
+  CANCELLED   // 已取消
+}
+
+// ── WMS ──────────────────────────────────────
+enum WmsInboundStatus {
+  EXPECTED    // 預計入庫
+  RECEIVING   // 收貨中
+  RECEIVED    // 已入庫
+  CANCELLED   // 已取消
+}
+
+enum WmsOutboundStatus {
+  EXPECTED    // 預計出庫
+  PICKING     // 揀貨中
+  SHIPPED     // 已出庫
+  CANCELLED   // 已取消
+}

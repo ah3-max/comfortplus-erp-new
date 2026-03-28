@@ -1,0 +1,40 @@
+// ========== 行政管理 ==========
+
+model Announcement {
+  id           String    @id @default(cuid())
+  title        String
+  content      String
+  category     String    @default("GENERAL") // GENERAL / POLICY / IT / HR / URGENT
+  priority     String    @default("NORMAL")  // LOW / NORMAL / HIGH / URGENT
+  isPinned     Boolean   @default(false)
+  isPublished  Boolean   @default(false)
+  publishedAt  DateTime?
+  expiresAt    DateTime?
+  targetRoles  String[]  @default([])
+  createdById  String
+  createdBy    User      @relation("AnnouncementCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt(sort: Desc)])
+}
+
+model AssetLoan {
+  id                 String    @id @default(cuid())
+  assetName          String
+  assetCode          String?
+  category           String    // LAPTOP / PHONE / PROJECTOR / VEHICLE / OTHER
+  borrowerId         String
+  borrower           User      @relation("AssetBorrower", fields: [borrowerId], references: [id])
+  borrowDate         DateTime  @db.Date
+  expectedReturnDate DateTime? @db.Date
+  actualReturnDate   DateTime? @db.Date
+  status             String    @default("BORROWED") // BORROWED / RETURNED / OVERDUE / LOST
+  condition          String?
+  notes              String?
+  createdById        String
+  createdBy          User      @relation("AssetLoanCreatedBy", fields: [createdById], references: [id])
+  createdAt          DateTime  @default(now())
+
+  @@index([status, borrowerId])
+}

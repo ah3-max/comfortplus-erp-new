@@ -1,70 +1,90 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
-// GET /api/documents - List documents with version history
+// GET /api/documents - List documents with search + category filter, paginated
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { searchParams } = new URL(req.url)
-  const documentType = searchParams.get('type')
-  const status = searchParams.get('status')
-  const limit = Math.min(parseInt(searchParams.get('limit') ?? '30'), 100)
+    const { searchParams } = new URL(req.url)
+    const search = searchParams.get('search') ?? ''
+    const category = searchParams.get('category') ?? ''
+    const page = Math.max(1, Number(searchParams.get('page') ?? 1))
+    const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 20)))
 
-  const where: any = {}
-  if (documentType) where.documentType = documentType
-  if (status) where.status = status
+    const where: Record<string, unknown> = {}
+    if (category && category !== 'ALL') where.documentType = category
+    if (search) {
+      where.OR = [
+        { documentName: { contains: search, mode: 'insensitive' } },
+        { fileName: { contains: search, mode: 'insensitive' } },
+        { versionNote: { contains: search, mode: 'insensitive' } },
+      ]
+    }
 
-  const docs = await prisma.documentVersion.findMany({
-    where,
-    orderBy: [{ documentType: 'asc' }, { documentName: 'asc' }, { version: 'desc' }],
-    take: limit,
-    include: { createdBy: { select: { id: true, name: true } } },
-  })
+    const [documents, total] = await Promise.all([
+      prisma.documentVersion.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { createdBy: { select: { id: true, name: true } } },
+      }),
+      prisma.documentVersion.count({ where }),
+    ])
 
-  const stats = await prisma.documentVersion.groupBy({
-    by: ['documentType'],
-    _count: { id: true },
-    where: { status: 'ACTIVE' },
-  })
-
-  return NextResponse.json({ documents: docs, stats })
+    return NextResponse.json({
+      data: documents,
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.ceil(total / pageSize),
+      },
+    })
+  } catch (error) {
+    return handleApiError(error, 'documents.list')
+  }
 }
 
-// POST /api/documents - Create new document version
+// POST /api/documents - Create new document record
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await req.json()
+    const body = await req.json()
+    const { documentName, documentType, fileUrl, fileName, fileSizeBytes, mimeType, versionNote } =
+      body
 
-  // If uploading a new version, supersede the old one
-  if (body.previousVersionId) {
-    await prisma.documentVersion.update({
-      where: { id: body.previousVersionId },
-      data: { status: 'SUPERSEDED' },
+    if (!documentName || !documentType || !fileUrl || !fileName) {
+      return NextResponse.json(
+        { error: '缺少必填欄位：文件名稱、類別、檔案名稱、檔案路徑' },
+        { status: 400 },
+      )
+    }
+
+    const doc = await prisma.documentVersion.create({
+      data: {
+        documentType,
+        documentName,
+        version: 1,
+        versionNote: versionNote ?? null,
+        fileUrl,
+        fileName,
+        fileSizeBytes: fileSizeBytes ? Number(fileSizeBytes) : null,
+        mimeType: mimeType ?? null,
+        status: 'ACTIVE',
+        createdById: session.user.id,
+      },
+      include: { createdBy: { select: { id: true, name: true } } },
     })
-  }
 
-  const doc = await prisma.documentVersion.create({
-    data: {
-      documentType: body.documentType,
-      relatedType: body.relatedType,
-      relatedId: body.relatedId,
-      documentName: body.documentName,
-      version: body.version ?? 1,
-      versionNote: body.versionNote,
-      fileUrl: body.fileUrl,
-      fileName: body.fileName,
-      fileSizeBytes: body.fileSizeBytes,
-      mimeType: body.mimeType,
-      status: body.status ?? 'DRAFT',
-      effectiveDate: body.effectiveDate ? new Date(body.effectiveDate) : undefined,
-      previousVersionId: body.previousVersionId,
-      createdById: session.user.id,
-    },
-    include: { createdBy: { select: { name: true } } },
-  })
-  return NextResponse.json(doc, { status: 201 })
+    return NextResponse.json(doc, { status: 201 })
+  } catch (error) {
+    return handleApiError(error, 'documents.create')
+  }
 }

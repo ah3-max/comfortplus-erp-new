@@ -18,8 +18,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Plus, Loader2, DollarSign, ArrowDownLeft, ArrowUpRight,
-  MoreHorizontal, Pencil, Trash2, Receipt, Banknote,
+  Plus, Loader2, ArrowDownLeft, ArrowUpRight,
+  MoreHorizontal, Pencil, Trash2, Receipt, Banknote, MinusCircle, Download,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -130,6 +130,11 @@ export default function PaymentsPage() {
   const [editForm, setEditForm]     = useState({
     method: '', bankAccount: '', referenceNo: '', invoiceNo: '', notes: '',
   })
+
+  // write-off dialog
+  const [writeOffTarget, setWriteOffTarget] = useState<Payment | null>(null)
+  const [writeOffForm, setWriteOffForm]     = useState({ amount: '', notes: '' })
+  const [writingOff, setWritingOff]         = useState(false)
 
   /* ─── Data Loading ──────────────────────────────────────── */
   const fetchPayments = useCallback(async () => {
@@ -290,6 +295,45 @@ export default function PaymentsPage() {
     }
   }
 
+  /* ─── Write-off ─────────────────────────────────────────── */
+  function openWriteOff(p: Payment) {
+    setWriteOffTarget(p)
+    setWriteOffForm({ amount: p.amount, notes: '壞帳核銷' })
+  }
+
+  async function handleWriteOff() {
+    if (!writeOffTarget) return
+    if (!writeOffForm.amount || Number(writeOffForm.amount) <= 0) {
+      toast.error('請填寫有效核銷金額'); return
+    }
+    setWritingOff(true)
+    const body = {
+      direction:   writeOffTarget.direction,
+      type:        'ADJUSTMENT',
+      amount:      Number(writeOffForm.amount),
+      paymentDate: new Date().toISOString().substring(0, 10),
+      customerId:  writeOffTarget.customer?.id ?? null,
+      supplierId:  writeOffTarget.supplier?.id ?? null,
+      salesOrderId:    writeOffTarget.salesOrder?.id ?? null,
+      purchaseOrderId: writeOffTarget.purchaseOrder?.id ?? null,
+      notes: writeOffForm.notes || `核銷 ${writeOffTarget.paymentNo}`,
+    }
+    const res = await fetch('/api/payments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setWritingOff(false)
+    if (res.ok) {
+      toast.success('核銷單已建立')
+      setWriteOffTarget(null)
+      fetchPayments()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? '核銷失敗')
+    }
+  }
+
   /* ─── Tab Styling ───────────────────────────────────────── */
   const tabStyle = (t: string) =>
     `px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
@@ -311,10 +355,21 @@ export default function PaymentsPage() {
             管理銷售收款與採購付款紀錄
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          {tab === 'INCOMING' ? '新增收款' : '新增付款'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => {
+            const params = new URLSearchParams()
+            params.set('direction', tab)
+            if (filterDateFrom) params.set('dateFrom', filterDateFrom)
+            if (filterDateTo)   params.set('dateTo', filterDateTo)
+            window.open(`/api/payments/export?${params}`, '_blank')
+          }}>
+            <Download className="mr-2 h-4 w-4" />匯出 Excel
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            {tab === 'INCOMING' ? '新增收款' : '新增付款'}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -470,6 +525,9 @@ export default function PaymentsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEdit(p)}>
                             <Pencil className="mr-2 h-4 w-4" />編輯
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openWriteOff(p)}>
+                            <MinusCircle className="mr-2 h-4 w-4" />核銷
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(p)} variant="destructive">
                             <Trash2 className="mr-2 h-4 w-4" />刪除
@@ -682,6 +740,44 @@ export default function PaymentsPage() {
             <Button onClick={handleCreate} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               新增
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Write-off Dialog ─────────────────────────────── */}
+      <Dialog open={!!writeOffTarget} onOpenChange={o => !o && setWriteOffTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>核銷帳款 — {writeOffTarget?.paymentNo}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+              核銷將建立一筆「調整」類型的收付款紀錄，用於沖銷壞帳或已確認無法收回的帳款。
+            </div>
+            <div className="space-y-1.5">
+              <Label>核銷金額 *</Label>
+              <Input
+                type="number" min={0}
+                value={writeOffForm.amount}
+                onChange={e => setWriteOffForm(f => ({ ...f, amount: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>核銷說明</Label>
+              <Textarea
+                value={writeOffForm.notes}
+                onChange={e => setWriteOffForm(f => ({ ...f, notes: e.target.value }))}
+                rows={2}
+                placeholder="說明核銷原因…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWriteOffTarget(null)} disabled={writingOff}>取消</Button>
+            <Button onClick={handleWriteOff} disabled={writingOff}>
+              {writingOff && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              確認核銷
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "prisma/seed-demo-orders.ts", "seed_daily_report.ts"]
+  "exclude": ["node_modules", "prisma/seed-demo.ts", "prisma/seed-demo-orders.ts", "seed_daily_report.ts"]
 }

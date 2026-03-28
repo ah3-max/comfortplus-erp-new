@@ -15,7 +15,7 @@ import { AdjustForm } from '@/components/inventory/adjust-form'
 import {
   Search, AlertTriangle, Package, Loader2, SlidersHorizontal, History,
   ArrowLeftRight, ClipboardList, Trash2, BarChart3, Plus, CheckCircle2,
-  XCircle, ChevronRight, Warehouse, CalendarDays,
+  XCircle, ChevronRight, Warehouse, CalendarDays, Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -494,9 +494,19 @@ export default function InventoryPage() {
           <h1 className="text-2xl font-bold text-slate-900">庫存管理</h1>
           <p className="text-sm text-muted-foreground">WMS 全模組</p>
         </div>
-        <Button variant="outline" onClick={() => router.push('/warehouses')}>
-          <Warehouse className="mr-2 h-4 w-4" />倉庫管理
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => {
+            const params = new URLSearchParams()
+            if (invSearch)    params.set('search', invSearch)
+            if (invWarehouse) params.set('warehouseId', invWarehouse)
+            window.open(`/api/inventory/export?${params}`, '_blank')
+          }}>
+            <Download className="mr-2 h-4 w-4" />匯出庫存
+          </Button>
+          <Button variant="outline" onClick={() => router.push('/warehouses')}>
+            <Warehouse className="mr-2 h-4 w-4" />倉庫管理
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}

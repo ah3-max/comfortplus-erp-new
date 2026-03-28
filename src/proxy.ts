@@ -37,6 +37,11 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
+  // ── Skip auth redirect for /api/auth/* ──
+  if (pathname.startsWith('/api/auth/')) {
+    return NextResponse.next()
+  }
+
   // ── Auth redirect (non-API) ──
   const isLoggedIn = !!req.auth
   const isLoginPage = pathname === '/login'

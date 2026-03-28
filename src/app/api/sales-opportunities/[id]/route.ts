@@ -89,6 +89,15 @@ export async function DELETE(
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
-  await prisma.salesOpportunity.update({ where: { id }, data: { isActive: false } })
+
+  const opp = await prisma.salesOpportunity.findUnique({ where: { id }, select: { stage: true } })
+  if (!opp) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const allowedStages = ['PROSPECTING', 'LOST']
+  if (!allowedStages.includes(opp.stage)) {
+    return NextResponse.json({ error: '只有「潛在開發」或「已失單」的商機才能刪除' }, { status: 400 })
+  }
+
+  await prisma.salesOpportunity.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }

@@ -4,6 +4,7 @@ model User {
   employeeNo   String?   @unique  // 員工編號
   email        String    @unique
   name         String
+  avatar       String?            // 頭貼 URL
   engName      String?            // 英文名
   password     String
   role         Role      @default(SALES)
@@ -91,6 +92,88 @@ model User {
   // ── 行銷倉取貨 ────────────────────────────────────────
   pickups                WarehousePickup[]   @relation("PickedBy")
   verifiedPickups        WarehousePickup[]   @relation("VerifiedBy")
+
+  // ── 銷貨單 ────────────────────────────────────────────
+  salesInvoicesSales     SalesInvoice[]      @relation("SalesInvoiceSalesPerson")
+  salesInvoicesHandler   SalesInvoice[]      @relation("SalesInvoiceHandler")
+  salesInvoicesCreated   SalesInvoice[]      @relation("SalesInvoiceCreatedBy")
+
+  // ── 領料單+生產入庫 ──────────────────────────────────
+  requisitionsHandled    MaterialRequisition[]  @relation("RequisitionHandler")
+  requisitionsCreated    MaterialRequisition[]  @relation("RequisitionCreatedBy")
+  receiptsHandled        ProductionReceipt[]    @relation("ReceiptHandler")
+  receiptsCreated        ProductionReceipt[]    @relation("ReceiptCreatedBy")
+
+  // ── 請購單+詢價單 ────────────────────────────────────
+  purchaseRequests       PurchaseRequest[]      @relation("PurchaseRequestHandler")
+  purchaseRequestsCreated PurchaseRequest[]     @relation("PurchaseRequestCreatedBy")
+
+  // ── 理貨單+派貨單 ────────────────────────────────────
+  pickingOrdersHandled   PickingOrder[]         @relation("PickingHandler")
+  pickingOrdersCreated   PickingOrder[]         @relation("PickingCreatedBy")
+  dispatchOrdersHandled  DispatchOrder[]        @relation("DispatchHandler")
+  dispatchOrdersCreated  DispatchOrder[]        @relation("DispatchCreatedBy")
+
+  // ── 電子發票 ────────────────────────────────────────
+  eInvoicesCreated       EInvoice[]             @relation("EInvoiceCreatedBy")
+
+  // ── P2-1 多級單價 ────────────────────────────────────
+  priceTierUpdates       ProductPriceTier[]     @relation("PriceTierUpdatedBy")
+
+  // ── P2-3 會計基礎 ────────────────────────────────────
+  journalEntriesCreated  JournalEntry[]         @relation("JournalCreatedBy")
+  journalEntriesPosted   JournalEntry[]         @relation("JournalPostedBy")
+
+  // ── P2-4 內部使用 + 不良品 ───────────────────────────
+  internalUsesRequested  InternalUse[]          @relation("InternalUseRequested")
+  internalUsesApproved   InternalUse[]          @relation("InternalUseApproved")
+  defectiveGoodsCreated  DefectiveGoods[]       @relation("DefectiveGoodsCreated")
+  defectiveGoodsResolved DefectiveGoods[]       @relation("DefectiveGoodsResolver")
+
+  // ── P3-1 電子簽核 ────────────────────────────────────
+  approvalTemplatesCreated ApprovalTemplate[]   @relation("ApprovalTemplateCreatedBy")
+  approvalRequestsMade     ApprovalRequest[]    @relation("ApprovalRequestedBy")
+  approvalStepsAssigned    ApprovalStep[]       @relation("ApprovalStepApprover")
+
+  // ── P3-2 進口費用管理 ─────────────────────────────────
+  importProjectsCreated    ImportProject[]      @relation("ImportProjectCreatedBy")
+
+  // ── P3-3 合約管理 ────────────────────────────────────
+  contractsCreated         Contract[]           @relation("ContractCreatedBy")
+
+  // ── P3-4 售後管理 ────────────────────────────────────
+  afterSalesAssigned       AfterSalesOrder[]    @relation("AfterSalesAssigned")
+  afterSalesCreated        AfterSalesOrder[]    @relation("AfterSalesCreatedBy")
+  afterSalesLogs           AfterSalesLog[]      @relation("AfterSalesLogCreatedBy")
+
+  // ── P3-5 固定資產 ────────────────────────────────────
+  fixedAssetsAssigned      FixedAsset[]         @relation("AssetAssignedTo")
+  fixedAssetsCreated       FixedAsset[]         @relation("AssetCreatedBy")
+
+  // ── P3-6 資金計畫+預算管理 ────────────────────────────
+  budgetsCreated           Budget[]             @relation("BudgetCreatedBy")
+  cashFlowsCreated         CashFlowPlan[]       @relation("CashFlowCreatedBy")
+
+  // ── 費用報銷 ────────────────────────────────────────
+  expensesSubmitted        ExpenseReport[]      @relation("ExpenseSubmittedBy")
+  expensesApproved         ExpenseReport[]      @relation("ExpenseApprovedBy")
+
+  // ── 人事管理 ────────────────────────────────────────
+  employeeProfile          EmployeeProfile?     @relation("EmployeeProfile")
+  appointments             Appointment[]        @relation("AppointmentUser")
+  attendances              Attendance[]         @relation("AttendanceUser")
+  payrollRecords           PayrollRecord[]      @relation("PayrollUser")
+
+  // ── 行政管理 ────────────────────────────────────────
+  announcementsCreated     Announcement[]       @relation("AnnouncementCreatedBy")
+  assetsBorrowed           AssetLoan[]          @relation("AssetBorrower")
+  assetLoansCreated        AssetLoan[]          @relation("AssetLoanCreatedBy")
+
+  // ── 採購計畫 ────────────────────────────────────────
+  purchasePlansCreated     PurchasePlan[]       @relation("PurchasePlanCreatedBy")
+
+  // ── 折扣規則 ────────────────────────────────────────
+  discountRulesCreated     DiscountRule[]       @relation("DiscountRuleCreatedBy")
 }
 
 // ========== 部門設定 ==========

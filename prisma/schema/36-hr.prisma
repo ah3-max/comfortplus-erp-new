@@ -1,0 +1,79 @@
+// ========== 人事管理 ==========
+
+model EmployeeProfile {
+  id                  String    @id @default(cuid())
+  userId              String    @unique
+  user                User      @relation("EmployeeProfile", fields: [userId], references: [id])
+  nationalId          String?   // 身分證（加密/遮罩）
+  birthday            DateTime? @db.Date
+  gender              String?   // MALE / FEMALE / OTHER
+  maritalStatus       String?   // SINGLE / MARRIED / DIVORCED
+  emergencyContact    String?
+  emergencyPhone      String?
+  bankAccount         String?
+  bankName            String?
+  laborInsuranceDate  DateTime? @db.Date
+  healthInsuranceDate DateTime? @db.Date
+  education           String?
+  certifications      String?
+  notes               String?
+  updatedAt           DateTime  @updatedAt
+}
+
+model Appointment {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation("AppointmentUser", fields: [userId], references: [id])
+  effectiveDate  DateTime @db.Date
+  type           String   // HIRE / PROMOTE / TRANSFER / RESIGN / TERMINATE
+  fromRole       String?
+  toRole         String?
+  fromDepartment String?
+  toDepartment   String?
+  fromTitle      String?
+  toTitle        String?
+  reason         String?
+  approvedById   String?
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, effectiveDate])
+}
+
+model Attendance {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("AttendanceUser", fields: [userId], references: [id])
+  date      DateTime  @db.Date
+  clockIn   DateTime?
+  clockOut  DateTime?
+  status    String    @default("PRESENT") // PRESENT / ABSENT / LATE / LEAVE / HOLIDAY
+  leaveType String?   // 特休 / 病假 / 事假 / 公假 / 喪假 / 婚假
+  overtime  Decimal?  @db.Decimal(4, 1)
+  notes     String?
+
+  @@unique([userId, date])
+}
+
+model PayrollRecord {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("PayrollUser", fields: [userId], references: [id])
+  periodYear      Int
+  periodMonth     Int
+  baseSalary      Decimal  @db.Decimal(12, 2)
+  allowances      Decimal  @db.Decimal(12, 2) @default(0)
+  overtimePay     Decimal  @db.Decimal(12, 2) @default(0)
+  bonus           Decimal  @db.Decimal(12, 2) @default(0)
+  deductions      Decimal  @db.Decimal(12, 2) @default(0)
+  laborInsurance  Decimal  @db.Decimal(12, 2) @default(0)
+  healthInsurance Decimal  @db.Decimal(12, 2) @default(0)
+  tax             Decimal  @db.Decimal(12, 2) @default(0)
+  netPay          Decimal  @db.Decimal(12, 2)
+  status          String   @default("DRAFT") // DRAFT / CONFIRMED / PAID
+  paidAt          DateTime?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, periodYear, periodMonth])
+}

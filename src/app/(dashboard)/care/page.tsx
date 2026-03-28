@@ -15,7 +15,8 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Plus, Pencil, Trash2, HeartHandshake, AlertCircle, CalendarDays } from 'lucide-react'
+import { Plus, Pencil, Trash2, HeartHandshake, AlertCircle, CalendarDays, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface CareSchedule {
@@ -105,6 +106,11 @@ export default function CarePage() {
   const [reqEdit, setReqEdit] = useState<ServiceRequest | null>(null)
   const [reqForm, setReqForm] = useState({ ...emptyReq })
 
+  // quick complete schedule
+  const [completeTarget, setCompleteTarget] = useState<CareSchedule | null>(null)
+  const [completeForm, setCompleteForm] = useState({ content: '', result: '', nextVisitDate: '' })
+  const [completing, setCompleting] = useState(false)
+
   const [saving, setSaving] = useState(false)
 
   async function load() {
@@ -165,6 +171,34 @@ export default function CarePage() {
     if (!confirm('確定取消此排程？')) return
     await fetch(`/api/care/schedules/${id}`, { method: 'DELETE' })
     load()
+  }
+
+  function openCompleteSch(s: CareSchedule) {
+    setCompleteTarget(s)
+    setCompleteForm({ content: s.content ?? '', result: s.result ?? '', nextVisitDate: '' })
+  }
+
+  async function saveCompleteSch() {
+    if (!completeTarget) return
+    setCompleting(true)
+    const res = await fetch(`/api/care/schedules/${completeTarget.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'COMPLETED',
+        content: completeForm.content || null,
+        result: completeForm.result || null,
+        nextVisitDate: completeForm.nextVisitDate || null,
+      }),
+    })
+    setCompleting(false)
+    if (res.ok) {
+      toast.success('訪視已完成')
+      setCompleteTarget(null)
+      load()
+    } else {
+      toast.error('操作失敗')
+    }
   }
 
   /* Service Request CRUD */
@@ -394,6 +428,11 @@ export default function CarePage() {
                         )}
                       </div>
                       <div className="flex gap-2 shrink-0">
+                        {(s.status === 'SCHEDULED' || s.status === 'IN_PROGRESS') && (
+                          <Button size="sm" variant="outline" onClick={() => openCompleteSch(s)} className="text-green-600 border-green-200 hover:bg-green-50 gap-1">
+                            <CheckCircle2 className="h-3.5 w-3.5" />完成
+                          </Button>
+                        )}
                         <Button size="sm" variant="outline" onClick={() => openEditSch(s)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -552,6 +591,52 @@ export default function CarePage() {
           </Card>
         </div>
       )}
+
+      {/* Quick Complete Schedule Dialog */}
+      <Dialog open={!!completeTarget} onOpenChange={o => !o && setCompleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>完成訪視 — {completeTarget?.customer.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div>
+              <Label>拜訪內容</Label>
+              <Textarea
+                rows={2}
+                value={completeForm.content}
+                onChange={e => setCompleteForm(f => ({ ...f, content: e.target.value }))}
+                placeholder="紀錄本次拜訪內容…"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>結果/回饋 *</Label>
+              <Textarea
+                rows={2}
+                value={completeForm.result}
+                onChange={e => setCompleteForm(f => ({ ...f, result: e.target.value }))}
+                placeholder="客戶回饋、待辦事項…"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>下次拜訪日期</Label>
+              <Input
+                type="date"
+                value={completeForm.nextVisitDate}
+                onChange={e => setCompleteForm(f => ({ ...f, nextVisitDate: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setCompleteTarget(null)} disabled={completing}>取消</Button>
+            <Button onClick={saveCompleteSch} disabled={completing || !completeForm.result}>
+              {completing ? '儲存中…' : '確認完成'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

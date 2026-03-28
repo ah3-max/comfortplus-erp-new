@@ -118,22 +118,35 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {process.env.NODE_ENV === 'development' && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
-              disabled={loading || quickLoading}
-              onClick={() => doLogin('admin@comfortplus.com', 'admin1234', true)}
-            >
-              {quickLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Zap className="mr-2 h-4 w-4" />
-              )}
-              {dict.login.adminQuickLogin}
-            </Button>
-          )}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'Admin', email: 'admin@comfortplus.com', pw: 'admin1234' },
+              { label: 'GM', email: 'gm@comfortplus.com', pw: 'gm12345678' },
+              { label: '業務主管', email: 'manager@comfortplus.com', pw: 'manager1234' },
+              { label: '業務', email: 'sales@comfortplus.com', pw: 'sales1234' },
+              { label: '倉儲主管', email: 'wm@comfortplus.com', pw: 'warehouse1234' },
+              { label: '倉庫', email: 'warehouse@comfortplus.com', pw: 'warehouse1234' },
+              { label: '財務', email: 'finance@comfortplus.com', pw: 'finance1234' },
+              { label: '採購', email: 'procurement@comfortplus.com', pw: 'procurement1234' },
+            ].map((acc) => (
+              <Button
+                key={acc.email}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+                disabled={loading || quickLoading}
+                onClick={() => doLogin(acc.email, acc.pw, true)}
+              >
+                {quickLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Zap className="h-3 w-3" />
+                )}
+                {acc.label}
+              </Button>
+            ))}
+          </div>
         </form>
       </CardContent>
     </Card>

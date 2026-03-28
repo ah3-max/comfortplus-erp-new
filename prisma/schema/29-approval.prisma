@@ -1,0 +1,62 @@
+// ========== 電子簽核 (Digital Approval Workflow) ==========
+
+model ApprovalTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  module      String   // ORDER | PURCHASE | INTERNAL_USE | QUOTATION | PURCHASE_REQUEST | CUSTOM
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  steps     ApprovalTemplateStep[]
+  requests  ApprovalRequest[]
+  createdBy User                   @relation("ApprovalTemplateCreatedBy", fields: [createdById], references: [id])
+}
+
+model ApprovalTemplateStep {
+  id           String  @id @default(cuid())
+  templateId   String
+  stepOrder    Int
+  stepName     String
+  approverRole String  // Role enum value as string
+  isOptional   Boolean @default(false)
+
+  template ApprovalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model ApprovalRequest {
+  id            String    @id @default(cuid())
+  requestNo     String    @unique
+  templateId    String?
+  module        String
+  entityId      String
+  entityLabel   String
+  status        String    @default("PENDING")  // PENDING | APPROVED | REJECTED | CANCELLED
+  currentStep   Int       @default(1)
+  requestedById String
+  requestedAt   DateTime  @default(now())
+  completedAt   DateTime?
+  notes         String?
+  updatedAt     DateTime  @updatedAt
+
+  template    ApprovalTemplate? @relation(fields: [templateId], references: [id])
+  requestedBy User              @relation("ApprovalRequestedBy", fields: [requestedById], references: [id])
+  steps       ApprovalStep[]
+}
+
+model ApprovalStep {
+  id         String    @id @default(cuid())
+  requestId  String
+  stepOrder  Int
+  stepName   String
+  approverId String?
+  status     String    @default("PENDING")  // PENDING | APPROVED | REJECTED | SKIPPED
+  action     String?   // APPROVE | REJECT | REQUEST_CHANGE
+  comment    String?
+  actedAt    DateTime?
+
+  request  ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  approver User?           @relation("ApprovalStepApprover", fields: [approverId], references: [id])
+}

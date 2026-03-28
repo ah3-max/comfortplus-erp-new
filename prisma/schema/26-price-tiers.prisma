@@ -1,0 +1,55 @@
+// ========== P2-1 多級單價管理 ==========
+// ECOUNT 對應：多級售價（priceA~J）+ 客戶價格等級 + 特殊定價
+
+// 商品多級單價（1:1 with Product）
+model ProductPriceTier {
+  id        String   @id @default(cuid())
+  productId String   @unique
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // 10 個價格等級（A 最高 / J 最低，企業自定義）
+  priceA    Decimal? @db.Decimal(10, 2)
+  priceB    Decimal? @db.Decimal(10, 2)
+  priceC    Decimal? @db.Decimal(10, 2)
+  priceD    Decimal? @db.Decimal(10, 2)
+  priceE    Decimal? @db.Decimal(10, 2)
+  priceF    Decimal? @db.Decimal(10, 2)
+  priceG    Decimal? @db.Decimal(10, 2)
+  priceH    Decimal? @db.Decimal(10, 2)
+  priceI    Decimal? @db.Decimal(10, 2)
+  priceJ    Decimal? @db.Decimal(10, 2)
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("PriceTierUpdatedBy", fields: [updatedById], references: [id])
+}
+
+// 客戶適用的價格等級（1:1 with Customer）
+// 應用優先順序：特殊定價 > 客戶等級 > 價格表 > 建議售價
+model CustomerPriceLevel {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation("CustomerPriceLevel", fields: [customerId], references: [id], onDelete: Cascade)
+  priceLevel String   @default("A") // A / B / C / D / E / F / G / H / I / J
+  notes      String?
+  updatedAt  DateTime @updatedAt
+}
+
+// 特殊定價（客戶 × 商品 override，最高優先）
+model SpecialPrice {
+  id            String    @id @default(cuid())
+  customerId    String
+  customer      Customer  @relation("CustomerSpecialPrices", fields: [customerId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product   @relation("ProductSpecialPrices", fields: [productId], references: [id], onDelete: Cascade)
+  price         Decimal   @db.Decimal(10, 2)
+  effectiveDate DateTime  @default(now())
+  expiryDate    DateTime?
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([customerId, productId])
+  @@index([productId])
+  @@index([customerId])
+}

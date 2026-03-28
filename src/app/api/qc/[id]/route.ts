@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyByRole } from '@/lib/notify'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -45,6 +46,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
   }
 
+  // Fetch existing before update to detect status change
+  const existingQc = await prisma.qualityCheck.findUnique({
+    where: { id },
+    select: { qcStatus: true, result: true, qcNo: true, productId: true, purchaseOrderId: true },
+  })
+
   const check = await prisma.qualityCheck.update({
     where: { id },
     data: {
@@ -65,6 +72,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       product:  { select: { id: true, sku: true, name: true } },
     },
   })
+
+  // QC completed with ACCEPTED → notify procurement + update PO status
+  const newStatus = body.qcStatus ?? existingQc?.qcStatus
+  const newResult = body.result ?? existingQc?.result
+  if (newStatus === 'COMPLETED' && existingQc?.qcStatus !== 'COMPLETED') {
+    const resultLabel = newResult === 'ACCEPTED' ? '允收' : newResult === 'REWORK' ? '重工' : newResult === 'RETURN_TO_SUPPLIER' ? '退供應商' : newResult
+    notifyByRole(['PROCUREMENT', 'WAREHOUSE_MANAGER'], {
+      title: `品檢完成：${existingQc?.qcNo ?? ''}`,
+      message: `結果：${resultLabel}，商品：${check.product?.name ?? ''}`,
+      linkUrl: `/qc/${id}`,
+      category: 'QC_COMPLETED',
+      priority: newResult === 'ACCEPTED' ? 'NORMAL' : 'HIGH',
+    }).catch(() => {})
+
+    // If ACCEPTED and linked to PO, advance PO to INSPECTED
+    if (newResult === 'ACCEPTED' && existingQc?.purchaseOrderId) {
+      await prisma.purchaseOrder.update({
+        where: { id: existingQc.purchaseOrderId },
+        data: { status: 'INSPECTED' },
+      }).catch(() => {})
+    }
+  }
 
   return NextResponse.json(check)
 }

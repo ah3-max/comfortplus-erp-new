@@ -9,8 +9,12 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
+import {
   ClipboardCheck, Plus, Loader2, ChevronRight,
-  CheckCircle2, AlertTriangle, Clock, XCircle, Search,
+  CheckCircle2, AlertTriangle, Clock, XCircle, Search, PlayCircle,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -234,6 +238,16 @@ export default function QcPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
 
+  // Quick complete dialog
+  const [completeTarget, setCompleteTarget] = useState<QcRecord | null>(null)
+  const [completeForm, setCompleteForm] = useState({
+    result: 'ACCEPTED',
+    passedQty: '',
+    failedQty: '',
+    resultSummary: '',
+  })
+  const [completing, setCompleting] = useState(false)
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -257,6 +271,51 @@ export default function QcPage() {
     inProgress:  records.filter(r => r.qcStatus === 'IN_PROGRESS').length,
     completed:   records.filter(r => r.qcStatus === 'COMPLETED').length,
     failed:      records.filter(r => r.result === 'RETURN_TO_SUPPLIER' || r.result === 'REWORK').length,
+  }
+
+  function openComplete(r: QcRecord) {
+    setCompleteTarget(r)
+    setCompleteForm({
+      result: 'ACCEPTED',
+      passedQty: r.passedQty?.toString() ?? '',
+      failedQty: r.failedQty?.toString() ?? '',
+      resultSummary: '',
+    })
+  }
+
+  async function handleComplete() {
+    if (!completeTarget) return
+    setCompleting(true)
+    const res = await fetch(`/api/qc/${completeTarget.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        qcStatus: 'COMPLETED',
+        result: completeForm.result,
+        passedQty: completeForm.passedQty ? Number(completeForm.passedQty) : undefined,
+        failedQty: completeForm.failedQty ? Number(completeForm.failedQty) : undefined,
+        resultSummary: completeForm.resultSummary || undefined,
+      }),
+    })
+    setCompleting(false)
+    if (res.ok) {
+      toast.success('QC 已完成')
+      setCompleteTarget(null)
+      load()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      toast.error(d.error ?? '操作失敗')
+    }
+  }
+
+  async function handleStartQc(r: QcRecord) {
+    const res = await fetch(`/api/qc/${r.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ qcStatus: 'IN_PROGRESS' }),
+    })
+    if (res.ok) { toast.success('已開始檢驗'); load() }
+    else { const d = await res.json().catch(() => ({})); toast.error(d.error ?? '操作失敗') }
   }
 
   return (
@@ -357,20 +416,18 @@ export default function QcPage() {
               {records.map(r => {
                 const statusCfg = STATUS_CONFIG[r.qcStatus] ?? { label: r.qcStatus, color: '', icon: null }
                 const resultCfg = r.result ? RESULT_CONFIG[r.result] : null
+                const isPending    = r.qcStatus === 'PENDING'
+                const isInProgress = r.qcStatus === 'IN_PROGRESS'
                 return (
-                  <Link
-                    key={r.id}
-                    href={`/qc/${r.id}`}
-                    className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1.5fr_auto] gap-3 px-4 py-3 hover:bg-slate-50 transition-colors items-center group"
-                  >
-                    <div>
+                  <div key={r.id} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1.5fr_auto] gap-3 px-4 py-3 hover:bg-slate-50 transition-colors items-center group">
+                    <Link href={`/qc/${r.id}`} className="flex flex-col">
                       <p className="font-mono text-sm font-semibold text-slate-800">{r.qcNo}</p>
                       {r.product && <p className="text-xs text-muted-foreground truncate">{r.product.sku} · {r.product.name}</p>}
                       {r.supplier && !r.product && <p className="text-xs text-muted-foreground">{r.supplier.name}</p>}
                       {r._count.checkItems > 0 && (
                         <p className="text-xs text-blue-600">{r._count.checkItems} 項明細</p>
                       )}
-                    </div>
+                    </Link>
                     <div>
                       <Badge className={`text-xs font-normal border-0 ${INSPECTION_TYPE_COLOR[r.inspectionType] ?? 'bg-slate-100'}`}>
                         {INSPECTION_TYPE_LABEL[r.inspectionType] ?? r.inspectionType}
@@ -400,14 +457,95 @@ export default function QcPage() {
                         : <span className="text-xs text-muted-foreground">待判定</span>}
                       {r.resultSummary && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">{r.resultSummary}</p>}
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-slate-700" />
-                  </Link>
+                    <div className="flex items-center gap-1">
+                      {isPending && (
+                        <button
+                          onClick={() => handleStartQc(r)}
+                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-0.5 px-1.5 py-1 rounded hover:bg-blue-50"
+                          title="開始檢驗"
+                        >
+                          <PlayCircle className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {isInProgress && (
+                        <button
+                          onClick={() => openComplete(r)}
+                          className="text-xs text-green-600 hover:text-green-800 flex items-center gap-0.5 px-1.5 py-1 rounded hover:bg-green-50"
+                          title="完成判定"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <Link href={`/qc/${r.id}`}>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-slate-700" />
+                      </Link>
+                    </div>
+                  </div>
                 )
               })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Quick Complete Dialog */}
+      <Dialog open={!!completeTarget} onOpenChange={o => !o && setCompleteTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>完成 QC 判定 — {completeTarget?.qcNo}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1.5">判定結果 *</label>
+              <select
+                className="w-full border rounded-md px-3 py-2 text-sm"
+                value={completeForm.result}
+                onChange={e => setCompleteForm(f => ({ ...f, result: e.target.value }))}
+              >
+                {Object.entries(RESULT_CONFIG).map(([k, v]) => (
+                  <option key={k} value={k}>{v.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">良品數量</label>
+                <Input
+                  type="number" min={0}
+                  value={completeForm.passedQty}
+                  onChange={e => setCompleteForm(f => ({ ...f, passedQty: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">不良品數量</label>
+                <Input
+                  type="number" min={0}
+                  value={completeForm.failedQty}
+                  onChange={e => setCompleteForm(f => ({ ...f, failedQty: e.target.value }))}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1.5">判定說明</label>
+              <Textarea
+                value={completeForm.resultSummary}
+                onChange={e => setCompleteForm(f => ({ ...f, resultSummary: e.target.value }))}
+                rows={2}
+                placeholder="簡短說明判定依據…"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompleteTarget(null)} disabled={completing}>取消</Button>
+            <Button onClick={handleComplete} disabled={completing}>
+              {completing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              確認完成
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

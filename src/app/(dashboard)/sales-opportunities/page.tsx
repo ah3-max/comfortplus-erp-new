@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Search, Loader2, TrendingUp, DollarSign, Target, Users, Pencil, X } from 'lucide-react'
+import { Plus, Search, Loader2, TrendingUp, DollarSign, Target, Users, Pencil, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 /* ── Types ── */
@@ -339,6 +339,7 @@ export default function SalesOpportunitiesPage() {
   const [view, setView] = useState<'list' | 'kanban'>('list')
   const [formOpen, setFormOpen] = useState(false)
   const [editOpp, setEditOpp] = useState<Opportunity | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const fetchOpportunities = useCallback(async () => {
     setLoading(true)
@@ -393,6 +394,30 @@ export default function SalesOpportunitiesPage() {
 
   function openCreate() { setEditOpp(null); setFormOpen(true) }
   function openEdit(o: Opportunity) { setEditOpp(o); setFormOpen(true) }
+
+  async function handleDelete(o: Opportunity) {
+    const allowed = ['PROSPECTING', 'LOST']
+    if (!allowed.includes(o.stage)) {
+      toast.error('只有「潛在開發」或「已失單」的商機才能刪除')
+      return
+    }
+    if (!confirm(`確定刪除商機「${o.title}」？此操作無法復原。`)) return
+    setDeletingId(o.id)
+    try {
+      const res = await fetch(`/api/sales-opportunities/${o.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('商機已刪除')
+        fetchOpportunities()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        toast.error(d.error ?? '刪除失敗')
+      }
+    } catch {
+      toast.error('刪除失敗')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -585,12 +610,27 @@ export default function SalesOpportunitiesPage() {
                       <Badge variant="outline" className="text-xs">{o._count.followUpLogs}</Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => openEdit(o)}
-                        className="rounded p-1 hover:bg-slate-100 text-muted-foreground hover:text-slate-700 transition-colors"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEdit(o)}
+                          className="rounded p-1 hover:bg-slate-100 text-muted-foreground hover:text-slate-700 transition-colors"
+                          title="編輯"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        {['PROSPECTING', 'LOST'].includes(o.stage) && (
+                          <button
+                            onClick={() => handleDelete(o)}
+                            disabled={deletingId === o.id}
+                            className="rounded p-1 hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
+                            title="刪除"
+                          >
+                            {deletingId === o.id
+                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              : <Trash2 className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
@@ -626,7 +666,21 @@ export default function SalesOpportunitiesPage() {
                         className="rounded-lg border bg-white p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                         onClick={() => openEdit(o)}
                       >
-                        <p className="text-xs text-muted-foreground font-mono mb-0.5">{o.customer.code}</p>
+                        <div className="flex items-start justify-between gap-1 mb-0.5">
+                          <p className="text-xs text-muted-foreground font-mono">{o.customer.code}</p>
+                          {['PROSPECTING', 'LOST'].includes(o.stage) && (
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDelete(o) }}
+                              disabled={deletingId === o.id}
+                              className="shrink-0 rounded p-0.5 hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
+                              title="刪除"
+                            >
+                              {deletingId === o.id
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : <Trash2 className="h-3 w-3" />}
+                            </button>
+                          )}
+                        </div>
                         <p
                           className="text-xs font-semibold text-blue-600 hover:underline mb-1"
                           onClick={e => { e.stopPropagation(); router.push(`/customers/${o.customer.id}`) }}

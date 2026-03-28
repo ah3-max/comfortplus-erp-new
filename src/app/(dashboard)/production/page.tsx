@@ -15,6 +15,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import {
   Plus, Loader2, Factory, Package, Ship, Search, Pencil, Calendar,
+  ArrowRight, XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -66,6 +67,26 @@ const MILESTONES: { key: ProductionStatus; label: string }[] = [
   { key: 'COMPLETED',        label: '已完成' },
 ]
 
+const NEXT_STATUS: Partial<Record<ProductionStatus, ProductionStatus>> = {
+  PENDING:          'SAMPLE_SUBMITTED',
+  SAMPLE_SUBMITTED: 'SAMPLE_APPROVED',
+  SAMPLE_APPROVED:  'IN_PRODUCTION',
+  IN_PRODUCTION:    'QC_INSPECTION',
+  QC_INSPECTION:    'READY_TO_SHIP',
+  READY_TO_SHIP:    'SHIPPED',
+  SHIPPED:          'COMPLETED',
+}
+
+const NEXT_STATUS_LABEL: Partial<Record<ProductionStatus, string>> = {
+  PENDING:          '提交打樣',
+  SAMPLE_SUBMITTED: '確認樣品',
+  SAMPLE_APPROVED:  '開始生產',
+  IN_PRODUCTION:    '送驗',
+  QC_INSPECTION:    '待出廠',
+  READY_TO_SHIP:    '出廠',
+  SHIPPED:          '完成',
+}
+
 const statusLabel: Record<ProductionStatus, string> = {
   PENDING:          '待排產',
   SAMPLE_SUBMITTED: '打樣中',
@@ -112,6 +133,20 @@ function milestoneIndex(status: ProductionStatus): number {
   return idx
 }
 
+// auto-fill date fields when advancing status
+function getAutoDateFields(nextStatus: ProductionStatus): Record<string, string> {
+  const today = new Date().toISOString().slice(0, 10)
+  switch (nextStatus) {
+    case 'SAMPLE_SUBMITTED': return { sampleSubmitDate: today }
+    case 'SAMPLE_APPROVED':  return { sampleApproveDate: today }
+    case 'IN_PRODUCTION':    return { productionStartDate: today }
+    case 'QC_INSPECTION':    return { inspectionDate: today }
+    case 'SHIPPED':          return { shipmentDate: today }
+    case 'COMPLETED':        return { productionEndDate: today }
+    default: return {}
+  }
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ProductionPage() {
   const [orders, setOrders]         = useState<ProductionOrder[]>([])
@@ -119,6 +154,7 @@ export default function ProductionPage() {
   const [search, setSearch]         = useState('')
   const [filterStatus, setFilterStatus]   = useState('')
   const [filterFactory, setFilterFactory] = useState('')
+  const [advancing, setAdvancing]   = useState<string | null>(null) // order id being advanced
 
   // Options for dropdowns
   const [purchases, setPurchases]   = useState<PurchaseOption[]>([])
@@ -177,6 +213,40 @@ export default function ProductionPage() {
         o.purchaseOrder.poNo.toLowerCase().includes(search.toLowerCase())
       )
     : orders
+
+  // ── Quick advance status ──────────────────────────────────────────────────
+  async function handleAdvance(o: ProductionOrder) {
+    const next = NEXT_STATUS[o.status]
+    if (!next) return
+    setAdvancing(o.id)
+    const autoFields = getAutoDateFields(next)
+    const res = await fetch(`/api/production/${o.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: next, ...autoFields }),
+    })
+    setAdvancing(null)
+    if (res.ok) {
+      toast.success(`${statusLabel[next]} ✓`)
+      fetchOrders()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      toast.error(d.error ?? '操作失敗')
+    }
+  }
+
+  async function handleCancel(o: ProductionOrder) {
+    if (!confirm(`確定要取消生產單 ${o.productionNo} 嗎？`)) return
+    setAdvancing(o.id)
+    const res = await fetch(`/api/production/${o.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'CANCELLED' }),
+    })
+    setAdvancing(null)
+    if (res.ok) { toast.success('已取消'); fetchOrders() }
+    else { const d = await res.json().catch(() => ({})); toast.error(d.error ?? '操作失敗') }
+  }
 
   // ── Create handler ────────────────────────────────────────────────────────
   function openCreate() {
@@ -374,111 +444,147 @@ export default function ProductionPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {filtered.map(o => (
-            <Card key={o.id} className="group hover:shadow-md transition-shadow">
-              <CardContent className="p-5">
-                {/* Top row: production no + badge + edit */}
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-lg bg-orange-50 p-2.5">
-                      <Factory className="h-5 w-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-900">{o.productionNo}</span>
-                        <Badge variant="outline" className={`text-xs ${statusBadgeCls[o.status]}`}>
-                          {statusLabel[o.status]}
-                        </Badge>
+          {filtered.map(o => {
+            const isTerminal = o.status === 'COMPLETED' || o.status === 'CANCELLED'
+            const nextStatus = NEXT_STATUS[o.status]
+            const nextLabel  = NEXT_STATUS_LABEL[o.status]
+            const isAdvancing = advancing === o.id
+
+            return (
+              <Card key={o.id} className="group hover:shadow-md transition-shadow">
+                <CardContent className="p-5">
+                  {/* Top row: production no + badge + edit */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-lg bg-orange-50 p-2.5">
+                        <Factory className="h-5 w-5 text-orange-600" />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {o.factory.name}
-                        <span className="mx-1.5">·</span>
-                        PO: {o.purchaseOrder.poNo}
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">{o.productionNo}</span>
+                          <Badge variant="outline" className={`text-xs ${statusBadgeCls[o.status]}`}>
+                            {statusLabel[o.status]}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {o.factory.name}
+                          <span className="mx-1.5">·</span>
+                          PO: {o.purchaseOrder.poNo}
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => openEdit(o)}
+                      className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => openEdit(o)}
-                    className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                </div>
 
-                {/* Milestone bar */}
-                <MilestoneBar status={o.status} />
+                  {/* Milestone bar */}
+                  <MilestoneBar status={o.status} />
 
-                {/* Info row */}
-                <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Package className="h-3 w-3" />
-                    訂購 {o.orderQty.toLocaleString()}
-                    {o.producedQty != null && (
-                      <span className="text-blue-600 font-medium ml-1">
-                        / 產出 {o.producedQty.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                  {o.passedQty != null && (
+                  {/* Info row */}
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      良品 {o.passedQty.toLocaleString()}
-                      {o.defectRate != null && (
-                        <span className="text-red-500">
-                          (不良 {Number(o.defectRate).toFixed(1)}%)
+                      <Package className="h-3 w-3" />
+                      訂購 {o.orderQty.toLocaleString()}
+                      {o.producedQty != null && (
+                        <span className="text-blue-600 font-medium ml-1">
+                          / 產出 {o.producedQty.toLocaleString()}
                         </span>
                       )}
                     </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    建立 {fmtShortDate(o.createdAt)}
-                  </div>
-                </div>
-
-                {/* Milestone dates */}
-                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                  {o.sampleSubmitDate && <span>打樣送出: {fmtShortDate(o.sampleSubmitDate)}</span>}
-                  {o.sampleApproveDate && <span>樣品確認: {fmtShortDate(o.sampleApproveDate)}</span>}
-                  {o.productionStartDate && <span>開始生產: {fmtShortDate(o.productionStartDate)}</span>}
-                  {o.productionEndDate && <span>生產完成: {fmtShortDate(o.productionEndDate)}</span>}
-                  {o.inspectionDate && <span>驗貨日: {fmtShortDate(o.inspectionDate)}</span>}
-                  {o.shipmentDate && <span>出廠日: {fmtShortDate(o.shipmentDate)}</span>}
-                </div>
-
-                {/* Sea freight link */}
-                {o.seaFreights.length > 0 && (
-                  <div className="mt-3 border-t pt-2">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                      <Ship className="h-3 w-3" />
-                      <span className="font-medium">關聯海運</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {o.seaFreights.map(sf => (
-                        <Badge key={sf.id} variant="outline" className="text-xs">
-                          {sf.freightNo}
-                          <span className="ml-1 text-muted-foreground">
-                            ({sf.status})
+                    {o.passedQty != null && (
+                      <div className="flex items-center gap-1">
+                        良品 {o.passedQty.toLocaleString()}
+                        {o.defectRate != null && (
+                          <span className="text-red-500">
+                            (不良 {Number(o.defectRate).toFixed(1)}%)
                           </span>
-                          {sf.eta && (
-                            <span className="ml-1 text-muted-foreground">
-                              ETA {fmtShortDate(sf.eta)}
-                            </span>
-                          )}
-                        </Badge>
-                      ))}
+                        )}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      建立 {fmtShortDate(o.createdAt)}
                     </div>
                   </div>
-                )}
 
-                {/* Notes */}
-                {o.notes && (
-                  <p className="mt-2 text-xs text-muted-foreground border-t pt-2 line-clamp-2">
-                    備註：{o.notes}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  {/* Milestone dates */}
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                    {o.sampleSubmitDate && <span>打樣送出: {fmtShortDate(o.sampleSubmitDate)}</span>}
+                    {o.sampleApproveDate && <span>樣品確認: {fmtShortDate(o.sampleApproveDate)}</span>}
+                    {o.productionStartDate && <span>開始生產: {fmtShortDate(o.productionStartDate)}</span>}
+                    {o.productionEndDate && <span>生產完成: {fmtShortDate(o.productionEndDate)}</span>}
+                    {o.inspectionDate && <span>驗貨日: {fmtShortDate(o.inspectionDate)}</span>}
+                    {o.shipmentDate && <span>出廠日: {fmtShortDate(o.shipmentDate)}</span>}
+                  </div>
+
+                  {/* Sea freight link */}
+                  {o.seaFreights.length > 0 && (
+                    <div className="mt-3 border-t pt-2">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                        <Ship className="h-3 w-3" />
+                        <span className="font-medium">關聯海運</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {o.seaFreights.map(sf => (
+                          <Badge key={sf.id} variant="outline" className="text-xs">
+                            {sf.freightNo}
+                            <span className="ml-1 text-muted-foreground">
+                              ({sf.status})
+                            </span>
+                            {sf.eta && (
+                              <span className="ml-1 text-muted-foreground">
+                                ETA {fmtShortDate(sf.eta)}
+                              </span>
+                            )}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {o.notes && (
+                    <p className="mt-2 text-xs text-muted-foreground border-t pt-2 line-clamp-2">
+                      備註：{o.notes}
+                    </p>
+                  )}
+
+                  {/* ── Quick action buttons ── */}
+                  {!isTerminal && (
+                    <div className="mt-3 pt-3 border-t flex items-center gap-2">
+                      {nextStatus && nextLabel && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="h-7 text-xs gap-1"
+                          disabled={isAdvancing}
+                          onClick={() => handleAdvance(o)}
+                        >
+                          {isAdvancing
+                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                            : <ArrowRight className="h-3 w-3" />}
+                          {nextLabel}
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 gap-1"
+                        disabled={isAdvancing}
+                        onClick={() => handleCancel(o)}
+                      >
+                        <XCircle className="h-3 w-3" />取消
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 

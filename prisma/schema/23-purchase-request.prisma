@@ -1,0 +1,89 @@
+// ========== 請購單（Purchase Request） ==========
+// 流程：請購單 → 詢價單(RFQ) → 採購單(PurchaseOrder) → 進貨單
+
+model PurchaseRequest {
+  id              String                @id @default(cuid())
+  requestNumber   String                @unique // PRQ + YYYYMMDD + 流水號
+  date            DateTime              @default(now())
+  handlerId       String
+  handler         User                  @relation("PurchaseRequestHandler", fields: [handlerId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse             @relation("PurchaseRequestWarehouse", fields: [warehouseId], references: [id])
+  deliveryDate    DateTime?             // 預計交付日
+  currency        String                @default("TWD")
+  reference       String?
+  status          PurchaseRequestStatus @default(DRAFT)
+  notes           String?
+
+  items           PurchaseRequestItem[]
+
+  createdById     String
+  createdBy       User                  @relation("PurchaseRequestCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([status, date])
+}
+
+model PurchaseRequestItem {
+  id              String          @id @default(cuid())
+  requestId       String
+  request         PurchaseRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product         @relation("PurchaseRequestItemProduct", fields: [productId], references: [id])
+  supplierId      String?         // 建議供應商
+  specification   String?
+  quantity        Decimal         @db.Decimal(10, 2)
+  unitPrice       Decimal?        @db.Decimal(10, 2)
+  subtotal        Decimal?        @db.Decimal(12, 2)
+  taxAmount       Decimal?        @db.Decimal(12, 2)
+  memo            String?
+
+  @@index([requestId])
+}
+
+// ========== 詢價單（Request for Quotation） ==========
+
+model RequestForQuotation {
+  id              String        @id @default(cuid())
+  rfqNumber       String        @unique // RFQ + YYYYMMDD + 流水號
+  date            DateTime      @default(now())
+  validUntil      DateTime?
+  handlerId       String
+  status          RFQStatus     @default(DRAFT)
+  notes           String?
+
+  items           RFQItem[]
+  suppliers       RFQSupplier[]
+
+  createdById     String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status, date])
+}
+
+model RFQItem {
+  id              String                @id @default(cuid())
+  rfqId           String
+  rfq             RequestForQuotation   @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product               @relation("RFQItemProduct", fields: [productId], references: [id])
+  quantity        Decimal               @db.Decimal(10, 2)
+  specification   String?
+
+  @@index([rfqId])
+}
+
+model RFQSupplier {
+  id              String                @id @default(cuid())
+  rfqId           String
+  rfq             RequestForQuotation   @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierId      String
+  supplier        Supplier              @relation("RFQSupplierRef", fields: [supplierId], references: [id])
+  quotedPrice     Decimal?              @db.Decimal(12, 2)
+  responseDate    DateTime?
+  selected        Boolean               @default(false)
+
+  @@index([rfqId])
+}

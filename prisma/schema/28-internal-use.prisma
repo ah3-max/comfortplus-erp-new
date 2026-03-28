@@ -1,0 +1,85 @@
+// ========== P2-4 內部使用 + 不良品管理 ==========
+
+// 內部領用單（樣品/員工/行銷/測試）
+model InternalUse {
+  id          String   @id @default(cuid())
+  useNo       String   @unique
+  purpose     String                    // SAMPLE / STAFF / MARKETING / TEST / DISPOSAL / OTHER
+  warehouseId String
+  warehouse   Warehouse @relation("InternalUseWarehouse", fields: [warehouseId], references: [id])
+  requestedById String
+  requestedBy User     @relation("InternalUseRequested", fields: [requestedById], references: [id])
+  approvedById  String?
+  approvedBy    User?  @relation("InternalUseApproved", fields: [approvedById], references: [id])
+  approvedAt    DateTime?
+  issuedAt      DateTime?
+  status      String   @default("DRAFT") // DRAFT / PENDING_APPROVAL / APPROVED / ISSUED / CANCELLED
+  totalCost   Decimal? @db.Decimal(12, 2)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       InternalUseItem[]
+
+  @@index([status, createdAt(sort: Desc)])
+}
+
+model InternalUseItem {
+  id            String      @id @default(cuid())
+  useId         String
+  use           InternalUse @relation(fields: [useId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product     @relation("InternalUseItemProduct", fields: [productId], references: [id])
+  quantity      Int
+  unitCost      Decimal?    @db.Decimal(10, 2)
+  totalCost     Decimal?    @db.Decimal(12, 2)
+  lotId         String?
+  lot           InventoryLot? @relation("InternalUseItemLot", fields: [lotId], references: [id])
+  notes         String?
+}
+
+// 不良品處理單
+model DefectiveGoods {
+  id           String   @id @default(cuid())
+  defectNo     String   @unique
+  source       String                    // QC_FAIL / CUSTOMER_RETURN / WAREHOUSE_DAMAGE / PRODUCTION
+  productId    String
+  product      Product  @relation("DefectiveGoodsProduct", fields: [productId], references: [id])
+  warehouseId  String
+  warehouse    Warehouse @relation("DefectiveGoodsWarehouse", fields: [warehouseId], references: [id])
+  quantity     Int
+  discoveredAt DateTime @default(now())
+  batchNo      String?
+  lotId        String?
+  lot          InventoryLot? @relation("DefectiveGoodsLot", fields: [lotId], references: [id])
+  defectType   String?                   // ABSORPTION / LEAK / PACKAGING / SURFACE / OTHER
+  severity     String   @default("MINOR") // MINOR / MAJOR / CRITICAL
+  description  String?
+  photoUrls    Json?    @default("[]")
+
+  // 處置
+  disposition  String?                   // SCRAP / REWORK / RETURN_SUPPLIER / DISCOUNT_SALE / QUARANTINE
+  dispositionNote String?
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?    @relation("DefectiveGoodsResolver", fields: [resolvedById], references: [id])
+
+  status       String   @default("PENDING") // PENDING / PROCESSING / RESOLVED / CANCELLED
+
+  // 損失計算
+  unitCost     Decimal? @db.Decimal(10, 2)
+  totalLoss    Decimal? @db.Decimal(12, 2)
+
+  // 關聯
+  qcId         String?
+  qc           QualityCheck? @relation("DefectiveFromQC", fields: [qcId], references: [id])
+  scrapId      String?       // 若處置為報廢，關聯 StockScrap
+
+  createdById  String
+  createdBy    User     @relation("DefectiveGoodsCreated", fields: [createdById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([productId])
+}

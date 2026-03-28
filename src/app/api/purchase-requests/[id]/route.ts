@@ -1,0 +1,199 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { prisma } from '@/lib/prisma'
+import { logAudit } from '@/lib/audit'
+import { handleApiError } from '@/lib/api-error'
+import { generateSequenceNo } from '@/lib/sequence'
+
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id } = await params
+  const request = await prisma.purchaseRequest.findUnique({
+    where: { id },
+    include: {
+      handler: { select: { id: true, name: true } },
+      warehouse: { select: { id: true, name: true, code: true } },
+      items: {
+        include: { product: { select: { id: true, sku: true, name: true, unit: true } } },
+      },
+      createdBy: { select: { id: true, name: true } },
+    },
+  })
+
+  if (!request) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  return NextResponse.json(request)
+}
+
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const { id } = await params
+    const body = await req.json()
+
+    const existing = await prisma.purchaseRequest.findUnique({ where: { id } })
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    // Status-only update (DRAFT → SUBMITTED → APPROVED → ORDERED)
+    if (body.statusOnly) {
+      const request = await prisma.purchaseRequest.update({
+        where: { id },
+        data: { status: body.status },
+      })
+
+      // Auto-create PO when APPROVED (group by supplier)
+      if (body.status === 'APPROVED' && existing.status !== 'APPROVED') {
+        const prWithItems = await prisma.purchaseRequest.findUnique({
+          where: { id },
+          include: { items: { select: { productId: true, supplierId: true, quantity: true, unitPrice: true, specification: true } } },
+        })
+        if (prWithItems) {
+          // Group items by supplier
+          const supplierGroups = new Map<string, typeof prWithItems.items>()
+          for (const item of prWithItems.items) {
+            if (!item.supplierId) continue
+            const group = supplierGroups.get(item.supplierId) ?? []
+            group.push(item)
+            supplierGroups.set(item.supplierId, group)
+          }
+          // Create one DRAFT PO per supplier
+          for (const [supplierId, items] of supplierGroups) {
+            const poNo = await generateSequenceNo('PURCHASE_ORDER')
+            const subtotal = items.reduce((s, i) => s + Number(i.quantity) * Number(i.unitPrice ?? 0), 0)
+            await prisma.purchaseOrder.create({
+              data: {
+                poNo,
+                supplierId,
+                createdById: session.user.id,
+                status: 'DRAFT',
+                orderType: 'FINISHED_GOODS',
+                expectedDate: prWithItems.deliveryDate,
+                warehouse: null,
+                subtotal,
+                totalAmount: subtotal,
+                notes: `由請購單 ${existing.requestNumber} 自動產生`,
+                items: {
+                  create: items.map(item => ({
+                    productId: item.productId,
+                    quantity: Number(item.quantity),
+                    unitCost: Number(item.unitPrice ?? 0),
+                    subtotal: Number(item.quantity) * Number(item.unitPrice ?? 0),
+                  })),
+                },
+              },
+            })
+          }
+        }
+      }
+
+      logAudit({
+        userId: session.user.id,
+        userName: session.user.name ?? '',
+        userRole: (session.user as { role?: string }).role ?? '',
+        module: 'purchase-requests',
+        action: 'STATUS_CHANGE',
+        entityType: 'PurchaseRequest',
+        entityId: id,
+        entityLabel: existing.requestNumber,
+        changes: { status: { before: existing.status, after: body.status } },
+      }).catch(() => {})
+
+      return NextResponse.json(request)
+    }
+
+    // Full update (only DRAFT status)
+    if (existing.status !== 'DRAFT') {
+      return NextResponse.json({ error: '只能編輯草稿狀態的請購單' }, { status: 400 })
+    }
+
+    // Delete existing items and recreate
+    await prisma.purchaseRequestItem.deleteMany({ where: { requestId: id } })
+
+    const request = await prisma.purchaseRequest.update({
+      where: { id },
+      data: {
+        handlerId: body.handlerId ?? existing.handlerId,
+        warehouseId: body.warehouseId ?? existing.warehouseId,
+        deliveryDate: body.deliveryDate ? new Date(body.deliveryDate) : existing.deliveryDate,
+        currency: body.currency ?? existing.currency,
+        reference: body.reference ?? existing.reference,
+        notes: body.notes ?? existing.notes,
+        items: {
+          create: body.items.map((item: {
+            productId: string
+            quantity: number
+            unitPrice?: number
+            specification?: string
+            memo?: string
+          }) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
+            specification: item.specification || null,
+            subtotal: item.unitPrice ? item.quantity * Number(item.unitPrice) : null,
+            memo: item.memo || null,
+          })),
+        },
+      },
+      include: {
+        handler: { select: { id: true, name: true } },
+        warehouse: { select: { id: true, name: true, code: true } },
+        items: {
+          include: { product: { select: { id: true, sku: true, name: true, unit: true } } },
+        },
+        createdBy: { select: { id: true, name: true } },
+      },
+    })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'purchase-requests',
+      action: 'UPDATE',
+      entityType: 'PurchaseRequest',
+      entityId: id,
+      entityLabel: existing.requestNumber,
+    }).catch(() => {})
+
+    return NextResponse.json(request)
+  } catch (error) {
+    return handleApiError(error, 'purchase-requests.PUT')
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
+    const { id } = await params
+    const request = await prisma.purchaseRequest.findUnique({ where: { id } })
+    if (!request) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    if (!['DRAFT', 'SUBMITTED'].includes(request.status)) {
+      return NextResponse.json({ error: '只能取消草稿或已提交的請購單' }, { status: 400 })
+    }
+
+    await prisma.purchaseRequest.update({ where: { id }, data: { status: 'CANCELLED' } })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'purchase-requests',
+      action: 'CANCEL',
+      entityType: 'PurchaseRequest',
+      entityId: id,
+      entityLabel: request.requestNumber,
+    }).catch(() => {})
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleApiError(error, 'purchase-requests.DELETE')
+  }
+}

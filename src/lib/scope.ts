@@ -126,3 +126,63 @@ export function canAccessQuotation(ctx: ScopeContext, quotation: { createdById: 
   if (!OWN_DATA_ROLES.includes(ctx.role)) return true
   return quotation.createdById === ctx.userId
 }
+
+/**
+ * Returns a Prisma `where` clause for SalesInvoice queries.
+ * - SALES/CS/CARE_SUPERVISOR: only invoices they created
+ * - Others: no filter
+ */
+export function invoiceScope(ctx: ScopeContext): Record<string, unknown> {
+  if (OWN_DATA_ROLES.includes(ctx.role)) {
+    return { createdById: ctx.userId }
+  }
+  return {}
+}
+
+/**
+ * Check if user can access a specific sales invoice.
+ */
+export function canAccessInvoice(ctx: ScopeContext, invoice: { createdById: string }): boolean {
+  if (!OWN_DATA_ROLES.includes(ctx.role)) return true
+  return invoice.createdById === ctx.userId
+}
+
+/**
+ * Returns a Prisma `where` clause for MaterialRequisition queries.
+ * - SALES/CS/CARE_SUPERVISOR: only requisitions they created
+ * - Others: no filter
+ */
+export function requisitionScope(ctx: ScopeContext): Record<string, unknown> {
+  if (OWN_DATA_ROLES.includes(ctx.role)) {
+    return { createdById: ctx.userId }
+  }
+  return {}
+}
+
+/**
+ * Check if user can access a specific material requisition.
+ */
+export function canAccessRequisition(ctx: ScopeContext, requisition: { createdById: string }): boolean {
+  if (!OWN_DATA_ROLES.includes(ctx.role)) return true
+  return requisition.createdById === ctx.userId
+}
+
+/**
+ * Returns a Prisma `where` clause for ProductionReceipt queries.
+ * - SALES/CS/CARE_SUPERVISOR: only receipts they created
+ * - Others: no filter
+ */
+export function receiptScope(ctx: ScopeContext): Record<string, unknown> {
+  if (OWN_DATA_ROLES.includes(ctx.role)) {
+    return { createdById: ctx.userId }
+  }
+  return {}
+}
+
+/**
+ * Check if user can access a specific production receipt.
+ */
+export function canAccessReceipt(ctx: ScopeContext, receipt: { createdById: string }): boolean {
+  if (!OWN_DATA_ROLES.includes(ctx.role)) return true
+  return receipt.createdById === ctx.userId
+}

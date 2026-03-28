@@ -2,16 +2,37 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 
-// All sidebar module codes
+// All sidebar module codes (keep in sync with sidebar.tsx navGroups)
 const ALL_MODULES = [
-  'dashboard', 'dailyReport', 'crm', 'calendar',
-  'customers', 'quotations', 'orders', 'kpi', 'pipeline', 'tasks',
-  'products', 'inventory', 'warehouses',
-  'shipments', 'pickup', 'logistics',
-  'purchases', 'suppliers', 'production', 'qc', 'packaging', 'seaFreight',
-  'channels', 'payments',
-  'care',
-  'reports', 'users', 'settings',
+  // Daily
+  'dashboard', 'dailyReport', 'quickInput', 'crm', 'alerts', 'calendar', 'businessCalendar',
+  // Sales
+  'customers', 'keyAccounts', 'incidents', 'quotations', 'orders', 'salesInvoices', 'eInvoices',
+  'marginCalc', 'kpi', 'pipeline', 'opportunities', 'tasks',
+  // Inventory
+  'products', 'inventory', 'warehouses', 'stockCounts', 'internalUse', 'traceability', 'wms',
+  // Logistics
+  'shipments', 'picking', 'dispatch', 'pickup', 'logistics',
+  // Production & Procurement
+  'purchases', 'purchaseRequests', 'rfq', 'suppliers', 'production', 'materialRequisitions',
+  'productionReceipts', 'qc', 'packaging', 'seaFreight', 'importProjects', 'purchasePlans',
+  // Finance
+  'contracts', 'fixedAssets', 'budget', 'expenses', 'finance', 'channels', 'retail',
+  'payments', 'arAging', 'apAging', 'priceTiers', 'discountRules',
+  'generalLedger', 'accountDetail', 'accountSummary', 'accountMovement',
+  'vatLedger', 'cashBook', 'dailyMonthlySummary', 'vendorLedger1', 'vendorLedger2',
+  'partyTransactions', 'cashFlowStatement', 'costDetail', 'incomeExpenseDetail',
+  'dailyCashReport', 'cashPosition', 'monthlyPL', 'monthlyCost', 'arApTurnover',
+  'managementSummary', 'monthlyPurchase', 'monthlySales', 'paymentSummary', 'receiptSummary',
+  'transactionDetail', 'arVoucherDetail', 'apVoucherDetail',
+  // Service
+  'afterSales', 'care', 'knowledge',
+  // HR
+  'hr', 'orgChart',
+  // Admin
+  'announcements', 'assetLoans', 'regionMapping',
+  // System
+  'approvals', 'reports', 'documents', 'auditLog', 'users', 'settings',
 ]
 
 const ALL_ROLES = [
@@ -24,43 +45,80 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   SUPER_ADMIN: ALL_MODULES,
   GM: ALL_MODULES,
   SALES_MANAGER: [
-    'dashboard', 'dailyReport', 'crm', 'calendar',
-    'customers', 'quotations', 'orders', 'kpi', 'pipeline', 'tasks',
-    'products', 'inventory',
-    'shipments', 'pickup',
-    'channels', 'payments',
-    'care', 'reports',
+    'dashboard', 'dailyReport', 'quickInput', 'crm', 'alerts', 'calendar', 'businessCalendar',
+    'customers', 'keyAccounts', 'incidents', 'quotations', 'orders', 'salesInvoices', 'eInvoices',
+    'marginCalc', 'kpi', 'pipeline', 'opportunities', 'tasks',
+    'products', 'inventory', 'shipments', 'pickup',
+    'channels', 'payments', 'arAging', 'budget', 'expenses', 'contracts',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'reports', 'documents', 'announcements',
   ],
   SALES: [
-    'dashboard', 'dailyReport', 'crm', 'calendar',
-    'customers', 'quotations', 'orders', 'kpi', 'pipeline', 'tasks',
-    'products',
-    'shipments', 'pickup',
-    'care',
+    'dashboard', 'dailyReport', 'quickInput', 'crm', 'calendar',
+    'customers', 'keyAccounts', 'quotations', 'orders', 'salesInvoices',
+    'kpi', 'pipeline', 'opportunities', 'tasks',
+    'products', 'shipments', 'pickup',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'announcements',
   ],
   CARE_SUPERVISOR: [
-    'dashboard', 'calendar', 'customers', 'care', 'tasks', 'crm',
+    'dashboard', 'calendar', 'businessCalendar', 'crm', 'alerts',
+    'customers', 'keyAccounts', 'incidents', 'tasks',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'announcements',
   ],
   ECOMMERCE: [
-    'dashboard', 'products', 'orders', 'channels', 'inventory', 'shipments', 'payments', 'reports',
+    'dashboard', 'dailyReport',
+    'orders', 'salesInvoices', 'eInvoices', 'kpi',
+    'products', 'inventory',
+    'shipments',
+    'channels', 'retail', 'payments', 'arAging',
+    'afterSales',
+    'reports', 'announcements',
   ],
   CS: [
-    'dashboard', 'customers', 'orders', 'shipments', 'care',
+    'dashboard', 'crm', 'calendar',
+    'customers', 'orders', 'tasks',
+    'afterSales', 'care', 'knowledge',
+    'approvals', 'announcements',
   ],
   WAREHOUSE_MANAGER: [
-    'dashboard', 'products', 'inventory', 'warehouses', 'shipments', 'logistics',
-    'purchases', 'qc', 'packaging', 'seaFreight', 'reports',
+    'dashboard', 'quickInput', 'alerts',
+    'orders', 'salesInvoices',
+    'products', 'inventory', 'warehouses', 'stockCounts', 'internalUse', 'traceability', 'wms',
+    'shipments', 'picking', 'dispatch', 'pickup', 'logistics',
+    'purchases', 'purchaseRequests', 'suppliers', 'qc', 'packaging', 'seaFreight',
+    'importProjects', 'purchasePlans',
+    'reports', 'documents', 'announcements',
   ],
   WAREHOUSE: [
-    'dashboard', 'inventory', 'warehouses', 'shipments', 'pickup', 'logistics', 'packaging',
+    'dashboard', 'quickInput',
+    'inventory', 'warehouses', 'stockCounts', 'wms',
+    'shipments', 'picking', 'dispatch', 'pickup', 'logistics', 'packaging',
+    'announcements',
   ],
   PROCUREMENT: [
-    'dashboard', 'products', 'inventory', 'purchases', 'suppliers',
-    'production', 'qc', 'packaging', 'seaFreight', 'payments', 'reports',
+    'dashboard', 'alerts',
+    'products', 'inventory', 'warehouses',
+    'purchases', 'purchaseRequests', 'rfq', 'suppliers', 'production',
+    'materialRequisitions', 'productionReceipts', 'qc', 'packaging',
+    'seaFreight', 'importProjects', 'purchasePlans',
+    'payments', 'apAging', 'budget',
+    'reports', 'documents', 'announcements',
   ],
   FINANCE: [
-    'dashboard', 'orders', 'payments', 'reports',
-    'purchases', 'inventory', 'channels',
+    'dashboard',
+    'orders', 'salesInvoices', 'eInvoices',
+    'products',
+    'contracts', 'fixedAssets', 'budget', 'expenses', 'finance',
+    'channels', 'retail', 'payments', 'arAging', 'apAging', 'priceTiers', 'discountRules',
+    'generalLedger', 'accountDetail', 'accountSummary', 'accountMovement',
+    'vatLedger', 'cashBook', 'dailyMonthlySummary', 'vendorLedger1', 'vendorLedger2',
+    'partyTransactions', 'cashFlowStatement', 'costDetail', 'incomeExpenseDetail',
+    'dailyCashReport', 'cashPosition', 'monthlyPL', 'monthlyCost', 'arApTurnover',
+    'managementSummary', 'monthlyPurchase', 'monthlySales', 'paymentSummary', 'receiptSummary',
+    'transactionDetail', 'arVoucherDetail', 'apVoucherDetail',
+    'approvals', 'reports', 'documents', 'auditLog', 'announcements',
   ],
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -81,7 +82,8 @@ export default function TasksPage() {
   const [filterPriority, setFilterPriority] = useState('')
   const [filterMy, setFilterMy] = useState(false)
 
-  const [open, setOpen]     = useState(false)
+  const _sp = useSearchParams()
+  const [open, setOpen]     = useState(_sp.get('action') === 'new')
   const [editing, setEditing] = useState<Task | null>(null)
   const [form, setForm]     = useState({ ...emptyForm })
   const [saving, setSaving] = useState(false)

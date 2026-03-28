@@ -68,16 +68,62 @@ model Vehicle {
   id          String   @id @default(cuid())
   plateNo     String   @unique  // 車牌
   vehicleType String?  // 3.5T / 5T / 11T
+  brand       String?  // 品牌（HINO / FUSO / 中華）
+  model       String?  // 車型型號
+  year        Int?     // 出廠年份
   maxWeight   Decimal? @db.Decimal(8, 2) // 載重（噸）
   maxVolume   Decimal? @db.Decimal(8, 2) // 容積（CBM）
   owner       String?  // 所屬單位
+  vin         String?  // 車身號碼
+  engineNo    String?  // 引擎號碼
+  fuelType    String?  // 燃料：DIESEL / GASOLINE / ELECTRIC
+  currentOdometer Int? // 目前里程數 (km)
+
+  // ── 定期檢查到期日 ──────────────────────────────────
+  insuranceExpiry      DateTime?  // 保險到期日
+  inspectionExpiry     DateTime?  // 驗車到期日
+  licenseTaxExpiry     DateTime?  // 牌照稅到期日
+  fuelTaxExpiry        DateTime?  // 燃料稅到期日
+  tachoCalibrationDate DateTime?  // 行車紀錄器校正日
+
   isActive    Boolean  @default(true)
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  trips       DeliveryTrip[]
-  drivers     Driver[]
+  trips          DeliveryTrip[]
+  drivers        Driver[]
+  maintenances   VehicleMaintenance[]
+}
+
+// ========== 車輛保養/維修紀錄 ==========
+model VehicleMaintenance {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+
+  // 類型
+  type        String   // REGULAR_SERVICE(定期保養) / REPAIR(維修) / TIRE(輪胎) / INSPECTION(驗車) / INSURANCE(保險) / OTHER
+  title       String   // 保養項目名稱
+
+  // 時間
+  serviceDate   DateTime   // 保養/維修日期
+  nextServiceDate DateTime? // 下次保養日期
+  nextServiceKm   Int?      // 下次保養里程
+
+  // 費用
+  cost        Decimal?  @db.Decimal(10, 2)
+  vendor      String?   // 保養廠/維修廠名稱
+  invoiceNo   String?   // 發票號碼
+
+  // 明細
+  odometerAtService Int?  // 保養時里程
+  items       String?     // 保養項目明細（JSON: [{name, qty, cost}]）
+  notes       String?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // ========== 司機主檔 ==========

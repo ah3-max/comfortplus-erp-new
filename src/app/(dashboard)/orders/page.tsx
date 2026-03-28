@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -72,7 +72,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
-  const [formOpen, setFormOpen] = useState(false)
+  const searchParams = useSearchParams()
+  const [formOpen, setFormOpen] = useState(searchParams.get('action') === 'new')
   const [editTarget, setEditTarget] = useState<Order | null>(null)
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<{page:number;pageSize:number;total:number;totalPages:number}|null>(null)

@@ -43,6 +43,7 @@ model QualityCheck {
   diaperChecklist   QcDiaperChecklist?
   qcAttachments     QcAttachment[]
   qcDefects         QcDefect[]
+  defectiveGoods    DefectiveGoods[]   @relation("DefectiveFromQC")
 }
 
 // ── QC 檢驗明細 ────────────────────────────────────

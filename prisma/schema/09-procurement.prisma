@@ -36,6 +36,23 @@ model Supplier {
   supplierInvoices  SupplierInvoice[] @relation("SupplierInvoiceSupplier")
   productSuppliers  ProductSupplier[]
   inventoryLots     InventoryLot[]    @relation("LotSupplier")
+
+  // ── P0-P1 新增關聯 ──────────────────────────────────
+  productionReceipts ProductionReceipt[]   @relation("ReceiptFactory")
+  rfqSuppliers       RFQSupplier[]         @relation("RFQSupplierRef")
+
+  // ── P3-2 進口費用 ────────────────────────────────────
+  importProjects     ImportProject[]       @relation("ImportProjectSupplier")
+  importCostItems    ImportCostItem[]      @relation("ImportCostItemSupplier")
+
+  // ── P3-3 合約管理 ────────────────────────────────────
+  contracts          Contract[]            @relation("ContractSupplier")
+
+  // ── P3-5 固定資產 ────────────────────────────────────
+  fixedAssets        FixedAsset[]          @relation("AssetSupplier")
+
+  // ── 採購計畫 ────────────────────────────────────────
+  purchasePlanItems  PurchasePlanItem[]    @relation("PurchasePlanSupplier")
 }
 
 // 歷史採購價格

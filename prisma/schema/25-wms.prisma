@@ -1,0 +1,110 @@
+// ========== WMS 倉庫管理系統 ==========
+
+model WmsZone {
+  id          String          @id @default(cuid())
+  warehouseId String
+  warehouse   Warehouse       @relation("WmsZoneWarehouse", fields: [warehouseId], references: [id])
+  code        String          // 區域編碼
+  name        String
+  locations   WmsLocation[]
+
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([warehouseId, code])
+}
+
+model WmsLocation {
+  id          String          @id @default(cuid())
+  zoneId      String
+  zone        WmsZone         @relation(fields: [zoneId], references: [id])
+  code        String          // 儲位編號
+  name        String?
+  inventory   WmsInventory[]
+
+  @@unique([zoneId, code])
+}
+
+model WmsInventory {
+  id            String      @id @default(cuid())
+  stockNumber   String      @unique // 庫存號碼
+  locationId    String
+  location      WmsLocation @relation(fields: [locationId], references: [id])
+  productId     String
+  product       Product     @relation("WmsInventoryProduct", fields: [productId], references: [id])
+  totalQuantity Decimal     @default(0) @db.Decimal(12, 2)
+  availableQty  Decimal     @default(0) @db.Decimal(12, 2)
+  reservedQty   Decimal     @default(0) @db.Decimal(12, 2)
+
+  updatedAt     DateTime    @updatedAt
+
+  @@index([locationId, productId])
+}
+
+// ── 入庫管理 ──────────────────────────────────────
+
+model WmsInbound {
+  id              String            @id @default(cuid())
+  inboundNumber   String            @unique // WI + YYYYMMDD + 流水號
+  type            String            // PURCHASE / PRODUCTION / TRANSFER
+  sourceId        String?           // 來源單據 ID
+  handlerId       String
+  expectedDate    DateTime?
+  status          WmsInboundStatus  @default(EXPECTED)
+  notes           String?
+
+  items           WmsInboundItem[]
+
+  createdById     String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([status, expectedDate])
+}
+
+model WmsInboundItem {
+  id          String      @id @default(cuid())
+  inboundId   String
+  inbound     WmsInbound  @relation(fields: [inboundId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product     @relation("WmsInboundItemProduct", fields: [productId], references: [id])
+  quantity    Decimal     @db.Decimal(10, 2)
+  receivedQty Decimal     @default(0) @db.Decimal(10, 2)
+  locationId  String?     // 入庫儲位
+
+  @@index([inboundId])
+}
+
+// ── 出庫管理 ──────────────────────────────────────
+
+model WmsOutbound {
+  id              String              @id @default(cuid())
+  outboundNumber  String              @unique // WO + YYYYMMDD + 流水號
+  type            String              // SALES / TRANSFER / INTERNAL
+  sourceId        String?             // 來源單據 ID
+  handlerId       String
+  expectedDate    DateTime?
+  status          WmsOutboundStatus   @default(EXPECTED)
+  notes           String?
+
+  items           WmsOutboundItem[]
+
+  createdById     String
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([status, expectedDate])
+}
+
+model WmsOutboundItem {
+  id          String       @id @default(cuid())
+  outboundId  String
+  outbound    WmsOutbound  @relation(fields: [outboundId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product      @relation("WmsOutboundItemProduct", fields: [productId], references: [id])
+  quantity    Decimal      @db.Decimal(10, 2)
+  pickedQty   Decimal      @default(0) @db.Decimal(10, 2)
+  locationId  String?      // 出庫儲位
+
+  @@index([outboundId])
+}

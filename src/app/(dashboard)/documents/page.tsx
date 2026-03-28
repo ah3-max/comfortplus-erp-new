@@ -1,268 +1,765 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { FileText, FilePlus, ChevronDown, ChevronRight, Loader2, Clock } from 'lucide-react'
-import { useI18n } from '@/lib/i18n/context'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  FileText,
+  FileArchive,
+  Upload,
+  Download,
+  Trash2,
+  Search,
+  Loader2,
+  Pencil,
+  FileSpreadsheet,
+  Image as ImageIcon,
+} from 'lucide-react'
+import { toast } from 'sonner'
 
-/* ─── Types ─────────────────────────────────────────────── */
-interface DocumentVersion {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Category = 'ALL' | 'CONTRACT' | 'INVOICE' | 'MANUAL' | 'REPORT' | 'OTHER'
+
+interface DocumentRecord {
   id: string
-  documentType: string
   documentName: string
-  version: number
-  versionNote: string | null
-  fileName: string | null
-  fileUrl: string | null
+  documentType: string
+  fileName: string
+  fileUrl: string
   fileSizeBytes: number | null
   mimeType: string | null
+  versionNote: string | null
   status: string
-  effectiveDate: string | null
-  previousVersionId: string | null
   createdAt: string
+  updatedAt: string
   createdBy: { id: string; name: string | null }
 }
 
-interface TypeStat {
-  documentType: string
-  _count: { id: number }
+interface Pagination {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
 }
 
-/* ─── Constants ─────────────────────────────────────────── */
-const DOC_TYPES = [
-  'ALL', 'PRODUCT_SPEC', 'PACKAGING_DESIGN', 'QC_STANDARD',
-  'TRAINING_SOP', 'CONTRACT', 'PRICE_LIST',
-] as const
-
-const TYPE_COLORS: Record<string, string> = {
-  PRODUCT_SPEC:     'bg-blue-100 text-blue-700',
-  PACKAGING_DESIGN: 'bg-purple-100 text-purple-700',
-  QC_STANDARD:      'bg-orange-100 text-orange-700',
-  TRAINING_SOP:     'bg-green-100 text-green-700',
-  CONTRACT:         'bg-slate-100 text-slate-700',
-  PRICE_LIST:       'bg-amber-100 text-amber-700',
+interface UploadForm {
+  documentName: string
+  documentType: Category
+  fileName: string
+  fileUrl: string
+  mimeType: string
+  fileSizeBytes: string
+  versionNote: string
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE:     'bg-green-100 text-green-700',
-  DRAFT:      'bg-gray-100 text-gray-600',
-  SUPERSEDED: 'bg-red-100 text-red-700',
-  ARCHIVED:   'bg-slate-100 text-slate-500',
-  REVIEW:     'bg-yellow-100 text-yellow-700',
-  APPROVED:   'bg-teal-100 text-teal-700',
+interface EditForm {
+  documentName: string
+  documentType: Category
+  versionNote: string
 }
 
-/* ─── Component ─────────────────────────────────────────── */
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CATEGORIES: { value: Category; label: string }[] = [
+  { value: 'ALL', label: '全部' },
+  { value: 'CONTRACT', label: '合約' },
+  { value: 'INVOICE', label: '發票/單據' },
+  { value: 'MANUAL', label: '操作手冊' },
+  { value: 'REPORT', label: '報告' },
+  { value: 'OTHER', label: '其他' },
+]
+
+const CATEGORY_UPLOAD_OPTIONS = CATEGORIES.filter((c) => c.value !== 'ALL')
+
+const CATEGORY_COLORS: Record<string, string> = {
+  CONTRACT: 'bg-blue-100 text-blue-700 border-blue-200',
+  INVOICE: 'bg-amber-100 text-amber-700 border-amber-200',
+  MANUAL: 'bg-green-100 text-green-700 border-green-200',
+  REPORT: 'bg-purple-100 text-purple-700 border-purple-200',
+  OTHER: 'bg-slate-100 text-slate-600 border-slate-200',
+}
+
+const EMPTY_UPLOAD: UploadForm = {
+  documentName: '',
+  documentType: 'OTHER',
+  fileName: '',
+  fileUrl: '',
+  mimeType: '',
+  fileSizeBytes: '',
+  versionNote: '',
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatBytes(bytes: number | null): string {
+  if (!bytes) return '—'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function formatDate(iso: string): string {
+  return iso.substring(0, 10)
+}
+
+function getCategoryLabel(value: string): string {
+  return CATEGORIES.find((c) => c.value === value)?.label ?? value
+}
+
+function FileTypeIcon({ mimeType, fileName }: { mimeType: string | null; fileName: string }) {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? ''
+  const mime = mimeType ?? ''
+
+  if (mime.includes('pdf') || ext === 'pdf') {
+    return <FileText className="h-5 w-5 text-red-500 shrink-0" />
+  }
+  if (mime.includes('spreadsheet') || mime.includes('excel') || ['xls', 'xlsx'].includes(ext)) {
+    return <FileSpreadsheet className="h-5 w-5 text-green-600 shrink-0" />
+  }
+  if (mime.includes('word') || ['doc', 'docx'].includes(ext)) {
+    return <FileText className="h-5 w-5 text-blue-600 shrink-0" />
+  }
+  if (mime.includes('image') || ['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+    return <ImageIcon className="h-5 w-5 text-pink-500 shrink-0" />
+  }
+  if (mime.includes('zip') || mime.includes('compressed') || ['zip', 'rar', '7z'].includes(ext)) {
+    return <FileArchive className="h-5 w-5 text-orange-500 shrink-0" />
+  }
+  return <FileText className="h-5 w-5 text-slate-400 shrink-0" />
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function DocumentsPage() {
-  const { dict } = useI18n()
-  const [documents, setDocuments] = useState<DocumentVersion[]>([])
-  const [stats, setStats] = useState<TypeStat[]>([])
+  // List state
+  const [documents, setDocuments] = useState<DocumentRecord[]>([])
+  const [pagination, setPagination] = useState<Pagination | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeType, setActiveType] = useState<string>('ALL')
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [activeCategory, setActiveCategory] = useState<Category>('ALL')
+  const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+
+  // Upload dialog
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [uploadForm, setUploadForm] = useState<UploadForm>(EMPTY_UPLOAD)
+  const [uploading, setUploading] = useState(false)
+
+  // Edit dialog
+  const [editOpen, setEditOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState<DocumentRecord | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({
+    documentName: '',
+    documentType: 'OTHER',
+    versionNote: '',
+  })
+  const [editSaving, setEditSaving] = useState(false)
+
+  // Delete confirm
+  const [deleteTarget, setDeleteTarget] = useState<DocumentRecord | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // ─── Load ───────────────────────────────────────────────────────────────────
+
+  const loadDocuments = useCallback(
+    async (page = 1) => {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams({ page: String(page), pageSize: '20' })
+        if (activeCategory !== 'ALL') params.set('category', activeCategory)
+        if (search) params.set('search', search)
+
+        const res = await fetch(`/api/documents?${params}`)
+        if (!res.ok) throw new Error('載入失敗')
+        const json = await res.json()
+        setDocuments(json.data ?? [])
+        setPagination(json.pagination ?? null)
+      } catch {
+        toast.error('無法載入文件列表')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [activeCategory, search],
+  )
 
   useEffect(() => {
-    loadDocuments()
-  }, [activeType]) // eslint-disable-line react-hooks/exhaustive-deps
+    loadDocuments(1)
+  }, [loadDocuments])
 
-  async function loadDocuments() {
-    setLoading(true)
-    const params = new URLSearchParams()
-    if (activeType !== 'ALL') params.set('type', activeType)
-    const res = await fetch(`/api/documents?${params}`)
-    if (res.ok) {
-      const data = await res.json()
-      setDocuments(data.documents ?? [])
-      setStats(data.stats ?? [])
+  // ─── Search debounce ────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 400)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  // ─── Upload ─────────────────────────────────────────────────────────────────
+
+  async function handleUpload() {
+    if (!uploadForm.documentName.trim()) {
+      toast.error('請輸入文件名稱')
+      return
     }
-    setLoading(false)
+    if (!uploadForm.fileName.trim()) {
+      toast.error('請輸入檔案名稱')
+      return
+    }
+    if (!uploadForm.fileUrl.trim()) {
+      toast.error('請輸入檔案路徑或 URL')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentName: uploadForm.documentName.trim(),
+          documentType: uploadForm.documentType,
+          fileName: uploadForm.fileName.trim(),
+          fileUrl: uploadForm.fileUrl.trim(),
+          mimeType: uploadForm.mimeType.trim() || null,
+          fileSizeBytes: uploadForm.fileSizeBytes ? parseInt(uploadForm.fileSizeBytes, 10) : null,
+          versionNote: uploadForm.versionNote.trim() || null,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error ?? '上傳失敗')
+      }
+      toast.success('文件已新增')
+      setUploadOpen(false)
+      setUploadForm(EMPTY_UPLOAD)
+      loadDocuments(1)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '上傳失敗')
+    } finally {
+      setUploading(false)
+    }
   }
 
-  function toggleGroup(name: string) {
-    setExpandedGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(name)) next.delete(name)
-      else next.add(name)
-      return next
+  // ─── Edit ───────────────────────────────────────────────────────────────────
+
+  function openEdit(doc: DocumentRecord) {
+    setEditTarget(doc)
+    setEditForm({
+      documentName: doc.documentName,
+      documentType: (doc.documentType as Category) ?? 'OTHER',
+      versionNote: doc.versionNote ?? '',
     })
+    setEditOpen(true)
   }
 
-  /* ─── Group documents by name ─────────────────────────── */
-  const grouped = documents.reduce<Record<string, DocumentVersion[]>>((acc, doc) => {
-    const key = `${doc.documentType}::${doc.documentName}`
-    if (!acc[key]) acc[key] = []
-    acc[key].push(doc)
-    return acc
-  }, {})
+  async function handleEdit() {
+    if (!editTarget) return
+    if (!editForm.documentName.trim()) {
+      toast.error('請輸入文件名稱')
+      return
+    }
 
-  const groupEntries = Object.entries(grouped)
+    setEditSaving(true)
+    try {
+      const res = await fetch(`/api/documents/${editTarget.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          documentName: editForm.documentName.trim(),
+          documentType: editForm.documentType,
+          versionNote: editForm.versionNote.trim() || null,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error ?? '儲存失敗')
+      }
+      toast.success('已更新文件資訊')
+      setEditOpen(false)
+      setEditTarget(null)
+      loadDocuments(1)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '儲存失敗')
+    } finally {
+      setEditSaving(false)
+    }
+  }
 
-  /* ─── Helpers ─────────────────────────────────────────── */
-  const typeLabel = (t: string) =>
-    (dict.documents?.types as Record<string, string>)?.[t] ?? t
+  // ─── Delete ─────────────────────────────────────────────────────────────────
 
-  const statusLabel = (s: string) =>
-    (dict.documents?.statuses as Record<string, string>)?.[s] ?? s
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/documents/${deleteTarget.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error ?? '刪除失敗')
+      }
+      toast.success('文件已刪除')
+      setDeleteTarget(null)
+      loadDocuments(1)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '刪除失敗')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
-  const statsMap = stats.reduce<Record<string, number>>((m, s) => {
-    m[s.documentType] = s._count.id
-    return m
-  }, {})
+  // ─── Render ──────────────────────────────────────────────────────────────────
 
-  const totalActive = stats.reduce((sum, s) => sum + s._count.id, 0)
-
-  const tabStyle = (t: string) =>
+  const tabStyle = (cat: Category) =>
     `px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-      activeType === t
+      activeCategory === cat
         ? 'border-blue-600 text-blue-600'
         : 'border-transparent text-muted-foreground hover:text-foreground'
     }`
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-6">
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.documents.title}</h1>
-          <p className="text-sm text-slate-500 mt-1">管理商品規格書、包材設計稿、合約等文件版本</p>
+          <h1 className="text-2xl font-bold text-slate-900">文件管理</h1>
+          <p className="text-sm text-slate-500 mt-1">管理合約、發票、手冊、報告等重要文件</p>
         </div>
-        <Button>
-          <FilePlus className="h-4 w-4 mr-2" />{dict.documents.newVersion}
+        <Button
+          className="min-h-[44px] sm:min-h-auto active:scale-[0.97]"
+          onClick={() => {
+            setUploadForm(EMPTY_UPLOAD)
+            setUploadOpen(true)
+          }}
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          上傳文件
         </Button>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        <Card>
-          <CardContent className="p-3 text-center">
-            <p className="text-xl font-bold">{totalActive}</p>
-            <p className="text-xs text-slate-500">生效中文件</p>
-          </CardContent>
-        </Card>
-        {DOC_TYPES.filter(t => t !== 'ALL').map(t => (
-          <Card key={t}>
-            <CardContent className="p-3 text-center">
-              <p className="text-xl font-bold">{statsMap[t] ?? 0}</p>
-              <p className="text-xs text-slate-500">{typeLabel(t)}</p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* ── Search ── */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+        <Input
+          className="pl-9 min-h-[44px]"
+          placeholder="搜尋文件名稱、檔案名稱..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
       </div>
 
-      {/* Type Filter Tabs */}
+      {/* ── Category Tabs ── */}
       <div className="border-b flex gap-0 overflow-x-auto">
-        {DOC_TYPES.map(t => (
-          <button key={t} className={tabStyle(t)} onClick={() => setActiveType(t)}>
-            {t === 'ALL' ? '全部' : typeLabel(t)}
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat.value}
+            className={tabStyle(cat.value)}
+            onClick={() => setActiveCategory(cat.value)}
+          >
+            {cat.label}
           </button>
         ))}
       </div>
 
-      {/* Document List */}
+      {/* ── Document List ── */}
       {loading ? (
-        <div className="text-center py-20">
-          <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : groupEntries.length === 0 ? (
+      ) : documents.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
-          <p>尚無文件紀錄</p>
+          <p className="text-sm">尚無文件紀錄</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => {
+              setUploadForm(EMPTY_UPLOAD)
+              setUploadOpen(true)
+            }}
+          >
+            <Upload className="h-4 w-4 mr-1" />
+            上傳第一份文件
+          </Button>
         </div>
       ) : (
-        <div className="space-y-3">
-          {groupEntries.map(([groupKey, versions]) => {
-            const latest = versions[0]
-            const isExpanded = expandedGroups.has(groupKey)
-            const olderVersions = versions.slice(1)
+        <div className="space-y-2">
+          {documents.map((doc) => (
+            <Card key={doc.id} className="hover:shadow-sm transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className="mt-0.5">
+                    <FileTypeIcon mimeType={doc.mimeType} fileName={doc.fileName} />
+                  </div>
 
-            return (
-              <Card key={groupKey}>
-                <CardContent className="p-5">
-                  {/* Main row */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${TYPE_COLORS[latest.documentType] ?? 'bg-gray-100 text-gray-600'}`}>
-                          {typeLabel(latest.documentType)}
-                        </span>
-                        <Badge variant="outline" className="text-xs font-mono">
-                          V{latest.version}
-                        </Badge>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[latest.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                          {statusLabel(latest.status)}
-                        </span>
-                      </div>
-                      <p className="font-semibold text-slate-900 text-base truncate">
-                        {latest.documentName}
-                      </p>
-                      <div className="flex items-center gap-4 mt-1.5 text-sm text-slate-500">
-                        {latest.effectiveDate && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3.5 w-3.5" />
-                            生效日：{latest.effectiveDate.substring(0, 10)}
-                          </span>
-                        )}
-                        <span>
-                          {latest.createdBy?.name ?? '---'} / {latest.createdAt.substring(0, 10)}
-                        </span>
-                        {latest.fileName && (
-                          <span className="text-xs text-slate-400 truncate max-w-[200px]">
-                            {latest.fileName}
-                          </span>
-                        )}
-                      </div>
-                      {latest.versionNote && (
-                        <p className="text-sm text-slate-500 mt-1">{latest.versionNote}</p>
-                      )}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                          CATEGORY_COLORS[doc.documentType] ?? CATEGORY_COLORS.OTHER
+                        }`}
+                      >
+                        {getCategoryLabel(doc.documentType)}
+                      </span>
+                      <Badge variant="outline" className="text-xs font-mono">
+                        {doc.fileName.split('.').pop()?.toUpperCase() ?? 'FILE'}
+                      </Badge>
+                    </div>
+
+                    <p className="font-semibold text-slate-900 text-sm truncate">
+                      {doc.documentName}
+                    </p>
+                    <p className="text-xs text-slate-500 truncate">{doc.fileName}</p>
+
+                    {doc.versionNote && (
+                      <p className="text-xs text-slate-400 mt-1 line-clamp-2">{doc.versionNote}</p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-slate-400">
+                      <span>{formatBytes(doc.fileSizeBytes)}</span>
+                      <span>{doc.createdBy?.name ?? '—'}</span>
+                      <span>{formatDate(doc.createdAt)}</span>
                     </div>
                   </div>
 
-                  {/* Version history toggle */}
-                  {olderVersions.length > 0 && (
-                    <div className="mt-3 border-t pt-2">
-                      <button
-                        className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                        onClick={() => toggleGroup(groupKey)}
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* Download */}
+                    <a
+                      href={doc.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={doc.fileName}
+                      title="下載"
+                    >
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-500 hover:text-blue-600 min-h-[44px] min-w-[44px]"
                       >
-                        {isExpanded
-                          ? <ChevronDown className="h-4 w-4" />
-                          : <ChevronRight className="h-4 w-4" />
-                        }
-                        {dict.documents.version}歷史 ({olderVersions.length})
-                      </button>
+                        <Download className="h-4 w-4" />
+                        <span className="sr-only">下載</span>
+                      </Button>
+                    </a>
 
-                      {isExpanded && (
-                        <div className="mt-2 space-y-2 pl-5 border-l-2 border-slate-100">
-                          {olderVersions.map(v => (
-                            <div key={v.id} className="flex items-center gap-3 text-sm">
-                              <Badge variant="outline" className="text-xs font-mono">
-                                V{v.version}
-                              </Badge>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[v.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                                {statusLabel(v.status)}
-                              </span>
-                              <span className="text-slate-500">
-                                {v.createdBy?.name ?? '---'} / {v.createdAt.substring(0, 10)}
-                              </span>
-                              {v.versionNote && (
-                                <span className="text-slate-400 truncate max-w-[300px]">
-                                  {v.versionNote}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })}
+                    {/* Edit */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-500 hover:text-slate-800 min-h-[44px] min-w-[44px]"
+                      title="編輯"
+                      onClick={() => openEdit(doc)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      <span className="sr-only">編輯</span>
+                    </Button>
+
+                    {/* Delete */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-slate-500 hover:text-red-600 min-h-[44px] min-w-[44px]"
+                      title="刪除"
+                      onClick={() => setDeleteTarget(doc)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">刪除</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Pagination */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2 text-sm text-slate-500">
+              <span>
+                共 {pagination.total} 筆，第 {pagination.page} / {pagination.totalPages} 頁
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pagination.page <= 1}
+                  onClick={() => loadDocuments(pagination.page - 1)}
+                >
+                  上一頁
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={pagination.page >= pagination.totalPages}
+                  onClick={() => loadDocuments(pagination.page + 1)}
+                >
+                  下一頁
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* ── Upload Dialog ── */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>上傳文件</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Document Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="upload-name">
+                文件名稱 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="upload-name"
+                placeholder="例：2024年度服務合約"
+                value={uploadForm.documentName}
+                onChange={(e) => setUploadForm((f) => ({ ...f, documentName: e.target.value }))}
+              />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <Label htmlFor="upload-category">
+                類別 <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={uploadForm.documentType}
+                onValueChange={(v) =>
+                  setUploadForm((f) => ({ ...f, documentType: v as Category }))
+                }
+              >
+                <SelectTrigger id="upload-category">
+                  <SelectValue placeholder="選擇類別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_UPLOAD_OPTIONS.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* File Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="upload-filename">
+                檔案名稱 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="upload-filename"
+                placeholder="例：contract-2024.pdf"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png"
+                value={uploadForm.fileName}
+                onChange={(e) => setUploadForm((f) => ({ ...f, fileName: e.target.value }))}
+              />
+              <p className="text-xs text-slate-400">
+                支援格式：PDF、Word、Excel、JPG、PNG
+              </p>
+            </div>
+
+            {/* File URL */}
+            <div className="space-y-1.5">
+              <Label htmlFor="upload-url">
+                檔案路徑 / URL <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="upload-url"
+                placeholder="例：/uploads/contract-2024.pdf 或 https://..."
+                value={uploadForm.fileUrl}
+                onChange={(e) => setUploadForm((f) => ({ ...f, fileUrl: e.target.value }))}
+              />
+            </div>
+
+            {/* MIME Type (optional) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="upload-mime">MIME 類型（選填）</Label>
+              <Input
+                id="upload-mime"
+                placeholder="例：application/pdf"
+                value={uploadForm.mimeType}
+                onChange={(e) => setUploadForm((f) => ({ ...f, mimeType: e.target.value }))}
+              />
+            </div>
+
+            {/* File Size (optional) */}
+            <div className="space-y-1.5">
+              <Label htmlFor="upload-size">檔案大小（Bytes，選填）</Label>
+              <Input
+                id="upload-size"
+                type="number"
+                placeholder="例：204800"
+                value={uploadForm.fileSizeBytes}
+                onChange={(e) => setUploadForm((f) => ({ ...f, fileSizeBytes: e.target.value }))}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="upload-desc">說明（選填）</Label>
+              <Textarea
+                id="upload-desc"
+                placeholder="文件說明、備注..."
+                rows={3}
+                value={uploadForm.versionNote}
+                onChange={(e) => setUploadForm((f) => ({ ...f, versionNote: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadOpen(false)} disabled={uploading}>
+              取消
+            </Button>
+            <Button onClick={handleUpload} disabled={uploading}>
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  儲存中...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  新增文件
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Edit Dialog ── */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>編輯文件資訊</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Document Name */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-name">
+                文件名稱 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-name"
+                value={editForm.documentName}
+                onChange={(e) => setEditForm((f) => ({ ...f, documentName: e.target.value }))}
+              />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-category">類別</Label>
+              <Select
+                value={editForm.documentType}
+                onValueChange={(v) => setEditForm((f) => ({ ...f, documentType: v as Category }))}
+              >
+                <SelectTrigger id="edit-category">
+                  <SelectValue placeholder="選擇類別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORY_UPLOAD_OPTIONS.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-desc">說明</Label>
+              <Textarea
+                id="edit-desc"
+                placeholder="文件說明、備注..."
+                rows={3}
+                value={editForm.versionNote}
+                onChange={(e) => setEditForm((f) => ({ ...f, versionNote: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={editSaving}>
+              取消
+            </Button>
+            <Button onClick={handleEdit} disabled={editSaving}>
+              {editSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  儲存中...
+                </>
+              ) : (
+                '儲存變更'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>確認刪除文件？</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600 py-2">
+            即將刪除「<strong>{deleteTarget?.documentName}</strong>」（
+            {deleteTarget?.fileName}）。此操作無法還原。
+          </p>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  刪除中...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  確認刪除
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { canAccessOrder, buildScopeContext } from '@/lib/scope'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
+import { notifyByRole } from '@/lib/notify'
+import { generateSequenceNo } from '@/lib/sequence'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -51,7 +53,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (body.statusOnly) {
     const currentOrder = await prisma.salesOrder.findUnique({
       where: { id },
-      include: { items: true },
+      include: {
+        items: { include: { product: { select: { name: true, sku: true, unit: true, sellingPrice: true } } } },
+        customer: { select: { name: true } },
+      },
     })
     if (!currentOrder) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -115,6 +120,67 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: { status: body.status },
       })
     })
+
+    // ── 訂單確認 → 通知倉儲 + 自動建立銷貨單 ──
+    if (newStatus === 'CONFIRMED') {
+      const customerName = currentOrder.customer?.name ?? ''
+      const itemSummary = currentOrder.items.map(i => `${i.product?.name ?? ''}×${i.quantity}`).join('、')
+      notifyByRole(['WAREHOUSE_MANAGER', 'WAREHOUSE'], {
+        title: `新訂單待出貨：${currentOrder.orderNo}`,
+        message: `${customerName} — ${itemSummary}`,
+        linkUrl: `/orders/${id}`,
+        category: 'ORDER_CONFIRMED',
+        priority: 'HIGH',
+      }).catch(() => {})
+
+      // Auto-create SalesInvoice (idempotent)
+      const existingInvoice = await prisma.salesInvoice.findFirst({ where: { sourceOrderId: id } })
+      if (!existingInvoice && currentOrder.warehouseId) {
+        const TAX_RATE = 0.05
+        const invoiceNumber = await generateSequenceNo('SALES_INVOICE')
+        const invoiceItems = currentOrder.items.map(item => {
+          const qty = Number(item.quantity)
+          const price = Number(item.unitPrice)
+          const sub = qty * price
+          const tax = Math.round(sub * TAX_RATE)
+          const total = sub + tax
+          const unitPriceTax = Math.round(price * (1 + TAX_RATE) * 100) / 100
+          return {
+            productId: item.productId,
+            productName: item.product?.name ?? '',
+            specification: null as string | null,
+            quantity: qty,
+            unit: item.product?.unit ?? null,
+            unitPrice: price,
+            unitPriceTax,
+            subtotal: sub,
+            taxAmount: tax,
+            totalAmount: total,
+          }
+        })
+        const subtotal = invoiceItems.reduce((s, i) => s + i.subtotal, 0)
+        const taxAmount = invoiceItems.reduce((s, i) => s + i.taxAmount, 0)
+        const totalAmount = invoiceItems.reduce((s, i) => s + i.totalAmount, 0)
+
+        await prisma.salesInvoice.create({
+          data: {
+            invoiceNumber,
+            date: new Date(),
+            customerId: currentOrder.customerId,
+            salesPersonId: currentOrder.createdById,
+            handlerId: session.user.id,
+            warehouseId: currentOrder.warehouseId,
+            sourceOrderId: id,
+            subtotal,
+            taxAmount,
+            totalAmount,
+            status: 'DRAFT',
+            createdById: session.user.id,
+            items: { create: invoiceItems },
+          },
+        })
+      }
+    }
 
     // Audit log
     logAudit({

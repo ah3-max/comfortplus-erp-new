@@ -1,0 +1,90 @@
+// ========== 理貨單（Picking Order） ==========
+// 流程：銷貨單(SalesInvoice) → 理貨單(PickingOrder) → 派貨單(DispatchOrder) → 出貨完成
+
+model PickingOrder {
+  id              String          @id @default(cuid())
+  pickingNumber   String          @unique // PK + YYYYMMDD + 流水號
+  date            DateTime        @default(now())
+  salesInvoiceId  String          // 來源銷貨單
+  salesInvoice    SalesInvoice    @relation("PickingFromInvoice", fields: [salesInvoiceId], references: [id])
+  customerId      String
+  customer        Customer        @relation("PickingCustomer", fields: [customerId], references: [id])
+  handlerId       String
+  handler         User            @relation("PickingHandler", fields: [handlerId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse       @relation("PickingWarehouse", fields: [warehouseId], references: [id])
+  scheduledDate   DateTime?       // 出貨預定日
+  contactInfo     String?
+  shippingAddress String?
+  status          PickingStatus   @default(PENDING)
+
+  items           PickingOrderItem[]
+  dispatchOrder   DispatchOrder?  // 1:1 理貨→派貨
+
+  createdById     String
+  createdBy       User            @relation("PickingCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([salesInvoiceId])
+  @@index([status, date])
+}
+
+model PickingOrderItem {
+  id              String        @id @default(cuid())
+  pickingOrderId  String
+  pickingOrder    PickingOrder  @relation(fields: [pickingOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product       @relation("PickingItemProduct", fields: [productId], references: [id])
+  productName     String
+  specification   String?
+  quantity        Decimal       @db.Decimal(10, 2)
+  pickedQuantity  Decimal       @default(0) @db.Decimal(10, 2) // 實際揀貨數
+  memo            String?
+
+  @@index([pickingOrderId])
+}
+
+// ========== 派貨單（Dispatch Order） ==========
+
+model DispatchOrder {
+  id              String          @id @default(cuid())
+  dispatchNumber  String          @unique // DP + YYYYMMDD + 流水號
+  date            DateTime        @default(now())
+  pickingOrderId  String          @unique  // 來源理貨單 1:1
+  pickingOrder    PickingOrder    @relation(fields: [pickingOrderId], references: [id])
+  customerId      String
+  customer        Customer        @relation("DispatchCustomer", fields: [customerId], references: [id])
+  handlerId       String
+  handler         User            @relation("DispatchHandler", fields: [handlerId], references: [id])
+  warehouseId     String
+  warehouse       Warehouse       @relation("DispatchWarehouse", fields: [warehouseId], references: [id])
+  scheduledDate   DateTime?
+  contactInfo     String?
+  shippingAddress String?
+  status          DispatchStatus  @default(PENDING)
+
+  items           DispatchOrderItem[]
+
+  createdById     String
+  createdBy       User            @relation("DispatchCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([pickingOrderId])
+  @@index([status, date])
+}
+
+model DispatchOrderItem {
+  id              String          @id @default(cuid())
+  dispatchOrderId String
+  dispatchOrder   DispatchOrder   @relation(fields: [dispatchOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product         @relation("DispatchItemProduct", fields: [productId], references: [id])
+  productName     String
+  specification   String?
+  quantity        Decimal         @db.Decimal(10, 2)
+  memo            String?
+
+  @@index([dispatchOrderId])
+}

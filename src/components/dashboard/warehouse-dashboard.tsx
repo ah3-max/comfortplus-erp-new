@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
-  Package, Truck, AlertTriangle,
+  Package, Truck, AlertTriangle, Ship,
   ClipboardCheck, ArrowDownToLine, ArrowUpFromLine,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, ShieldCheck, MapPin,
+  ShoppingCart, PlusCircle, Loader2, Zap,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 import {
   DashboardLoading, DashboardHeader, QuickAction,
@@ -25,6 +28,26 @@ interface WarehouseDashboardData {
   logisticsAnomalyCount: number
 }
 
+interface InboundRecord {
+  id: string
+  inboundNo: string
+  qcResult: string | null
+  putawayStatus: string
+  arrivalDate: string
+  warehouse: { code: string; name: string }
+  seaFreight: { freightNo: string; purchaseOrder: { poNo: string } | null } | null
+  items: { id: string; quantity: number; damageQty: number; locationCode: string | null; product: { name: string; sku: string } }[]
+}
+
+interface SeaFreightInTransit {
+  id: string
+  freightNo: string
+  status: string
+  customsStatus: string
+  eta: string | null
+  purchaseOrder: { poNo: string } | null
+}
+
 export function WarehouseDashboard() {
   const { dict } = useI18n()
   const [data, setData] = useState<WarehouseDashboardData | null>(null)
@@ -32,33 +55,187 @@ export function WarehouseDashboard() {
     pendingShipments: number
     lowStockCount: number
     outOfStockCount: number
-    todayReceiving: number
   } | null>(null)
+  const [inbounds, setInbounds] = useState<InboundRecord[]>([])
+  const [seaFreights, setSeaFreights] = useState<SeaFreightInTransit[]>([])
+  const [confirmedOrders, setConfirmedOrders] = useState<{ id: string; orderNo: string; customer: { name: string }; items: { quantity: number; product: { name: string } }[]; createdAt: string }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       fetch('/api/dashboard/warehouse').then(r => r.json()),
       fetch('/api/dashboard').then(r => r.json()),
-    ]).then(([warehouseData, mainData]) => {
+      fetch('/api/inbound?pageSize=50').then(r => r.ok ? r.json() : { data: [] }),
+      fetch('/api/sea-freight?pageSize=20').then(r => r.ok ? r.json() : { data: [] }),
+      fetch('/api/orders?status=CONFIRMED&pageSize=20').then(r => r.ok ? r.json() : { data: [] }),
+    ]).then(([warehouseData, mainData, inboundData, freightData, ordersData]) => {
       setData(warehouseData)
       setExtra({
         pendingShipments: mainData.pending?.shipments ?? 0,
         lowStockCount: mainData.lowStock?.count ?? 0,
         outOfStockCount: mainData.outOfStock?.count ?? 0,
-        todayReceiving: 0,
       })
+      setInbounds(inboundData.data ?? [])
+      // Filter in-transit sea freights (not yet RECEIVED)
+      const freights = (freightData.data ?? []).filter((f: SeaFreightInTransit) =>
+        !['RECEIVED', 'CANCELLED'].includes(f.status)
+      )
+      setSeaFreights(freights)
+      setConfirmedOrders(ordersData.data ?? [])
     }).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <DashboardLoading />
   if (!data || !extra) return null
 
+  const pendingQc = inbounds.filter(i => !i.qcResult)
+  const pendingPutaway = inbounds.filter(i => i.qcResult === 'PASS' && i.putawayStatus !== 'COMPLETED')
   const alertCount = extra.pendingShipments + extra.outOfStockCount + data.logisticsAnomalyCount
 
   return (
     <div className="space-y-5">
       <DashboardHeader title={dict.roleDashboard.warehouseWorkbench} />
+
+      {/* ── Inbound Pipeline ── */}
+      <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white shadow-lg">
+        <p className="text-emerald-200 text-sm font-medium mb-3">入庫管線總覽</p>
+        <div className="grid grid-cols-4 gap-3">
+          <div className="text-center">
+            <Ship className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
+            <p className="text-2xl font-bold">{seaFreights.length}</p>
+            <p className="text-emerald-200 text-xs">海運中</p>
+          </div>
+          <div className="text-center">
+            <ArrowDownToLine className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
+            <p className="text-2xl font-bold">{pendingQc.length}</p>
+            <p className="text-emerald-200 text-xs">待 QC</p>
+          </div>
+          <div className="text-center">
+            <ShieldCheck className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
+            <p className="text-2xl font-bold">{pendingPutaway.length}</p>
+            <p className="text-emerald-200 text-xs">待上架</p>
+          </div>
+          <div className="text-center">
+            <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
+            <p className="text-2xl font-bold">{inbounds.filter(i => i.putawayStatus === 'COMPLETED').length}</p>
+            <p className="text-emerald-200 text-xs">已完成</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Quick Actions ── */}
+      <div className="grid grid-cols-5 gap-3">
+        <QuickAction label="快速建單" href="/quick-input" icon={PlusCircle} color="bg-rose-600" />
+        <QuickAction label="海運追蹤" href="/sea-freight" icon={Ship} color="bg-cyan-600" />
+        <QuickAction label={dict.roleDashboard.scanShip} href="/shipments" icon={ArrowUpFromLine} color="bg-blue-600" />
+        <QuickAction label="QC 驗收" href="/qc" icon={ShieldCheck} color="bg-emerald-600" />
+        <QuickAction label={dict.roleDashboard.stockCount} href="/inventory" icon={ClipboardCheck} color="bg-violet-600" />
+      </div>
+
+      {/* ── Confirmed Orders (待出貨) — 最重要的區塊 ── */}
+      <PendingDispatchPanel orders={confirmedOrders} />
+
+      {/* ── Sea Freight In Transit ── */}
+      {seaFreights.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Ship className="h-4 w-4 text-cyan-500" />
+                海運中貨物
+                <Badge variant="outline" className="text-xs ml-1">{seaFreights.length}</Badge>
+              </CardTitle>
+              <Link href="/sea-freight" className="text-xs text-blue-600 hover:underline">{`${dict.common.all} →`}</Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {seaFreights.slice(0, 5).map(sf => (
+                <Link key={sf.id} href="/sea-freight" className="flex items-center justify-between px-4 py-3 hover:bg-slate-50">
+                  <div>
+                    <span className="font-mono text-xs font-bold">{sf.freightNo}</span>
+                    {sf.purchaseOrder && <span className="text-xs text-muted-foreground ml-2">{sf.purchaseOrder.poNo}</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {sf.eta && (
+                      <span className="text-xs text-muted-foreground">
+                        ETA {new Date(sf.eta).toLocaleDateString('zh-TW')}
+                      </span>
+                    )}
+                    <Badge variant="secondary" className="text-[10px]">
+                      {sf.status === 'IN_TRANSIT' ? '海運中' :
+                       sf.status === 'ARRIVED' ? '已到港' :
+                       sf.status === 'CUSTOMS_DEST' ? '清關中' :
+                       sf.status === 'DELIVERING' ? '拖車中' :
+                       sf.status === 'DEVANNING' ? '拆櫃中' :
+                       sf.status}
+                    </Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Pending QC ── */}
+      {pendingQc.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-amber-500" />
+              待 QC 驗收
+              <Badge className="bg-amber-100 text-amber-700 text-xs ml-1">{pendingQc.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {pendingQc.map(ib => (
+                <div key={ib.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <div>
+                      <span className="font-mono text-xs font-bold">{ib.inboundNo}</span>
+                      {ib.seaFreight && <span className="text-xs text-muted-foreground ml-2">{ib.seaFreight.freightNo}</span>}
+                    </div>
+                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">待驗收</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {ib.items.map(i => `${i.product.name} × ${i.quantity}`).join('、')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Pending Putaway ── */}
+      {pendingPutaway.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-violet-500" />
+              待上架
+              <Badge className="bg-violet-100 text-violet-700 text-xs ml-1">{pendingPutaway.length}</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {pendingPutaway.map(ib => (
+                <div key={ib.id} className="px-4 py-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-xs font-bold">{ib.inboundNo}</span>
+                    <Badge variant="outline" className="text-xs text-violet-600 border-violet-300">QC 通過，待上架</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {ib.items.map(i => `${i.product.name} × ${i.quantity}`).join('、')}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Today's Operations Banner ── */}
       <div className="rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 p-5 text-white shadow-lg">
@@ -86,13 +263,6 @@ export function WarehouseDashboard() {
             <p className="text-lg font-semibold">{data.inTransitInventory.toLocaleString()}</p>
           </div>
         </div>
-      </div>
-
-      {/* ── Quick Actions (Large Buttons) ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <QuickAction label={dict.roleDashboard.scanShip} href="/shipments" icon={ArrowUpFromLine} color="bg-blue-600" />
-        <QuickAction label={dict.roleDashboard.scanReceive} href="/inventory" icon={ArrowDownToLine} color="bg-emerald-600" />
-        <QuickAction label={dict.roleDashboard.stockCount} href="/inventory" icon={ClipboardCheck} color="bg-violet-600" />
       </div>
 
       {/* ── Alerts ── */}
@@ -195,6 +365,105 @@ export function WarehouseDashboard() {
   )
 }
 
+// ── Sub-component: Pending Dispatch Panel ────────────────────────────────────
+
+interface DispatchOrder {
+  id: string; orderNo: string
+  customer: { name: string }
+  items: { quantity: number; product: { name: string } }[]
+  createdAt: string
+}
+
+function PendingDispatchPanel({ orders }: { orders: DispatchOrder[] }) {
+  const [dispatching, setDispatching] = useState<string | null>(null)
+  const [dispatched, setDispatched] = useState<Set<string>>(new Set())
+
+  async function handleDispatch(order: DispatchOrder) {
+    setDispatching(order.id)
+    try {
+      const res = await fetch('/api/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message)
+        setDispatched(prev => new Set(prev).add(order.id))
+      } else {
+        toast.error(data.error ?? '出貨失敗')
+      }
+    } catch {
+      toast.error('操作失敗')
+    } finally {
+      setDispatching(null)
+    }
+  }
+
+  const pending = orders.filter(o => !dispatched.has(o.id))
+
+  if (pending.length === 0 && orders.length === 0) return null
+
+  return (
+    <Card className={pending.length > 0 ? 'ring-2 ring-rose-300 shadow-lg' : ''}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-rose-500" />
+            業務訂單 → 待出貨
+            {pending.length > 0 && (
+              <Badge className="bg-rose-500 text-white text-xs ml-1 animate-pulse">{pending.length} 筆新單</Badge>
+            )}
+          </CardTitle>
+          <Link href="/orders?status=CONFIRMED" className="text-xs text-blue-600 hover:underline">全部訂單 →</Link>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        {pending.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+            <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-300" />
+            目前沒有待出貨訂單
+            {dispatched.size > 0 && <p className="mt-1 text-emerald-600 font-medium">已處理 {dispatched.size} 筆</p>}
+          </div>
+        ) : (
+          <div className="divide-y">
+            {pending.slice(0, 10).map(o => (
+              <div key={o.id} className="px-4 py-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold">{o.orderNo}</span>
+                      <span className="text-sm font-medium">{o.customer.name}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {o.items.map(i => `${i.product.name} × ${i.quantity}`).join('、')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="bg-rose-600 hover:bg-rose-500"
+                      disabled={dispatching === o.id}
+                      onClick={() => handleDispatch(o)}
+                    >
+                      {dispatching === o.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                      ) : (
+                        <Zap className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      一鍵出貨
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 // ── Sub-component: Today's Delivery List ─────────────────────────────────────
 
 interface PendingShipment {
@@ -253,10 +522,10 @@ function TodayDeliveryList() {
                 </Link>
               </div>
               <p className="text-xs text-muted-foreground truncate">
-                📍 {s.address || s.order.customer.address || dict.delivery.addressNotSet}
+                {s.address || s.order.customer.address || dict.delivery.addressNotSet}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                📦 {s.items.map(i => `${i.product.name}×${i.quantity}`).join('、')}
+                {s.items.map(i => `${i.product.name}×${i.quantity}`).join('、')}
               </p>
             </div>
           ))}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { generateSequenceNo } from '@/lib/sequence'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -35,7 +36,70 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // 僅更新狀態
   if (body.statusOnly) {
-    const order = await prisma.purchaseOrder.update({ where: { id }, data: { status: body.status } })
+    const newStatus = body.status as string
+    const prevOrder = await prisma.purchaseOrder.findUnique({ where: { id }, select: { status: true } })
+
+    const order = await prisma.purchaseOrder.update({
+      where: { id },
+      data: { status: newStatus as any },
+      include: {
+        supplier: { select: { name: true } },
+        items: { select: { productId: true, nameSnap: true, quantity: true, receivedQty: true } },
+      },
+    })
+
+    // ── 工廠確認出貨 → 自動建立海運單給倉管 ──
+    const triggerStatuses = ['FACTORY_CONFIRMED']
+    if (triggerStatuses.includes(newStatus) && prevOrder?.status !== newStatus) {
+      // Check if sea freight already exists for this PO
+      const existing = await prisma.seaFreight.findFirst({ where: { purchaseOrderId: id } })
+      if (!existing) {
+        const freightNo = await generateSequenceNo('FREIGHT')
+        await prisma.seaFreight.create({
+          data: {
+            freightNo,
+            status: 'PENDING',
+            customsStatus: 'NOT_STARTED',
+            purchaseOrderId: id,
+            notes: `採購單 ${order.poNo} 工廠已確認出貨 — 供應商: ${order.supplier?.name ?? ''}，待安排海運`,
+          },
+        })
+      }
+    }
+
+    // ── 已下單 → 自動建立 WMS 預計入庫單 ──
+    if (newStatus === 'ORDERED' && prevOrder?.status !== 'ORDERED') {
+      const existingInbound = await prisma.wmsInbound.findFirst({ where: { sourceId: id, type: 'PURCHASE' } })
+      if (!existingInbound) {
+        const inboundNumber = await generateSequenceNo('WMS_INBOUND')
+        const fullOrder = await prisma.purchaseOrder.findUnique({
+          where: { id },
+          select: { expectedDate: true, items: { select: { productId: true, quantity: true } } },
+        })
+        await prisma.wmsInbound.create({
+          data: {
+            inboundNumber,
+            type: 'PURCHASE',
+            sourceId: id,
+            handlerId: session.user.id,
+            expectedDate: fullOrder?.expectedDate ?? null,
+            status: 'EXPECTED',
+            notes: `採購單 ${order.poNo} 已下單 — 供應商: ${order.supplier?.name ?? ''}`,
+            createdById: session.user.id,
+            items: {
+              create: (fullOrder?.items ?? [])
+                .filter(item => item.productId != null)
+                .map(item => ({
+                  productId: item.productId as string,
+                  quantity: Number(item.quantity),
+                  receivedQty: 0,
+                })),
+            },
+          },
+        })
+      }
+    }
+
     return NextResponse.json(order)
   }
 

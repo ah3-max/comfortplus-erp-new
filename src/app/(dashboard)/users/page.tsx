@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { Plus, Pencil, Loader2, ShieldCheck, Save } from 'lucide-react'
+import { Plus, Pencil, Loader2, ShieldCheck, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -121,6 +121,7 @@ export default function UsersPage() {
   const [editTarget, setEditTarget] = useState<User | null>(null)
   const [form, setForm] = useState<FormData>(emptyForm())
   const [saving, setSaving] = useState(false)
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
 
   // Permissions
   const [permMatrix, setPermMatrix] = useState<Record<string, Record<string, boolean>>>({})
@@ -177,6 +178,29 @@ export default function UsersPage() {
     setSaving(false)
     if (res.ok) { toast.success(editTarget ? '用戶已更新' : '用戶新增成功'); setFormOpen(false); fetchUsers() }
     else { const data = await res.json(); toast.error(data.error ?? '操作失敗') }
+  }
+
+  async function handleDeleteUser(u: User) {
+    if (u.role === 'SUPER_ADMIN') {
+      toast.error('無法停用超級管理員帳號')
+      return
+    }
+    if (!confirm('確定停用此使用者帳號？此操作無法復原')) return
+    setDeletingUserId(u.id)
+    try {
+      const res = await fetch(`/api/users/${u.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('用戶已停用')
+        fetchUsers()
+      } else {
+        const d = await res.json().catch(() => ({}))
+        toast.error(d.error ?? '操作失敗')
+      }
+    } catch {
+      toast.error('操作失敗')
+    } finally {
+      setDeletingUserId(null)
+    }
   }
 
   // ── Permission handlers ──
@@ -260,7 +284,7 @@ export default function UsersPage() {
                 <TableHead className="w-28">角色</TableHead>
                 <TableHead className="w-20">狀態</TableHead>
                 <TableHead className="w-28">建立日期</TableHead>
-                <TableHead className="w-16 text-center">操作</TableHead>
+                <TableHead className="w-24 text-center">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -289,10 +313,27 @@ export default function UsersPage() {
                       {new Date(u.createdAt).toLocaleDateString('zh-TW')}
                     </TableCell>
                     <TableCell className="text-center">
-                      <button onClick={() => openEdit(u)}
-                        className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100">
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => openEdit(u)}
+                          className="rounded p-1 hover:bg-slate-100"
+                          title="編輯"
+                        >
+                          <Pencil className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                        {session?.user?.role === 'SUPER_ADMIN' && u.role !== 'SUPER_ADMIN' && u.isActive && (
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            disabled={deletingUserId === u.id}
+                            className="rounded p-1 hover:bg-red-50 disabled:opacity-50"
+                            title="停用帳號"
+                          >
+                            {deletingUserId === u.id
+                              ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              : <Trash2 className="h-4 w-4 text-red-500" />}
+                          </button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 )

@@ -15,7 +15,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import {
   Plus, Loader2, Ship, Anchor, MapPin, Calendar, ArrowRight,
-  Pencil, Container, FileText,
+  Pencil, Container, FileText, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -347,6 +347,20 @@ export default function SeaFreightPage() {
     }
   }
 
+  // ── Delete helper ────────────────────────────────────────────────────
+
+  async function handleDelete(record: SeaFreight) {
+    if (!confirm(`確定要刪除海運記錄 ${record.freightNo}？此操作無法復原。`)) return
+    const res = await fetch(`/api/sea-freight/${record.id}`, { method: 'DELETE' })
+    if (res.ok) {
+      toast.success('海運記錄已刪除')
+      fetchRecords()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      toast.error(d.error ?? '刪除失敗')
+    }
+  }
+
   // ── Render ───────────────────────────────────────────────────────────
 
   const activeCount = records.length
@@ -414,9 +428,19 @@ export default function SeaFreightPage() {
                   <button
                     onClick={() => openEdit(r)}
                     className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground"
+                    title="編輯"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
+                  {r.status === 'PENDING' && (
+                    <button
+                      onClick={e => { e.stopPropagation(); handleDelete(r) }}
+                      className="p-1.5 rounded hover:bg-red-50 text-red-500"
+                      title="刪除"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
 

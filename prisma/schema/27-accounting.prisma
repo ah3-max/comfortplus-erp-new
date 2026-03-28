@@ -1,0 +1,70 @@
+// ========== P2-3 會計基礎 ==========
+// 會計科目 + 傳票分錄（配合 ECOUNT 並行使用）
+
+// 會計科目（Chart of Accounts）
+model AccountingAccount {
+  id          String   @id @default(cuid())
+  code        String   @unique          // 科目代碼（1001 / 4101 等）
+  name        String                    // 科目名稱
+  type        String                    // ASSET / LIABILITY / EQUITY / REVENUE / EXPENSE
+  subType     String?                   // 流動資產 / 非流動資產 / 流動負債 等
+  normalBalance String @default("DEBIT") // DEBIT / CREDIT
+  parentCode  String?                   // 上層科目代碼
+  level       Int      @default(1)      // 科目層級
+  isActive    Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lines       JournalEntryLine[]
+
+  @@index([type, isActive])
+  @@index([parentCode])
+}
+
+// 傳票（Journal Entry）
+model JournalEntry {
+  id            String   @id @default(cuid())
+  entryNo       String   @unique
+  entryDate     DateTime @db.Date
+  description   String
+  status        String   @default("DRAFT")  // DRAFT / POSTED / REVERSED
+  entryType     String   @default("MANUAL") // MANUAL / AUTO / ADJUSTMENT / CLOSING
+  referenceType String?  // SalesInvoice / AccountsPayable / PaymentRecord 等
+  referenceId   String?
+  totalDebit    Decimal  @db.Decimal(12, 2)
+  totalCredit   Decimal  @db.Decimal(12, 2)
+  postedAt      DateTime?
+  postedById    String?
+  postedBy      User?    @relation("JournalPostedBy", fields: [postedById], references: [id])
+  reversedById  String?
+  reversedEntryId String? // 沖正傳票 ID
+  notes         String?
+  createdById   String
+  createdBy     User     @relation("JournalCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  lines                JournalEntryLine[]
+  contractSchedules    ContractPaySchedule[]        @relation("ContractJournalEntry")
+  assetDepreciations   FixedAssetDepreciation[]     @relation("AssetDepreciationJournal")
+
+  @@index([entryDate, status])
+  @@index([referenceType, referenceId])
+}
+
+// 傳票分錄
+model JournalEntryLine {
+  id          String             @id @default(cuid())
+  entryId     String
+  entry       JournalEntry       @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     AccountingAccount  @relation(fields: [accountId], references: [id])
+  debit       Decimal            @db.Decimal(12, 2) @default(0)
+  credit      Decimal            @db.Decimal(12, 2) @default(0)
+  description String?
+  lineNo      Int
+
+  @@index([entryId])
+  @@index([accountId])
+}
