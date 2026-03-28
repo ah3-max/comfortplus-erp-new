@@ -84,15 +84,7 @@ interface RetailGroupBuy {
   actualRevenue?: string | null; fulfillmentNote?: string | null; notes?: string | null
 }
 
-// ── Config ─────────────────────────────────────────────────────────────────
-const BRAND_TYPE_LABEL: Record<string, string> = {
-  SUPERMARKET:  '超市/量販',
-  PHARMACY:     '藥妝店',
-  WAREHOUSE:    '倉儲式大賣場',
-  CONVENIENCE:  '便利商店',
-  DRUG_STORE:   '藥局/藥妝',
-  OTHER:        '其他',
-}
+// ── Config (color-only) ────────────────────────────────────────────────────
 const BRAND_TYPE_COLOR: Record<string, string> = {
   SUPERMARKET:  'bg-green-100 text-green-700',
   PHARMACY:     'bg-pink-100 text-pink-700',
@@ -101,27 +93,17 @@ const BRAND_TYPE_COLOR: Record<string, string> = {
   DRUG_STORE:   'bg-purple-100 text-purple-700',
   OTHER:        'bg-slate-100 text-slate-600',
 }
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  DISPLAY_PROMO:    '陳列促銷',
-  TASTING:          '試用/試吃',
-  GROUP_BUY:        '團購',
-  SEASONAL:         '檔期活動',
-  CLEARANCE:        '清倉特賣',
-  NEW_LAUNCH:       '新品上架',
-  EXPO:             '展覽/擺攤',
-  OTHER:            '其他',
+const EVENT_STATUS_COLOR: Record<string, string> = {
+  PLANNING:   'bg-amber-100 text-amber-700',
+  ACTIVE:     'bg-green-100 text-green-700',
+  COMPLETED:  'bg-slate-100 text-slate-600',
+  CANCELLED:  'bg-red-100 text-red-600',
 }
-const EVENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  PLANNING:   { label: '規劃中', color: 'bg-amber-100 text-amber-700' },
-  ACTIVE:     { label: '進行中', color: 'bg-green-100 text-green-700' },
-  COMPLETED:  { label: '已完成', color: 'bg-slate-100 text-slate-600' },
-  CANCELLED:  { label: '已取消', color: 'bg-red-100 text-red-600' },
-}
-const GROUP_BUY_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  OPEN:       { label: '開團中', color: 'bg-green-100 text-green-700' },
-  CLOSED:     { label: '已截團', color: 'bg-blue-100 text-blue-700' },
-  FULFILLED:  { label: '已出貨', color: 'bg-slate-100 text-slate-600' },
-  CANCELLED:  { label: '取消', color: 'bg-red-100 text-red-600' },
+const GROUP_BUY_STATUS_COLOR: Record<string, string> = {
+  OPEN:       'bg-green-100 text-green-700',
+  CLOSED:     'bg-blue-100 text-blue-700',
+  FULFILLED:  'bg-slate-100 text-slate-600',
+  CANCELLED:  'bg-red-100 text-red-600',
 }
 
 function fmtDate(d: string | null | undefined) {
@@ -145,17 +127,14 @@ function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label:
   )
 }
 
-const PURCHASE_MODE_LABEL: Record<string, string> = {
-  DIRECT:       '直接進貨',
-  CONSIGNMENT:  '寄賣',
-  COMMISSION:   '委託銷售',
-  BUYOUT:       '買斷',
-}
-
 // ── Brand Form ──────────────────────────────────────────────────────────────
 function BrandForm({ initial, onSaved, onCancel }: {
   initial?: Partial<RetailBrand>; onSaved: () => void; onCancel: () => void
 }) {
+  const { dict } = useI18n()
+  const rt = dict.retail
+  type BrTy = keyof typeof rt.brandTypes
+  type PuMo = keyof typeof rt.purchaseModes
   const isEdit = !!initial?.id
   const [tab, setTab] = useState<'basic' | 'buyer' | 'terms'>('basic')
   const [f, setF] = useState({
@@ -188,7 +167,7 @@ function BrandForm({ initial, onSaved, onCancel }: {
   const set = (k: string, v: string | number) => setF(prev => ({ ...prev, [k]: v }))
 
   async function handleSubmit() {
-    if (!f.code || !f.name) { toast.error('請填寫代碼與名稱'); return }
+    if (!f.code || !f.name) { toast.error(rt.brandRequired); return }
     setSaving(true)
     try {
       const method = isEdit ? 'PUT' : 'POST'
@@ -199,9 +178,9 @@ function BrandForm({ initial, onSaved, onCancel }: {
         body: JSON.stringify(payload),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      toast.success(isEdit ? '品牌已更新' : '品牌已新增')
+      toast.success(isEdit ? rt.brandUpdated : rt.brandCreated)
       onSaved()
-    } catch (e) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
@@ -245,7 +224,7 @@ function BrandForm({ initial, onSaved, onCancel }: {
             <div>
               <Label className="text-xs text-slate-600 mb-2 block">通路類型</Label>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(BRAND_TYPE_LABEL).map(([k, v]) => (
+                {Object.entries(rt.brandTypes).map(([k, v]) => (
                   <button key={k} onClick={() => set('brandType', k)}
                     className={`text-xs py-1.5 px-3 rounded-lg border-2 font-medium transition-all ${f.brandType === k ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
                     {v}
@@ -313,7 +292,7 @@ function BrandForm({ initial, onSaved, onCancel }: {
             <div>
               <Label className="text-xs text-slate-600 mb-2 block">採購模式</Label>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(PURCHASE_MODE_LABEL).map(([k, v]) => (
+                {Object.entries(rt.purchaseModes).map(([k, v]) => (
                   <button key={k} onClick={() => set('purchaseMode', f.purchaseMode === k ? '' : k)}
                     className={`text-xs py-1.5 px-3 rounded-lg border-2 font-medium transition-all ${f.purchaseMode === k ? 'border-blue-500 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
                     {v}
@@ -384,6 +363,8 @@ function BrandForm({ initial, onSaved, onCancel }: {
 function OutletForm({ brands, initial, onSaved, onCancel }: {
   brands: RetailBrand[]; initial?: Partial<RetailOutlet>; onSaved: () => void; onCancel: () => void
 }) {
+  const { dict } = useI18n()
+  const rt = dict.retail
   const isEdit = !!initial?.id
   const [section, setSection] = useState<'basic' | 'display' | 'logistics' | 'finance'>('basic')
   const [f, setF] = useState({
@@ -413,7 +394,7 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
   const set = (k: string, v: string | number) => setF(prev => ({ ...prev, [k]: v }))
 
   async function handleSubmit() {
-    if (!f.outletName || !f.brandId) { toast.error('請填寫門市名稱與品牌'); return }
+    if (!f.outletName || !f.brandId) { toast.error(rt.outletRequired); return }
     setSaving(true)
     try {
       const url    = isEdit ? `/api/retail/outlets/${initial!.id}` : '/api/retail/outlets'
@@ -424,9 +405,9 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
         body: JSON.stringify(f),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      toast.success(isEdit ? '門市已更新' : '門市已新增')
+      toast.success(isEdit ? rt.outletUpdated : rt.outletCreated)
       onSaved()
-    } catch (e) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
@@ -686,6 +667,11 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
 function EventForm({ outlets, initial, onSaved, onCancel }: {
   outlets: RetailOutlet[]; initial?: Partial<RetailEvent>; onSaved: () => void; onCancel: () => void
 }) {
+  const { dict } = useI18n()
+  const rt = dict.retail
+  type EvTy = keyof typeof rt.eventTypes
+  type EvSt = keyof typeof rt.eventStatuses
+  type GbSt = keyof typeof rt.groupBuyStatuses
   const isEdit = !!initial?.id
   const [tab, setTab] = useState<'basic' | 'result'>('basic')
   const [f, setF] = useState({
@@ -722,7 +708,7 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
   const set = (k: string, v: string | number) => setF(p => ({ ...p, [k]: v }))
 
   async function handleSubmit() {
-    if (!f.eventName || !f.eventType || !f.eventDate) { toast.error('請填寫活動名稱、類型與日期'); return }
+    if (!f.eventName || !f.eventType || !f.eventDate) { toast.error(rt.eventRequired); return }
     setSaving(true)
     try {
       const body: Record<string, unknown> = { ...f }
@@ -744,9 +730,9 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
         method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      toast.success(isEdit ? '活動已更新' : '活動已建立')
+      toast.success(isEdit ? rt.eventUpdated : rt.eventCreated)
       onSaved()
-    } catch (e) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
@@ -772,7 +758,7 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
             <div>
               <Label className="text-xs text-slate-600 mb-2 block">活動類型 *</Label>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(EVENT_TYPE_LABEL).map(([k, v]) => (
+                {Object.entries(rt.eventTypes).map(([k, v]) => (
                   <button key={k} onClick={() => set('eventType', k)}
                     className={`text-xs py-1 px-2.5 rounded-lg border-2 font-medium transition-all ${f.eventType === k ? 'border-green-500 bg-green-50 text-green-800' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
                     {v}
@@ -803,7 +789,7 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
               <div>
                 <Label className="text-xs text-slate-600 mb-1.5 block">狀態</Label>
                 <select className="w-full border rounded-md h-9 px-2 text-sm" value={f.eventStatus} onChange={e => set('eventStatus', e.target.value)}>
-                  {Object.entries(EVENT_STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  {Object.entries(rt.eventStatuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div>
@@ -917,7 +903,7 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
                 <div>
                   <Label className="text-xs text-slate-600 mb-1.5 block">團購狀態</Label>
                   <select className="w-full border rounded-md h-9 px-2 text-sm" value={f.groupBuyStatus} onChange={e => set('groupBuyStatus', e.target.value)}>
-                    {Object.entries(GROUP_BUY_STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    {Object.entries(rt.groupBuyStatuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
                 </div>
               </div>
@@ -1085,6 +1071,12 @@ function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => vo
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function RetailPage() {
   const { dict } = useI18n()
+  const rt = dict.retail
+  type BrTy = keyof typeof rt.brandTypes
+  type PuMo = keyof typeof rt.purchaseModes
+  type EvSt = keyof typeof rt.eventStatuses
+  type EvTy = keyof typeof rt.eventTypes
+  type GbSt = keyof typeof rt.groupBuyStatuses
   const [brands,  setBrands]  = useState<RetailBrand[]>([])
   const [outlets, setOutlets] = useState<RetailOutlet[]>([])
   const [events,  setEvents]  = useState<RetailEvent[]>([])
@@ -1113,7 +1105,7 @@ export default function RetailPage() {
       setBrands(Array.isArray(br) ? br : [])
       setOutlets(Array.isArray(ot) ? ot : [])
       setEvents(Array.isArray(ev) ? ev : [])
-    } catch { toast.error('載入資料失敗') }
+    } catch { toast.error(dict.retail.loadFailed) }
     finally { setLoading(false) }
   }, [])
 
@@ -1248,7 +1240,7 @@ export default function RetailPage() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <Badge className={`text-xs border-0 ${BRAND_TYPE_COLOR[b.brandType] ?? 'bg-slate-100 text-slate-600'}`}>
-                            {BRAND_TYPE_LABEL[b.brandType] ?? b.brandType}
+                            {rt.brandTypes[b.brandType as BrTy] ?? b.brandType}
                           </Badge>
                           <span className="font-mono text-xs text-slate-400">{b.code}</span>
                         </div>
@@ -1284,7 +1276,7 @@ export default function RetailPage() {
                       <div className="flex flex-wrap gap-1.5">
                         {b.purchaseMode && (
                           <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
-                            {PURCHASE_MODE_LABEL[b.purchaseMode] ?? b.purchaseMode}
+                            {rt.purchaseModes[b.purchaseMode as PuMo] ?? b.purchaseMode}
                           </span>
                         )}
                         {b.paymentTerms && (
@@ -1330,7 +1322,7 @@ export default function RetailPage() {
           <div className="flex flex-wrap gap-2">
             <select className="border rounded-md px-3 py-1.5 text-sm" value={eventStatusFilter} onChange={e => setEventStatusFilter(e.target.value)}>
               <option value="">全部狀態</option>
-              {Object.entries(EVENT_STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              {Object.entries(rt.eventStatuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
             {eventStatusFilter && <button onClick={() => setEventStatusFilter('')} className="text-xs text-red-500 px-2">清除</button>}
           </div>
@@ -1349,7 +1341,8 @@ export default function RetailPage() {
                 </div>
                 <div className="divide-y">
                   {filteredEvents.map(ev => {
-                    const statusCfg = EVENT_STATUS_CONFIG[ev.eventStatus] ?? { label: ev.eventStatus, color: 'bg-slate-100 text-slate-600' }
+                    const statusColor = EVENT_STATUS_COLOR[ev.eventStatus] ?? 'bg-slate-100 text-slate-600'
+                    const statusLabel = rt.eventStatuses[ev.eventStatus as EvSt] ?? ev.eventStatus
                     const hasResult = ev.revenueDuringEvent || ev.ordersTaken || ev.attendeeCount
                     return (
                       <div key={ev.id} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-3 px-4 py-3 hover:bg-slate-50 items-center">
@@ -1357,17 +1350,17 @@ export default function RetailPage() {
                           <p className="font-medium text-slate-800 text-sm">{ev.eventName}</p>
                           {ev.outlet && <p className="text-xs text-muted-foreground">{ev.outlet.brand.name} · {ev.outlet.outletName}</p>}
                           {ev.eventType === 'GROUP_BUY' && ev.groupBuy && (
-                            <Badge className={`text-xs border-0 mt-0.5 ${GROUP_BUY_STATUS_CONFIG[ev.groupBuy.status]?.color ?? 'bg-slate-100'}`}>
-                              {GROUP_BUY_STATUS_CONFIG[ev.groupBuy.status]?.label} · 最低 {ev.groupBuy.minQty} 件
+                            <Badge className={`text-xs border-0 mt-0.5 ${GROUP_BUY_STATUS_COLOR[ev.groupBuy.status] ?? 'bg-slate-100'}`}>
+                              {rt.groupBuyStatuses[ev.groupBuy.status as GbSt] ?? ev.groupBuy.status} · 最低 {ev.groupBuy.minQty} 件
                             </Badge>
                           )}
                         </div>
-                        <Badge className={`text-xs border-0 w-fit ${BRAND_TYPE_COLOR['OTHER']}`}>{EVENT_TYPE_LABEL[ev.eventType] ?? ev.eventType}</Badge>
+                        <Badge className={`text-xs border-0 w-fit ${BRAND_TYPE_COLOR['OTHER']}`}>{rt.eventTypes[ev.eventType as EvTy] ?? ev.eventType}</Badge>
                         <div className="text-xs text-slate-600">
                           <p>{fmtDate(ev.eventDate)}</p>
                           {ev.endDate && <p className="text-muted-foreground">至 {fmtDate(ev.endDate)}</p>}
                         </div>
-                        <Badge className={`text-xs border-0 w-fit ${statusCfg.color}`}>{statusCfg.label}</Badge>
+                        <Badge className={`text-xs border-0 w-fit ${statusColor}`}>{statusLabel}</Badge>
                         <div className="text-xs text-slate-600 space-y-0.5">
                           {hasResult ? (
                             <>
