@@ -2200,6 +2200,19 @@ const zhTW = {
     location: '地點',
     reminder: '提醒',
     noEvents: '此日無行程',
+    eventStatuses: {
+      PLANNING: '規劃中',
+      CONFIRMED: '已確認',
+      IN_PROGRESS: '進行中',
+      COMPLETED: '已結束',
+      CANCELLED: '已取消',
+    },
+    taskStatuses: {
+      OPEN: '待處理',
+      IN_PROGRESS: '進行中',
+      DONE: '已完成',
+      CANCELLED: '已取消',
+    },
   },
 } as const
 

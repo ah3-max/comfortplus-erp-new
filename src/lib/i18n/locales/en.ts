@@ -2169,6 +2169,19 @@ const en = {
     location: 'Location',
     reminder: 'Reminder',
     noEvents: 'No events today',
+    eventStatuses: {
+      PLANNING: 'Planning',
+      CONFIRMED: 'Confirmed',
+      IN_PROGRESS: 'In Progress',
+      COMPLETED: 'Completed',
+      CANCELLED: 'Cancelled',
+    },
+    taskStatuses: {
+      OPEN: 'Open',
+      IN_PROGRESS: 'In Progress',
+      DONE: 'Done',
+      CANCELLED: 'Cancelled',
+    },
   },
 } as const
 

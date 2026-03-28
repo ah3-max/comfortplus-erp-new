@@ -87,12 +87,12 @@ const EVENT_TYPE_CONFIG: Record<string, { label: string; color: string; icon: st
   OTHER:                { label: '其他',          color: 'bg-slate-100 text-slate-500',   icon: '📌' },
 }
 
-const EVENT_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  PLANNING:    { label: '規劃中',  color: 'bg-amber-100 text-amber-700' },
-  CONFIRMED:   { label: '已確認',  color: 'bg-blue-100 text-blue-700' },
-  IN_PROGRESS: { label: '進行中',  color: 'bg-green-100 text-green-700' },
-  COMPLETED:   { label: '已結束',  color: 'bg-slate-100 text-slate-500' },
-  CANCELLED:   { label: '已取消',  color: 'bg-red-100 text-red-600' },
+const EVENT_STATUS_COLOR: Record<string, string> = {
+  PLANNING:    'bg-amber-100 text-amber-700',
+  CONFIRMED:   'bg-blue-100 text-blue-700',
+  IN_PROGRESS: 'bg-green-100 text-green-700',
+  COMPLETED:   'bg-slate-100 text-slate-500',
+  CANCELLED:   'bg-red-100 text-red-600',
 }
 
 const MEETING_TYPE_CONFIG: Record<string, { label: string; color: string }> = {
@@ -122,11 +122,11 @@ const PHASE_CONFIG: Record<string, { label: string; color: string; bg: string }>
   REVIEW:      { label: '活動後檢討', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200' },
 }
 
-const ACTION_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  OPEN:        { label: '待處理', color: 'bg-amber-100 text-amber-700' },
-  IN_PROGRESS: { label: '進行中', color: 'bg-blue-100 text-blue-700' },
-  DONE:        { label: '已完成', color: 'bg-green-100 text-green-700' },
-  CANCELLED:   { label: '已取消', color: 'bg-slate-100 text-slate-500' },
+const ACTION_STATUS_COLOR: Record<string, string> = {
+  OPEN:        'bg-amber-100 text-amber-700',
+  IN_PROGRESS: 'bg-blue-100 text-blue-700',
+  DONE:        'bg-green-100 text-green-700',
+  CANCELLED:   'bg-slate-100 text-slate-500',
 }
 
 function fmtDate(s: string | null | undefined) {
@@ -159,6 +159,7 @@ function TextArea({ value, onChange, rows = 3, placeholder }: { value: string; o
 function EventForm({ initial, users, onSaved, onCancel }: {
   initial?: Partial<BusinessEvent>; users: User[]; onSaved: () => void; onCancel: () => void
 }) {
+  const { dict } = useI18n()
   const isEdit = !!initial?.id
   const [f, setF] = useState({
     title:          initial?.title          || '',
@@ -227,7 +228,7 @@ function EventForm({ initial, users, onSaved, onCancel }: {
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">狀態</Label>
             <select className="w-full border rounded-md h-9 px-2 text-sm" value={f.status} onChange={e => set('status', e.target.value)}>
-              {Object.entries(EVENT_STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              {Object.entries(dict.businessCalendar.eventStatuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div>
@@ -599,6 +600,9 @@ function MeetingForm({ initial, users, onSaved, onCancel }: {
 
 export default function BusinessCalendarPage() {
   const { dict } = useI18n()
+  const bc = dict.businessCalendar
+  type EvSt = keyof typeof bc.eventStatuses
+  type TkSt = keyof typeof bc.taskStatuses
   const [activeTab, setActiveTab] = useState<'calendar' | 'promo' | 'meetings' | 'todo'>('calendar')
 
   const [events,   setEvents]   = useState<BusinessEvent[]>([])
@@ -782,7 +786,8 @@ export default function BusinessCalendarPage() {
                   <div className="space-y-1.5">
                     {filteredEvents.filter(e => e.startDate.startsWith(month)).map(ev => {
                       const typeCfg   = EVENT_TYPE_CONFIG[ev.eventType]   ?? { label: ev.eventType,   color: 'bg-slate-100 text-slate-600', icon: '📌' }
-                      const statusCfg = EVENT_STATUS_CONFIG[ev.status]    ?? { label: ev.status,       color: 'bg-slate-100 text-slate-600' }
+                      const evStColor = EVENT_STATUS_COLOR[ev.status]    ?? 'bg-slate-100 text-slate-600'
+                      const evStLabel = bc.eventStatuses[ev.status as EvSt] ?? ev.status
                       return (
                         <div key={ev.id} className="flex items-center gap-3 rounded-lg border bg-white px-4 py-3 hover:bg-slate-50">
                           <div className="w-10 text-center shrink-0">
@@ -796,7 +801,7 @@ export default function BusinessCalendarPage() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-slate-800">{ev.title}</span>
                               <Badge className={`text-[11px] border-0 ${typeCfg.color}`}>{typeCfg.label}</Badge>
-                              <Badge className={`text-[11px] border-0 ${statusCfg.color}`}>{statusCfg.label}</Badge>
+                              <Badge className={`text-[11px] border-0 ${evStColor}`}>{evStLabel}</Badge>
                             </div>
                             <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5 text-xs text-muted-foreground">
                               {ev.location && <span className="flex items-center gap-0.5"><MapPin className="h-3 w-3" />{ev.location}</span>}
@@ -1070,7 +1075,8 @@ export default function BusinessCalendarPage() {
                     )}
                     <div className="space-y-1.5">
                       {meetingDetail.actionItems.map(item => {
-                        const sc  = ACTION_STATUS_CONFIG[item.status] ?? { label: item.status, color: 'bg-slate-100 text-slate-600' }
+                        const scColor = ACTION_STATUS_COLOR[item.status] ?? 'bg-slate-100 text-slate-600'
+                        const scLabel = bc.taskStatuses[item.status as TkSt] ?? item.status
                         const isOverdue = item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'DONE'
                         return (
                           <div key={item.id} className={`flex items-start gap-2 rounded-lg px-3 py-2 ${item.status === 'DONE' ? 'bg-green-50' : isOverdue ? 'bg-red-50' : 'bg-slate-50'}`}>
@@ -1084,7 +1090,7 @@ export default function BusinessCalendarPage() {
                               <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5 text-[11px] text-muted-foreground">
                                 {item.owner && <span>{item.owner.name}</span>}
                                 {item.dueDate && <span className={isOverdue ? 'text-red-600 font-medium' : ''}>{isOverdue ? '⚠ ' : ''}到期 {fmtDate(item.dueDate)}</span>}
-                                <Badge className={`text-[10px] border-0 py-0 ${sc.color}`}>{sc.label}</Badge>
+                                <Badge className={`text-[10px] border-0 py-0 ${scColor}`}>{scLabel}</Badge>
                               </div>
                             </div>
                           </div>
@@ -1150,6 +1156,8 @@ export default function BusinessCalendarPage() {
                   <CardContent className="space-y-1.5 pt-0">
                     {group.items.map(item => {
                       const isOverdue = item.isOverdue
+                      const itmClr = ACTION_STATUS_COLOR[item.status] ?? 'bg-slate-100'
+                      const itmLbl = bc.taskStatuses[item.status as TkSt] ?? item.status
                       return (
                         <div key={item.id} className={`rounded-lg p-2 text-xs ${isOverdue ? 'bg-red-50 border border-red-200' : item.isDueThisWeek ? 'bg-amber-50' : 'bg-slate-50'}`}>
                           <div className="flex items-start gap-1.5">
@@ -1163,8 +1171,8 @@ export default function BusinessCalendarPage() {
                                 {item.meetingRecord && <span className="truncate max-w-[100px]">{item.meetingRecord.meetingNo}</span>}
                               </div>
                             </div>
-                            <Badge className={`text-[10px] border-0 ${ACTION_STATUS_CONFIG[item.status]?.color ?? 'bg-slate-100'} shrink-0`}>
-                              {ACTION_STATUS_CONFIG[item.status]?.label ?? item.status}
+                            <Badge className={`text-[10px] border-0 ${itmClr} shrink-0`}>
+                              {itmLbl}
                             </Badge>
                           </div>
                           {item.followUpNote && <p className="mt-1 text-muted-foreground italic pl-5">{item.followUpNote}</p>}
