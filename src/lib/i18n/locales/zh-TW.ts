@@ -1706,6 +1706,9 @@ const zhTW = {
     noInvoices: '尚無銷貨單',
     statuses: {
       DRAFT: '草稿',
+      CONFIRMED: '已確認',
+      SHIPPED: '已出貨',
+      RETURNED: '已退貨',
       ISSUED: '已開立',
       PARTIAL: '部分付款',
       PAID: '已付清',

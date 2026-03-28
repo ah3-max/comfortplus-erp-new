@@ -1675,6 +1675,9 @@ const en = {
     noInvoices: 'No invoices yet',
     statuses: {
       DRAFT: 'Draft',
+      CONFIRMED: 'Confirmed',
+      SHIPPED: 'Shipped',
+      RETURNED: 'Returned',
       ISSUED: 'Issued',
       PARTIAL: 'Partial Payment',
       PAID: 'Paid',

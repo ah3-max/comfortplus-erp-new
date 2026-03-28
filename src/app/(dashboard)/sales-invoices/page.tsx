@@ -90,18 +90,18 @@ export default function SalesInvoicesPage() {
     className?: string
   }> = {
     DRAFT:     { label: dict.salesInvoices.statuses.DRAFT, variant: 'outline' },
-    CONFIRMED: { label: '已確認', variant: 'secondary' },
-    SHIPPED:   { label: '已出貨', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-    RETURNED:  { label: '已退貨', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    CONFIRMED: { label: dict.salesInvoices.statuses.CONFIRMED, variant: 'secondary' },
+    SHIPPED:   { label: dict.salesInvoices.statuses.SHIPPED, variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    RETURNED:  { label: dict.salesInvoices.statuses.RETURNED, variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
     CANCELLED: { label: dict.salesInvoices.statuses.CANCELLED, variant: 'destructive' },
   }
 
   const statusFilters = [
     { value: '', label: dict.common.all },
     { value: 'DRAFT', label: dict.salesInvoices.statuses.DRAFT },
-    { value: 'CONFIRMED', label: '已確認' },
-    { value: 'SHIPPED', label: '已出貨' },
-    { value: 'RETURNED', label: '已退貨' },
+    { value: 'CONFIRMED', label: dict.salesInvoices.statuses.CONFIRMED },
+    { value: 'SHIPPED', label: dict.salesInvoices.statuses.SHIPPED },
+    { value: 'RETURNED', label: dict.salesInvoices.statuses.RETURNED },
   ]
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -402,6 +402,11 @@ export default function SalesInvoicesPage() {
                           {inv.status === 'CONFIRMED' && (
                             <DropdownMenuItem onClick={() => updateStatus(inv.id, 'SHIPPED', '出貨')}>
                               <Truck className="mr-2 h-4 w-4" />標記已出貨
+                            </DropdownMenuItem>
+                          )}
+                          {inv.status === 'SHIPPED' && (
+                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'RETURNED', '退貨')}>
+                              <XCircle className="mr-2 h-4 w-4" />標記退貨
                             </DropdownMenuItem>
                           )}
                           {!['SHIPPED', 'CANCELLED', 'RETURNED'].includes(inv.status) && (
