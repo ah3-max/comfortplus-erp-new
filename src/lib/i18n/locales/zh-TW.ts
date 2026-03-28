@@ -94,6 +94,8 @@ const zhTW = {
     autoJournal: '自動化會計分錄',
     statements: '月結對帳單',
     inventoryMovement: '進銷存彙總報表',
+    purchaseAnalysis: '採購分析報表',
+    supplierPerformance: '供應商績效分析',
     arAging: '應收帳齡',
     finance: '財務報表',
     apAging: '應付帳齡',

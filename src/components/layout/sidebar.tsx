@@ -78,7 +78,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
-  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' |
+  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -162,8 +162,10 @@ const navGroups: NavGroup[] = [
       { href: '/packaging',    key: 'packaging',   icon: Layers },
       { href: '/sea-freight',      key: 'seaFreight',     icon: Ship },
       { href: '/import-projects',  key: 'importProjects', icon: ShipIcon },
-      { href: '/purchase-plans',   key: 'purchasePlans',  icon: ClipboardList },
-      { href: '/purchase-returns', key: 'purchaseReturns', icon: RotateCcw },
+      { href: '/purchase-plans',       key: 'purchasePlans',        icon: ClipboardList },
+      { href: '/purchase-returns',      key: 'purchaseReturns',       icon: RotateCcw },
+      { href: '/purchase-analysis',     key: 'purchaseAnalysis',      icon: BarChart3 },
+      { href: '/supplier-performance',  key: 'supplierPerformance',   icon: Star },
     ],
   },
   {

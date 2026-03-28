@@ -92,6 +92,8 @@ const en = {
     autoJournal: 'Auto Journal Posting',
     statements: 'Customer Statements',
     inventoryMovement: 'Inventory Movement',
+    purchaseAnalysis: 'Purchase Analysis',
+    supplierPerformance: 'Supplier Performance',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

@@ -92,6 +92,8 @@ const th = {
     autoJournal: 'บันทึกบัญชีอัตโนมัติ',
     statements: 'ใบแจ้งยอดลูกค้า',
     inventoryMovement: 'รายงานความเคลื่อนไหวสินค้า',
+    purchaseAnalysis: 'วิเคราะห์การจัดซื้อ',
+    supplierPerformance: 'ประสิทธิภาพผู้จัดจำหน่าย',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',
