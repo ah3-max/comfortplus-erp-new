@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, ChevronLeft, TrendingUp, TrendingDown } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface CashFlowData {
   year: number
@@ -52,6 +53,7 @@ function Section({ title, items, total, color }: {
 }
 
 export default function CashFlowStatementPage() {
+  const { dict } = useI18n()
   const currentYear = new Date().getFullYear()
   const [year, setYear] = useState(currentYear)
   const [data, setData] = useState<CashFlowData | null>(null)
@@ -63,9 +65,9 @@ export default function CashFlowStatementPage() {
       const res = await fetch(`/api/finance/cash-flow-statement?year=${year}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
-  }, [year])
+  }, [year, dict])
 
   return (
     <div className="space-y-5">
@@ -74,14 +76,14 @@ export default function CashFlowStatementPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">現金流量表</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.cashFlowStatement}</h1>
           <p className="text-sm text-muted-foreground">依 IAS 7 間接法編製</p>
         </div>
       </div>
 
       <div className="flex items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">年度</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.reportsExt.period}</label>
           <select value={year} onChange={e => setYear(Number(e.target.value))} className="rounded-md border px-3 py-2 text-sm">
             {Array.from({ length: 5 }, (_, i) => currentYear - i).map(y => (
               <option key={y} value={y}>{y} 年</option>
@@ -89,7 +91,7 @@ export default function CashFlowStatementPage() {
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
         </Button>
       </div>
 
@@ -145,7 +147,7 @@ export default function CashFlowStatementPage() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請選擇年度後點擊查詢
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

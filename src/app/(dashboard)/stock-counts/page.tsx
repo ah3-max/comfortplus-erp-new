@@ -19,6 +19,7 @@ import {
   ChevronRight, CheckCircle2, XCircle, RotateCcw, Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 type StockCountStatus = 'DRAFT' | 'COUNTING' | 'REVIEWING' | 'COMPLETED' | 'CANCELLED'
 

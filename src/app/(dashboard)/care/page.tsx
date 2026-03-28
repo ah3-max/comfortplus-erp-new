@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -89,6 +90,7 @@ const emptyReq = {
 
 /* ─── Component ──────────────────────────────────────────── */
 export default function CarePage() {
+  const { dict } = useI18n()
   const [schedules, setSchedules]   = useState<CareSchedule[]>([])
   const [requests, setRequests]     = useState<ServiceRequest[]>([])
   const [users, setUsers]           = useState<User[]>([])
@@ -173,6 +175,7 @@ export default function CarePage() {
     load()
   }
 
+
   function openCompleteSch(s: CareSchedule) {
     setCompleteTarget(s)
     setCompleteForm({ content: s.content ?? '', result: s.result ?? '', nextVisitDate: '' })
@@ -193,11 +196,11 @@ export default function CarePage() {
     })
     setCompleting(false)
     if (res.ok) {
-      toast.success('訪視已完成')
+      toast.success(dict.common.saveSuccess)
       setCompleteTarget(null)
       load()
     } else {
-      toast.error('操作失敗')
+      toast.error(dict.common.error)
     }
   }
 
@@ -249,8 +252,8 @@ export default function CarePage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">照顧督導管理</h1>
-          <p className="text-sm text-slate-500 mt-1">督導拜訪排班與客戶服務需求管理</p>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.care.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{dict.care.subtitle}</p>
         </div>
       </div>
 
@@ -261,7 +264,7 @@ export default function CarePage() {
             <CalendarDays className="h-8 w-8 text-blue-500" />
             <div>
               <p className="text-2xl font-bold">{upcomingSch}</p>
-              <p className="text-sm text-slate-500">待執行排程</p>
+              <p className="text-sm text-slate-500">{dict.care.pendingSchedules}</p>
             </div>
           </CardContent>
         </Card>
@@ -270,7 +273,7 @@ export default function CarePage() {
             <HeartHandshake className="h-8 w-8 text-orange-500" />
             <div>
               <p className="text-2xl font-bold">{openReqs}</p>
-              <p className="text-sm text-slate-500">待處理服務需求</p>
+              <p className="text-sm text-slate-500">{dict.care.openRequests}</p>
             </div>
           </CardContent>
         </Card>
@@ -279,7 +282,7 @@ export default function CarePage() {
             <AlertCircle className="h-8 w-8 text-red-500" />
             <div>
               <p className="text-2xl font-bold">{urgentReqs}</p>
-              <p className="text-sm text-slate-500">緊急需求</p>
+              <p className="text-sm text-slate-500">{dict.care.urgentRequests}</p>
             </div>
           </CardContent>
         </Card>
@@ -287,30 +290,30 @@ export default function CarePage() {
 
       {/* Tab Bar */}
       <div className="border-b flex gap-0">
-        <button className={tabStyle('schedules')} onClick={() => setTab('schedules')}>排班行程</button>
-        <button className={tabStyle('requests')}  onClick={() => setTab('requests')}>服務需求</button>
+        <button className={tabStyle('schedules')} onClick={() => setTab('schedules')}>{dict.care.schedules}</button>
+        <button className={tabStyle('requests')}  onClick={() => setTab('requests')}>{dict.care.requests}</button>
       </div>
 
       {/* ─── Schedules Tab ─────────────────────────────────── */}
       {tab === 'schedules' && (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <Button onClick={openNewSch}><Plus className="h-4 w-4 mr-2" />新增排程</Button>
+            <Button onClick={openNewSch}><Plus className="h-4 w-4 mr-2" />{dict.care.newSchedule}</Button>
           </div>
 
           <Dialog open={schOpen} onOpenChange={setSchOpen}>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>{schEdit ? '編輯排程' : '新增排程'}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{schEdit ? dict.common.edit + dict.care.schedules : dict.care.newSchedule}</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
                 <div>
-                  <Label>客戶 *</Label>
+                  <Label>{dict.common.customer} *</Label>
                   <Select
                     value={schForm.customerId || '_none'}
                     onValueChange={v => setSchForm(f => ({ ...f, customerId: v === '_none' ? '' : (v ?? '') }))}
                   >
-                    <SelectTrigger><SelectValue placeholder="選擇客戶" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={dict.common.select + dict.common.customer} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— 選擇客戶 —</SelectItem>
+                      <SelectItem value="_none">— {dict.common.select + dict.common.customer} —</SelectItem>
                       {customers.map(c => <SelectItem key={c.id} value={c.id}>[{c.code}] {c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -324,7 +327,7 @@ export default function CarePage() {
                     >
                       <SelectTrigger><SelectValue placeholder="選擇督導" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="_none">— 選擇 —</SelectItem>
+                        <SelectItem value="_none">— {dict.common.select} —</SelectItem>
                         {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -345,7 +348,7 @@ export default function CarePage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>狀態</Label>
+                    <Label>{dict.common.status}</Label>
                     <Select value={schForm.status} onValueChange={v => setSchForm(f => ({ ...f, status: v ?? 'SCHEDULED' }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -375,25 +378,25 @@ export default function CarePage() {
                   </>
                 )}
                 <div>
-                  <Label>備註</Label>
+                  <Label>{dict.common.notes}</Label>
                   <Textarea rows={2} value={schForm.notes} onChange={e => setSchForm(f => ({ ...f, notes: e.target.value }))} placeholder="備註…" />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setSchOpen(false)}>取消</Button>
-                <Button onClick={saveSch} disabled={saving || !schForm.customerId || !schForm.scheduleDate}>{saving ? '儲存中…' : '儲存'}</Button>
+                <Button variant="outline" onClick={() => setSchOpen(false)}>{dict.common.cancel}</Button>
+                <Button onClick={saveSch} disabled={saving || !schForm.customerId || !schForm.scheduleDate}>{saving ? dict.common.saving : dict.common.save}</Button>
               </div>
             </DialogContent>
           </Dialog>
 
           {loading ? (
-            <div className="text-center py-20 text-slate-400">載入中…</div>
+            <div className="text-center py-20 text-slate-400">{dict.common.loading}</div>
           ) : (
             <div className="grid gap-3">
               {schedules.length === 0 && (
                 <div className="text-center py-16 text-slate-400">
                   <CalendarDays className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  目前無排程
+                  {dict.common.noData}
                 </div>
               )}
               {schedules.map(s => (
@@ -426,11 +429,12 @@ export default function CarePage() {
                         {s.nextVisitDate && (
                           <p className="text-sm text-blue-600 mt-1">下次拜訪：{s.nextVisitDate.substring(0, 10)}</p>
                         )}
+
                       </div>
                       <div className="flex gap-2 shrink-0">
                         {(s.status === 'SCHEDULED' || s.status === 'IN_PROGRESS') && (
                           <Button size="sm" variant="outline" onClick={() => openCompleteSch(s)} className="text-green-600 border-green-200 hover:bg-green-50 gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" />完成
+                            <CheckCircle2 className="h-3.5 w-3.5" />{dict.common.complete}
                           </Button>
                         )}
                         <Button size="sm" variant="outline" onClick={() => openEditSch(s)}>
@@ -455,22 +459,22 @@ export default function CarePage() {
       {tab === 'requests' && (
         <div className="space-y-3">
           <div className="flex justify-end">
-            <Button onClick={openNewReq}><Plus className="h-4 w-4 mr-2" />新增需求</Button>
+            <Button onClick={openNewReq}><Plus className="h-4 w-4 mr-2" />{dict.care.newRequest}</Button>
           </div>
 
           <Dialog open={reqOpen} onOpenChange={setReqOpen}>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>{reqEdit ? '編輯服務需求' : '新增服務需求'}</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{reqEdit ? dict.common.edit + dict.care.requests : dict.care.newRequest}</DialogTitle></DialogHeader>
               <div className="space-y-4 py-2">
                 <div>
-                  <Label>客戶 *</Label>
+                  <Label>{dict.common.customer} *</Label>
                   <Select
                     value={reqForm.customerId || '_none'}
                     onValueChange={v => setReqForm(f => ({ ...f, customerId: v === '_none' ? '' : (v ?? '') }))}
                   >
-                    <SelectTrigger><SelectValue placeholder="選擇客戶" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={dict.common.select + dict.common.customer} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— 選擇客戶 —</SelectItem>
+                      <SelectItem value="_none">— {dict.common.select + dict.common.customer} —</SelectItem>
                       {customers.map(c => <SelectItem key={c.id} value={c.id}>[{c.code}] {c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -497,7 +501,7 @@ export default function CarePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>狀態</Label>
+                    <Label>{dict.common.status}</Label>
                     <Select value={reqForm.status} onValueChange={v => setReqForm(f => ({ ...f, status: v ?? 'OPEN' }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -506,12 +510,12 @@ export default function CarePage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>負責人員</Label>
+                    <Label>{dict.tasksExt.assignedTo}</Label>
                     <Select
                       value={reqForm.assignedToId || '_none'}
                       onValueChange={v => setReqForm(f => ({ ...f, assignedToId: v === '_none' ? '' : (v ?? '') }))}
                     >
-                      <SelectTrigger><SelectValue placeholder="選擇負責人" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="_none">— 未分配 —</SelectItem>
                         {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
@@ -520,7 +524,7 @@ export default function CarePage() {
                   </div>
                 </div>
                 <div>
-                  <Label>問題描述 *</Label>
+                  <Label>{dict.common.description} *</Label>
                   <Textarea rows={3} value={reqForm.description} onChange={e => setReqForm(f => ({ ...f, description: e.target.value }))} placeholder="描述客戶服務需求…" />
                 </div>
                 {reqEdit && (
@@ -531,8 +535,8 @@ export default function CarePage() {
                 )}
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setReqOpen(false)}>取消</Button>
-                <Button onClick={saveReq} disabled={saving || !reqForm.customerId || !reqForm.description}>{saving ? '儲存中…' : '儲存'}</Button>
+                <Button variant="outline" onClick={() => setReqOpen(false)}>{dict.common.cancel}</Button>
+                <Button onClick={saveReq} disabled={saving || !reqForm.customerId || !reqForm.description}>{saving ? dict.common.saving : dict.common.save}</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -542,13 +546,13 @@ export default function CarePage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>客戶</TableHead>
-                    <TableHead>類型</TableHead>
+                    <TableHead>{dict.common.customer}</TableHead>
+                    <TableHead>{dict.common.type}</TableHead>
                     <TableHead>緊急度</TableHead>
-                    <TableHead>狀態</TableHead>
-                    <TableHead>問題描述</TableHead>
-                    <TableHead>負責人</TableHead>
-                    <TableHead>建立時間</TableHead>
+                    <TableHead>{dict.common.status}</TableHead>
+                    <TableHead>{dict.common.description}</TableHead>
+                    <TableHead>{dict.tasksExt.assignedTo}</TableHead>
+                    <TableHead>{dict.common.createdAt}</TableHead>
                     <TableHead className="w-16" />
                   </TableRow>
                 </TableHeader>
@@ -557,7 +561,7 @@ export default function CarePage() {
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-16 text-slate-400">
                         <HeartHandshake className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                        目前無服務需求
+                        {dict.common.noData}
                       </TableCell>
                     </TableRow>
                   )}
@@ -596,7 +600,7 @@ export default function CarePage() {
       <Dialog open={!!completeTarget} onOpenChange={o => !o && setCompleteTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>完成訪視 — {completeTarget?.customer.name}</DialogTitle>
+            <DialogTitle>{dict.common.complete} — {completeTarget?.customer.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div>
@@ -630,9 +634,9 @@ export default function CarePage() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setCompleteTarget(null)} disabled={completing}>取消</Button>
+            <Button variant="outline" onClick={() => setCompleteTarget(null)} disabled={completing}>{dict.common.cancel}</Button>
             <Button onClick={saveCompleteSch} disabled={completing || !completeForm.result}>
-              {completing ? '儲存中…' : '確認完成'}
+              {completing ? dict.common.saving : dict.common.confirm}
             </Button>
           </div>
         </DialogContent>

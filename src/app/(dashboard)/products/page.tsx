@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -45,6 +46,7 @@ function fmt(v: string | number) {
 }
 
 export default function ProductsPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const router = useRouter()
   const role = (session?.user?.role as string) ?? ''
@@ -79,8 +81,8 @@ export default function ProductsPage() {
   async function handleDelete(id: string, name: string) {
     if (!confirm(`確定要刪除「${name}」嗎？`)) return
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('商品已停售'); fetchProducts() }
-    else toast.error('刪除失敗')
+    if (res.ok) { toast.success(dict.productsExt.statusInactive); fetchProducts() }
+    else toast.error(dict.common.deleteFailed)
   }
 
   const lowStockCount = products.filter(p => {
@@ -93,7 +95,7 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">商品管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.products.title}</h1>
           <p className="text-sm text-muted-foreground">
             共 {products.length} 項商品
             {lowStockCount > 0 && (
@@ -109,7 +111,7 @@ export default function ProductsPage() {
           </p>
         </div>
         <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-          <Plus className="mr-2 h-4 w-4" />新增商品
+          <Plus className="mr-2 h-4 w-4" />{dict.products.newProduct}
         </Button>
       </div>
 
@@ -117,13 +119,13 @@ export default function ProductsPage() {
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋商品名稱、SKU..."
+          <Input className="pl-9" placeholder={dict.productsExt.searchPlaceholder}
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           <button onClick={() => setFilterCategory('')}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filterCategory === '' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            全部
+            {dict.common.all}
           </button>
           {categories.map(c => (
             <button key={c} onClick={() => setFilterCategory(c === filterCategory ? '' : c)}
@@ -134,7 +136,7 @@ export default function ProductsPage() {
         </div>
         <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
           <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} className="rounded" />
-          顯示停售商品
+          顯示{dict.productsExt.statusInactive}商品
         </label>
       </div>
 

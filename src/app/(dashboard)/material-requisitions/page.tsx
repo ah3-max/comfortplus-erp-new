@@ -22,6 +22,7 @@ import {
   CheckCircle2, XCircle, Package, FileText, Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 type RequisitionStatus = 'DRAFT' | 'CONFIRMED' | 'ISSUED' | 'COMPLETED' | 'CANCELLED'
 

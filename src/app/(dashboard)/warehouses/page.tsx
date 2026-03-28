@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,6 +21,7 @@ interface WarehouseItem {
 }
 
 export default function WarehousesPage() {
+  const { dict } = useI18n()
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([])
   const [loading, setLoading]       = useState(true)
   const [showInactive, setShowInactive] = useState(false)
@@ -49,8 +51,8 @@ export default function WarehousesPage() {
   }
 
   async function handleSave() {
-    if (!form.name) { toast.error('請填寫倉庫名稱'); return }
-    if (!editing && !form.code) { toast.error('請填寫倉庫代碼'); return }
+    if (!form.name) { toast.error(dict.warehouses.warehouseName); return }
+    if (!editing && !form.code) { toast.error(dict.common.code); return }
     setSaving(true)
     const url    = editing ? `/api/warehouses/${editing.id}` : '/api/warehouses'
     const method = editing ? 'PUT' : 'POST'
@@ -61,12 +63,12 @@ export default function WarehousesPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success(editing ? '倉庫已更新' : '倉庫已新增')
+      toast.success(editing ? dict.common.updateSuccess : dict.common.createSuccess)
       setOpen(false)
       fetchWarehouses()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '儲存失敗')
+      toast.error(d.error ?? dict.common.saveFailed)
     }
   }
 
@@ -76,8 +78,8 @@ export default function WarehousesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !w.isActive }),
     })
-    if (res.ok) { toast.success(w.isActive ? '已停用倉庫' : '已啟用倉庫'); fetchWarehouses() }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(w.isActive ? dict.common.inactive : dict.common.active); fetchWarehouses() }
+    else toast.error(dict.common.error)
   }
 
   const activeCount = warehouses.filter(w => w.isActive).length
@@ -86,15 +88,15 @@ export default function WarehousesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">倉庫管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.warehouses.title}</h1>
           <p className="text-sm text-muted-foreground">共 {activeCount} 間倉庫</p>
         </div>
         <div className="flex gap-2">
           <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer">
             <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} />
-            顯示已停用
+            {dict.common.inactive}
           </label>
-          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />新增倉庫</Button>
+          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />{dict.warehouses.newWarehouse}</Button>
         </div>
       </div>
 
@@ -133,8 +135,8 @@ export default function WarehousesPage() {
                 </div>
                 <div className="ml-auto">
                   {w.isActive
-                    ? <Badge variant="outline" className="border-green-400 text-green-600 text-xs">啟用</Badge>
-                    : <Badge variant="outline" className="border-red-400 text-red-600 text-xs">停用</Badge>
+                    ? <Badge variant="outline" className="border-green-400 text-green-600 text-xs">{dict.common.active}</Badge>
+                    : <Badge variant="outline" className="border-red-400 text-red-600 text-xs">{dict.common.inactive}</Badge>
                   }
                 </div>
               </div>
@@ -142,7 +144,7 @@ export default function WarehousesPage() {
               <div className="mt-3 flex justify-end">
                 <button onClick={() => toggleActive(w)}
                   className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
-                  {w.isActive ? '停用' : '啟用'}
+                  {w.isActive ? dict.common.inactive : dict.common.active}
                 </button>
               </div>
             </CardContent>
@@ -152,45 +154,45 @@ export default function WarehousesPage() {
 
       {!loading && warehouses.length === 0 && (
         <div className="rounded-lg border-2 border-dashed p-16 text-center text-muted-foreground">
-          尚無倉庫資料，請新增第一個倉庫
+          {dict.warehouses.noWarehouses}
         </div>
       )}
 
       <Dialog open={open} onOpenChange={o => !o && setOpen(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{editing ? '編輯倉庫' : '新增倉庫'}</DialogTitle>
+            <DialogTitle>{editing ? dict.common.edit : dict.warehouses.newWarehouse}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             {!editing && (
               <div className="space-y-1.5">
-                <Label>倉庫代碼 <span className="text-red-500">*</span></Label>
+                <Label>{dict.common.code} <span className="text-red-500">*</span></Label>
                 <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
                   placeholder="MAIN / WH-A / COLD" maxLength={20} />
                 <p className="text-xs text-muted-foreground">英數大寫，建立後不可更改</p>
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>倉庫名稱 <span className="text-red-500">*</span></Label>
+              <Label>{dict.warehouses.warehouseName} <span className="text-red-500">*</span></Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="主倉庫 / 冷藏倉" />
             </div>
             <div className="space-y-1.5">
-              <Label>地址</Label>
+              <Label>{dict.common.address}</Label>
               <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
                 placeholder="倉庫地址" />
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2} placeholder="特殊說明..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>取消</Button>
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {editing ? '儲存' : '新增'}
+              {editing ? dict.common.save : dict.common.add}
             </Button>
           </DialogFooter>
         </DialogContent>

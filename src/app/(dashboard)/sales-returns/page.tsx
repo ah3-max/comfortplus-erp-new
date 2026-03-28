@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Loader2, Plus, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface ReturnItem {
   id: string; productId: string; quantity: number

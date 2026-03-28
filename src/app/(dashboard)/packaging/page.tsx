@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 import {
   Layers, Plus, Loader2, XCircle, AlertTriangle, Pencil, X, Check,
 } from 'lucide-react'

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Loader2, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -28,6 +29,7 @@ function MetricCard({ label, value, sub, color = '' }: { label: string; value: s
 }
 
 export default function ARAPTurnoverPage() {
+  const { dict } = useI18n()
   const [year, setYear] = useState(new Date().getFullYear())
   const [data, setData] = useState<TurnoverData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -39,7 +41,7 @@ export default function ARAPTurnoverPage() {
       const res = await fetch(`/api/finance/ar-ap-turnover?year=${year}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [year])
 
@@ -55,6 +57,7 @@ export default function ARAPTurnoverPage() {
       <div className="flex items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">年度</label>
+
           <select value={year} onChange={e => setYear(Number(e.target.value))} className="rounded-md border px-3 py-2 text-sm">
             {Array.from({ length: 5 }, (_, i) => currentYear - i).map(y => <option key={y} value={y}>{y} 年</option>)}
           </select>

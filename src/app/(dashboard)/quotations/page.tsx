@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useI18n } from '@/lib/i18n/context'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,29 +41,6 @@ import { toast } from 'sonner'
 
 type QuotationStatus = 'DRAFT' | 'SENT' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED'
 
-const statusConfig: Record<QuotationStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  DRAFT:     { label: '草稿',   variant: 'outline' },
-  SENT:      { label: '已送出', variant: 'secondary' },
-  ACCEPTED:  { label: '已接受', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  REJECTED:  { label: '已拒絕', variant: 'destructive' },
-  EXPIRED:   { label: '已過期', variant: 'outline', className: 'text-muted-foreground' },
-  CONVERTED: { label: '已轉訂單', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-}
-
-const statusFilters: { value: string; label: string }[] = [
-  { value: '', label: '全部' },
-  { value: 'DRAFT', label: '草稿' },
-  { value: 'SENT', label: '已送出' },
-  { value: 'ACCEPTED', label: '已接受' },
-  { value: 'REJECTED', label: '已拒絕' },
-  { value: 'EXPIRED', label: '已過期' },
-  { value: 'CONVERTED', label: '已轉訂單' },
-]
-
 interface QuotationItem {
   id: string
   productId: string
@@ -95,7 +73,32 @@ function formatDate(str: string) {
 }
 
 export default function QuotationsPage() {
+  const { dict } = useI18n()
   const router = useRouter()
+
+  const statusConfig: Record<QuotationStatus, {
+    label: string
+    variant: 'default' | 'secondary' | 'outline' | 'destructive'
+    className?: string
+  }> = {
+    DRAFT:     { label: dict.quotations.statuses.DRAFT,     variant: 'outline' },
+    SENT:      { label: dict.quotations.statuses.SENT,      variant: 'secondary' },
+    ACCEPTED:  { label: dict.quotations.statuses.ACCEPTED,  variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    REJECTED:  { label: dict.quotations.statuses.REJECTED,  variant: 'destructive' },
+    EXPIRED:   { label: dict.quotations.statuses.EXPIRED,   variant: 'outline', className: 'text-muted-foreground' },
+    CONVERTED: { label: dict.quotations.statuses.CONVERTED, variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+  }
+
+  const statusFilters: { value: string; label: string }[] = [
+    { value: '', label: dict.common.all },
+    { value: 'DRAFT',     label: dict.quotations.statuses.DRAFT },
+    { value: 'SENT',      label: dict.quotations.statuses.SENT },
+    { value: 'ACCEPTED',  label: dict.quotations.statuses.ACCEPTED },
+    { value: 'REJECTED',  label: dict.quotations.statuses.REJECTED },
+    { value: 'EXPIRED',   label: dict.quotations.statuses.EXPIRED },
+    { value: 'CONVERTED', label: dict.quotations.statuses.CONVERTED },
+  ]
+
   const [quotations, setQuotations] = useState<Quotation[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -115,12 +118,12 @@ export default function QuotationsPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/quotations?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setQuotations(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('報價載入失敗，請檢查網路連線')
+      toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -138,10 +141,10 @@ export default function QuotationsPage() {
       body: JSON.stringify({ statusOnly: true, status }),
     })
     if (res.ok) {
-      toast.success('狀態已更新')
+      toast.success(dict.common.updateSuccess)
       fetchQuotations()
     } else {
-      toast.error('更新失敗')
+      toast.error(dict.common.updateFailed)
     }
   }
 
@@ -156,19 +159,19 @@ export default function QuotationsPage() {
       router.push(`/orders/${data.orderId}`)
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '轉換失敗')
+      toast.error(data.error ?? dict.common.updateFailed)
     }
   }
 
   async function handleDelete(id: string, no: string) {
-    if (!confirm(`確定要刪除報價單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.common.deleteConfirm}`)) return
     const res = await fetch(`/api/quotations/${id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('報價單已刪除')
+      toast.success(dict.common.deleteSuccess)
       fetchQuotations()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '刪除失敗')
+      toast.error(data.error ?? dict.common.deleteFailed)
     }
   }
 
@@ -177,12 +180,12 @@ export default function QuotationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">報價管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.quotations.title}</h1>
           <p className="text-sm text-muted-foreground">共 {quotations.length} 筆報價單</p>
         </div>
         <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
           <Plus className="mr-2 h-4 w-4" />
-          新增報價單
+          {dict.quotations.newQuotation}
         </Button>
       </div>
 
@@ -192,7 +195,7 @@ export default function QuotationsPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="搜尋單號或客戶名稱..."
+            placeholder={dict.ordersExt.searchPlaceholder}
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
           />
@@ -218,7 +221,7 @@ export default function QuotationsPage() {
       {!loading && quotations.length === 0 && (
         <div className="text-center py-12">
           <FileText className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-          <p className="text-muted-foreground">目前無報價單</p>
+          <p className="text-muted-foreground">{dict.common.noData}</p>
         </div>
       )}
 
@@ -256,13 +259,13 @@ export default function QuotationsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">報價單號</TableHead>
-              <TableHead>客戶</TableHead>
-              <TableHead className="w-24">狀態</TableHead>
-              <TableHead>商品摘要</TableHead>
-              <TableHead className="text-right w-32">總金額</TableHead>
-              <TableHead className="w-28">有效期限</TableHead>
-              <TableHead className="w-24">建立日期</TableHead>
+              <TableHead className="w-40">{dict.quotations.quotationNo}</TableHead>
+              <TableHead>{dict.common.customer}</TableHead>
+              <TableHead className="w-24">{dict.common.status}</TableHead>
+              <TableHead>{dict.ordersExt.productSummary}</TableHead>
+              <TableHead className="text-right w-32">{dict.quotations.totalAmount}</TableHead>
+              <TableHead className="w-28">{dict.quotations.validUntil}</TableHead>
+              <TableHead className="w-24">{dict.common.createdAt}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -276,7 +279,7 @@ export default function QuotationsPage() {
             ) : quotations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="py-16 text-center text-muted-foreground">
-                  {search || filterStatus ? '找不到符合的報價單' : '尚無報價單，點擊右上角新增'}
+                  {search || filterStatus ? dict.common.noResultsFound : dict.common.noData}
                 </TableCell>
               </TableRow>
             ) : (
@@ -318,25 +321,25 @@ export default function QuotationsPage() {
                           {q.status === 'DRAFT' && (
                             <DropdownMenuItem onClick={() => { setEditTarget(q); setFormOpen(true) }}>
                               <Pencil className="mr-2 h-4 w-4" />
-                              編輯
+                              {dict.common.edit}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'DRAFT' && (
                             <DropdownMenuItem onClick={() => updateStatus(q.id, 'SENT')}>
                               <Send className="mr-2 h-4 w-4" />
-                              標記已送出
+                              標記{dict.quotations.statuses.SENT}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'SENT' && (
                             <DropdownMenuItem onClick={() => updateStatus(q.id, 'ACCEPTED')}>
                               <CheckCircle2 className="mr-2 h-4 w-4" />
-                              標記已接受
+                              標記{dict.quotations.statuses.ACCEPTED}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'SENT' && (
                             <DropdownMenuItem onClick={() => updateStatus(q.id, 'REJECTED')}>
                               <XCircle className="mr-2 h-4 w-4" />
-                              標記已拒絕
+                              標記{dict.quotations.statuses.REJECTED}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'ACCEPTED' && (
@@ -345,7 +348,7 @@ export default function QuotationsPage() {
                               disabled={converting === q.id}
                             >
                               <ShoppingCart className="mr-2 h-4 w-4" />
-                              {converting === q.id ? '轉換中...' : '轉為訂單'}
+                              {converting === q.id ? dict.common.loading : dict.quotations.convertToOrder}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'DRAFT' && (
@@ -356,7 +359,7 @@ export default function QuotationsPage() {
                                 variant="destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                刪除
+                                {dict.common.delete}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -378,9 +381,9 @@ export default function QuotationsPage() {
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
-              onClick={() => setPage(p => p - 1)}>上一頁</Button>
+              onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
-              onClick={() => setPage(p => p + 1)}>下一頁</Button>
+              onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>
           </div>
         </div>
       )}

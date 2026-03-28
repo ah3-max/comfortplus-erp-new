@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { CustomerForm, customerTypes, devStatusOptions, regionOptions } from '@/components/customers/customer-form'
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, Phone, MessageCircle, Users } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 const typeColors: Record<string, string> = {
   NURSING_HOME: 'bg-blue-100 text-blue-700',
@@ -54,6 +55,7 @@ interface Customer {
 }
 
 export default function CustomersPage() {
+  const { dict } = useI18n()
   const router = useRouter()
   const [customers, setCustomers]             = useState<Customer[]>([])
   const [loading, setLoading]                 = useState(true)
@@ -102,13 +104,13 @@ export default function CustomersPage() {
     setQuickSaving(false)
     if (res.ok) {
       const data = await res.json()
-      toast.success('潛在客戶已建立')
+      toast.success(dict.common.createSuccess)
       setQuickOpen(false)
       setQuickName(''); setQuickPhone(''); setQuickRepId(''); setQuickNote('')
       router.push(`/customers/${data.id}`)
     } else {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error ?? '建立失敗')
+      toast.error(data.error ?? dict.common.saveFailed)
     }
   }
 
@@ -124,16 +126,16 @@ export default function CustomersPage() {
     p.set('pageSize', '50')
     try {
       const res = await fetch(`/api/customers?${p}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setCustomers(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('客戶載入失敗，請檢查網路連線')
+      toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }
-  }, [search, filterType, filterRegion, filterStatus, filterKeyAccount, page])
+  }, [search, filterType, filterRegion, filterStatus, filterKeyAccount, page, dict])
 
   useEffect(() => {
     const t = setTimeout(fetchCustomers, 300)
@@ -143,8 +145,8 @@ export default function CustomersPage() {
   async function handleDelete(id: string, name: string) {
     if (!confirm(`確定要停用「${name}」嗎？`)) return
     const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('客戶已停用'); fetchCustomers() }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(dict.customersExt.deactivate); fetchCustomers() }
+    else toast.error(dict.common.error)
   }
 
   const closedCount = customers.filter(c => c.devStatus === 'CLOSED').length
@@ -154,7 +156,7 @@ export default function CustomersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">客戶管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.customers.title}</h1>
           <p className="text-sm text-muted-foreground">
             共 {customers.length} 位客戶
             {closedCount > 0 && <span className="ml-2 text-green-600">{closedCount} 位成交</span>}
@@ -163,14 +165,14 @@ export default function CustomersPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => setQuickOpen(true)}>
             <Phone className="mr-2 h-4 w-4" />
-            陌生開發快速建檔
+            {dict.customersExt.quickProspect}
           </Button>
           <Button variant="outline" size="sm"
             onClick={() => window.open('/api/customers/export', '_blank')}>
-            匯出 Excel
+            {dict.common.exportExcel}
           </Button>
           <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-            <Plus className="mr-2 h-4 w-4" />新增客戶
+            <Plus className="mr-2 h-4 w-4" />{dict.customers.newCustomer}
           </Button>
         </div>
       </div>
@@ -179,22 +181,22 @@ export default function CustomersPage() {
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋名稱、代碼、聯絡人..."
+          <Input className="pl-9" placeholder={dict.customersExt.searchPlaceholder}
             value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <select className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm"
           value={filterType} onChange={e => { setFilterType(e.target.value); setPage(1) }}>
-          <option value="">全部類型</option>
+          <option value="">{dict.common.all}{dict.common.type}</option>
           {customerTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         <select className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm"
           value={filterRegion} onChange={e => { setFilterRegion(e.target.value); setPage(1) }}>
-          <option value="">全部區域</option>
+          <option value="">{dict.common.all}{dict.common.region}</option>
           {regionOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
         <select className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm"
           value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}>
-          <option value="">全部狀態</option>
+          <option value="">{dict.common.all}{dict.common.status}</option>
           {devStatusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <button
@@ -205,7 +207,7 @@ export default function CustomersPage() {
               : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
           }`}
         >
-          ⭐ 心臟客戶
+          ⭐ {dict.customersExt.keyAccount}
         </button>
       </div>
 
@@ -213,7 +215,7 @@ export default function CustomersPage() {
       {!loading && customers.length === 0 && (
         <div className="text-center py-12">
           <Users className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-          <p className="text-muted-foreground">目前無客戶資料</p>
+          <p className="text-muted-foreground">{dict.customersExt.noCustomers}</p>
         </div>
       )}
 
@@ -233,13 +235,13 @@ export default function CustomersPage() {
                   <Badge variant="outline" className="text-xs">{c.code}</Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                  {c.grade && <Badge variant="secondary" className="text-xs">{c.grade}級</Badge>}
+                  {c.grade && <Badge variant="secondary" className="text-xs">{c.grade}{dict.customersExt.gradeLabel}</Badge>}
                   <span>{customerTypes.find(t => t.value === c.type)?.label ?? c.type}</span>
                   {c.region && <span>· {regionOptions.find(r => r.value === c.region)?.label ?? c.region}</span>}
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{c.salesRep?.name ?? '未指派'}</span>
-                  <span>{c._count.salesOrders} 筆訂單 · {c._count.visitRecords} 次拜訪</span>
+                  <span>{c.salesRep?.name ?? dict.common.unassigned}</span>
+                  <span>{c._count.salesOrders} {dict.customersExt.orders} · {c._count.visitRecords} {dict.customersExt.visits}</span>
                 </div>
               </CardContent>
             </Card>
@@ -252,14 +254,14 @@ export default function CustomersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-24">代碼</TableHead>
-              <TableHead>客戶名稱</TableHead>
-              <TableHead className="w-24">類型</TableHead>
-              <TableHead className="w-16">等級</TableHead>
-              <TableHead className="w-20">狀態</TableHead>
-              <TableHead className="w-16">區域</TableHead>
-              <TableHead>聯絡人</TableHead>
-              <TableHead>負責業務</TableHead>
+              <TableHead className="w-24">{dict.customers.code}</TableHead>
+              <TableHead>{dict.customers.name}</TableHead>
+              <TableHead className="w-24">{dict.customers.type}</TableHead>
+              <TableHead className="w-16">{dict.customers.grade}</TableHead>
+              <TableHead className="w-20">{dict.customers.devStatus}</TableHead>
+              <TableHead className="w-16">{dict.customers.region}</TableHead>
+              <TableHead>{dict.customers.contact}</TableHead>
+              <TableHead>{dict.customers.salesRep}</TableHead>
               <TableHead className="w-16 text-center">紀錄</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -271,7 +273,7 @@ export default function CustomersPage() {
               </TableCell></TableRow>
             ) : customers.length === 0 ? (
               <TableRow><TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
-                {search || filterType || filterRegion || filterStatus ? '找不到符合的客戶' : '尚無客戶資料，點擊右上角新增'}
+                {search || filterType || filterRegion || filterStatus ? dict.customersExt.noResults : dict.customersExt.noCustomers}
               </TableCell></TableRow>
             ) : customers.map(c => (
               <TableRow key={c.id} className="group cursor-pointer hover:bg-slate-50/80"
@@ -308,7 +310,7 @@ export default function CustomersPage() {
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="text-sm">{c.salesRep?.name ?? <span className="text-muted-foreground">未指派</span>}</TableCell>
+                <TableCell className="text-sm">{c.salesRep?.name ?? <span className="text-muted-foreground">{dict.common.unassigned}</span>}</TableCell>
                 <TableCell className="text-center text-xs text-muted-foreground">
                   {c._count.visitRecords + c._count.callRecords > 0
                     ? <span className="text-blue-600 font-medium">{c._count.visitRecords + c._count.callRecords}</span>
@@ -321,10 +323,10 @@ export default function CustomersPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => { setEditTarget(c); setFormOpen(true) }}>
-                        <Pencil className="mr-2 h-4 w-4" />編輯
+                        <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDelete(c.id, c.name)} variant="destructive">
-                        <Trash2 className="mr-2 h-4 w-4" />停用
+                        <Trash2 className="mr-2 h-4 w-4" />{dict.common.inactive}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -342,9 +344,9 @@ export default function CustomersPage() {
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
-              onClick={() => setPage(p => p - 1)}>上一頁</Button>
+              onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
-              onClick={() => setPage(p => p + 1)}>下一頁</Button>
+              onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>
           </div>
         </div>
       )}
@@ -356,22 +358,22 @@ export default function CustomersPage() {
       <Dialog open={quickOpen} onOpenChange={o => !o && setQuickOpen(false)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>快速建立潛在客戶</DialogTitle>
+            <DialogTitle>{dict.customersExt.quickProspect}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="rounded bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
               適用於陌生開發、冷電話開發的機構。建立後可在客戶頁面記錄每次聯繫結果。
             </div>
             <div className="space-y-1.5">
-              <Label>機構/客戶名稱 <span className="text-red-500">*</span></Label>
+              <Label>{dict.customersExt.organizationName} <span className="text-red-500">*</span></Label>
               <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="例：XX護理之家" />
             </div>
             <div className="space-y-1.5">
-              <Label>電話</Label>
+              <Label>{dict.customers.phone}</Label>
               <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="02-xxxx-xxxx" />
             </div>
             <div className="space-y-1.5">
-              <Label>負責業務</Label>
+              <Label>{dict.customers.salesRep}</Label>
               <select
                 className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
                 value={quickRepId}
@@ -382,12 +384,12 @@ export default function CustomersPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>備注</Label>
+              <Label>{dict.common.notes}</Label>
               <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="陌生開發來源、備注..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setQuickOpen(false)} disabled={quickSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setQuickOpen(false)} disabled={quickSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleQuickCreate} disabled={quickSaving}>
               {quickSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               建立並前往記錄

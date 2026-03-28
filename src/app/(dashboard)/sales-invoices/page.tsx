@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -25,26 +26,6 @@ import {
 import { toast } from 'sonner'
 
 type InvoiceStatus = 'DRAFT' | 'CONFIRMED' | 'SHIPPED' | 'RETURNED' | 'CANCELLED'
-
-const statusConfig: Record<InvoiceStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  DRAFT:     { label: '草稿', variant: 'outline' },
-  CONFIRMED: { label: '已確認', variant: 'secondary' },
-  SHIPPED:   { label: '已出貨', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  RETURNED:  { label: '已退貨', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  CANCELLED: { label: '已取消', variant: 'destructive' },
-}
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'DRAFT', label: '草稿' },
-  { value: 'CONFIRMED', label: '已確認' },
-  { value: 'SHIPPED', label: '已出貨' },
-  { value: 'RETURNED', label: '已退貨' },
-]
 
 interface InvoiceItem {
   id: string; productId: string; productName: string; specification: string | null
@@ -99,8 +80,29 @@ const emptyForm: FormData = {
 }
 
 export default function SalesInvoicesPage() {
+  const { dict } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  const statusConfig: Record<InvoiceStatus, {
+    label: string
+    variant: 'default' | 'secondary' | 'outline' | 'destructive'
+    className?: string
+  }> = {
+    DRAFT:     { label: dict.salesInvoices.statuses.DRAFT, variant: 'outline' },
+    CONFIRMED: { label: '已確認', variant: 'secondary' },
+    SHIPPED:   { label: '已出貨', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    RETURNED:  { label: '已退貨', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    CANCELLED: { label: dict.salesInvoices.statuses.CANCELLED, variant: 'destructive' },
+  }
+
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'DRAFT', label: dict.salesInvoices.statuses.DRAFT },
+    { value: 'CONFIRMED', label: '已確認' },
+    { value: 'SHIPPED', label: '已出貨' },
+    { value: 'RETURNED', label: '已退貨' },
+  ]
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -270,7 +272,7 @@ export default function SalesInvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">銷貨單管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.salesInvoices.title}</h1>
           <p className="text-sm text-muted-foreground">
             共 {pagination ? pagination.total : invoices.length} 筆
             {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
@@ -284,10 +286,10 @@ export default function SalesInvoicesPage() {
             if (filterStatus) params.set('status', filterStatus)
             window.open(`/api/sales-invoices/export?${params}`, '_blank')
           }}>
-            <Download className="mr-2 h-4 w-4" />匯出 Excel
+            <Download className="mr-2 h-4 w-4" />{dict.common.exportExcel}
           </Button>
           <Button onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />新增銷貨單
+            <Plus className="mr-2 h-4 w-4" />{dict.salesInvoices.newInvoice}
           </Button>
         </div>
       </div>
@@ -296,7 +298,7 @@ export default function SalesInvoicesPage() {
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋單號或客戶名稱..."
+          <Input className="pl-9" placeholder={dict.salesInvoices.searchPlaceholder}
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -318,13 +320,13 @@ export default function SalesInvoicesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">銷貨單號</TableHead>
-              <TableHead>客戶</TableHead>
-              <TableHead className="w-24">狀態</TableHead>
+              <TableHead className="w-40">{dict.salesInvoices.invoiceNo}</TableHead>
+              <TableHead>{dict.common.customer}</TableHead>
+              <TableHead className="w-24">{dict.common.status}</TableHead>
               <TableHead>商品摘要</TableHead>
               <TableHead className="text-right w-28">稅前</TableHead>
               <TableHead className="text-right w-28">含稅金額</TableHead>
-              <TableHead className="w-20">業務</TableHead>
+              <TableHead className="w-20">{dict.common.salesRep}</TableHead>
               <TableHead className="w-20">來源訂單</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -342,11 +344,11 @@ export default function SalesInvoicesPage() {
                   <div className="flex flex-col items-center gap-3">
                     <FileText className="h-10 w-10 text-muted-foreground/50" />
                     <p className="text-muted-foreground">
-                      {search || filterStatus ? '找不到符合的銷貨單' : '尚無銷貨單資料'}
+                      {search || filterStatus ? dict.salesInvoices.noResults : dict.salesInvoices.noInvoices}
                     </p>
                     {!search && !filterStatus && (
                       <Button variant="outline" size="sm" onClick={openCreate}>
-                        <Plus className="mr-2 h-4 w-4" />新增第一筆銷貨單
+                        <Plus className="mr-2 h-4 w-4" />{dict.salesInvoices.newInvoice}
                       </Button>
                     )}
                   </div>
@@ -389,7 +391,7 @@ export default function SalesInvoicesPage() {
                         <DropdownMenuContent align="end" className="w-44">
                           {inv.status === 'DRAFT' && (
                             <DropdownMenuItem onClick={() => openEdit(inv)}>
-                              <Pencil className="mr-2 h-4 w-4" />編輯
+                              <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                             </DropdownMenuItem>
                           )}
                           {inv.status === 'DRAFT' && (
@@ -432,7 +434,7 @@ export default function SalesInvoicesPage() {
             <div className="flex flex-col items-center gap-3">
               <FileText className="h-10 w-10 text-muted-foreground/50" />
               <p className="text-muted-foreground">
-                {search || filterStatus ? '找不到符合的銷貨單' : '尚無銷貨單資料'}
+                {search || filterStatus ? dict.salesInvoices.noResults : dict.salesInvoices.noInvoices}
               </p>
             </div>
           </div>
@@ -475,11 +477,11 @@ export default function SalesInvoicesPage() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
               onClick={() => setPage(p => p - 1)}>
-              上一頁
+              {dict.common.prevPage}
             </Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
               onClick={() => setPage(p => p + 1)}>
-              下一頁
+              {dict.common.nextPage}
             </Button>
           </div>
         </div>
@@ -489,30 +491,30 @@ export default function SalesInvoicesPage() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editTarget ? '編輯銷貨單' : '新增銷貨單'}</DialogTitle>
+            <DialogTitle>{editTarget ? `${dict.common.edit}${dict.salesInvoices.title}` : dict.salesInvoices.newInvoice}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4">
             {/* Header Fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>客戶 *</Label>
+                <Label>{dict.common.customer} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.customerId} onChange={e => setForm(f => ({ ...f, customerId: e.target.value }))}>
-                  <option value="">選擇客戶</option>
+                  <option value="">{dict.common.select}</option>
                   {customers.map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>發貨倉庫 *</Label>
+                <Label>{dict.common.warehouse} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.warehouseId} onChange={e => setForm(f => ({ ...f, warehouseId: e.target.value }))}>
-                  <option value="">選擇倉庫</option>
+                  <option value="">{dict.common.select}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.code} - {w.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>日期</Label>
+                <Label>{dict.common.date}</Label>
                 <Input type="date" value={form.date}
                   onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
               </div>
@@ -520,10 +522,10 @@ export default function SalesInvoicesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>業務人員</Label>
+                <Label>{dict.common.salesRep}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.salesPersonId} onChange={e => setForm(f => ({ ...f, salesPersonId: e.target.value }))}>
-                  <option value="">選擇業務</option>
+                  <option value="">{dict.common.select}</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
@@ -531,7 +533,7 @@ export default function SalesInvoicesPage() {
                 <Label>承辦人</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
-                  <option value="">選擇承辦人</option>
+                  <option value="">{dict.common.select}</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
@@ -570,7 +572,7 @@ export default function SalesInvoicesPage() {
                 <Label className="text-base font-semibold">明細項目</Label>
                 <Button variant="outline" size="sm"
                   onClick={() => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }))}>
-                  <Plus className="mr-1 h-3 w-3" />新增品項
+                  <Plus className="mr-1 h-3 w-3" />{dict.common.add}
                 </Button>
               </div>
               <div className="space-y-3">
@@ -580,7 +582,7 @@ export default function SalesInvoicesPage() {
                       <Label className="text-xs">品項</Label>
                       <select className="w-full rounded-md border px-2 py-1.5 text-sm"
                         value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
-                        <option value="">選擇品項</option>
+                        <option value="">{dict.common.select}</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
                       </select>
                     </div>

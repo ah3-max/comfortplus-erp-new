@@ -27,6 +27,7 @@ import {
   Calendar, Phone, Package, Camera,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 type ShipmentStatus   = 'PREPARING' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'FAILED'
@@ -63,27 +64,18 @@ interface DeliveryTrip {
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const statusConfig: Record<ShipmentStatus, { label: string; className: string }> = {
-  PREPARING: { label: '備貨中',  className: 'border-slate-300 text-slate-600' },
-  PACKED:    { label: '已打包',  className: 'border-blue-300 text-blue-600 bg-blue-50' },
-  SHIPPED:   { label: '已出貨',  className: 'border-indigo-300 text-indigo-700 bg-indigo-50' },
-  DELIVERED: { label: '已送達',  className: 'border-green-400 text-green-700 bg-green-50' },
-  FAILED:    { label: '配送失敗', className: 'border-red-400 text-red-600 bg-red-50' },
+const statusClassName: Record<ShipmentStatus, string> = {
+  PREPARING: 'border-slate-300 text-slate-600',
+  PACKED:    'border-blue-300 text-blue-600 bg-blue-50',
+  SHIPPED:   'border-indigo-300 text-indigo-700 bg-indigo-50',
+  DELIVERED: 'border-green-400 text-green-700 bg-green-50',
+  FAILED:    'border-red-400 text-red-600 bg-red-50',
 }
-const methodLabel: Record<DeliveryMethod, string> = {
-  EXPRESS: '宅配', FREIGHT: '貨運', OWN_FLEET: '自有車隊', SELF_PICKUP: '自取',
-}
-const signLabel: Record<SignStatus, string> = {
-  PENDING: '待簽收', SIGNED: '已簽收', REJECTED: '拒收',
-}
-const anomalyLabel: Record<AnomalyStatus, string> = {
-  NORMAL: '正常', DELAY: '延誤', LOST: '遺失', DAMAGE: '損毀', PARTIAL: '部分短缺',
-}
-const tripStatusLabel: Record<TripStatus, { label: string; className: string }> = {
-  PLANNED:   { label: '已排定', className: 'border-blue-300 text-blue-600 bg-blue-50' },
-  DEPARTED:  { label: '出發中', className: 'border-amber-300 text-amber-700 bg-amber-50' },
-  COMPLETED: { label: '已完成', className: 'border-green-400 text-green-700 bg-green-50' },
-  CANCELLED: { label: '已取消', className: 'border-slate-300 text-slate-500' },
+const tripStatusClassName: Record<TripStatus, string> = {
+  PLANNED:   'border-blue-300 text-blue-600 bg-blue-50',
+  DEPARTED:  'border-amber-300 text-amber-700 bg-amber-50',
+  COMPLETED: 'border-green-400 text-green-700 bg-green-50',
+  CANCELLED: 'border-slate-300 text-slate-500',
 }
 
 function fmt(d: string | null) {
@@ -97,6 +89,7 @@ function fmtFull(d: string | null) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ShipmentsPage() {
+  const { dict } = useI18n()
   const [tab, setTab] = useState<'shipments' | 'trips' | 'picking' | 'logistics'>('shipments')
 
   // Shipment list state
@@ -192,12 +185,9 @@ export default function ShipmentsPage() {
       body: JSON.stringify({ status }),
     })
     if (res.ok) {
-      const labels: Record<string, string> = {
-        PACKED: '已標記打包', SHIPPED: '已標記出貨', DELIVERED: '已標記送達', FAILED: '已標記失敗',
-      }
-      toast.success(labels[status] ?? '狀態已更新')
+      toast.success(dict.shipmentsExt.messages.statusUpdated)
       fetchShipments()
-    } else toast.error('更新失敗')
+    } else toast.error(dict.common.updateFailed)
   }
 
   function openUpdate(s: Shipment) {
@@ -234,8 +224,8 @@ export default function ShipmentsPage() {
       }),
     })
     setUpdSaving(false)
-    if (res.ok) { toast.success('已更新'); setUpdOpen(false); fetchShipments() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(dict.common.updateSuccess); setUpdOpen(false); fetchShipments() }
+    else toast.error(dict.common.updateFailed)
   }
 
   // ── Trip actions ─────────────────────────────────────────────────────────────
@@ -249,7 +239,7 @@ export default function ShipmentsPage() {
     })
     setTripSaving(false)
     if (res.ok) { toast.success('車次已建立'); setTripNewOpen(false); fetchTrips() }
-    else { const d = await res.json(); toast.error(d.error ?? '建立失敗') }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
   }
 
   async function tripAction(id: string, action: string) {
@@ -258,8 +248,8 @@ export default function ShipmentsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     })
-    if (res.ok) { toast.success('車次已更新'); fetchTrips(); setTripDetailOpen(false) }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(dict.common.updateSuccess); fetchTrips(); setTripDetailOpen(false) }
+    else toast.error(dict.common.updateFailed)
   }
 
   async function assignShipmentToTrip(tripId: string, shipmentId: string) {
@@ -269,7 +259,7 @@ export default function ShipmentsPage() {
       body: JSON.stringify({ action: 'addShipment', shipmentId }),
     })
     if (res.ok) { toast.success('出貨單已加入車次'); fetchTrips(); fetchShipments() }
-    else toast.error('操作失敗')
+    else toast.error(dict.common.updateFailed)
   }
 
   async function removeShipmentFromTrip(tripId: string, shipmentId: string) {
@@ -278,8 +268,8 @@ export default function ShipmentsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'removeShipment', shipmentId }),
     })
-    if (res.ok) { toast.success('已移除'); fetchTrips(); fetchShipments() }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(dict.common.deleteSuccess); fetchTrips(); fetchShipments() }
+    else toast.error(dict.common.updateFailed)
   }
 
   // ── Picking list ─────────────────────────────────────────────────────────────
@@ -290,7 +280,7 @@ export default function ShipmentsPage() {
     const res = await fetch(`/api/shipments?search=${encodeURIComponent(pickShipmentId.trim())}`)
     const list: Shipment[] = await res.json()
     setPickLoading(false)
-    if (!list.length) { toast.error('找不到此出貨單'); return }
+    if (!list.length) { toast.error(dict.shipmentsExt.noResults); return }
     setPickData(list[0])
   }
 
@@ -303,12 +293,41 @@ export default function ShipmentsPage() {
   const shippedCount   = shipments.filter(s => s.status === 'SHIPPED').length
   const anomalyCount   = shipments.filter(s => s.anomalyStatus !== 'NORMAL').length
 
+  // ── Dict-based label maps ────────────────────────────────────────────────────
+  const methodLabel: Record<DeliveryMethod, string> = {
+    EXPRESS:     dict.shipments.methods.EXPRESS,
+    FREIGHT:     dict.shipments.methods.FREIGHT,
+    OWN_FLEET:   dict.shipments.methods.OWN_FLEET,
+    SELF_PICKUP: dict.shipments.methods.SELF_PICKUP,
+  }
+  const signLabel: Record<SignStatus, string> = {
+    PENDING:  dict.shipmentsExt.signStatuses.PENDING,
+    SIGNED:   dict.shipmentsExt.signStatuses.SIGNED,
+    REJECTED: dict.shipmentsExt.signStatuses.FAILED,
+  }
+  const anomalyLabel: Record<AnomalyStatus, string> = {
+    NORMAL: '正常', DELAY: '延誤', LOST: '遺失', DAMAGE: '損毀', PARTIAL: '部分短缺',
+  }
+  const tripStatusLabel: Record<TripStatus, { label: string; className: string }> = {
+    PLANNED:   { label: dict.shipmentsExt.tripStatuses.PLANNED,   className: tripStatusClassName.PLANNED },
+    DEPARTED:  { label: dict.shipmentsExt.tripStatuses.DEPARTED,  className: tripStatusClassName.DEPARTED },
+    COMPLETED: { label: dict.shipmentsExt.tripStatuses.COMPLETED, className: tripStatusClassName.COMPLETED },
+    CANCELLED: { label: dict.shipmentsExt.tripStatuses.CANCELLED, className: tripStatusClassName.CANCELLED },
+  }
+  const statusConfig: Record<ShipmentStatus, { label: string; className: string }> = {
+    PREPARING: { label: dict.shipments.statuses.PREPARING, className: statusClassName.PREPARING },
+    PACKED:    { label: dict.shipments.statuses.PACKED,    className: statusClassName.PACKED },
+    SHIPPED:   { label: dict.shipments.statuses.SHIPPED,   className: statusClassName.SHIPPED },
+    DELIVERED: { label: dict.shipments.statuses.DELIVERED, className: statusClassName.DELIVERED },
+    FAILED:    { label: dict.shipments.statuses.FAILED,    className: statusClassName.FAILED },
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────────
   const tabs = [
-    { key: 'shipments', label: '出貨單',   icon: Package },
+    { key: 'shipments', label: dict.shipments.shipmentNo.replace('號', '單'),   icon: Package },
     { key: 'trips',     label: '配送行程', icon: Car },
     { key: 'picking',   label: '撿貨/裝箱單', icon: ClipboardList },
-    { key: 'logistics', label: '物流商',   icon: Truck },
+    { key: 'logistics', label: dict.shipments.carrier,   icon: Truck },
   ] as const
 
   return (
@@ -316,11 +335,11 @@ export default function ShipmentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">出貨與物流管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.shipments.title}與物流管理</h1>
           <p className="text-sm text-muted-foreground">
             共 {shipments.length} 筆出貨
-            {preparingCount > 0 && <span className="ml-2 text-amber-600">{preparingCount} 備貨中</span>}
-            {shippedCount   > 0 && <span className="ml-2 text-blue-600">{shippedCount} 已出貨</span>}
+            {preparingCount > 0 && <span className="ml-2 text-amber-600">{preparingCount} {dict.shipments.statuses.PREPARING}</span>}
+            {shippedCount   > 0 && <span className="ml-2 text-blue-600">{shippedCount} {dict.shipments.statuses.SHIPPED}</span>}
             {anomalyCount   > 0 && <span className="ml-2 text-red-600">{anomalyCount} 異常</span>}
           </p>
         </div>
@@ -332,7 +351,7 @@ export default function ShipmentsPage() {
           )}
           {tab === 'shipments' && (
             <Button onClick={() => setFormOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />建立出貨單
+              <Plus className="mr-2 h-4 w-4" />{dict.shipmentsExt.newShipment}
             </Button>
           )}
         </div>
@@ -356,7 +375,7 @@ export default function ShipmentsPage() {
           <div className="flex flex-wrap gap-3">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="搜尋出貨單號或客戶..."
+              <Input className="pl-9" placeholder={dict.shipmentsExt.searchPlaceholder}
                 value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
             </div>
             <div className="flex gap-1.5 flex-wrap">
@@ -365,13 +384,13 @@ export default function ShipmentsPage() {
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     filterStatus === v ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}>
-                  {v === '' ? '全部' : statusConfig[v].label}
+                  {v === '' ? dict.common.all : statusConfig[v].label}
                 </button>
               ))}
             </div>
             <select value={filterMethod} onChange={e => { setFilterMethod(e.target.value); setPage(1) }}
               className="rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600">
-              <option value="">全部配送方式</option>
+              <option value="">{dict.common.all}{dict.shipments.deliveryMethod}</option>
               {(Object.keys(methodLabel) as DeliveryMethod[]).map(m => (
                 <option key={m} value={m}>{methodLabel[m]}</option>
               ))}
@@ -386,16 +405,16 @@ export default function ShipmentsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-36">出貨單號</TableHead>
+                  <TableHead className="w-36">{dict.shipments.shipmentNo}</TableHead>
                   <TableHead>訂單 / 客戶</TableHead>
-                  <TableHead className="w-24">狀態</TableHead>
-                  <TableHead className="w-24">配送方式</TableHead>
-                  <TableHead>物流商</TableHead>
-                  <TableHead className="w-32">追蹤號</TableHead>
+                  <TableHead className="w-24">{dict.common.status}</TableHead>
+                  <TableHead className="w-24">{dict.shipments.deliveryMethod}</TableHead>
+                  <TableHead>{dict.shipments.carrier}</TableHead>
+                  <TableHead className="w-32">{dict.shipments.trackingNo}</TableHead>
                   <TableHead className="w-20">棧板/箱</TableHead>
                   <TableHead className="w-24">出貨日</TableHead>
-                  <TableHead className="w-24">預計到貨</TableHead>
-                  <TableHead className="w-24">簽收</TableHead>
+                  <TableHead className="w-24">{dict.shipmentsExt.deliveryDate}</TableHead>
+                  <TableHead className="w-24">{dict.shipments.signStatus}</TableHead>
                   <TableHead className="w-24">異常</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -410,7 +429,7 @@ export default function ShipmentsPage() {
                 ) : shipments.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={12} className="py-16 text-center text-muted-foreground">
-                      {search || filterStatus ? '找不到符合的出貨單' : '尚無出貨記錄'}
+                      {search || filterStatus ? dict.shipmentsExt.noResults : dict.shipmentsExt.noShipments}
                     </TableCell>
                   </TableRow>
                 ) : shipments.map(s => {
@@ -465,12 +484,12 @@ export default function ShipmentsPage() {
                             <DropdownMenuSeparator />
                             {s.status === 'PREPARING' && (
                               <DropdownMenuItem onClick={() => updateStatus(s.id, 'PACKED')}>
-                                <Package className="mr-2 h-4 w-4" />標記已打包
+                                <Package className="mr-2 h-4 w-4" />標記{dict.shipments.statuses.PACKED}
                               </DropdownMenuItem>
                             )}
                             {(s.status === 'PREPARING' || s.status === 'PACKED') && (
                               <DropdownMenuItem onClick={() => updateStatus(s.id, 'SHIPPED')}>
-                                <Truck className="mr-2 h-4 w-4" />標記已出貨
+                                <Truck className="mr-2 h-4 w-4" />標記{dict.shipments.statuses.SHIPPED}
                               </DropdownMenuItem>
                             )}
                             {s.status === 'SHIPPED' && (
@@ -479,13 +498,13 @@ export default function ShipmentsPage() {
                                   <Camera className="mr-2 h-4 w-4" />送達拍照確認
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => updateStatus(s.id, 'DELIVERED')}>
-                                  <CheckCircle2 className="mr-2 h-4 w-4" />直接標記送達
+                                  <CheckCircle2 className="mr-2 h-4 w-4" />直接標記{dict.shipments.statuses.DELIVERED}
                                 </DropdownMenuItem>
                               </>
                             )}
                             {s.status === 'SHIPPED' && (
                               <DropdownMenuItem onClick={() => updateStatus(s.id, 'FAILED')} className="text-red-600">
-                                <AlertTriangle className="mr-2 h-4 w-4" />標記配送失敗
+                                <AlertTriangle className="mr-2 h-4 w-4" />標記{dict.shipments.statuses.FAILED}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />

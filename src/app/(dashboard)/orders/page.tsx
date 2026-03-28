@@ -19,31 +19,9 @@ import {
   ClipboardList,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED'
-
-const statusConfig: Record<OrderStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  PENDING:    { label: '待確認', variant: 'outline' },
-  CONFIRMED:  { label: '已確認', variant: 'secondary' },
-  PROCESSING: { label: '處理中', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  SHIPPED:    { label: '已出貨', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  DELIVERED:  { label: '已送達', variant: 'default', className: 'bg-teal-100 text-teal-700 border-teal-200' },
-  COMPLETED:  { label: '已完成', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED:  { label: '已取消', variant: 'destructive' },
-}
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'PENDING', label: '待確認' },
-  { value: 'CONFIRMED', label: '已確認' },
-  { value: 'PROCESSING', label: '處理中' },
-  { value: 'SHIPPED', label: '已出貨' },
-  { value: 'COMPLETED', label: '已完成' },
-]
 
 interface OrderItem {
   productId: string; quantity: number; unitPrice: number; discount: number
@@ -67,7 +45,32 @@ function formatDate(str: string) {
 }
 
 export default function OrdersPage() {
+  const { dict } = useI18n()
   const router = useRouter()
+
+  const statusConfig: Record<OrderStatus, {
+    label: string
+    variant: 'default' | 'secondary' | 'outline' | 'destructive'
+    className?: string
+  }> = {
+    PENDING:    { label: dict.orders.statuses.PENDING,    variant: 'outline' },
+    CONFIRMED:  { label: dict.orders.statuses.CONFIRMED,  variant: 'secondary' },
+    PROCESSING: { label: dict.orders.statuses.PROCESSING, variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    SHIPPED:    { label: dict.orders.statuses.SHIPPED,    variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    DELIVERED:  { label: dict.orders.statuses.DELIVERED,  variant: 'default', className: 'bg-teal-100 text-teal-700 border-teal-200' },
+    COMPLETED:  { label: dict.orders.statuses.COMPLETED,  variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    CANCELLED:  { label: dict.orders.statuses.CANCELLED,  variant: 'destructive' },
+  }
+
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'PENDING',    label: dict.orders.statuses.PENDING },
+    { value: 'CONFIRMED',  label: dict.orders.statuses.CONFIRMED },
+    { value: 'PROCESSING', label: dict.orders.statuses.PROCESSING },
+    { value: 'SHIPPED',    label: dict.orders.statuses.SHIPPED },
+    { value: 'COMPLETED',  label: dict.orders.statuses.COMPLETED },
+  ]
+
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -87,12 +90,12 @@ export default function OrdersPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/orders?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setOrders(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('訂單載入失敗，請檢查網路連線')
+      toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -109,17 +112,17 @@ export default function OrdersPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`訂單已${label}`); fetchOrders() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(dict.ordersExt.statusUpdated); fetchOrders() }
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消訂單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.ordersExt.cancelConfirm} ${no} 嗎？`)) return
     const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('訂單已取消'); fetchOrders() }
+    if (res.ok) { toast.success(dict.orders.statuses.CANCELLED); fetchOrders() }
     else {
       const data = await res.json()
-      toast.error(data.error ?? '取消失敗')
+      toast.error(data.error ?? dict.common.updateFailed)
     }
   }
 
@@ -131,20 +134,20 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">訂單管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.orders.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : orders.length} 筆
-            {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} 筆待確認</span>}
-            {processingCount > 0 && <span className="ml-2 text-blue-600">{processingCount} 筆處理中</span>}
+            {dict.ordersExt.totalCount} {pagination ? pagination.total : orders.length} {dict.ordersExt.records}
+            {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} {dict.ordersExt.pendingLabel}</span>}
+            {processingCount > 0 && <span className="ml-2 text-blue-600">{processingCount} {dict.ordersExt.processingLabel}</span>}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm"
             onClick={() => window.open(`/api/orders/export?search=${search}&status=${filterStatus}`, '_blank')}>
-            匯出 Excel
+            {dict.ordersExt.exportExcel}
           </Button>
           <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-            <Plus className="mr-2 h-4 w-4" />新增訂單
+            <Plus className="mr-2 h-4 w-4" />{dict.orders.newOrder}
           </Button>
         </div>
       </div>
@@ -153,7 +156,7 @@ export default function OrdersPage() {
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋單號或客戶名稱..."
+          <Input className="pl-9" placeholder={dict.ordersExt.searchPlaceholder}
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -175,14 +178,14 @@ export default function OrdersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">訂單號</TableHead>
-              <TableHead>客戶</TableHead>
-              <TableHead className="w-24">狀態</TableHead>
-              <TableHead>商品摘要</TableHead>
-              <TableHead className="text-right w-32">金額</TableHead>
-              <TableHead className="text-right w-28">已付款</TableHead>
-              <TableHead className="w-24">預計出貨</TableHead>
-              <TableHead className="w-16">出貨單</TableHead>
+              <TableHead className="w-40">{dict.orders.orderNo}</TableHead>
+              <TableHead>{dict.common.customer}</TableHead>
+              <TableHead className="w-24">{dict.common.status}</TableHead>
+              <TableHead>{dict.ordersExt.productSummary}</TableHead>
+              <TableHead className="text-right w-32">{dict.orders.totalAmount}</TableHead>
+              <TableHead className="text-right w-28">{dict.orders.paidAmount}</TableHead>
+              <TableHead className="w-24">{dict.ordersExt.expectedShipDate}</TableHead>
+              <TableHead className="w-16">{dict.ordersExt.shipmentCount}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -199,11 +202,11 @@ export default function OrdersPage() {
                   <div className="flex flex-col items-center gap-3">
                     <ClipboardList className="h-10 w-10 text-muted-foreground/50" />
                     <p className="text-muted-foreground">
-                      {search || filterStatus ? '找不到符合的訂單' : '尚無訂單資料'}
+                      {search || filterStatus ? dict.ordersExt.noResults : dict.ordersExt.noOrders}
                     </p>
                     {!search && !filterStatus && (
                       <Button variant="outline" size="sm" onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-                        <Plus className="mr-2 h-4 w-4" />新增第一筆訂單
+                        <Plus className="mr-2 h-4 w-4" />{dict.orders.newOrder}
                       </Button>
                     )}
                   </div>
@@ -234,7 +237,7 @@ export default function OrdersPage() {
                       {Number(o.paidAmount) > 0 ? (
                         <div>
                           <div className="font-medium text-green-600">{formatCurrency(o.paidAmount)}</div>
-                          {unpaid > 0 && <div className="text-xs text-red-500">欠 {formatCurrency(unpaid)}</div>}
+                          {unpaid > 0 && <div className="text-xs text-red-500">{dict.ordersExt.owe} {formatCurrency(unpaid)}</div>}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">—</span>
@@ -256,39 +259,39 @@ export default function OrdersPage() {
                         <DropdownMenuContent align="end" className="w-44">
                           {o.status === 'PENDING' && (
                             <DropdownMenuItem onClick={() => { setEditTarget(o); setFormOpen(true) }}>
-                              <Pencil className="mr-2 h-4 w-4" />編輯
+                              <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                             </DropdownMenuItem>
                           )}
                           {o.status === 'PENDING' && (
-                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'CONFIRMED', '確認')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />確認訂單
+                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'CONFIRMED', dict.orders.statuses.CONFIRMED)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.ordersExt.confirmOrder}
                             </DropdownMenuItem>
                           )}
                           {o.status === 'CONFIRMED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'PROCESSING', '開始處理')}>
-                              <PackageCheck className="mr-2 h-4 w-4" />開始處理
+                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'PROCESSING', dict.orders.statuses.PROCESSING)}>
+                              <PackageCheck className="mr-2 h-4 w-4" />{dict.ordersExt.startProcessing}
                             </DropdownMenuItem>
                           )}
                           {o.status === 'PROCESSING' && (
-                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'SHIPPED', '出貨')}>
-                              <Truck className="mr-2 h-4 w-4" />標記已出貨
+                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'SHIPPED', dict.orders.statuses.SHIPPED)}>
+                              <Truck className="mr-2 h-4 w-4" />{dict.ordersExt.markShipped}
                             </DropdownMenuItem>
                           )}
                           {o.status === 'SHIPPED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'DELIVERED', '送達')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />標記已送達
+                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'DELIVERED', dict.orders.statuses.DELIVERED)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.ordersExt.markDelivered}
                             </DropdownMenuItem>
                           )}
                           {o.status === 'DELIVERED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'COMPLETED', '完成')}>
-                              <DollarSign className="mr-2 h-4 w-4" />完成訂單
+                            <DropdownMenuItem onClick={() => updateStatus(o.id, 'COMPLETED', dict.orders.statuses.COMPLETED)}>
+                              <DollarSign className="mr-2 h-4 w-4" />{dict.ordersExt.markCompleted}
                             </DropdownMenuItem>
                           )}
                           {!['COMPLETED', 'CANCELLED'].includes(o.status) && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCancel(o.id, o.orderNo)} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />取消訂單
+                                <XCircle className="mr-2 h-4 w-4" />{dict.ordersExt.cancelOrder}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -314,11 +317,11 @@ export default function OrdersPage() {
             <div className="flex flex-col items-center gap-3">
               <ClipboardList className="h-10 w-10 text-muted-foreground/50" />
               <p className="text-muted-foreground">
-                {search || filterStatus ? '找不到符合的訂單' : '尚無訂單資料'}
+                {search || filterStatus ? dict.ordersExt.noResults : dict.ordersExt.noOrders}
               </p>
               {!search && !filterStatus && (
                 <Button variant="outline" size="sm" onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-                  <Plus className="mr-2 h-4 w-4" />新增第一筆訂單
+                  <Plus className="mr-2 h-4 w-4" />{dict.orders.newOrder}
                 </Button>
               )}
             </div>
@@ -349,10 +352,10 @@ export default function OrdersPage() {
                   {Number(o.paidAmount) > 0 ? (
                     <span>
                       <span className="text-green-600">{formatCurrency(o.paidAmount)}</span>
-                      {unpaid > 0 && <span className="ml-1 text-xs text-red-500">欠 {formatCurrency(unpaid)}</span>}
+                      {unpaid > 0 && <span className="ml-1 text-xs text-red-500">{dict.ordersExt.owe} {formatCurrency(unpaid)}</span>}
                     </span>
                   ) : (
-                    <span className="text-muted-foreground">未付款</span>
+                    <span className="text-muted-foreground">{dict.orders.unpaid}</span>
                   )}
                 </div>
               </div>
@@ -365,16 +368,16 @@ export default function OrdersPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，第 {pagination.page}/{pagination.totalPages} 頁
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
               onClick={() => setPage(p => p - 1)}>
-              上一頁
+              {dict.common.prevPage}
             </Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
               onClick={() => setPage(p => p + 1)}>
-              下一頁
+              {dict.common.nextPage}
             </Button>
           </div>
         </div>

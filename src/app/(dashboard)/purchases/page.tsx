@@ -10,34 +10,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { PurchaseForm } from '@/components/purchases/purchase-form'
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 type PurchaseStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'SOURCING' | 'CONFIRMED' | 'PARTIAL' | 'RECEIVED' | 'CANCELLED'
 
-const statusConfig: Record<PurchaseStatus, { label: string; cls: string }> = {
-  DRAFT:            { label: '草稿',   cls: 'border-slate-300 text-slate-600' },
-  PENDING_APPROVAL: { label: '審核中', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
-  SOURCING:         { label: '詢價中', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
-  CONFIRMED:        { label: '已確認', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-  PARTIAL:          { label: '部分到貨', cls: 'bg-amber-100 text-amber-700 border-amber-200' },
-  RECEIVED:         { label: '已到貨', cls: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED:        { label: '已取消', cls: 'bg-red-100 text-red-700 border-red-200' },
+const statusCls: Record<PurchaseStatus, string> = {
+  DRAFT:            'border-slate-300 text-slate-600',
+  PENDING_APPROVAL: 'bg-orange-100 text-orange-700 border-orange-200',
+  SOURCING:         'bg-purple-100 text-purple-700 border-purple-200',
+  CONFIRMED:        'bg-blue-100 text-blue-700 border-blue-200',
+  PARTIAL:          'bg-amber-100 text-amber-700 border-amber-200',
+  RECEIVED:         'bg-green-100 text-green-700 border-green-200',
+  CANCELLED:        'bg-red-100 text-red-700 border-red-200',
 }
-
-const purchaseTypeLabels: Record<string, string> = {
-  FINISHED_GOODS:     '成品', OEM: 'OEM',
-  PACKAGING:          '包材', RAW_MATERIAL: '原物料',
-  GIFT_PROMO:         '贈品', LOGISTICS_SUPPLIES: '物流耗材',
-}
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'DRAFT', label: '草稿' },
-  { value: 'PENDING_APPROVAL', label: '審核中' },
-  { value: 'SOURCING', label: '詢價中' },
-  { value: 'CONFIRMED', label: '已確認' },
-  { value: 'PARTIAL', label: '部分到貨' },
-  { value: 'RECEIVED', label: '已到貨' },
-]
 
 interface PurchaseOrder {
   id: string; poNo: string; status: PurchaseStatus; orderType: string
@@ -58,6 +43,7 @@ function fmtDate(s: string) {
 
 export default function PurchasesPage() {
   const router = useRouter()
+  const { dict } = useI18n()
   const [orders, setOrders] = useState<PurchaseOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -88,24 +74,40 @@ export default function PurchasesPage() {
       body: JSON.stringify({ statusOnly: true, status }),
     })
     if (res.ok) { toast.success(`採購單已${label}`); fetchOrders() }
-    else toast.error('更新失敗')
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleDelete(id: string, no: string) {
     if (!confirm(`確定要刪除採購單 ${no} 嗎？`)) return
     const res = await fetch(`/api/purchases/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success('採購單已刪除'); fetchOrders() }
-    else { const d = await res.json(); toast.error(d.error ?? '刪除失敗') }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.deleteFailed) }
   }
 
   const pendingCount = orders.filter(o => o.status === 'CONFIRMED').length
+
+  const purchaseTypeLabels: Record<string, string> = {
+    FINISHED_GOODS:     '成品', OEM: 'OEM',
+    PACKAGING:          '包材', RAW_MATERIAL: '原物料',
+    GIFT_PROMO:         '贈品', LOGISTICS_SUPPLIES: '物流耗材',
+  }
+
+  const statusFilters = [
+    { value: '', label: dict.common.all },
+    { value: 'DRAFT', label: dict.purchases.statuses.DRAFT },
+    { value: 'PENDING_APPROVAL', label: dict.purchases.statuses.PENDING_APPROVAL },
+    { value: 'SOURCING', label: dict.purchases.statuses.SOURCING },
+    { value: 'CONFIRMED', label: dict.purchases.statuses.CONFIRMED },
+    { value: 'PARTIAL', label: dict.purchases.statuses.PARTIAL },
+    { value: 'RECEIVED', label: dict.purchases.statuses.RECEIVED },
+  ]
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">採購管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.purchases.title}</h1>
           <p className="text-sm text-muted-foreground">
             共 {orders.length} 筆
             {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} 筆待到貨</span>}
@@ -113,10 +115,10 @@ export default function PurchasesPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push('/suppliers')}>
-            <Building2 className="mr-2 h-4 w-4" />管理供應商
+            <Building2 className="mr-2 h-4 w-4" />{dict.suppliers.title}
           </Button>
           <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-            <Plus className="mr-2 h-4 w-4" />新增採購單
+            <Plus className="mr-2 h-4 w-4" />{dict.purchases.newPurchase}
           </Button>
         </div>
       </div>
@@ -125,7 +127,7 @@ export default function PurchasesPage() {
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋採購單號或供應商..."
+          <Input className="pl-9" placeholder={dict.purchasesExt.searchPlaceholder}
             value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -145,15 +147,15 @@ export default function PurchasesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-36">採購單號</TableHead>
-              <TableHead>供應商</TableHead>
-              <TableHead className="w-20">類型</TableHead>
-              <TableHead className="w-24">狀態</TableHead>
+              <TableHead className="w-36">{dict.purchases.poNo}</TableHead>
+              <TableHead>{dict.purchases.supplier}</TableHead>
+              <TableHead className="w-20">{dict.common.type}</TableHead>
+              <TableHead className="w-24">{dict.common.status}</TableHead>
               <TableHead>商品摘要</TableHead>
-              <TableHead className="text-right w-32">採購金額</TableHead>
-              <TableHead className="text-right w-28">已付款</TableHead>
-              <TableHead className="w-24">預計到貨</TableHead>
-              <TableHead className="w-16">驗收單</TableHead>
+              <TableHead className="text-right w-32">{dict.purchasesExt.totalAmount}</TableHead>
+              <TableHead className="text-right w-28">{dict.purchasesExt.paidAmount}</TableHead>
+              <TableHead className="w-24">{dict.purchasesExt.expectedDate}</TableHead>
+              <TableHead className="w-16">{dict.purchases.receive}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -167,11 +169,12 @@ export default function PurchasesPage() {
             ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
-                  {search || filterStatus ? '找不到符合的採購單' : '尚無採購單，點擊右上角新增'}
+                  {search || filterStatus ? dict.purchasesExt.noResults : dict.purchasesExt.noOrders}
                 </TableCell>
               </TableRow>
             ) : orders.map(o => {
-              const sc = statusConfig[o.status] ?? { label: o.status, cls: '' }
+              const cls = statusCls[o.status] ?? ''
+              const label = dict.purchases.statuses[o.status as PurchaseStatus] ?? o.status
               const unpaid = Number(o.totalAmount) - Number(o.paidAmount)
               return (
                 <TableRow key={o.id} className="group cursor-pointer hover:bg-slate-50/80"
@@ -187,7 +190,7 @@ export default function PurchasesPage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={`text-xs ${sc.cls}`}>{sc.label}</Badge>
+                    <Badge variant="outline" className={`text-xs ${cls}`}>{label}</Badge>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {o.items.length > 0
@@ -219,12 +222,12 @@ export default function PurchasesPage() {
                       <DropdownMenuContent align="end" className="w-44">
                         {['DRAFT','PENDING_APPROVAL','SOURCING'].includes(o.status) && (
                           <DropdownMenuItem onClick={() => { setEditTarget(o); setFormOpen(true) }}>
-                            <Pencil className="mr-2 h-4 w-4" />編輯
+                            <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                           </DropdownMenuItem>
                         )}
                         {o.status === 'DRAFT' && (
                           <DropdownMenuItem onClick={() => updateStatus(o.id, 'PENDING_APPROVAL', '送審')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />送採購審核
+                            <CheckCircle2 className="mr-2 h-4 w-4" />{dict.purchasesExt.submitForApproval}
                           </DropdownMenuItem>
                         )}
                         {o.status === 'PENDING_APPROVAL' && (
@@ -234,7 +237,7 @@ export default function PurchasesPage() {
                         )}
                         {o.status === 'SOURCING' && (
                           <DropdownMenuItem onClick={() => updateStatus(o.id, 'CONFIRMED', '確認')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />確認採購單
+                            <CheckCircle2 className="mr-2 h-4 w-4" />{dict.purchasesExt.confirmPO}
                           </DropdownMenuItem>
                         )}
                         {!['RECEIVED', 'CANCELLED'].includes(o.status) && (
@@ -242,8 +245,8 @@ export default function PurchasesPage() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleDelete(o.id, o.poNo)} variant="destructive">
                               {o.status === 'DRAFT'
-                                ? <><Trash2 className="mr-2 h-4 w-4" />刪除</>
-                                : <><XCircle className="mr-2 h-4 w-4" />取消採購單</>}
+                                ? <><Trash2 className="mr-2 h-4 w-4" />{dict.common.delete}</>
+                                : <><XCircle className="mr-2 h-4 w-4" />{dict.purchasesExt.cancelPO}</>}
                             </DropdownMenuItem>
                           </>
                         )}

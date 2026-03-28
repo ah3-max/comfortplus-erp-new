@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +28,7 @@ const CATS: Record<string, string> = { GENERAL: '一般', POLICY: '制度', IT: 
 const PRIO_COLOR: Record<string, string> = { LOW: 'bg-slate-100 text-slate-600', NORMAL: 'bg-blue-100 text-blue-700', HIGH: 'bg-orange-100 text-orange-700', URGENT: 'bg-red-100 text-red-700' }
 
 export default function AnnouncementsPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const isAdmin = ['SUPER_ADMIN', 'GM'].includes(role)
@@ -54,8 +56,8 @@ export default function AnnouncementsPage() {
       body: JSON.stringify({ ...form, isPublished: true, expiresAt: form.expiresAt || null }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('公告已發佈'); setDialog(false); load() }
-    else toast.error('發佈失敗')
+    if (res.ok) { toast.success(dict.announcements.title); setDialog(false); load() }
+    else toast.error(dict.common.saveFailed)
   }
 
   async function togglePublish(a: Announcement) {
@@ -69,7 +71,7 @@ export default function AnnouncementsPage() {
 
   async function handleDelete(id: string) {
     await fetch(`/api/announcements/${id}`, { method: 'DELETE' })
-    toast.success('已刪除')
+    toast.success(dict.common.deleteSuccess)
     load()
   }
 
@@ -77,12 +79,12 @@ export default function AnnouncementsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">公告佈告欄</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.announcements.title}</h1>
           <p className="text-sm text-muted-foreground">公司公告與政策通知</p>
         </div>
         {isAdmin && (
           <Button onClick={() => { setForm({ title: '', content: '', category: 'GENERAL', priority: 'NORMAL', isPinned: false, expiresAt: '' }); setDialog(true) }}>
-            <Plus className="h-4 w-4 mr-1" />新增公告
+            <Plus className="h-4 w-4 mr-1" />{dict.announcements.newAnnouncement}
           </Button>
         )}
       </div>
@@ -90,7 +92,7 @@ export default function AnnouncementsPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : items.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">目前無公告</div>
+        <div className="text-center py-16 text-muted-foreground">{dict.announcements.noAnnouncements}</div>
       ) : (
         <div className="space-y-3">
           {items.map(a => (
@@ -130,14 +132,14 @@ export default function AnnouncementsPage() {
 
       <Dialog open={dialog} onOpenChange={setDialog}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle><Megaphone className="inline h-4 w-4 mr-2" />新增公告</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle><Megaphone className="inline h-4 w-4 mr-2" />{dict.announcements.newAnnouncement}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>標題</Label>
+              <Label>{dict.announcements.subject}</Label>
               <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="mt-1" />
             </div>
             <div>
-              <Label>內容</Label>
+              <Label>{dict.announcements.content}</Label>
               <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={5} className="mt-1" />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -161,12 +163,12 @@ export default function AnnouncementsPage() {
               </div>
             </div>
             <div>
-              <Label>到期日（選填）</Label>
+              <Label>{dict.announcements.expireDate}</Label>
               <Input type="date" value={form.expiresAt} onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))} className="mt-1" />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={saving || !form.title || !form.content}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}發佈
             </Button>

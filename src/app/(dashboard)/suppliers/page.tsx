@@ -10,15 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { SupplierForm } from '@/components/purchases/supplier-form'
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
-
-const purchaseTypeLabels: Record<string, string> = {
-  FINISHED_GOODS:     '成品',
-  OEM:                'OEM代工',
-  PACKAGING:          '包材',
-  RAW_MATERIAL:       '原物料',
-  GIFT_PROMO:         '贈品/活動',
-  LOGISTICS_SUPPLIES: '物流耗材',
-}
+import { useI18n } from '@/lib/i18n/context'
 
 interface Supplier {
   id: string; code: string; name: string; contactPerson: string | null
@@ -31,6 +23,7 @@ interface Supplier {
 
 export default function SuppliersPage() {
   const router = useRouter()
+  const { dict } = useI18n()
   const [suppliers, setSuppliers]   = useState<Supplier[]>([])
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
@@ -57,7 +50,16 @@ export default function SuppliersPage() {
     if (!confirm(`確定要停用供應商「${name}」嗎？`)) return
     const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success('供應商已停用'); fetchSuppliers() }
-    else toast.error('操作失敗')
+    else toast.error(dict.common.updateFailed)
+  }
+
+  const purchaseTypeLabels: Record<string, string> = {
+    FINISHED_GOODS:     '成品',
+    OEM:                'OEM代工',
+    PACKAGING:          '包材',
+    RAW_MATERIAL:       '原物料',
+    GIFT_PROMO:         '贈品/活動',
+    LOGISTICS_SUPPLIES: '物流耗材',
   }
 
   return (
@@ -65,11 +67,11 @@ export default function SuppliersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">供應商管理</h1>
-          <p className="text-sm text-muted-foreground">共 {suppliers.length} 家供應商</p>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.suppliers.title}</h1>
+          <p className="text-sm text-muted-foreground">共 {suppliers.length} 家{dict.common.supplier}</p>
         </div>
         <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-          <Plus className="mr-2 h-4 w-4" />新增供應商
+          <Plus className="mr-2 h-4 w-4" />{dict.suppliers.newSupplier}
         </Button>
       </div>
 
@@ -77,13 +79,13 @@ export default function SuppliersPage() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋供應商名稱、代碼、聯絡人..."
+          <Input className="pl-9" placeholder={dict.suppliers.searchPlaceholder}
             value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
           <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)}
             className="h-4 w-4 rounded border-slate-300" />
-          顯示停用供應商
+          顯示{dict.common.inactive}{dict.common.supplier}
         </label>
       </div>
 
@@ -92,14 +94,14 @@ export default function SuppliersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-28">供應商代碼</TableHead>
-              <TableHead>供應商名稱</TableHead>
-              <TableHead>聯絡資訊</TableHead>
-              <TableHead>採購分類</TableHead>
+              <TableHead className="w-28">{dict.suppliers.code}</TableHead>
+              <TableHead>{dict.suppliers.name}</TableHead>
+              <TableHead>{dict.suppliers.contact}</TableHead>
+              <TableHead>{dict.suppliers.category}</TableHead>
               <TableHead className="w-20 text-center">交期(天)</TableHead>
               <TableHead className="w-20 text-center">採購單數</TableHead>
-              <TableHead className="w-24">付款條件</TableHead>
-              <TableHead className="w-16">狀態</TableHead>
+              <TableHead className="w-24">{dict.suppliers.paymentTerms}</TableHead>
+              <TableHead className="w-16">{dict.common.status}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -113,7 +115,7 @@ export default function SuppliersPage() {
             ) : suppliers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="py-16 text-center text-muted-foreground">
-                  {search ? '找不到符合的供應商' : '尚無供應商，點擊右上角新增'}
+                  {search ? dict.suppliers.noResults : dict.suppliers.noSuppliers}
                 </TableCell>
               </TableRow>
             ) : suppliers.map(s => {
@@ -154,8 +156,8 @@ export default function SuppliersPage() {
                   <TableCell className="text-sm text-muted-foreground">{s.paymentTerms ?? '—'}</TableCell>
                   <TableCell>
                     {s.isActive
-                      ? <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">啟用</Badge>
-                      : <Badge variant="outline" className="text-xs bg-slate-50 text-slate-500">停用</Badge>}
+                      ? <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">{dict.common.active}</Badge>
+                      : <Badge variant="outline" className="text-xs bg-slate-50 text-slate-500">{dict.common.inactive}</Badge>}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
@@ -164,11 +166,11 @@ export default function SuppliersPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-36">
                         <DropdownMenuItem onClick={() => { setEditTarget(s); setFormOpen(true) }}>
-                          <Pencil className="mr-2 h-4 w-4" />編輯
+                          <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                         </DropdownMenuItem>
                         {s.isActive && (
                           <DropdownMenuItem onClick={() => handleDelete(s.id, s.name)} variant="destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />停用
+                            <Trash2 className="mr-2 h-4 w-4" />{dict.common.inactive}
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

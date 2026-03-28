@@ -20,6 +20,7 @@ import {
   CheckCircle2, XCircle, FileText, Send,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 type EInvoiceStatus = 'CREATED' | 'APPROVED' | 'VOIDED' | 'CREDIT_NOTE'
 type TransmitStatus = 'PENDING' | 'PROCESSING' | 'TRANSMITTED' | 'FAILED' | 'EMAIL_SENT'
@@ -90,6 +91,7 @@ function formatDate(str: string) {
 }
 
 export default function EInvoicesPage() {
+  const { dict } = useI18n()
   const [invoices, setInvoices] = useState<EInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -222,7 +224,7 @@ export default function EInvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">電子發票管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.eInvoices.title}管理</h1>
           <p className="text-sm text-muted-foreground">
             共 {pagination ? pagination.total : invoices.length} 筆
             {createdCount > 0 && <span className="ml-2 text-amber-600">{createdCount} 筆待核准</span>}
@@ -230,7 +232,7 @@ export default function EInvoicesPage() {
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />新增電子發票
+          <Plus className="mr-2 h-4 w-4" />{dict.eInvoices.newInvoice}
         </Button>
       </div>
 
@@ -238,7 +240,7 @@ export default function EInvoicesPage() {
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋發票號碼或客戶..."
+          <Input className="pl-9" placeholder={dict.eInvoices.searchPlaceholder}
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -260,14 +262,14 @@ export default function EInvoicesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">發票號碼</TableHead>
-              <TableHead>客戶</TableHead>
-              <TableHead className="w-20">類型</TableHead>
+              <TableHead className="w-40">{dict.eInvoices.invoiceNo}</TableHead>
+              <TableHead>{dict.common.customer}</TableHead>
+              <TableHead className="w-20">{dict.common.type}</TableHead>
               <TableHead className="text-right w-28">稅前</TableHead>
-              <TableHead className="text-right w-28">含稅</TableHead>
-              <TableHead className="w-24">狀態</TableHead>
+              <TableHead className="text-right w-28">{dict.eInvoices.totalAmount}</TableHead>
+              <TableHead className="w-24">{dict.common.status}</TableHead>
               <TableHead className="w-24">傳送狀態</TableHead>
-              <TableHead className="w-24">日期</TableHead>
+              <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -284,11 +286,11 @@ export default function EInvoicesPage() {
                   <div className="flex flex-col items-center gap-3">
                     <FileText className="h-10 w-10 text-muted-foreground/50" />
                     <p className="text-muted-foreground">
-                      {search || filterStatus ? '找不到符合的電子發票' : '尚無電子發票資料'}
+                      {search || filterStatus ? dict.eInvoices.noResults : dict.eInvoices.noInvoices}
                     </p>
                     {!search && !filterStatus && (
                       <Button variant="outline" size="sm" onClick={openCreate}>
-                        <Plus className="mr-2 h-4 w-4" />新增第一筆電子發票
+                        <Plus className="mr-2 h-4 w-4" />{dict.eInvoices.newInvoice}
                       </Button>
                     )}
                   </div>
@@ -303,7 +305,7 @@ export default function EInvoicesPage() {
                     <TableCell className="font-mono text-sm font-medium">{inv.invoiceNumber}</TableCell>
                     <TableCell>
                       <div className="font-medium">{inv.customer.name}</div>
-                      {inv.buyerTaxId && <div className="text-xs text-muted-foreground">統編: {inv.buyerTaxId}</div>}
+                      {inv.buyerTaxId && <div className="text-xs text-muted-foreground">{dict.eInvoices.buyerTaxId}: {inv.buyerTaxId}</div>}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={inv.invoiceType === 'B2B' ? 'bg-indigo-50 text-indigo-700' : 'bg-orange-50 text-orange-700'}>
@@ -367,7 +369,7 @@ export default function EInvoicesPage() {
             <div className="flex flex-col items-center gap-3">
               <FileText className="h-10 w-10 text-muted-foreground/50" />
               <p className="text-muted-foreground">
-                {search || filterStatus ? '找不到符合的電子發票' : '尚無電子發票資料'}
+                {search || filterStatus ? dict.eInvoices.noResults : dict.eInvoices.noInvoices}
               </p>
             </div>
           </div>
@@ -410,11 +412,11 @@ export default function EInvoicesPage() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
               onClick={() => setPage(p => p - 1)}>
-              上一頁
+              {dict.common.prevPage}
             </Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages}
               onClick={() => setPage(p => p + 1)}>
-              下一頁
+              {dict.common.nextPage}
             </Button>
           </div>
         </div>
@@ -424,7 +426,7 @@ export default function EInvoicesPage() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>新增電子發票</DialogTitle>
+            <DialogTitle>{dict.eInvoices.newInvoice}</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4">
@@ -440,7 +442,7 @@ export default function EInvoicesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>客戶 *</Label>
+                <Label>{dict.common.customer} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.customerId} onChange={e => {
                     const c = customers.find(c => c.id === e.target.value)

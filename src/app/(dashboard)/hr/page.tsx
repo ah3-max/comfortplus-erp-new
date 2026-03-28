@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -68,6 +69,7 @@ const ATT_STATUS: Record<string, { label: string; color: string }> = {
 function fmt(n: number) { return n.toLocaleString('zh-TW') }
 
 export default function HRPage() {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const isAdmin = ['SUPER_ADMIN', 'GM'].includes(role)
@@ -196,16 +198,16 @@ export default function HRPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">人事管理</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.hr.title}</h1>
         <p className="text-sm text-muted-foreground">員工資料、任命、出勤與薪資管理</p>
       </div>
 
       <Tabs defaultValue="employees">
         <TabsList>
-          <TabsTrigger value="employees" onClick={loadEmployees} className="gap-1.5"><Users className="h-3.5 w-3.5" />員工</TabsTrigger>
+          <TabsTrigger value="employees" onClick={loadEmployees} className="gap-1.5"><Users className="h-3.5 w-3.5" />{dict.hr.employee}</TabsTrigger>
           <TabsTrigger value="appointments" onClick={loadAppointments} className="gap-1.5"><CalendarDays className="h-3.5 w-3.5" />任命</TabsTrigger>
-          <TabsTrigger value="attendance" onClick={loadAttendance} className="gap-1.5"><Clock className="h-3.5 w-3.5" />出勤</TabsTrigger>
-          <TabsTrigger value="payroll" onClick={loadPayroll} className="gap-1.5"><DollarSign className="h-3.5 w-3.5" />薪資</TabsTrigger>
+          <TabsTrigger value="attendance" onClick={loadAttendance} className="gap-1.5"><Clock className="h-3.5 w-3.5" />{dict.hr.attendance}</TabsTrigger>
+          <TabsTrigger value="payroll" onClick={loadPayroll} className="gap-1.5"><DollarSign className="h-3.5 w-3.5" />{dict.hr.payroll}</TabsTrigger>
         </TabsList>
 
         {/* ═══ 員工 ═══ */}
@@ -215,7 +217,7 @@ export default function HRPage() {
               <table className="w-full text-sm">
                 <thead className="border-b bg-slate-50">
                   <tr>
-                    {['姓名', 'Email', '角色', '職稱', '手機', '到職日', '狀態'].map(h => (
+                    {[dict.common.name, 'Email', dict.users.role, dict.hr.position, dict.common.phone, dict.hr.joinDate, dict.common.status].map(h => (
                       <th key={h} className="px-4 py-2 text-left font-medium text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -241,8 +243,8 @@ export default function HRPage() {
                       <td className="px-4 py-2">{e.mobile ?? '-'}</td>
                       <td className="px-4 py-2">{e.hireDate?.slice(0, 10) ?? '-'}</td>
                       <td className="px-4 py-2">{e.isActive
-                        ? <span className="text-green-600 text-xs">在職</span>
-                        : <span className="text-slate-400 text-xs">離職</span>}</td>
+                        ? <span className="text-green-600 text-xs">{dict.hr.statuses.ACTIVE}</span>
+                        : <span className="text-slate-400 text-xs">{dict.hr.statuses.RESIGNED}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -273,7 +275,7 @@ export default function HRPage() {
                   </CardContent>
                 </Card>
               ))}
-              {appointments.length === 0 && <div className="text-center py-8 text-muted-foreground">暫無任命記錄</div>}
+              {appointments.length === 0 && <div className="text-center py-8 text-muted-foreground">{dict.hr.noResults}</div>}
             </div>
           )}
         </TabsContent>
@@ -282,7 +284,7 @@ export default function HRPage() {
         <TabsContent value="attendance" className="mt-4 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <Input type="month" value={attMonth} onChange={e => setAttMonth(e.target.value)} className="w-40" />
-            <Button variant="outline" size="sm" onClick={loadAttendance}>查詢</Button>
+            <Button variant="outline" size="sm" onClick={loadAttendance}>{dict.common.search}</Button>
             {isAdmin && <Button size="sm" onClick={() => { setAttForm(f => ({ ...f, userId: employees[0]?.id ?? '' })); setAttDialog(true) }}><Plus className="h-4 w-4 mr-1" />新增出勤</Button>}
           </div>
           {loadingAtt ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : (
@@ -290,7 +292,7 @@ export default function HRPage() {
               <table className="w-full text-sm">
                 <thead className="border-b bg-slate-50">
                   <tr>
-                    {['日期', '姓名', '上班', '下班', '狀態', '假別', '加班'].map(h => (
+                    {[dict.common.date, dict.common.name, '上班', '下班', dict.common.status, '假別', '加班'].map(h => (
                       <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -311,7 +313,7 @@ export default function HRPage() {
                     )
                   })}
                   {attendance.length === 0 && (
-                    <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">本月無出勤記錄</td></tr>
+                    <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">{dict.common.noRecords}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -326,15 +328,15 @@ export default function HRPage() {
             <span>年</span>
             <Input type="number" value={payMonth} onChange={e => setPayMonth(Number(e.target.value))} className="w-20" min={1} max={12} />
             <span>月</span>
-            <Button variant="outline" size="sm" onClick={loadPayroll}>查詢</Button>
-            {isAdmin && <Button size="sm" onClick={() => { setPayForm(f => ({ ...f, userId: employees[0]?.id ?? '' })); setPayDialog(true) }}><Plus className="h-4 w-4 mr-1" />新增薪資</Button>}
+            <Button variant="outline" size="sm" onClick={loadPayroll}>{dict.common.search}</Button>
+            {isAdmin && <Button size="sm" onClick={() => { setPayForm(f => ({ ...f, userId: employees[0]?.id ?? '' })); setPayDialog(true) }}><Plus className="h-4 w-4 mr-1" />{dict.hr.payroll}</Button>}
           </div>
           {loadingPay ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : (
             <div className="rounded-md border overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="border-b bg-slate-50">
                   <tr>
-                    {['姓名', '底薪', '津貼', '加班', '獎金', '扣款', '勞保', '健保', '稅', '實發', '狀態'].map(h => (
+                    {[dict.common.name, '底薪', '津貼', '加班', '獎金', '扣款', '勞保', '健保', '稅', '實發', dict.common.status].map(h => (
                       <th key={h} className="px-2 py-2 text-right font-medium text-muted-foreground first:text-left">{h}</th>
                     ))}
                   </tr>
@@ -356,7 +358,7 @@ export default function HRPage() {
                     </tr>
                   ))}
                   {payroll.length === 0 && (
-                    <tr><td colSpan={11} className="px-2 py-8 text-center text-muted-foreground">本月無薪資記錄</td></tr>
+                    <tr><td colSpan={11} className="px-2 py-8 text-center text-muted-foreground">{dict.common.noRecords}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -371,7 +373,7 @@ export default function HRPage() {
           {empDetail && (
             <>
               <DialogHeader>
-                <DialogTitle>{empDetail.name} — 人事檔案</DialogTitle>
+                <DialogTitle>{empDetail.name} — {dict.hr.title}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
                 {[
@@ -398,7 +400,7 @@ export default function HRPage() {
               {isAdmin && (
                 <DialogFooter>
                   <Button onClick={saveProfile} disabled={savingProfile}>
-                    {savingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}儲存
+                    {savingProfile ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}{dict.common.save}
                   </Button>
                 </DialogFooter>
               )}
