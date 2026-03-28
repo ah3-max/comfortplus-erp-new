@@ -64,6 +64,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: { status: body.status },
       })
 
+      // When CONFIRMED: add inventory to receivingWarehouse for each item
+      if (newStatus === 'CONFIRMED' && current.receivingWarehouseId && current.items.length > 0) {
+        await prisma.$transaction(
+          current.items.map(item =>
+            prisma.inventory.upsert({
+              where: {
+                productId_warehouse_category: {
+                  productId: item.productId,
+                  warehouse: current.receivingWarehouseId!,
+                  category: 'FINISHED_GOODS',
+                },
+              },
+              create: {
+                productId: item.productId,
+                warehouse: current.receivingWarehouseId!,
+                category: 'FINISHED_GOODS',
+                quantity: Number(item.quantity),
+                availableQty: Number(item.quantity),
+              },
+              update: {
+                quantity:     { increment: Number(item.quantity) },
+                availableQty: { increment: Number(item.quantity) },
+              },
+            })
+          )
+        )
+      }
+
       // Notify warehouse when confirmed
       if (newStatus === 'CONFIRMED') {
         const itemSummary = current.items.map(i => `${i.product?.name ?? i.productName}×${i.quantity}`).join('、')

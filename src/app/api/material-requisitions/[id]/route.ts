@@ -63,6 +63,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: { status: body.status },
       })
 
+      // When ISSUED: deduct inventory from fromWarehouse for each item
+      if (newStatus === 'ISSUED' && current.items.length > 0) {
+        await prisma.$transaction(
+          current.items.map(item =>
+            prisma.inventory.updateMany({
+              where: { productId: item.productId, warehouse: current.fromWarehouseId },
+              data: {
+                quantity:     { decrement: Number(item.quantity) },
+                availableQty: { decrement: Number(item.quantity) },
+              },
+            })
+          )
+        )
+      }
+
       // Notify warehouse when confirmed
       if (newStatus === 'CONFIRMED') {
         const itemSummary = current.items.map(i => `${i.product?.name ?? i.productName}×${i.quantity}`).join('、')

@@ -232,9 +232,9 @@ export default function PurchaseRequestsPage() {
     setConvertSupplierId('')
     setConvertOpen(true)
     try {
-      const res = await fetch('/api/suppliers?limit=500')
+      const res = await fetch('/api/suppliers?showAll=true')
       const data = await res.json()
-      setConvertSuppliers(Array.isArray(data) ? data : data.data ?? [])
+      setConvertSuppliers(Array.isArray(data) ? data : (data.data ?? []))
     } catch {
       toast.error('載入供應商失敗')
     }

@@ -65,6 +65,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: { status: body.status },
       })
 
+      // When SHIPPED: deduct inventory from warehouse for each item
+      if (newStatus === 'SHIPPED' && current.warehouseId && current.items.length > 0) {
+        await prisma.$transaction(
+          current.items.map(item =>
+            prisma.inventory.updateMany({
+              where: { productId: item.productId, warehouse: current.warehouseId! },
+              data: {
+                quantity:     { decrement: Number(item.quantity) },
+                availableQty: { decrement: Number(item.quantity) },
+              },
+            })
+          )
+        )
+      }
+
       // Notify warehouse when confirmed + auto-create picking order
       if (newStatus === 'CONFIRMED') {
         const itemSummary = current.items.map(i => `${i.product?.name ?? i.productName}×${i.quantity}`).join('、')

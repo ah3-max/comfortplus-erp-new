@@ -19,8 +19,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Plus, Search, MoreHorizontal, Pencil, Loader2,
-  CheckCircle2, XCircle, FileText, Trash2, Send, MessageSquare,
+  CheckCircle2, XCircle, FileText, Trash2, Send, MessageSquare, ShoppingCart,
 } from 'lucide-react'
+import { DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 type RFQStatus = 'DRAFT' | 'SENT' | 'RESPONDED' | 'COMPLETED' | 'CANCELLED'
@@ -98,6 +99,12 @@ export default function RFQPage() {
   const [products, setProducts] = useState<{ id: string; name: string; sku: string; unit: string | null }[]>([])
   const [suppliers, setSuppliers] = useState<{ id: string; name: string; code: string }[]>([])
 
+  // Convert to PO dialog
+  const [convertOpen, setConvertOpen] = useState(false)
+  const [convertTarget, setConvertTarget] = useState<RFQ | null>(null)
+  const [convertSupplierId, setConvertSupplierId] = useState('')
+  const [converting, setConverting] = useState(false)
+
   const fetchRfqs = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
@@ -129,11 +136,11 @@ export default function RFQPage() {
     Promise.all([
       fetch('/api/users?pageSize=100').then(r => r.json()),
       fetch('/api/products?pageSize=500').then(r => r.json()),
-      fetch('/api/suppliers?pageSize=200').then(r => r.json()),
+      fetch('/api/suppliers?showAll=true').then(r => r.json()),
     ]).then(([uRes, pRes, sRes]) => {
-      setUsers((uRes.data ?? uRes) || [])
-      setProducts((pRes.data ?? pRes) || [])
-      setSuppliers((sRes.data ?? sRes) || [])
+      setUsers(Array.isArray(uRes) ? uRes : (uRes.data ?? []))
+      setProducts(Array.isArray(pRes) ? pRes : (pRes.data ?? []))
+      setSuppliers(Array.isArray(sRes) ? sRes : (sRes.data ?? []))
     }).catch(() => toast.error('載入參考資料失敗'))
   }, [formOpen])
 
@@ -202,6 +209,54 @@ export default function RFQPage() {
     else {
       const data = await res.json()
       toast.error(data.error ?? '取消失敗')
+    }
+  }
+
+  function openConvert(rfq: RFQ) {
+    setConvertTarget(rfq)
+    // Pre-select the first selected supplier, or first supplier
+    const selected = rfq.suppliers.find(s => s.selected)
+    setConvertSupplierId(selected?.supplierId ?? rfq.suppliers[0]?.supplierId ?? '')
+    setConvertOpen(true)
+  }
+
+  async function handleConvertToPO() {
+    if (!convertTarget || !convertSupplierId) { toast.error('請選擇供應商'); return }
+    setConverting(true)
+    try {
+      const res = await fetch('/api/purchases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          supplierId: convertSupplierId,
+          items: convertTarget.items.map(i => {
+            const rfqSupplier = convertTarget.suppliers.find(s => s.supplierId === convertSupplierId)
+            return {
+              productId: i.productId,
+              quantity: Number(i.quantity),
+              unitCost: Number(rfqSupplier?.quotedPrice ?? 0),
+            }
+          }),
+          notes: `由詢價單 ${convertTarget.rfqNumber} 轉入`,
+        }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error ?? '建立失敗')
+      }
+      const po = await res.json()
+      toast.success(`採購單 ${po.poNo} 已建立`)
+      setConvertOpen(false)
+      // Mark RFQ as COMPLETED if not already
+      if (convertTarget.status !== 'COMPLETED') {
+        await updateStatus(convertTarget.id, 'COMPLETED', '完成')
+      } else {
+        fetchRfqs()
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '建立失敗')
+    } finally {
+      setConverting(false)
     }
   }
 
@@ -348,6 +403,11 @@ export default function RFQPage() {
                           {rfq.status === 'RESPONDED' && (
                             <DropdownMenuItem onClick={() => updateStatus(rfq.id, 'COMPLETED', '完成')}>
                               <CheckCircle2 className="mr-2 h-4 w-4" />完成詢價
+                            </DropdownMenuItem>
+                          )}
+                          {['RESPONDED', 'COMPLETED'].includes(rfq.status) && rfq.suppliers.length > 0 && (
+                            <DropdownMenuItem onClick={() => openConvert(rfq)}>
+                              <ShoppingCart className="mr-2 h-4 w-4" />轉採購單
                             </DropdownMenuItem>
                           )}
                           {['DRAFT', 'SENT'].includes(rfq.status) && (
@@ -530,6 +590,53 @@ export default function RFQPage() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert to PO Dialog */}
+      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>轉採購單</DialogTitle></DialogHeader>
+          {convertTarget && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">詢價單：<span className="font-mono font-medium text-slate-800">{convertTarget.rfqNumber}</span></p>
+                <p className="text-sm text-muted-foreground">品項數：{convertTarget.items.length} 項</p>
+              </div>
+              <div>
+                <Label>選擇供應商 *</Label>
+                <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                  value={convertSupplierId}
+                  onChange={e => setConvertSupplierId(e.target.value)}>
+                  <option value="">— 選擇供應商 —</option>
+                  {convertTarget.suppliers.map(s => (
+                    <option key={s.supplierId} value={s.supplierId}>
+                      {s.supplier.name} ({s.supplier.code})
+                      {s.quotedPrice ? ` — 報價 ${Number(s.quotedPrice).toLocaleString()}` : ''}
+                      {s.selected ? ' ★' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="rounded-lg border bg-slate-50 p-3">
+                <p className="text-xs font-medium text-slate-600 mb-2">品項清單</p>
+                {convertTarget.items.map(item => (
+                  <div key={item.id} className="flex justify-between text-sm py-0.5">
+                    <span>{item.product.name}</span>
+                    <span className="text-muted-foreground">× {Number(item.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">建立採購單後，此詢價單將標記為「已完成」。</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConvertOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleConvertToPO} disabled={converting || !convertSupplierId}>
+              {converting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <ShoppingCart className="mr-2 h-4 w-4" />建立採購單
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
