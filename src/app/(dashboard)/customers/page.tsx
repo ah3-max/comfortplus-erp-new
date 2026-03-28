@@ -86,7 +86,7 @@ export default function CustomersPage() {
   }, [quickOpen])
 
   async function handleQuickCreate() {
-    if (!quickName.trim()) { toast.error('請填寫客戶名稱'); return }
+    if (!quickName.trim()) { toast.error(dict.customers.quickNameRequired); return }
     setQuickSaving(true)
     const res = await fetch('/api/customers', {
       method: 'POST',

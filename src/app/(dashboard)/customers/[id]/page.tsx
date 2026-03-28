@@ -212,6 +212,7 @@ export default function CustomerDetailPage() {
   const router = useRouter()
   const { id } = useParams<{ id: string }>()
   const { dict } = useI18n()
+  const cu = dict.customers
   const [customer, setCustomer]   = useState<Customer | null>(null)
   const [loading, setLoading]     = useState(true)
   const [editOpen, setEditOpen]   = useState(false)
@@ -319,12 +320,12 @@ export default function CustomerDetailPage() {
 
   async function del(path: string, recordId: string) {
     const res = await fetch(`/api/customers/${id}/${path}?recordId=${recordId}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('已刪除'); load() }
-    else toast.error('刪除失敗')
+    if (res.ok) { toast.success(dict.common.deleteSuccess); load() }
+    else toast.error(dict.common.deleteFailed)
   }
 
   async function handleSubmitLog() {
-    if (!logContent.trim()) { toast.error('請填寫互動內容'); return }
+    if (!logContent.trim()) { toast.error(cu.interactionRequired); return }
     setSubmittingLog(true)
     const res = await fetch(`/api/customers/${id}/followup`, {
       method: 'POST',
@@ -342,7 +343,7 @@ export default function CustomerDetailPage() {
     })
     setSubmittingLog(false)
     if (res.ok) {
-      toast.success('互動記錄已儲存')
+      toast.success(cu.interactionSaved)
       setShowLogForm(false)
       setLogContent(''); setLogResult(''); setLogReaction('NEUTRAL')
       setLogNextDate(''); setLogNextAction(''); setLogHasSample(false); setLogType('CALL')
@@ -368,9 +369,9 @@ export default function CustomerDetailPage() {
       body: JSON.stringify({ isKeyAccount: newVal, ...(newVal && { keyAccountSince: new Date().toISOString() }) }),
     })
     if (res.ok) {
-      toast.success(newVal ? '已標記為心臟客戶' : '已取消心臟客戶標記')
+      toast.success(newVal ? cu.keyAccountMarked : cu.keyAccountUnmarked)
       fetchCustomer()
-    } else toast.error('操作失敗')
+    } else toast.error(dict.common.operationFailed)
   }
 
   async function handleSaveKeyAccount() {
@@ -387,12 +388,12 @@ export default function CustomerDetailPage() {
       }),
     })
     setSavingKa(false)
-    if (res.ok) { toast.success('設定已儲存'); fetchCustomer() }
-    else toast.error('儲存失敗')
+    if (res.ok) { toast.success(dict.common.saveSuccess); fetchCustomer() }
+    else toast.error(dict.common.saveFailed)
   }
 
   async function handleCreateOpportunity() {
-    if (!oppTitle.trim()) { toast.error('請填寫商機標題'); return }
+    if (!oppTitle.trim()) { toast.error(cu.opportunityTitleRequired); return }
     setSavingOpp(true)
     const res = await fetch('/api/sales-opportunities', {
       method: 'POST',
@@ -409,7 +410,7 @@ export default function CustomerDetailPage() {
     })
     setSavingOpp(false)
     if (res.ok) {
-      toast.success('商機已建立')
+      toast.success(cu.opportunityCreated)
       setShowOppForm(false)
       setOppTitle(''); setOppStage('PROSPECTING'); setOppProb('10')
       setOppAmount(''); setOppCloseDate(''); setOppNotes('')
@@ -1133,7 +1134,7 @@ export default function CustomerDetailPage() {
       <Dialog open={visitOpen} onOpenChange={o => !o && setVisitOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>新增拜訪紀錄</DialogTitle></DialogHeader>
-          <form onSubmit={async e => { e.preventDefault(); const res = await post('visits', visitForm); if (res.ok) { toast.success('已新增'); setVisitOpen(false); setVisitForm({ visitDate: new Date().toISOString().slice(0,10), purpose: '', content: '', result: '', nextAction: '', nextVisitDate: '' }); load() } else toast.error('失敗') }} className="space-y-4">
+          <form onSubmit={async e => { e.preventDefault(); const res = await post('visits', visitForm); if (res.ok) { toast.success(dict.common.createSuccess); setVisitOpen(false); setVisitForm({ visitDate: new Date().toISOString().slice(0,10), purpose: '', content: '', result: '', nextAction: '', nextVisitDate: '' }); load() } else toast.error(dict.common.saveFailed) }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>拜訪日期 *</Label><Input type="date" value={visitForm.visitDate} onChange={e => setVisitForm(p => ({ ...p, visitDate: e.target.value }))} required /></div>
               <div className="space-y-1.5"><Label>目的</Label>
@@ -1160,7 +1161,7 @@ export default function CustomerDetailPage() {
       <Dialog open={callOpen} onOpenChange={o => !o && setCallOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>新增電訪紀錄</DialogTitle></DialogHeader>
-          <form onSubmit={async e => { e.preventDefault(); const res = await post('calls', callForm); if (res.ok) { toast.success('已新增'); setCallOpen(false); setCallForm({ callDate: new Date().toISOString().slice(0,10), duration: '', purpose: '', content: '', result: '' }); load() } else toast.error('失敗') }} className="space-y-4">
+          <form onSubmit={async e => { e.preventDefault(); const res = await post('calls', callForm); if (res.ok) { toast.success(dict.common.createSuccess); setCallOpen(false); setCallForm({ callDate: new Date().toISOString().slice(0,10), duration: '', purpose: '', content: '', result: '' }); load() } else toast.error(dict.common.saveFailed) }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>電訪日期 *</Label><Input type="date" value={callForm.callDate} onChange={e => setCallForm(p => ({ ...p, callDate: e.target.value }))} required /></div>
               <div className="space-y-1.5"><Label>通話時長（分）</Label><Input type="number" value={callForm.duration} onChange={e => setCallForm(p => ({ ...p, duration: e.target.value }))} placeholder="5" min={1} /></div>
@@ -1184,7 +1185,7 @@ export default function CustomerDetailPage() {
       <Dialog open={sampleOpen} onOpenChange={o => !o && setSampleOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>新增樣品寄送紀錄</DialogTitle></DialogHeader>
-          <form onSubmit={async e => { e.preventDefault(); const res = await post('samples', sampleForm); if (res.ok) { toast.success('已新增'); setSampleOpen(false); setSampleForm({ sentDate: new Date().toISOString().slice(0,10), items: '', trackingNo: '', recipient: '', followUpDate: '', notes: '' }); load() } else toast.error('失敗') }} className="space-y-4">
+          <form onSubmit={async e => { e.preventDefault(); const res = await post('samples', sampleForm); if (res.ok) { toast.success(dict.common.createSuccess); setSampleOpen(false); setSampleForm({ sentDate: new Date().toISOString().slice(0,10), items: '', trackingNo: '', recipient: '', followUpDate: '', notes: '' }); load() } else toast.error(dict.common.saveFailed) }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5"><Label>寄送日期 *</Label><Input type="date" value={sampleForm.sentDate} onChange={e => setSampleForm(p => ({ ...p, sentDate: e.target.value }))} required /></div>
               <div className="space-y-1.5"><Label>收件人</Label><Input value={sampleForm.recipient} onChange={e => setSampleForm(p => ({ ...p, recipient: e.target.value }))} placeholder="收件聯絡人" /></div>
@@ -1276,6 +1277,7 @@ function profileToForm(p: any): UsageForm {
 }
 
 function UsageProfileTab({ customerId }: { customerId: string }) {
+  const { dict } = useI18n()
   const [form, setForm] = useState<UsageForm>(emptyUsageForm())
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1333,8 +1335,8 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     setSaving(false)
-    if (res.ok) toast.success('使用輪廓已儲存')
-    else toast.error('儲存失敗')
+    if (res.ok) toast.success(dict.common.saveSuccess)
+    else toast.error(dict.common.saveFailed)
   }
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -1755,6 +1757,7 @@ function deliveryProfileToForm(p: any): DeliveryForm {
 }
 
 function DeliveryProfileTab({ customerId }: { customerId: string }) {
+  const { dict } = useI18n()
   const [form, setForm] = useState<DeliveryForm>(emptyDeliveryForm())
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1793,8 +1796,8 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     setSaving(false)
-    if (res.ok) toast.success('配送條件已儲存')
-    else toast.error('儲存失敗')
+    if (res.ok) toast.success(dict.common.saveSuccess)
+    else toast.error(dict.common.saveFailed)
   }
 
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -1994,6 +1997,8 @@ function forecastToForm(f: any): ForecastFormData {
 }
 
 function DemandForecastTab({ customerId }: { customerId: string }) {
+  const { dict } = useI18n()
+  const cu = dict.customers
   const [form, setForm]           = useState<ForecastFormData>(emptyForecastForm())
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [storedForecast, setStoredForecast] = useState<{ analyticsUpdatedAt: string | null; predictedNextOrderDate: string | null; avgDaysBetweenOrders: number | null; avgCasesPerOrder: number | null; last3OrdersTrend: string | null } | null>(null)
@@ -2034,7 +2039,7 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
     const data = await res.json()
     setForm(forecastToForm(data))
     setSaving(false)
-    toast.success('已從使用輪廓同步')
+    toast.success(cu.syncedFromProfile)
   }
 
   function setField(k: keyof ForecastFormData, v: string) {
@@ -2062,8 +2067,8 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
       body: JSON.stringify(form),
     })
     setSaving(false)
-    if (res.ok) toast.success('銷售預估已儲存')
-    else toast.error('儲存失敗')
+    if (res.ok) toast.success(dict.common.saveSuccess)
+    else toast.error(dict.common.saveFailed)
   }
 
   useEffect(() => { load() }, [customerId])
@@ -2253,6 +2258,8 @@ const cSel = 'w-full rounded-md border border-input bg-background px-3 py-2 text
 const cTa  = `${cSel} resize-none`
 
 function ComplaintsTab({ customerId }: { customerId: string }) {
+  const { dict } = useI18n()
+  const cu = dict.customers
   const [records,      setRecords]      = useState<CRecord[]>([])
   const [loading,      setLoading]      = useState(true)
   const [saving,       setSaving]       = useState(false)
@@ -2326,8 +2333,8 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已新增客訴/售後紀錄'); setNewOpen(false); setNewForm(emptyNew()); setNewFiles([]); loadRecords() }
-    else toast.error('新增失敗')
+    if (res.ok) { toast.success(cu.afterSaleCreated); setNewOpen(false); setNewForm(emptyNew()); setNewFiles([]); loadRecords() }
+    else toast.error(dict.common.createFailed)
   }
 
   async function handleAddLog(e: React.FormEvent) {
@@ -2344,9 +2351,9 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('已新增處理紀錄'); setLogTarget(null); setLogForm(emptyLog()); setLogFiles([])
+      toast.success(cu.resolutionCreated); setLogTarget(null); setLogForm(emptyLog()); setLogFiles([])
       loadRecords(); loadLogs(logTarget)
-    } else toast.error('新增失敗')
+    } else toast.error(dict.common.createFailed)
   }
 
   async function handleUpdateStatus(e: React.FormEvent) {
@@ -2358,14 +2365,14 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
       body: JSON.stringify({ status: updateForm.status, resolution: updateForm.resolution, handler: updateForm.handler }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已更新狀態'); setUpdateTarget(null); loadRecords() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(dict.common.updateSuccess); setUpdateTarget(null); loadRecords() }
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleDelete(id: string) {
     const res = await fetch(`/api/customers/${customerId}/complaints?recordId=${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('已刪除'); loadRecords() }
-    else toast.error('刪除失敗')
+    if (res.ok) { toast.success(dict.common.deleteSuccess); loadRecords() }
+    else toast.error(dict.common.deleteFailed)
   }
 
   function toggleExpand(id: string) {
