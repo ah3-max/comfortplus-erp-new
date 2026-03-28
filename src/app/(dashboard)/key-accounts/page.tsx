@@ -377,6 +377,8 @@ interface NewCustomerDialogProps {
 }
 
 function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps) {
+  const { dict } = useI18n()
+  const ka = dict.keyAccounts
   const [form, setForm] = useState<NewCustomerForm>(EMPTY_NEW_FORM)
   const [saving, setSaving] = useState(false)
 
@@ -386,11 +388,11 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
 
   async function handleSubmit() {
     if (!form.name.trim()) {
-      toast.error('客戶名稱為必填')
+      toast.error(ka.nameRequired)
       return
     }
     if (!form.type) {
-      toast.error('請選擇客戶類型')
+      toast.error(ka.typeRequired)
       return
     }
     setSaving(true)
@@ -414,7 +416,7 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error ?? '新增失敗')
+        toast.error(data.error ?? dict.common.createFailed)
         return
       }
       toast.success(`已新增客戶「${data.name}」`)
@@ -422,7 +424,7 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
       onSuccess()
       onClose()
     } catch {
-      toast.error('網路錯誤，請重試')
+      toast.error(ka.networkError)
     } finally {
       setSaving(false)
     }
@@ -617,6 +619,8 @@ interface EditCustomerDialogProps {
 }
 
 function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialogProps) {
+  const { dict } = useI18n()
+  const ka = dict.keyAccounts
   const [form, setForm] = useState<Partial<NewCustomerForm>>({})
   const [saving, setSaving] = useState(false)
 
@@ -645,7 +649,7 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
   async function handleSave() {
     if (!customer) return
     if (!form.name?.trim()) {
-      toast.error('客戶名稱為必填')
+      toast.error(ka.nameRequired)
       return
     }
     setSaving(true)
@@ -668,14 +672,14 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error ?? '儲存失敗')
+        toast.error(data.error ?? dict.common.saveFailed)
         return
       }
-      toast.success('客戶資料已更新')
+      toast.success(ka.customerUpdated)
       onSuccess()
       onClose()
     } catch {
-      toast.error('網路錯誤，請重試')
+      toast.error(ka.networkError)
     } finally {
       setSaving(false)
     }
@@ -849,6 +853,8 @@ interface FollowUpDialogProps {
 }
 
 function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
+  const { dict } = useI18n()
+  const ka = dict.keyAccounts
   const [form, setForm] = useState<FollowUpForm>(EMPTY_FOLLOW_UP)
   const [saving, setSaving] = useState(false)
 
@@ -863,7 +869,7 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
   async function handleSubmit() {
     if (!customer) return
     if (!form.content.trim()) {
-      toast.error('請填寫跟進摘要')
+      toast.error(ka.followupRequired)
       return
     }
     setSaving(true)
@@ -880,14 +886,14 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
       })
       const data = await res.json()
       if (!res.ok) {
-        toast.error(data.error ?? '記錄失敗')
+        toast.error(data.error ?? dict.common.createFailed)
         return
       }
       toast.success(`已記錄「${customer.name}」的跟進`)
       onSuccess()
       onClose()
     } catch {
-      toast.error('網路錯誤，請重試')
+      toast.error(ka.networkError)
     } finally {
       setSaving(false)
     }
@@ -973,6 +979,7 @@ type RegionFilter = 'ALL' | SalesRegion
 
 export default function KeyAccountsPage() {
   const { dict } = useI18n()
+  const ka = dict.keyAccounts
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -991,7 +998,7 @@ export default function KeyAccountsPage() {
         cache: 'no-store',
       })
       if (!res.ok) {
-        toast.error('載入失敗')
+        toast.error(dict.common.loadFailed)
         return
       }
       // Fetch A + B grades separately since the API supports single grade param
@@ -1008,7 +1015,7 @@ export default function KeyAccountsPage() {
       const unique = Array.from(new Map(combined.map(c => [c.id, c])).values())
       setCustomers(unique)
     } catch {
-      toast.error('載入重要客戶失敗')
+      toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }

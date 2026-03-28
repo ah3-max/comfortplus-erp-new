@@ -62,6 +62,7 @@ function formatDate(str: string) {
 
 export default function PurchaseRequestsPage() {
   const { dict } = useI18n()
+  const pr = dict.purchaseRequests
 
   const statusConfig: Record<PRStatus, {
     label: string
@@ -116,7 +117,7 @@ export default function PurchaseRequestsPage() {
       setRequests(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('請購單載入失敗')
+      toast.error(pr.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -138,7 +139,7 @@ export default function PurchaseRequestsPage() {
       setWarehouses((wRes.data ?? wRes) || [])
       setUsers((uRes.data ?? uRes) || [])
       setProducts((pRes.data ?? pRes) || [])
-    }).catch(() => toast.error('載入參考資料失敗'))
+    }).catch(() => toast.error(pr.refLoadFailed))
   }, [formOpen])
 
   function openCreate() {
@@ -167,9 +168,9 @@ export default function PurchaseRequestsPage() {
   }
 
   async function handleSubmit() {
-    if (!form.handlerId) { toast.error('請選擇承辦人'); return }
-    if (!form.warehouseId) { toast.error('請選擇倉庫'); return }
-    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error('請確認品項資料'); return }
+    if (!form.handlerId) { toast.error(pr.handlerRequired); return }
+    if (!form.warehouseId) { toast.error(pr.warehouseRequired); return }
+    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error(pr.itemsRequired); return }
 
     setSaving(true)
     try {
@@ -184,7 +185,7 @@ export default function PurchaseRequestsPage() {
         const data = await res.json()
         throw new Error(data.error ?? '儲存失敗')
       }
-      toast.success(editTarget ? '請購單已更新' : '請購單已建立')
+      toast.success(editTarget ? pr.savedUpdated : pr.savedCreated)
       setFormOpen(false)
       fetchRequests()
     } catch (err) {
@@ -200,14 +201,14 @@ export default function PurchaseRequestsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`請購單已${label}`); fetchRequests() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(`${pr.title}${label}`); fetchRequests() }
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
     if (!confirm(`確定要取消請購單 ${no} 嗎？`)) return
     const res = await fetch(`/api/purchase-requests/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('請購單已取消'); fetchRequests() }
+    if (res.ok) { toast.success(pr.cancelSuccess); fetchRequests() }
     else {
       const data = await res.json()
       toast.error(data.error ?? '取消失敗')
@@ -227,8 +228,8 @@ export default function PurchaseRequestsPage() {
     setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))
   }
 
-  async function openConvertDialog(pr: PurchaseRequest) {
-    setConvertTarget(pr)
+  async function openConvertDialog(req: PurchaseRequest) {
+    setConvertTarget(req)
     setConvertSupplierId('')
     setConvertOpen(true)
     try {
@@ -236,13 +237,13 @@ export default function PurchaseRequestsPage() {
       const data = await res.json()
       setConvertSuppliers(Array.isArray(data) ? data : (data.data ?? []))
     } catch {
-      toast.error('載入供應商失敗')
+      toast.error(pr.supplierLoadFailed)
     }
   }
 
   async function handleConvertToPurchase() {
     if (!convertTarget) return
-    if (!convertSupplierId) { toast.error('請選擇供應商'); return }
+    if (!convertSupplierId) { toast.error(pr.supplierRequired); return }
     setConverting(true)
     try {
       // 1. Create purchase order first (so status only changes on success)
@@ -277,7 +278,7 @@ export default function PurchaseRequestsPage() {
       setConvertOpen(false)
       fetchRequests()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '轉採購失敗')
+      toast.error(err instanceof Error ? err.message : pr.convertFailed)
     } finally {
       setConverting(false)
     }

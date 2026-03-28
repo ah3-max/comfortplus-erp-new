@@ -143,6 +143,8 @@ function InboundDialog({
   onCreated: () => void
   products: Product[]
 }) {
+  const { dict } = useI18n()
+  const wm = dict.wms
   const [saving, setSaving] = useState(false)
   const [inboundType, setInboundType] = useState('')
   const [referenceNo, setReferenceNo] = useState('')
@@ -176,9 +178,9 @@ function InboundDialog({
   }
 
   async function handleSubmit() {
-    if (!inboundType) { toast.error('請選擇入庫類型'); return }
+    if (!inboundType) { toast.error(wm.inboundTypeRequired); return }
     if (items.some(r => !r.productId || !r.qty || Number(r.qty) <= 0)) {
-      toast.error('請填寫所有品項的品名與數量')
+      toast.error(wm.itemsRequired)
       return
     }
 
@@ -202,13 +204,13 @@ function InboundDialog({
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (!res.ok) { toast.error(data.error ?? '建立失敗'); return }
+      if (!res.ok) { toast.error(data.error ?? dict.common.createFailed); return }
       toast.success(`入庫單 ${data.inboundNumber} 已建立`)
       reset()
       onCreated()
       onClose()
     } catch {
-      toast.error('網路錯誤，請重試')
+      toast.error(wm.networkError)
     } finally {
       setSaving(false)
     }
@@ -372,6 +374,8 @@ function OutboundDialog({
   onCreated: () => void
   products: Product[]
 }) {
+  const { dict } = useI18n()
+  const wm = dict.wms
   const [saving, setSaving] = useState(false)
   const [outboundType, setOutboundType] = useState('')
   const [referenceNo, setReferenceNo] = useState('')
@@ -405,9 +409,9 @@ function OutboundDialog({
   }
 
   async function handleSubmit() {
-    if (!outboundType) { toast.error('請選擇出庫類型'); return }
+    if (!outboundType) { toast.error(wm.outboundTypeRequired); return }
     if (items.some(r => !r.productId || !r.qty || Number(r.qty) <= 0)) {
-      toast.error('請填寫所有品項的品名與數量')
+      toast.error(wm.itemsRequired)
       return
     }
 
@@ -429,13 +433,13 @@ function OutboundDialog({
         body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (!res.ok) { toast.error(data.error ?? '建立失敗'); return }
+      if (!res.ok) { toast.error(data.error ?? dict.common.createFailed); return }
       toast.success(`出庫單 ${data.outboundNumber} 已建立`)
       reset()
       onCreated()
       onClose()
     } catch {
-      toast.error('網路錯誤，請重試')
+      toast.error(wm.networkError)
     } finally {
       setSaving(false)
     }
@@ -580,6 +584,8 @@ function LocationDialog({
   warehouses: WmsWarehouse[]
   zones: WmsZone[]
 }) {
+  const { dict } = useI18n()
+  const wm = dict.wms
   const [saving, setSaving] = useState(false)
   const [warehouseId, setWarehouseId] = useState('')
   const [zoneId, setZoneId] = useState('')
@@ -614,8 +620,8 @@ function LocationDialog({
   }
 
   async function handleSubmit() {
-    if (!zoneId) { toast.error('請選擇所屬區域'); return }
-    if (!locationCode) { toast.error('請填寫至少一個通道/貨架/格位編碼'); return }
+    if (!zoneId) { toast.error(wm.locationZoneRequired); return }
+    if (!locationCode) { toast.error(wm.locationCodeRequired); return }
 
     setSaving(true)
     try {
@@ -629,13 +635,13 @@ function LocationDialog({
         }),
       })
       const data = await res.json()
-      if (!res.ok) { toast.error(data.error ?? '建立失敗'); return }
+      if (!res.ok) { toast.error(data.error ?? dict.common.createFailed); return }
       toast.success(`儲位 ${data.code} 已建立`)
       reset()
       onCreated()
       onClose()
     } catch {
-      toast.error('網路錯誤，請重試')
+      toast.error(wm.networkError)
     } finally {
       setSaving(false)
     }
@@ -798,7 +804,7 @@ export default function WmsPage() {
         const result = await res.json()
         setLocations(result.data ?? [])
       }
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [activeTab, search])
 

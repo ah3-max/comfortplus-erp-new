@@ -314,6 +314,8 @@ function IncidentDetail({ incident, users, onRefresh }: {
   users: { id: string; name: string }[]
   onRefresh: () => void
 }) {
+  const { dict } = useI18n()
+  const ic = dict.incidents
   const [tab,     setTab]     = useState<DetailTab>('overview')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [full,    setFull]    = useState<any>(null)
@@ -379,8 +381,8 @@ function IncidentDetail({ incident, users, onRefresh }: {
       body: JSON.stringify({ status, resolution }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已更新狀態'); setStatusOpen(false); onRefresh() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(dict.common.updateSuccess); setStatusOpen(false); onRefresh() }
+    else toast.error(dict.common.updateFailed)
   }
 
   const tabDef: { key: DetailTab; label: string; icon: React.ElementType; count?: number }[] = [
@@ -584,6 +586,7 @@ function AttachmentsTab({ incidentId, attachments, setAttachments }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setAttachments: (a: any[]) => void
 }) {
+  const { dict } = useI18n()
   const [uploading, setUploading] = useState(false)
   const [files,     setFiles]     = useState<File[]>([])
   const [attType,   setAttType]   = useState('SITE_PHOTO')
@@ -603,8 +606,8 @@ function AttachmentsTab({ incidentId, attachments, setAttachments }: {
       if (res.ok) {
         const data = await res.json()
         setAttachments([data, ...attachments])
-        toast.success('已上傳')
-      } else toast.error('上傳失敗')
+        toast.success(dict.common.uploadSuccess)
+      } else toast.error(dict.common.uploadFailed)
     }
     setFiles([]); setDesc(''); setUploading(false)
   }
@@ -703,6 +706,8 @@ function VisitLogsTab({ incidentId, visitLogs, setVisitLogs, open, setOpen, user
   open: boolean; setOpen: (o: boolean) => void
   users: { id: string; name: string }[]
 }) {
+  const { dict } = useI18n()
+  const ic = dict.incidents
   const [saving, setSaving] = useState(false)
   const emptyForm = () => ({ visitDate: new Date().toISOString().slice(0,10), visitType: '現場',
     participants: '', onSiteObservation: '', skinConditionNote: '', careProcessNote: '',
@@ -717,8 +722,8 @@ function VisitLogsTab({ incidentId, visitLogs, setVisitLogs, open, setOpen, user
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已新增現場紀錄'); setVisitLogs([await res.json(), ...visitLogs]); setOpen(false); setForm(emptyForm()) }
-    else toast.error('新增失敗')
+    if (res.ok) { toast.success(ic.visitLogAdded); setVisitLogs([await res.json(), ...visitLogs]); setOpen(false); setForm(emptyForm()) }
+    else toast.error(dict.common.createFailed)
   }
 
   return (
@@ -781,6 +786,8 @@ function AudioTab({ incidentId, records, setRecords, open, setOpen }: {
   records: any[]; setRecords: (r: any[]) => void
   open: boolean; setOpen: (o: boolean) => void
 }) {
+  const { dict } = useI18n()
+  const ic = dict.incidents
   const [saving,     setSaving]     = useState(false)
   const [file,       setFile]       = useState<File | null>(null)
   const [transcript, setTranscript] = useState('')
@@ -812,13 +819,13 @@ function AudioTab({ incidentId, records, setRecords, open, setOpen }: {
     if (res.ok) {
       const data = await res.json()
       setRecords([data, ...records])
-      toast.success('已上傳')
+      toast.success(dict.common.uploadSuccess)
       if (transcript && data.transcriptStatus === 'PROCESSING') {
         setPolling(data.id)
         setTimeout(() => pollRecord(data.id), 3000)
       }
       setOpen(false); setFile(null); setTranscript('')
-    } else toast.error('上傳失敗')
+    } else toast.error(dict.common.uploadFailed)
   }
 
   async function addTranscript(recordId: string, text: string) {
@@ -826,7 +833,7 @@ function AudioTab({ incidentId, records, setRecords, open, setOpen }: {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transcript: text }),
     })
     if (res.ok) {
-      toast.success('逐字稿已送出，AI 分析中...')
+      toast.success(ic.transcriptSent)
       setPolling(recordId)
       setTimeout(() => pollRecord(recordId), 3000)
       const updated = await res.json()
@@ -958,6 +965,8 @@ function TrainingTab({ incidentId, logs, setLogs, open, setOpen, users }: {
   open: boolean; setOpen: (o: boolean) => void
   users: { id: string; name: string }[]
 }) {
+  const { dict } = useI18n()
+  const ic = dict.incidents
   const [saving, setSaving] = useState(false)
   const emptyForm = () => ({ trainingDate: new Date().toISOString().slice(0,10), trainingTopic: '',
     trainerUserId: '', attendees: '', trainingContent: '', trainingResult: '', followupRequired: false, nextFollowupDate: '' })
@@ -974,8 +983,8 @@ function TrainingTab({ incidentId, logs, setLogs, open, setOpen, users }: {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已新增教育訓練紀錄'); setLogs([await res.json(), ...logs]); setOpen(false); setForm(emptyForm()) }
-    else toast.error('新增失敗')
+    if (res.ok) { toast.success(ic.trainingAdded); setLogs([await res.json(), ...logs]); setOpen(false); setForm(emptyForm()) }
+    else toast.error(dict.common.createFailed)
   }
 
   return (
@@ -1040,6 +1049,8 @@ function ActionItemsTab({ incidentId, items, setItems, open, setOpen, users }: {
   open: boolean; setOpen: (o: boolean) => void
   users: { id: string; name: string }[]
 }) {
+  const { dict } = useI18n()
+  const ic = dict.incidents
   const [saving, setSaving] = useState(false)
   const emptyForm = () => ({ actionTitle: '', actionDescription: '', ownerUserId: '', dueDate: '' })
   const [form, setForm] = useState(emptyForm())
@@ -1052,8 +1063,8 @@ function ActionItemsTab({ incidentId, items, setItems, open, setOpen, users }: {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已新增待辦'); setItems([...items, await res.json()]); setOpen(false); setForm(emptyForm()) }
-    else toast.error('新增失敗')
+    if (res.ok) { toast.success(ic.todoAdded); setItems([...items, await res.json()]); setOpen(false); setForm(emptyForm()) }
+    else toast.error(dict.common.createFailed)
   }
 
   async function updateStatus(itemId: string, status: string) {
@@ -1063,7 +1074,7 @@ function ActionItemsTab({ incidentId, items, setItems, open, setOpen, users }: {
     if (res.ok) {
       const updated = await res.json()
       setItems(items.map((i: Record<string, unknown>) => i.id === itemId ? updated : i))
-      toast.success('已更新')
+      toast.success(dict.common.updateSuccess)
     }
   }
 
@@ -1137,6 +1148,8 @@ function NewIncidentDialog({ open, onClose, customers, users, onSuccess }: {
   users: { id: string; name: string }[]
   onSuccess: () => void
 }) {
+  const { dict } = useI18n()
+  const ic = dict.incidents
   const [saving, setSaving] = useState(false)
   const emptyForm = () => ({
     customerId: '', incidentDate: new Date().toISOString().slice(0,10),
@@ -1156,8 +1169,8 @@ function NewIncidentDialog({ open, onClose, customers, users, onSuccess }: {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
     setSaving(false)
-    if (res.ok) { toast.success('已新增事件'); setForm(emptyForm()); onSuccess() }
-    else toast.error('新增失敗')
+    if (res.ok) { toast.success(ic.incidentCreated); setForm(emptyForm()); onSuccess() }
+    else toast.error(dict.common.createFailed)
   }
 
   return (

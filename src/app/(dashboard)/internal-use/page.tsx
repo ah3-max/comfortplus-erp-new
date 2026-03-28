@@ -128,7 +128,7 @@ export default function InternalUsePage() {
       const result = await res.json()
       setIuData(result.data ?? [])
       setIuPagination(result.pagination)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setIuLoading(false) }
   }, [iuSearch, iuPage])
 
@@ -142,7 +142,7 @@ export default function InternalUsePage() {
       const result = await res.json()
       setDgData(result.data ?? [])
       setDgPagination(result.pagination)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setDgLoading(false) }
   }, [dgSearch, dgFilterStatus, dgPage])
 
@@ -168,18 +168,18 @@ export default function InternalUsePage() {
     })
     if (res.ok) {
       const labels: Record<string, string> = { APPROVE: iu.statuses.APPROVED, ISSUE: iu.statuses.ISSUED, CANCEL: iu.statuses.CANCELLED }
-      toast.success(labels[action] ?? '已更新')
+      toast.success(labels[action] ?? dict.common.updateSuccess)
       fetchIU()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '操作失敗')
+      toast.error(d.error ?? dict.common.operationFailed)
     }
   }
 
   async function submitIU() {
-    if (!iuForm.warehouseId) { toast.error('請選擇倉庫'); return }
+    if (!iuForm.warehouseId) { toast.error(iu.warehouseRequired); return }
     const validItems = iuForm.items.filter(i => i.productId && i.quantity)
-    if (!validItems.length) { toast.error('請至少新增一個品項'); return }
+    if (!validItems.length) { toast.error(iu.itemsRequired); return }
     setSubmitting(true)
     try {
       const res = await fetch('/api/internal-use', {
@@ -187,16 +187,16 @@ export default function InternalUsePage() {
         body: JSON.stringify({ ...iuForm, items: validItems.map(i => ({ productId: i.productId, quantity: parseInt(i.quantity), notes: i.notes || null })) }),
       })
       if (!res.ok) throw new Error()
-      toast.success('領用單已建立')
+      toast.success(iu.requestCreated)
       setShowIuDialog(false)
       setIuForm({ warehouseId: '', purpose: 'SAMPLE', notes: '', items: [{ productId: '', quantity: '', notes: '' }] })
       fetchIU()
-    } catch { toast.error('建立失敗') }
+    } catch { toast.error(dict.common.createFailed) }
     finally { setSubmitting(false) }
   }
 
   async function submitDG() {
-    if (!dgForm.productId || !dgForm.warehouseId || !dgForm.quantity) { toast.error('請填寫必填欄位'); return }
+    if (!dgForm.productId || !dgForm.warehouseId || !dgForm.quantity) { toast.error(dict.common.requiredFields); return }
     setSubmitting(true)
     try {
       const res = await fetch('/api/defective-goods', {
@@ -204,16 +204,16 @@ export default function InternalUsePage() {
         body: JSON.stringify({ ...dgForm, quantity: parseInt(dgForm.quantity) }),
       })
       if (!res.ok) throw new Error()
-      toast.success('不良品紀錄已建立')
+      toast.success(iu.defectCreated)
       setShowDgDialog(false)
       setDgForm({ productId: '', warehouseId: '', source: 'QC_FAIL', quantity: '', defectType: '', severity: 'MINOR', description: '', batchNo: '' })
       fetchDG()
-    } catch { toast.error('建立失敗') }
+    } catch { toast.error(dict.common.createFailed) }
     finally { setSubmitting(false) }
   }
 
   async function resolveDefect() {
-    if (!resolveTarget || !resolveForm.disposition) { toast.error('請選擇處置方式'); return }
+    if (!resolveTarget || !resolveForm.disposition) { toast.error(iu.dispositionRequired); return }
     setSubmitting(true)
     try {
       const res = await fetch(`/api/defective-goods/${resolveTarget.id}`, {
@@ -221,10 +221,10 @@ export default function InternalUsePage() {
         body: JSON.stringify({ action: 'RESOLVE', ...resolveForm }),
       })
       if (!res.ok) throw new Error()
-      toast.success('已處置')
+      toast.success(iu.disposedSuccess)
       setResolveTarget(null)
       fetchDG()
-    } catch { toast.error('處置失敗') }
+    } catch { toast.error(iu.disposeFailed) }
     finally { setSubmitting(false) }
   }
 

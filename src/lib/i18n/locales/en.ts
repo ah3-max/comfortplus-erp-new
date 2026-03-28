@@ -70,6 +70,10 @@ const en = {
     updateFailed: 'Update failed',
     createFailed: 'Failed to create',
     operationFailed: 'Operation failed',
+    uploadSuccess: 'Uploaded successfully',
+    uploadFailed: 'Upload failed',
+    cancelSuccess: 'Cancelled',
+    requiredFields: 'Please fill in all required fields',
     phone: 'Phone',
     email: 'Email',
     address: 'Address',
@@ -562,6 +566,13 @@ const en = {
       COMPLETED: 'Completed',
       CANCELLED: 'Cancelled',
     },
+    warehouseRequired: 'Please create a warehouse first',
+    purchaseDataFailed: 'Failed to fetch purchase order data',
+    noItems: 'No items in purchase order',
+    requisitionCreated: 'Material requisition created',
+    requisitionFailed: 'Failed to create material requisition',
+    receiptCreated: 'Production receipt created',
+    receiptFailed: 'Failed to create production receipt',
   },
 
   seaFreight: {
@@ -895,6 +906,13 @@ const en = {
       SUPERSEDED: 'Superseded',
       ARCHIVED: 'Archived',
     },
+    loadFailed: 'Failed to load document list',
+    nameRequired: 'Please enter document name',
+    fileNameRequired: 'Please enter file name',
+    pathRequired: 'Please enter file path or URL',
+    addedSuccess: 'Document added',
+    updatedSuccess: 'Document info updated',
+    deletedSuccess: 'Document deleted',
   },
 
   retail: {
@@ -966,6 +984,15 @@ const en = {
     arAging: 'AR Aging',
     apAging: 'AP Aging',
     batchCost: 'Batch Cost',
+    incomeLoadFailed: 'Failed to load income statement',
+    balanceLoadFailed: 'Failed to load balance sheet',
+    journalLoadFailed: 'Failed to load journal entries',
+    trialBalanceFailed: 'Failed to load trial balance',
+    descriptionRequired: 'Please fill in description',
+    notBalanced: 'Debit and credit are not balanced',
+    journalCreated: 'Journal entry created',
+    postedSuccess: 'Posted successfully',
+    reversalCreated: 'Reversal entry created',
   },
 
   // ── Role Dashboard ──
@@ -1645,6 +1672,12 @@ const en = {
     searchPlaceholder: 'Search budget items...',
     noResults: 'No matching budgets found',
     noBudgets: 'No budgets yet',
+    descriptionRequired: 'Please fill in description and budget amount',
+    planDescriptionRequired: 'Please fill in description and plan amount',
+    budgetAdded: 'Budget item created',
+    budgetUpdated: 'Budget updated',
+    budgetDeleted: 'Budget item deleted',
+    planAdded: 'Cash plan created',
     statuses: {
       DRAFT: 'Draft',
       APPROVED: 'Approved',
@@ -1669,6 +1702,12 @@ const en = {
     newOutbound: 'New Outbound',
     searchPlaceholder: 'Search location or product...',
     noResults: 'No matching records found',
+    inboundTypeRequired: 'Please select inbound type',
+    outboundTypeRequired: 'Please select outbound type',
+    itemsRequired: 'Please fill in all item names and quantities',
+    networkError: 'Network error, please try again',
+    locationZoneRequired: 'Please select zone',
+    locationCodeRequired: 'Please fill in at least one aisle/rack/bin code',
     inboundStatuses: {
       PENDING: 'Pending',
       IN_PROGRESS: 'In Progress',
@@ -1693,6 +1732,12 @@ const en = {
     searchPlaceholder: 'Search asset no. or name...',
     noResults: 'No matching assets found',
     noAssets: 'No assets yet',
+    requiredFields: 'Please fill in required fields',
+    assetCreated: 'Asset created',
+    assetUpdated: 'Asset updated',
+    assetDisposed: 'Asset disposed',
+    journalPosted: 'Posted',
+    journalFailed: 'Failed to post',
     statuses: {
       IN_USE: 'In Use',
       IDLE: 'Idle',
@@ -1910,6 +1955,13 @@ const en = {
       RESOLVED: 'Resolved',
       CANCELLED: 'Cancelled',
     },
+    warehouseRequired: 'Please select warehouse',
+    itemsRequired: 'Please add at least one item',
+    requestCreated: 'Usage request created',
+    defectCreated: 'Defective record created',
+    dispositionRequired: 'Please select disposition',
+    disposedSuccess: 'Disposed',
+    disposeFailed: 'Failed to dispose',
   },
 
   // ── Sales Invoices ──
@@ -2060,6 +2112,17 @@ const en = {
       REJECTED: 'Rejected',
       CANCELLED: 'Cancelled',
     },
+    loadFailed: 'Failed to load purchase requests',
+    refLoadFailed: 'Failed to load reference data',
+    supplierLoadFailed: 'Failed to load suppliers',
+    handlerRequired: 'Please select handler',
+    warehouseRequired: 'Please select warehouse',
+    itemsRequired: 'Please check item data',
+    savedUpdated: 'Purchase request updated',
+    savedCreated: 'Purchase request created',
+    cancelSuccess: 'Purchase request cancelled',
+    supplierRequired: 'Please select supplier',
+    convertFailed: 'Failed to convert to PO',
   },
 
   // ── RFQ ──
@@ -2105,6 +2168,15 @@ const en = {
       COMPLETED: 'Completed',
       CANCELLED: 'Cancelled',
     },
+    loadFailed: 'Failed to load material requisitions',
+    refLoadFailed: 'Failed to load reference data',
+    productionOrderRequired: 'Please select production order',
+    fromWarehouseRequired: 'Please select source warehouse',
+    toWarehouseRequired: 'Please select destination warehouse',
+    itemsRequired: 'Please check item data',
+    savedUpdated: 'Material requisition updated',
+    savedCreated: 'Material requisition created',
+    cancelSuccess: 'Material requisition cancelled',
   },
 
   // ── Production Receipts ──
@@ -2314,6 +2386,18 @@ const en = {
     customer: 'Customer',
     notes: 'Notes',
     submitSuccess: 'Submitted successfully',
+    speechNotSupported: 'Speech input not supported in this browser, please use recording upload',
+    speechError: 'Speech recognition error',
+    audioUploaded: 'Recording uploaded successfully',
+    audioUploadFailed: 'Failed to upload recording',
+    customerRequired: 'Please select a customer first',
+    contentRequired: 'Please enter record content',
+    recordSent: 'Record submitted',
+    sendFailed: 'Failed to submit, please try again',
+    descriptionRequired: 'Please enter description',
+    complaintCreated: 'Complaint created',
+    complaintFailed: 'Failed to create complaint',
+    iosNotSupported: 'iOS does not support live speech input, please use recording upload',
   },
 
   // ── Daily Report ──
@@ -2424,6 +2508,24 @@ const en = {
       DONE: 'Done',
       CANCELLED: 'Cancelled',
     },
+  },
+
+  // ── Incident Center ──
+  incidents: {
+    visitLogAdded: 'Visit log added',
+    transcriptSent: 'Transcript submitted, AI analyzing...',
+    trainingAdded: 'Training record added',
+    todoAdded: 'Todo item added',
+    incidentCreated: 'Incident created',
+  },
+
+  // ── Key Accounts ──
+  keyAccounts: {
+    nameRequired: 'Customer name is required',
+    typeRequired: 'Please select customer type',
+    followupRequired: 'Please fill in follow-up summary',
+    networkError: 'Network error, please try again',
+    customerUpdated: 'Customer updated',
   },
 } as const
 

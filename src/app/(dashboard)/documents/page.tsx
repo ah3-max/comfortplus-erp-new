@@ -152,6 +152,7 @@ function FileTypeIcon({ mimeType, fileName }: { mimeType: string | null; fileNam
 
 export default function DocumentsPage() {
   const { dict } = useI18n()
+  const dc = dict.documents
   // List state
   const [documents, setDocuments] = useState<DocumentRecord[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
@@ -195,7 +196,7 @@ export default function DocumentsPage() {
         setDocuments(json.data ?? [])
         setPagination(json.pagination ?? null)
       } catch {
-        toast.error('無法載入文件列表')
+        toast.error(dc.loadFailed)
       } finally {
         setLoading(false)
       }
@@ -218,15 +219,15 @@ export default function DocumentsPage() {
 
   async function handleUpload() {
     if (!uploadForm.documentName.trim()) {
-      toast.error('請輸入文件名稱')
+      toast.error(dc.nameRequired)
       return
     }
     if (!uploadForm.fileName.trim()) {
-      toast.error('請輸入檔案名稱')
+      toast.error(dc.fileNameRequired)
       return
     }
     if (!uploadForm.fileUrl.trim()) {
-      toast.error('請輸入檔案路徑或 URL')
+      toast.error(dc.pathRequired)
       return
     }
 
@@ -247,14 +248,14 @@ export default function DocumentsPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '上傳失敗')
+        throw new Error(err.error ?? dict.common.saveFailed)
       }
-      toast.success('文件已新增')
+      toast.success(dc.addedSuccess)
       setUploadOpen(false)
       setUploadForm(EMPTY_UPLOAD)
       loadDocuments(1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '上傳失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setUploading(false)
     }
@@ -275,7 +276,7 @@ export default function DocumentsPage() {
   async function handleEdit() {
     if (!editTarget) return
     if (!editForm.documentName.trim()) {
-      toast.error('請輸入文件名稱')
+      toast.error(dc.nameRequired)
       return
     }
 
@@ -292,14 +293,14 @@ export default function DocumentsPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '儲存失敗')
+        throw new Error(err.error ?? dict.common.saveFailed)
       }
-      toast.success('已更新文件資訊')
+      toast.success(dc.updatedSuccess)
       setEditOpen(false)
       setEditTarget(null)
       loadDocuments(1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '儲存失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setEditSaving(false)
     }
@@ -314,13 +315,13 @@ export default function DocumentsPage() {
       const res = await fetch(`/api/documents/${deleteTarget.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '刪除失敗')
+        throw new Error(err.error ?? dict.common.deleteFailed)
       }
-      toast.success('文件已刪除')
+      toast.success(dc.deletedSuccess)
       setDeleteTarget(null)
       loadDocuments(1)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '刪除失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.deleteFailed)
     } finally {
       setDeleting(false)
     }

@@ -82,6 +82,7 @@ function varianceColor(variance: number) {
 
 export default function BudgetPage() {
   const { dict } = useI18n()
+  const bu = dict.budget
   const [tab, setTab] = useState('budget')
   const [year, setYear] = useState(new Date().getFullYear())
   const [budgets, setBudgets] = useState<BudgetRow[]>([])
@@ -133,7 +134,7 @@ export default function BudgetPage() {
   // ── Create Budget ──────────────────────────────────────────────────────────
   async function handleSaveBudget() {
     if (!newBudget.description || !newBudget.budgetAmount) {
-      toast.error('請填寫說明及預算金額')
+      toast.error(bu.descriptionRequired)
       return
     }
     setSaving(true)
@@ -153,10 +154,10 @@ export default function BudgetPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error ?? '建立失敗')
+        toast.error(err.error ?? dict.common.createFailed)
         return
       }
-      toast.success('預算項目已建立')
+      toast.success(bu.budgetAdded)
       setBudgetDialog(false)
       setNewBudget({ budgetMonth: '', department: '', category: 'REVENUE', description: '', budgetAmount: '', notes: '' })
       fetchBudgets()
@@ -182,7 +183,7 @@ export default function BudgetPage() {
   async function handleEdit() {
     if (!selectedBudget) return
     if (!editBudget.description || !editBudget.budgetAmount) {
-      toast.error('請填寫說明及預算金額')
+      toast.error(bu.descriptionRequired)
       return
     }
     setSaving(true)
@@ -199,10 +200,10 @@ export default function BudgetPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error ?? '更新失敗')
+        toast.error(err.error ?? dict.common.updateFailed)
         return
       }
-      toast.success('預算已更新')
+      toast.success(bu.budgetUpdated)
       setEditDialog(false)
       setSelectedBudget(null)
       fetchBudgets()
@@ -226,10 +227,10 @@ export default function BudgetPage() {
       const res = await fetch(`/api/budget/${selectedBudget.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error ?? '刪除失敗')
+        toast.error(err.error ?? dict.common.deleteFailed)
         return
       }
-      toast.success('預算項目已刪除')
+      toast.success(bu.budgetDeleted)
       setDeleteDialog(false)
       setSelectedBudget(null)
       fetchBudgets()
@@ -241,7 +242,7 @@ export default function BudgetPage() {
   // ── Create Cash Flow ────────────────────────────────────────────────────────
   async function handleSaveCf() {
     if (!newCf.description || !newCf.plannedAmount) {
-      toast.error('請填寫說明及計畫金額')
+      toast.error(bu.planDescriptionRequired)
       return
     }
     setSaving(true)
@@ -261,10 +262,10 @@ export default function BudgetPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error ?? '建立失敗')
+        toast.error(err.error ?? dict.common.createFailed)
         return
       }
-      toast.success('資金計畫已建立')
+      toast.success(bu.planAdded)
       setCfDialog(false)
       setNewCf({ planMonth: '1', flowType: 'INFLOW', category: 'SALES_RECEIPT', description: '', plannedAmount: '', actualAmount: '' })
       fetchCashFlow()

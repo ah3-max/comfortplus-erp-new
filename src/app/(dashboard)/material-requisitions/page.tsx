@@ -69,6 +69,7 @@ const emptyForm: FormData = {
 
 export default function MaterialRequisitionsPage() {
   const { dict } = useI18n()
+  const mr = dict.materialRequisitions
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -120,7 +121,7 @@ export default function MaterialRequisitionsPage() {
       setRequisitions(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('領料單載入失敗')
+      toast.error(mr.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -144,7 +145,7 @@ export default function MaterialRequisitionsPage() {
       setUsers((uRes.data ?? uRes) || [])
       setProducts((pRes.data ?? pRes) || [])
       setProductionOrders((poRes.data ?? poRes) || [])
-    }).catch(() => toast.error('載入參考資料失敗'))
+    }).catch(() => toast.error(mr.refLoadFailed))
   }, [formOpen])
 
   function openCreate() {
@@ -176,10 +177,10 @@ export default function MaterialRequisitionsPage() {
   }
 
   async function handleSubmit() {
-    if (!form.productionOrderId) { toast.error('請選擇生產工單'); return }
-    if (!form.fromWarehouseId) { toast.error('請選擇出料倉庫'); return }
-    if (!form.toWarehouseId) { toast.error('請選擇收料倉庫'); return }
-    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error('請確認品項資料'); return }
+    if (!form.productionOrderId) { toast.error(mr.productionOrderRequired); return }
+    if (!form.fromWarehouseId) { toast.error(mr.fromWarehouseRequired); return }
+    if (!form.toWarehouseId) { toast.error(mr.toWarehouseRequired); return }
+    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error(mr.itemsRequired); return }
 
     setSaving(true)
     try {
@@ -194,7 +195,7 @@ export default function MaterialRequisitionsPage() {
         const data = await res.json()
         throw new Error(data.error ?? '儲存失敗')
       }
-      toast.success(editTarget ? '領料單已更新' : '領料單已建立')
+      toast.success(editTarget ? mr.savedUpdated : mr.savedCreated)
       setFormOpen(false)
       fetchRequisitions()
     } catch (err) {
@@ -210,14 +211,14 @@ export default function MaterialRequisitionsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`領料單已${label}`); fetchRequisitions() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(`${mr.title}${label}`); fetchRequisitions() }
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
     if (!confirm(`確定要取消領料單 ${no} 嗎？`)) return
     const res = await fetch(`/api/material-requisitions/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('領料單已取消'); fetchRequisitions() }
+    if (res.ok) { toast.success(mr.cancelSuccess); fetchRequisitions() }
     else {
       const data = await res.json()
       toast.error(data.error ?? '取消失敗')

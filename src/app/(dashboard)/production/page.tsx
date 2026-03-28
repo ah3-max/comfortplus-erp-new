@@ -151,6 +151,7 @@ function getAutoDateFields(nextStatus: ProductionStatus): Record<string, string>
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function ProductionPage() {
   const { dict } = useI18n()
+  const po = dict.production
   const [orders, setOrders]         = useState<ProductionOrder[]>([])
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
@@ -265,11 +266,11 @@ export default function ProductionPage() {
       const wRes = await fetch('/api/warehouses?pageSize=10')
       const wData = await wRes.json()
       const warehouses = wData.data ?? wData ?? []
-      if (warehouses.length < 1) { toast.error('請先建立倉庫'); return }
+      if (warehouses.length < 1) { toast.error(po.warehouseRequired); return }
 
       // Get products from purchase order items
       const poRes = await fetch(`/api/purchases/${o.purchaseOrder.id}`)
-      if (!poRes.ok) { toast.error('無法取得採購單資料'); return }
+      if (!poRes.ok) { toast.error(po.purchaseDataFailed); return }
       const poData = await poRes.json()
       const items = (poData.items ?? []).map((item: { productId: string; product?: { name: string }; quantity: number }) => ({
         productId: item.productId,
@@ -281,7 +282,7 @@ export default function ProductionPage() {
         memo: '',
       }))
 
-      if (items.length === 0) { toast.error('採購單無品項，無法建立領料單'); return }
+      if (items.length === 0) { toast.error(po.noItems); return }
 
       const res = await fetch('/api/material-requisitions', {
         method: 'POST',
@@ -297,12 +298,12 @@ export default function ProductionPage() {
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        throw new Error(d.error ?? '建立失敗')
+        throw new Error(d.error ?? dict.common.createFailed)
       }
       const data = await res.json()
-      toast.success(`已建立領料單 ${data.requisitionNumber ?? ''}`)
+      toast.success(`${po.requisitionCreated} ${data.requisitionNumber ?? ''}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '建立領料單失敗')
+      toast.error(err instanceof Error ? err.message : po.requisitionFailed)
     } finally {
       setCreatingRequisition(null)
     }
@@ -315,11 +316,11 @@ export default function ProductionPage() {
       const wRes = await fetch('/api/warehouses?pageSize=10')
       const wData = await wRes.json()
       const warehouses = wData.data ?? wData ?? []
-      if (warehouses.length < 1) { toast.error('請先建立倉庫'); return }
+      if (warehouses.length < 1) { toast.error(po.warehouseRequired); return }
 
       // Get products from purchase order items
       const poRes = await fetch(`/api/purchases/${o.purchaseOrder.id}`)
-      if (!poRes.ok) { toast.error('無法取得採購單資料'); return }
+      if (!poRes.ok) { toast.error(po.purchaseDataFailed); return }
       const poData = await poRes.json()
       const items = (poData.items ?? []).map((item: { productId: string; product?: { name: string }; quantity: number }) => ({
         productId: item.productId,
@@ -331,7 +332,7 @@ export default function ProductionPage() {
         memo: '',
       }))
 
-      if (items.length === 0) { toast.error('採購單無品項，無法建立入庫單'); return }
+      if (items.length === 0) { toast.error(po.noItems); return }
 
       const res = await fetch('/api/production-receipts', {
         method: 'POST',
@@ -347,12 +348,12 @@ export default function ProductionPage() {
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        throw new Error(d.error ?? '建立失敗')
+        throw new Error(d.error ?? dict.common.createFailed)
       }
       const data = await res.json()
-      toast.success(`已建立入庫單 ${data.receiptNumber ?? ''}`)
+      toast.success(`${po.receiptCreated} ${data.receiptNumber ?? ''}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '建立入庫單失敗')
+      toast.error(err instanceof Error ? err.message : po.receiptFailed)
     } finally {
       setCreatingReceipt(null)
     }

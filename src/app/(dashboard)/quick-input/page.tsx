@@ -246,6 +246,7 @@ function hasSpeechRecognition(): boolean {
 
 export default function QuickInputPage() {
   const { dict } = useI18n()
+  const qi = dict.quickInput
   // --- All customers (loaded once) ---
   const [allCustomers, setAllCustomers] = useState<Customer[]>([])
 
@@ -314,7 +315,7 @@ export default function QuickInputPage() {
         (window as unknown as { SpeechRecognition?: new () => unknown }).SpeechRecognition ||
         (window as unknown as { webkitSpeechRecognition?: new () => unknown }).webkitSpeechRecognition
       if (!SpeechRecognition) {
-        toast.error('此瀏覽器不支援語音輸入，請改用「錄音上傳」')
+        toast.error(qi.speechNotSupported)
         return
       }
 
@@ -353,7 +354,7 @@ export default function QuickInputPage() {
       }
 
       recognition.onerror = () => {
-        toast.error('語音辨識發生錯誤')
+        toast.error(qi.speechError)
         if (target === 'note') setIsListening(false)
         else setIsComplaintListening(false)
       }
@@ -429,12 +430,12 @@ export default function QuickInputPage() {
               url: data.url ?? '',
             },
           ])
-          toast.success('錄音上傳成功')
+          toast.success(qi.audioUploaded)
         } else {
-          toast.error('錄音上傳失敗')
+          toast.error(qi.audioUploadFailed)
         }
       } catch {
-        toast.error('錄音上傳失敗')
+        toast.error(qi.audioUploadFailed)
       } finally {
         setAudioUploading(false)
         setAudioProgress(0)
@@ -493,11 +494,11 @@ export default function QuickInputPage() {
 
   const handleSubmitNote = useCallback(async () => {
     if (!selectedCustomer) {
-      toast.error('請先選擇客戶')
+      toast.error(qi.customerRequired)
       return
     }
     if (!notes.trim()) {
-      toast.error('請輸入紀錄內容')
+      toast.error(qi.contentRequired)
       return
     }
 
@@ -514,14 +515,14 @@ export default function QuickInputPage() {
       })
 
       if (res.ok) {
-        toast.success('紀錄已送出')
+        toast.success(qi.recordSent)
         setNotes('')
         setSelectedCustomer(null)
       } else {
-        toast.error('送出失敗，請重試')
+        toast.error(qi.sendFailed)
       }
     } catch {
-      toast.error('送出失敗，請重試')
+      toast.error(qi.sendFailed)
     } finally {
       setSubmitting(false)
     }
@@ -533,11 +534,11 @@ export default function QuickInputPage() {
 
   const handleSubmitComplaint = useCallback(async () => {
     if (!complaintCustomer) {
-      toast.error('請先選擇客戶')
+      toast.error(qi.customerRequired)
       return
     }
     if (!complaintDesc.trim()) {
-      toast.error('請輸入描述')
+      toast.error(qi.descriptionRequired)
       return
     }
 
@@ -568,14 +569,14 @@ export default function QuickInputPage() {
       })
 
       if (res.ok) {
-        toast.success('客訴已建立')
+        toast.success(qi.complaintCreated)
         setComplaintOpen(false)
         resetComplaintForm()
       } else {
-        toast.error('客訴建立失敗')
+        toast.error(qi.complaintFailed)
       }
     } catch {
-      toast.error('客訴建立失敗')
+      toast.error(qi.complaintFailed)
     } finally {
       setComplaintSubmitting(false)
     }
@@ -656,7 +657,7 @@ export default function QuickInputPage() {
               } ${!speechSupported ? 'opacity-60' : ''}`}
               onClick={() => {
                 if (!speechSupported) {
-                  toast.error('iOS 不支援即時語音輸入，請改用「錄音上傳」', { duration: 3000 })
+                  toast.error(qi.iosNotSupported, { duration: 3000 })
                   return
                 }
                 if (isListening) stopListening('note')

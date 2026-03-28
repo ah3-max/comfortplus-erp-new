@@ -125,6 +125,7 @@ function buildDepSchedule(cost: number, salvage: number, lifeYears: number, star
 
 export default function FixedAssetsPage() {
   const { dict } = useI18n()
+  const fa = dict.fixedAssets
   const [assets, setAssets] = useState<FixedAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -175,7 +176,7 @@ export default function FixedAssetsPage() {
   // ── Create ──────────────────────────────────────────────────────────────────
   async function handleCreate() {
     if (!form.name || !form.purchaseDate || !form.purchaseAmount) {
-      toast.error('請填寫必填欄位')
+      toast.error(fa.requiredFields)
       return
     }
     setSaving(true)
@@ -192,10 +193,10 @@ export default function FixedAssetsPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error ?? '建立失敗')
+        toast.error(err.error ?? dict.common.createFailed)
         return
       }
-      toast.success('資產已建立')
+      toast.success(fa.assetCreated)
       setCreateOpen(false)
       setForm({ name: '', category: 'EQUIPMENT', description: '', location: '', serialNo: '', purchaseDate: '', purchaseAmount: '', salvageValue: '0', usefulLifeYears: '5', depreciationMethod: 'SL', notes: '' })
       fetchAssets()
@@ -226,7 +227,7 @@ export default function FixedAssetsPage() {
   async function handleEdit() {
     if (!detail) return
     if (!editForm.name || !editForm.purchaseDate || !editForm.purchaseAmount) {
-      toast.error('請填寫必填欄位')
+      toast.error(fa.requiredFields)
       return
     }
     setSaving(true)
@@ -250,10 +251,10 @@ export default function FixedAssetsPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error ?? '更新失敗')
+        toast.error(err.error ?? dict.common.updateFailed)
         return
       }
-      toast.success('資產已更新')
+      toast.success(fa.assetUpdated)
       setEditOpen(false)
       await refreshDetail(detail.id)
       fetchAssets()
@@ -278,10 +279,10 @@ export default function FixedAssetsPage() {
       })
       if (!res.ok) {
         const err = await res.json()
-        toast.error(err.error ?? '處分失敗')
+        toast.error(err.error ?? dict.common.operationFailed)
         return
       }
-      toast.success('資產已處分')
+      toast.success(fa.assetDisposed)
       setDisposeDialog(false)
       refreshDetail(detail.id)
       fetchAssets()
@@ -299,10 +300,10 @@ export default function FixedAssetsPage() {
       body: JSON.stringify({ action: 'POST_DEPRECIATION', depreciationId: depId }),
     })
     if (res.ok) {
-      toast.success('已入帳')
+      toast.success(fa.journalPosted)
       refreshDetail(detail.id)
     } else {
-      toast.error('入帳失敗')
+      toast.error(fa.journalFailed)
     }
   }
 

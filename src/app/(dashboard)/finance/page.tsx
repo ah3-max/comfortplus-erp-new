@@ -89,6 +89,7 @@ const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', 
 
 export default function FinancePage() {
   const { dict } = useI18n()
+  const fi = dict.finance
   const [tab, setTab] = useState('income')
   const [year, setYear] = useState(CURRENT_YEAR)
   const [month, setMonth] = useState<number | ''>('')
@@ -137,7 +138,7 @@ export default function FinancePage() {
       const res = await fetch(`/api/finance/income-statement?${params}`)
       if (!res.ok) throw new Error()
       setIncomeStmt(await res.json())
-    } catch { toast.error('損益表載入失敗') }
+    } catch { toast.error(fi.incomeLoadFailed) }
     finally { setLoadingIncome(false) }
   }, [year, month])
 
@@ -147,7 +148,7 @@ export default function FinancePage() {
       const res = await fetch('/api/finance/balance-sheet')
       if (!res.ok) throw new Error()
       setBalanceSheet(await res.json())
-    } catch { toast.error('資產負債表載入失敗') }
+    } catch { toast.error(fi.balanceLoadFailed) }
     finally { setLoadingBalance(false) }
   }, [])
 
@@ -158,7 +159,7 @@ export default function FinancePage() {
       const result = await res.json()
       setJournals(result.data ?? [])
       setJournalPagination(result.pagination)
-    } catch { toast.error('傳票載入失敗') }
+    } catch { toast.error(fi.journalLoadFailed) }
     finally { setLoadingJournals(false) }
   }, [journalPage])
 
@@ -168,7 +169,7 @@ export default function FinancePage() {
       const res = await fetch(`/api/finance/trial-balance?startDate=${start}&endDate=${end}`)
       if (!res.ok) throw new Error()
       setTrialData(await res.json())
-    } catch { toast.error('餘額試算表載入失敗') }
+    } catch { toast.error(fi.trialBalanceFailed) }
     finally { setLoadingTrial(false) }
   }, [trialStart, trialEnd])
 
@@ -202,8 +203,8 @@ export default function FinancePage() {
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01
 
   async function submitJournal() {
-    if (!jForm.description) { toast.error('請填寫摘要'); return }
-    if (!isBalanced) { toast.error('借貸不平衡'); return }
+    if (!jForm.description) { toast.error(fi.descriptionRequired); return }
+    if (!isBalanced) { toast.error(fi.notBalanced); return }
     setSubmitting(true)
     try {
       const lines = jForm.lines
@@ -214,7 +215,7 @@ export default function FinancePage() {
         body: JSON.stringify({ ...jForm, lines }),
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
-      toast.success('傳票已建立')
+      toast.success(fi.journalCreated)
       setShowJournalDialog(false)
       setJForm({ entryDate: new Date().toISOString().slice(0, 10), description: '', notes: '', lines: [{ accountId: '', debit: '', credit: '', description: '' }, { accountId: '', debit: '', credit: '', description: '' }] })
       fetchJournals()
@@ -227,15 +228,15 @@ export default function FinancePage() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'POST' }),
     })
-    if (res.ok) { toast.success('已過帳'); fetchJournals() }
-    else { const d = await res.json(); toast.error(d.error ?? '過帳失敗') }
+    if (res.ok) { toast.success(fi.postedSuccess); fetchJournals() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
   }
 
   async function deleteEntry(id: string) {
     if (!confirm('確定刪除此傳票？')) return
     const res = await fetch(`/api/finance/journal-entries/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('已刪除'); fetchJournals() }
-    else { const d = await res.json(); toast.error(d.error ?? '刪除失敗') }
+    if (res.ok) { toast.success(dict.common.deleteSuccess); fetchJournals() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.deleteFailed) }
   }
 
   async function reverseEntry(id: string) {
@@ -244,8 +245,8 @@ export default function FinancePage() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'REVERSE' }),
     })
-    if (res.ok) { toast.success('沖銷傳票已建立'); fetchJournals() }
-    else { const d = await res.json(); toast.error(d.error ?? '沖銷失敗') }
+    if (res.ok) { toast.success(fi.reversalCreated); fetchJournals() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
   }
 
   const chartData = incomeStmt?.monthlyData.map(d => ({
