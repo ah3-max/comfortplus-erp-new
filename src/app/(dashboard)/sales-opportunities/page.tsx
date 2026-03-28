@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, Search, Loader2, TrendingUp, DollarSign, Target, Users, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Search, Loader2, TrendingUp, DollarSign, Target, Users, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 /* ── Types ── */
 interface Opportunity {
@@ -34,18 +35,18 @@ interface Opportunity {
 interface Customer { id: string; name: string; code: string }
 interface User { id: string; name: string }
 
-/* ── Stage config ── */
-const STAGE_CONFIG: Record<string, { label: string; color: string; prob: number }> = {
-  PROSPECTING:    { label: '潛在開發',  color: 'bg-slate-100 text-slate-600',    prob: 10 },
-  CONTACTED:      { label: '已接觸',   color: 'bg-blue-100 text-blue-700',      prob: 20 },
-  VISITED:        { label: '已拜訪',   color: 'bg-indigo-100 text-indigo-700',  prob: 35 },
-  NEEDS_ANALYSIS: { label: '需求確認', color: 'bg-purple-100 text-purple-700',  prob: 50 },
-  SAMPLING:       { label: '樣品試用', color: 'bg-teal-100 text-teal-700',      prob: 60 },
-  QUOTED:         { label: '已報價',   color: 'bg-amber-100 text-amber-700',    prob: 70 },
-  NEGOTIATING:    { label: '議價中',   color: 'bg-orange-100 text-orange-700',  prob: 80 },
-  REGULAR_ORDER:  { label: '穩定成交', color: 'bg-green-100 text-green-700',    prob: 95 },
-  LOST:           { label: '已失單',   color: 'bg-red-100 text-red-600',        prob: 0  },
-  INACTIVE:       { label: '暫停',     color: 'bg-slate-100 text-slate-400',    prob: 0  },
+/* ── Stage config (colors only, labels come from i18n) ── */
+const STAGE_CONFIG: Record<string, { color: string; prob: number }> = {
+  PROSPECTING:    { color: 'bg-slate-100 text-slate-600',    prob: 10 },
+  CONTACTED:      { color: 'bg-blue-100 text-blue-700',      prob: 20 },
+  VISITED:        { color: 'bg-indigo-100 text-indigo-700',  prob: 35 },
+  NEEDS_ANALYSIS: { color: 'bg-purple-100 text-purple-700',  prob: 50 },
+  SAMPLING:       { color: 'bg-teal-100 text-teal-700',      prob: 60 },
+  QUOTED:         { color: 'bg-amber-100 text-amber-700',    prob: 70 },
+  NEGOTIATING:    { color: 'bg-orange-100 text-orange-700',  prob: 80 },
+  REGULAR_ORDER:  { color: 'bg-green-100 text-green-700',    prob: 95 },
+  LOST:           { color: 'bg-red-100 text-red-600',        prob: 0  },
+  INACTIVE:       { color: 'bg-slate-100 text-slate-400',    prob: 0  },
 }
 
 const STAGES_ACTIVE = ['PROSPECTING','CONTACTED','VISITED','NEEDS_ANALYSIS','SAMPLING','QUOTED','NEGOTIATING','REGULAR_ORDER']
@@ -80,6 +81,9 @@ function OpportunityFormDialog({
   customers: Customer[]
   users: User[]
 }) {
+  const { dict } = useI18n()
+  const d = dict.pipelineExt
+  const c = dict.common
   const isEdit = !!editOpp
   const [loading, setLoading] = useState(false)
   const [customerSearch, setCustomerSearch] = useState('')
@@ -128,14 +132,17 @@ function OpportunityFormDialog({
     setForm(p => ({ ...p, [field]: value }))
   }
 
-  const filteredCustomers = customers.filter(c =>
-    c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    c.code.toLowerCase().includes(customerSearch.toLowerCase())
+  const filteredCustomers = customers.filter(cu =>
+    cu.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    cu.code.toLowerCase().includes(customerSearch.toLowerCase())
   ).slice(0, 10)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.customerId || !form.title) { toast.error('請選擇客戶並填寫商機標題'); return }
+    if (!form.customerId || !form.title) {
+      toast.error(`${c.select} ${d.customer} ${c.required}`)
+      return
+    }
     setLoading(true)
     const payload = {
       customerId: form.customerId,
@@ -158,25 +165,27 @@ function OpportunityFormDialog({
     })
     setLoading(false)
     if (res.ok) {
-      toast.success(isEdit ? '商機已更新' : '商機已新增')
+      toast.success(isEdit ? d.updated : d.added)
       onSuccess()
       onClose()
     } else {
-      const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '操作失敗')
+      const data = await res.json().catch(() => ({}))
+      toast.error(data.error ?? c.saveFailed)
     }
   }
+
+  const stageLabel = (s: string) => (d.stages as Record<string, string>)[s] ?? s
 
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? '編輯商機' : '新增銷售商機'}</DialogTitle>
+          <DialogTitle>{isEdit ? d.editOpportunity : d.newOpportunity}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Customer selector */}
           <div className="space-y-1.5">
-            <Label>客戶 <span className="text-red-500">*</span></Label>
+            <Label>{d.customer} <span className="text-red-500">*</span></Label>
             <div className="relative">
               <Input
                 value={customerSearch}
@@ -186,23 +195,23 @@ function OpportunityFormDialog({
                   if (!e.target.value) set('customerId', '')
                 }}
                 onFocus={() => setShowCustomerDropdown(true)}
-                placeholder="搜尋客戶名稱或代碼..."
+                placeholder={d.customerPlaceholder}
               />
               {showCustomerDropdown && customerSearch && filteredCustomers.length > 0 && (
                 <div className="absolute z-50 mt-1 w-full rounded-md border bg-white shadow-lg max-h-48 overflow-y-auto">
-                  {filteredCustomers.map(c => (
+                  {filteredCustomers.map(cu => (
                     <button
-                      key={c.id}
+                      key={cu.id}
                       type="button"
                       className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
                       onClick={() => {
-                        setForm(p => ({ ...p, customerId: c.id, customerName: c.name }))
-                        setCustomerSearch(c.name)
+                        setForm(p => ({ ...p, customerId: cu.id, customerName: cu.name }))
+                        setCustomerSearch(cu.name)
                         setShowCustomerDropdown(false)
                       }}
                     >
-                      <span className="font-mono text-xs text-muted-foreground">{c.code}</span>
-                      <span>{c.name}</span>
+                      <span className="font-mono text-xs text-muted-foreground">{cu.code}</span>
+                      <span>{cu.name}</span>
                     </button>
                   ))}
                 </div>
@@ -212,14 +221,19 @@ function OpportunityFormDialog({
 
           {/* Title */}
           <div className="space-y-1.5">
-            <Label>商機標題 <span className="text-red-500">*</span></Label>
-            <Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="例：護理之家耗材年度合約" required />
+            <Label>{d.opportunityTitle} <span className="text-red-500">*</span></Label>
+            <Input
+              value={form.title}
+              onChange={e => set('title', e.target.value)}
+              placeholder={d.titlePlaceholder}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             {/* Stage */}
             <div className="space-y-1.5">
-              <Label>階段</Label>
+              <Label>{d.stage}</Label>
               <select
                 className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
                 value={form.stage}
@@ -230,13 +244,13 @@ function OpportunityFormDialog({
                 }}
               >
                 {STAGES_ALL.map(s => (
-                  <option key={s} value={s}>{STAGE_CONFIG[s]?.label ?? s}</option>
+                  <option key={s} value={s}>{stageLabel(s)}</option>
                 ))}
               </select>
             </div>
             {/* Probability */}
             <div className="space-y-1.5">
-              <Label>機率（%）</Label>
+              <Label>{d.probabilityLabel}</Label>
               <Input
                 type="number" min={0} max={100}
                 value={form.probability}
@@ -245,7 +259,7 @@ function OpportunityFormDialog({
             </div>
             {/* Expected amount */}
             <div className="space-y-1.5">
-              <Label>預期金額（元）</Label>
+              <Label>{d.expectedAmountLabel}</Label>
               <Input
                 type="number" min={0}
                 value={form.expectedAmount}
@@ -255,7 +269,7 @@ function OpportunityFormDialog({
             </div>
             {/* Expected close date */}
             <div className="space-y-1.5">
-              <Label>預計成交日</Label>
+              <Label>{d.expectedCloseDate}</Label>
               <Input
                 type="date"
                 value={form.expectedCloseDate}
@@ -266,58 +280,58 @@ function OpportunityFormDialog({
 
           {/* Owner */}
           <div className="space-y-1.5">
-            <Label>負責人</Label>
+            <Label>{d.owner}</Label>
             <select
               className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
               value={form.ownerId}
               onChange={e => set('ownerId', e.target.value)}
             >
-              <option value="">-- 未指派 --</option>
+              <option value="">-- {c.unassigned} --</option>
               {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </div>
 
           {/* Product interest */}
           <div className="space-y-1.5">
-            <Label>感興趣產品</Label>
+            <Label>{d.productInterestLabel}</Label>
             <textarea
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
               rows={2}
               value={form.productInterest}
               onChange={e => set('productInterest', e.target.value)}
-              placeholder="感興趣的產品品項..."
+              placeholder={d.productInterestPlaceholder}
             />
           </div>
 
           {/* Competitor info */}
           <div className="space-y-1.5">
-            <Label>競爭者資訊</Label>
+            <Label>{d.competitorInfoLabel}</Label>
             <textarea
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
               rows={2}
               value={form.competitorInfo}
               onChange={e => set('competitorInfo', e.target.value)}
-              placeholder="競爭對手、現有供應商..."
+              placeholder={d.competitorInfoPlaceholder}
             />
           </div>
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{c.remark}</Label>
             <textarea
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
               rows={2}
               value={form.notes}
               onChange={e => set('notes', e.target.value)}
-              placeholder="其他備註..."
+              placeholder={d.notesPlaceholder}
             />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>取消</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>{c.cancel}</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? '儲存變更' : '新增商機'}
+              {isEdit ? c.save : d.newOpportunity}
             </Button>
           </DialogFooter>
         </form>
@@ -329,6 +343,10 @@ function OpportunityFormDialog({
 /* ── Main Page ── */
 export default function SalesOpportunitiesPage() {
   const router = useRouter()
+  const { dict } = useI18n()
+  const d = dict.pipelineExt
+  const c = dict.common
+
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [loading, setLoading] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -341,6 +359,8 @@ export default function SalesOpportunitiesPage() {
   const [editOpp, setEditOpp] = useState<Opportunity | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  const stageLabel = (s: string) => (d.stages as Record<string, string>)[s] ?? s
+
   const fetchOpportunities = useCallback(async () => {
     setLoading(true)
     try {
@@ -350,21 +370,21 @@ export default function SalesOpportunitiesPage() {
       const data = await res.json()
       setOpportunities(Array.isArray(data) ? data : [])
     } catch {
-      toast.error('載入商機資料失敗')
+      toast.error(d.loadFailed)
     }
     setLoading(false)
-  }, [showActiveOnly])
+  }, [showActiveOnly, d.loadFailed])
 
   useEffect(() => { fetchOpportunities() }, [fetchOpportunities])
 
   useEffect(() => {
     fetch('/api/customers?limit=500')
       .then(r => r.json())
-      .then(d => setCustomers(Array.isArray(d) ? d : (d.customers ?? [])))
+      .then(data => setCustomers(Array.isArray(data) ? data : (data.customers ?? [])))
       .catch(() => {})
     fetch('/api/users?limit=100')
       .then(r => r.json())
-      .then(d => setUsers(Array.isArray(d) ? d : (d.users ?? [])))
+      .then(data => setUsers(Array.isArray(data) ? data : (data.users ?? [])))
       .catch(() => {})
   }, [])
 
@@ -398,25 +418,31 @@ export default function SalesOpportunitiesPage() {
   async function handleDelete(o: Opportunity) {
     const allowed = ['PROSPECTING', 'LOST']
     if (!allowed.includes(o.stage)) {
-      toast.error('只有「潛在開發」或「已失單」的商機才能刪除')
+      toast.error(d.deleteRestriction)
       return
     }
-    if (!confirm(`確定刪除商機「${o.title}」？此操作無法復原。`)) return
+    if (!confirm(`${c.deleteConfirm}\n"${o.title}"`)) return
     setDeletingId(o.id)
     try {
       const res = await fetch(`/api/sales-opportunities/${o.id}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success('商機已刪除')
+        toast.success(d.deleted)
         fetchOpportunities()
       } else {
-        const d = await res.json().catch(() => ({}))
-        toast.error(d.error ?? '刪除失敗')
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error ?? c.deleteFailed)
       }
     } catch {
-      toast.error('刪除失敗')
+      toast.error(c.deleteFailed)
     } finally {
       setDeletingId(null)
     }
+  }
+
+  function renderDaysLabel(days: number) {
+    if (days < 0) return d.daysOverdue.replace('{n}', String(Math.abs(days)))
+    if (days === 0) return d.today
+    return d.daysUntilClose.replace('{n}', String(days))
   }
 
   return (
@@ -424,13 +450,13 @@ export default function SalesOpportunitiesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">銷售商機</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{d.title}</h1>
           <p className="text-sm text-muted-foreground">
-            {activeOpps.length} 個進行中商機 · 加權管道值 ${formatCurrency(weightedValue)}
+            {activeOpps.length} {d.noOpportunities !== '暫無商機資料' ? 'active' : '個進行中商機'} · {d.weightedValue} ${formatCurrency(weightedValue)}
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />新增商機
+          <Plus className="mr-2 h-4 w-4" />{d.newOpportunity}
         </Button>
       </div>
 
@@ -442,7 +468,7 @@ export default function SalesOpportunitiesPage() {
               <Target className="h-4 w-4 text-blue-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">總商機數</p>
+              <p className="text-xs text-muted-foreground">{d.totalOpps}</p>
               <p className="text-lg font-bold">{filtered.length}</p>
             </div>
           </CardContent>
@@ -453,7 +479,7 @@ export default function SalesOpportunitiesPage() {
               <DollarSign className="h-4 w-4 text-green-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">加權管道值</p>
+              <p className="text-xs text-muted-foreground">{d.weightedValue}</p>
               <p className="text-lg font-bold">${formatCurrency(weightedValue)}</p>
             </div>
           </CardContent>
@@ -464,7 +490,7 @@ export default function SalesOpportunitiesPage() {
               <TrendingUp className="h-4 w-4 text-amber-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">平均機率</p>
+              <p className="text-xs text-muted-foreground">{d.avgProbability}</p>
               <p className="text-lg font-bold">{avgProb}%</p>
             </div>
           </CardContent>
@@ -475,7 +501,7 @@ export default function SalesOpportunitiesPage() {
               <Users className="h-4 w-4 text-purple-600" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">本月預計成交</p>
+              <p className="text-xs text-muted-foreground">{d.closingThisMonth}</p>
               <p className="text-lg font-bold">{closingThisMonth}</p>
             </div>
           </CardContent>
@@ -486,14 +512,14 @@ export default function SalesOpportunitiesPage() {
       <div className="flex flex-wrap gap-3 items-center">
         <div className="relative w-56">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋商機或客戶..." value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="pl-9" placeholder={d.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="flex flex-wrap gap-1">
           <button
             onClick={() => setFilterStage('')}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${filterStage === '' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
           >
-            全部
+            {d.allStages}
           </button>
           {STAGES_ALL.map(s => (
             <button
@@ -501,7 +527,7 @@ export default function SalesOpportunitiesPage() {
               onClick={() => setFilterStage(filterStage === s ? '' : s)}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${filterStage === s ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              {STAGE_CONFIG[s]?.label ?? s}
+              {stageLabel(s)}
             </button>
           ))}
         </div>
@@ -512,19 +538,11 @@ export default function SalesOpportunitiesPage() {
             onChange={e => setShowActiveOnly(e.target.checked)}
             className="rounded"
           />
-          僅顯示進行中
+          {d.activeOnly}
         </label>
         <div className="ml-auto flex gap-1">
-          <Button
-            variant={view === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setView('list')}
-          >列表</Button>
-          <Button
-            variant={view === 'kanban' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setView('kanban')}
-          >看板</Button>
+          <Button variant={view === 'list' ? 'default' : 'outline'} size="sm" onClick={() => setView('list')}>{d.listView}</Button>
+          <Button variant={view === 'kanban' ? 'default' : 'outline'} size="sm" onClick={() => setView('kanban')}>{d.kanbanView}</Button>
         </div>
       </div>
 
@@ -539,20 +557,20 @@ export default function SalesOpportunitiesPage() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">客戶</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">商機標題</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">階段</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">機率</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">預期金額</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">預計成交日</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">負責人</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">互動</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">操作</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.customer}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.opportunityTitle}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.stage}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.probability}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.dealValue}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.expectedCloseDate}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.owner}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{d.interactions}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground">{c.actions ?? d.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">暫無商機資料</td></tr>
+                <tr><td colSpan={9} className="text-center py-12 text-muted-foreground">{d.noOpportunities}</td></tr>
               ) : filtered.map(o => {
                 const stageCfg = STAGE_CONFIG[o.stage]
                 const closeDate = o.expectedCloseDate
@@ -573,7 +591,7 @@ export default function SalesOpportunitiesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${stageCfg?.color ?? 'bg-slate-100 text-slate-600'}`}>
-                        {stageCfg?.label ?? o.stage}
+                        {stageLabel(o.stage)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -596,10 +614,10 @@ export default function SalesOpportunitiesPage() {
                     <td className="px-4 py-3 text-xs">
                       {closeDate ? (
                         <div>
-                          <p>{new Date(closeDate).toLocaleDateString('zh-TW')}</p>
+                          <p>{new Date(closeDate).toLocaleDateString()}</p>
                           {days != null && (
                             <p className={days < 0 ? 'text-red-500 font-medium' : days <= 7 ? 'text-amber-500' : 'text-muted-foreground'}>
-                              {days < 0 ? `逾期 ${Math.abs(days)} 天` : days === 0 ? '今天' : `${days} 天後`}
+                              {renderDaysLabel(days)}
                             </p>
                           )}
                         </div>
@@ -614,7 +632,7 @@ export default function SalesOpportunitiesPage() {
                         <button
                           onClick={() => openEdit(o)}
                           className="rounded p-1 hover:bg-slate-100 text-muted-foreground hover:text-slate-700 transition-colors"
-                          title="編輯"
+                          title={c.edit}
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -623,7 +641,7 @@ export default function SalesOpportunitiesPage() {
                             onClick={() => handleDelete(o)}
                             disabled={deletingId === o.id}
                             className="rounded p-1 hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
-                            title="刪除"
+                            title={c.delete}
                           >
                             {deletingId === o.id
                               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -649,14 +667,14 @@ export default function SalesOpportunitiesPage() {
                 <div className="p-3 border-b bg-white rounded-t-lg">
                   <div className="flex items-center justify-between">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${stageCfg?.color ?? ''}`}>
-                      {stageCfg?.label ?? stage}
+                      {stageLabel(stage)}
                     </span>
                     <Badge variant="outline" className="text-xs font-bold">{stageOpps.length}</Badge>
                   </div>
                 </div>
                 <div className="flex-1 p-2 space-y-2 overflow-y-auto">
                   {stageOpps.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-6">暫無商機</p>
+                    <p className="text-xs text-muted-foreground text-center py-6">{d.noOpportunitiesInStage}</p>
                   ) : stageOpps.map(o => {
                     const closeDate = o.expectedCloseDate
                     const days = closeDate ? daysUntil(closeDate) : null
@@ -673,7 +691,7 @@ export default function SalesOpportunitiesPage() {
                               onClick={e => { e.stopPropagation(); handleDelete(o) }}
                               disabled={deletingId === o.id}
                               className="shrink-0 rounded p-0.5 hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-50"
-                              title="刪除"
+                              title={c.delete}
                             >
                               {deletingId === o.id
                                 ? <Loader2 className="h-3 w-3 animate-spin" />
@@ -698,7 +716,7 @@ export default function SalesOpportunitiesPage() {
                         </div>
                         {days != null && (
                           <p className={`text-xs mt-1 ${days < 0 ? 'text-red-500 font-medium' : days <= 7 ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                            {days < 0 ? `逾期 ${Math.abs(days)} 天` : days === 0 ? '今天成交' : `${days} 天後成交`}
+                            {days === 0 ? d.closingToday : renderDaysLabel(days)}
                           </p>
                         )}
                       </div>
