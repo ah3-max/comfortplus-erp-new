@@ -89,6 +89,7 @@ const th = {
     traceability: 'ตรวจสอบย้อนกลับ',
     expiryTracking: 'ติดตามวันหมดอายุ',
     creditManagement: 'การจัดการเครดิตลูกค้า',
+    autoJournal: 'บันทึกบัญชีอัตโนมัติ',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',

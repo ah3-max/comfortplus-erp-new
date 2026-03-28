@@ -89,6 +89,7 @@ const en = {
     traceability: 'Traceability',
     expiryTracking: 'Expiry Tracking',
     creditManagement: 'Credit Management',
+    autoJournal: 'Auto Journal Posting',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',
