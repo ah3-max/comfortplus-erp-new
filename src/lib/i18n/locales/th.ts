@@ -90,6 +90,7 @@ const th = {
     expiryTracking: 'ติดตามวันหมดอายุ',
     creditManagement: 'การจัดการเครดิตลูกค้า',
     autoJournal: 'บันทึกบัญชีอัตโนมัติ',
+    statements: 'ใบแจ้งยอดลูกค้า',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',

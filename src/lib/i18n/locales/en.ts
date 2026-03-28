@@ -90,6 +90,7 @@ const en = {
     expiryTracking: 'Expiry Tracking',
     creditManagement: 'Credit Management',
     autoJournal: 'Auto Journal Posting',
+    statements: 'Customer Statements',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

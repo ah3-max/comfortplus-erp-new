@@ -92,6 +92,7 @@ const zhTW = {
     expiryTracking: '庫存效期管理',
     creditManagement: '客戶信用管理',
     autoJournal: '自動化會計分錄',
+    statements: '月結對帳單',
     arAging: '應收帳齡',
     finance: '財務報表',
     apAging: '應付帳齡',

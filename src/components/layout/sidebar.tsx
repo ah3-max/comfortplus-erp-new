@@ -78,7 +78,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
-  'creditManagement' | 'autoJournal' |
+  'creditManagement' | 'autoJournal' | 'statements' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -171,6 +171,7 @@ const navGroups: NavGroup[] = [
       { href: '/contracts',          key: 'contracts',        icon: FileArchive },
       { href: '/credit-management', key: 'creditManagement', icon: BadgeAlert },
       { href: '/auto-journal',      key: 'autoJournal',     icon: Zap },
+      { href: '/statements',        key: 'statements',      icon: FileText },
       { href: '/fixed-assets',    key: 'fixedAssets',    icon: Landmark },
       { href: '/budget',          key: 'budget',         icon: Target },
       { href: '/expenses',        key: 'expenses',       icon: ReceiptText },
