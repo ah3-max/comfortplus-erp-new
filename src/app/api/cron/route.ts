@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { notify, notifyManagers } from '@/lib/notify'
+import { refreshExpiryStatus } from '@/app/api/inventory/lots/refresh-expiry/route'
 
 /**
  * GET /api/cron — Scheduled tasks runner
@@ -227,6 +228,44 @@ export async function GET(req: NextRequest) {
     results.vehicleAlerts = { status: 'ok', data: { checked: vehicles.length, alerted: alertCount } }
   } catch (e) {
     results.vehicleAlerts = { status: 'error', error: (e as Error).message }
+  }
+
+  // ── Task: Refresh inventory lot expiry status ──
+  try {
+    const expiryRes = await refreshExpiryStatus()
+    const expiryData = await expiryRes.json()
+    // Notify managers about expired/near-expiry lots
+    const expiredLots = await prisma.inventoryLot.findMany({
+      where: { isExpired: true, status: { not: 'SCRAPPED' } },
+      include: { product: { select: { name: true, sku: true } } },
+      take: 10,
+    })
+    if (expiredLots.length > 0) {
+      await notifyManagers({
+        title: `⛔ ${expiredLots.length} 個批次已過期`,
+        message: expiredLots.map(l => `${l.product.name} (${l.lotNo})`).join('、'),
+        linkUrl: '/expiry-tracking',
+        category: 'INVENTORY_ALERT',
+        priority: 'URGENT',
+      }).catch(() => {})
+    }
+    const nearExpiryLots = await prisma.inventoryLot.findMany({
+      where: { isNearExpiry: true, isExpired: false, status: { not: 'SCRAPPED' }, daysToExpiry: { lte: 30 } },
+      include: { product: { select: { name: true } } },
+      take: 10,
+    })
+    if (nearExpiryLots.length > 0) {
+      await notifyManagers({
+        title: `⚠ ${nearExpiryLots.length} 個批次 30 天內到期`,
+        message: nearExpiryLots.map(l => `${l.product.name}(${l.daysToExpiry}天)`).join('、'),
+        linkUrl: '/expiry-tracking',
+        category: 'INVENTORY_ALERT',
+        priority: 'HIGH',
+      }).catch(() => {})
+    }
+    results.expiryRefresh = { status: 'ok', data: expiryData }
+  } catch (e) {
+    results.expiryRefresh = { status: 'error', error: (e as Error).message }
   }
 
   return NextResponse.json({

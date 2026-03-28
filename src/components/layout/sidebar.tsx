@@ -64,6 +64,7 @@ import {
   RotateCcw,
   CalendarCheck2,
   TrendingUp,
+  Clock,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -74,7 +75,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'production' | 'materialRequisitions' | 'productionReceipts' | 'seaFreight' | 'channels' | 'payments' | 'kpi' | 'pipeline' | 'opportunities' |
   'qc' | 'packaging' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
-  'alerts' | 'traceability' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
+  'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
@@ -129,7 +130,8 @@ const navGroups: NavGroup[] = [
       { href: '/warehouses',    key: 'warehouses',  icon: Warehouse },
       { href: '/stock-counts',  key: 'stockCounts',  icon: ClipboardCheck },
       { href: '/internal-use',  key: 'internalUse',  icon: PackageX },
-      { href: '/traceability',  key: 'traceability', icon: SearchCode },
+      { href: '/traceability',     key: 'traceability',   icon: SearchCode },
+      { href: '/expiry-tracking',  key: 'expiryTracking', icon: Clock },
       { href: '/wms',           key: 'wms',          icon: Warehouse },
     ],
   },

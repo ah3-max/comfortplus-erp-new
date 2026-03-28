@@ -87,6 +87,7 @@ const th = {
     fixedAssets: 'สินทรัพย์ถาวร',
     budget: 'งบประมาณ/กระแสเงินสด',
     traceability: 'ตรวจสอบย้อนกลับ',
+    expiryTracking: 'ติดตามวันหมดอายุ',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',
