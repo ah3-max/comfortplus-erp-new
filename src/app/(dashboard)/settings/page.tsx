@@ -353,7 +353,7 @@ export default function SettingsPage() {
                   <table className="w-full text-sm">
                     <thead className="border-b bg-slate-50">
                       <tr>
-                        {['名稱', 'Email', '角色', '狀態', '操作'].map(h => (
+                        {[dict.users.name, 'Email', dict.users.role, dict.common.status, dict.common.actions].map(h => (
                           <th key={h} className="px-4 py-2 text-left font-medium text-muted-foreground">{h}</th>
                         ))}
                       </tr>
@@ -503,7 +503,7 @@ export default function SettingsPage() {
         <TabsContent value="other" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">通知設定</CardTitle>
+              <CardTitle className="text-base">{dict.settingsExt.notifications}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-3">
@@ -683,7 +683,7 @@ export default function SettingsPage() {
                 <div key={t.file} className="flex items-center justify-between rounded-lg border px-4 py-3">
                   <span className="text-sm font-medium">{t.name}</span>
                   <a href={t.file} download className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent transition-colors">
-                    <Download className="h-3.5 w-3.5" />下載
+                    <Download className="h-3.5 w-3.5" />{dict.common.download}
                   </a>
                 </div>
               ))}

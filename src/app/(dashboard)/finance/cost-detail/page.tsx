@@ -41,7 +41,7 @@ export default function CostDetailPage() {
       const res = await fetch(`/api/finance/cost-detail?${params}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate, groupBy])
 
@@ -54,7 +54,7 @@ export default function CostDetailPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.costDetail}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">成本明細表</h1>
           <p className="text-sm text-muted-foreground">各項費用成本明細分析</p>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default function CostDetailPage() {
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}
         </Button>
       </div>
 
@@ -148,7 +148,7 @@ export default function CostDetailPage() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請點擊查詢載入資料
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

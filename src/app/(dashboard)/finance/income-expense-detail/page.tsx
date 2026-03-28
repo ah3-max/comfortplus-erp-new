@@ -76,7 +76,7 @@ export default function IncomeExpenseDetailPage() {
       const res = await fetch(`/api/finance/income-expense-detail?${params}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate])
 
@@ -102,7 +102,7 @@ export default function IncomeExpenseDetailPage() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}
         </Button>
       </div>
 
@@ -153,7 +153,7 @@ export default function IncomeExpenseDetailPage() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請點擊查詢載入資料
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

@@ -178,8 +178,8 @@ export default function UsersPage() {
       : form
     const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     setSaving(false)
-    if (res.ok) { toast.success(editTarget ? '用戶已更新' : '用戶新增成功'); setFormOpen(false); fetchUsers() }
-    else { const data = await res.json(); toast.error(data.error ?? '操作失敗') }
+    if (res.ok) { toast.success(editTarget ? dict.common.updateSuccess : dict.common.createSuccess); setFormOpen(false); fetchUsers() }
+    else { const data = await res.json(); toast.error(data.error ?? dict.common.error) }
   }
 
   async function handleDeleteUser(u: User) {
@@ -192,14 +192,14 @@ export default function UsersPage() {
     try {
       const res = await fetch(`/api/users/${u.id}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success('用戶已停用')
+        toast.success(dict.common.updateSuccess)
         fetchUsers()
       } else {
         const d = await res.json().catch(() => ({}))
-        toast.error(d.error ?? '操作失敗')
+        toast.error(d.error ?? dict.common.error)
       }
     } catch {
-      toast.error('操作失敗')
+      toast.error(dict.common.error)
     } finally {
       setDeletingUserId(null)
     }
@@ -231,8 +231,8 @@ export default function UsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ matrix: permMatrix }),
       })
-      if (res.ok) { toast.success('權限設定已儲存'); setPermDirty(false) }
-      else { const d = await res.json(); toast.error(d.error ?? '儲存失敗') }
+      if (res.ok) { toast.success(dict.common.saveSuccess); setPermDirty(false) }
+      else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
     } finally { setPermSaving(false) }
   }
 
@@ -308,7 +308,7 @@ export default function UsersPage() {
                     <TableCell>
                       <Badge variant={u.isActive ? 'default' : 'outline'}
                         className={u.isActive ? 'bg-green-100 text-green-700 border-green-200' : ''}>
-                        {u.isActive ? '啟用' : '停用'}
+                        {u.isActive ? dict.common.active : dict.common.inactive}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -447,11 +447,11 @@ export default function UsersPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>姓名 <span className="text-red-500">*</span></Label>
+                <Label>{dict.users.name} <span className="text-red-500">*</span></Label>
                 <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="王小明" required />
               </div>
               <div className="space-y-1.5">
-                <Label>角色 <span className="text-red-500">*</span></Label>
+                <Label>{dict.users.role} <span className="text-red-500">*</span></Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   value={form.role} onChange={(e) => set('role', e.target.value as Role)}>
                   {roles.map((r) => <option key={r} value={r}>{roleConfig[r].label}</option>)}
@@ -474,7 +474,7 @@ export default function UsersPage() {
               <>
                 <Separator />
                 <div className="flex items-center justify-between">
-                  <Label>帳號狀態</Label>
+                  <Label>{dict.common.status}</Label>
                   <button type="button" onClick={() => set('isActive', !form.isActive)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? 'bg-blue-600' : 'bg-slate-300'}`}>
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
