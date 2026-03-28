@@ -103,7 +103,7 @@ export default function TasksPage() {
     ])
     setTasks(Array.isArray(t) ? t : [])
     setUsers(Array.isArray(u) ? u : [])
-    setCustomers(Array.isArray(c) ? c : [])
+    setCustomers(Array.isArray(c) ? c : (c.data ?? []))
     setLoading(false)
   }
 

@@ -126,7 +126,7 @@ export default function CarePage() {
     setSchedules(Array.isArray(sch) ? sch : [])
     setRequests(Array.isArray(req) ? req : [])
     setUsers(Array.isArray(u) ? u : [])
-    setCustomers(Array.isArray(c) ? c : [])
+    setCustomers(Array.isArray(c) ? c : (c.data ?? []))
     setLoading(false)
   }
 

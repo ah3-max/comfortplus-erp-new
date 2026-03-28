@@ -381,7 +381,7 @@ export default function PipelinePage() {
     try {
       const res = await fetch('/api/customers')
       const data = await res.json()
-      setCustomers(Array.isArray(data) ? data : [])
+      setCustomers(Array.isArray(data) ? data : (data.data ?? []))
     } catch {
       toast.error(dict.pipelineExt.loadFailed)
     }

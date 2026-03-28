@@ -380,7 +380,7 @@ export default function SalesOpportunitiesPage() {
   useEffect(() => {
     fetch('/api/customers?limit=500')
       .then(r => r.json())
-      .then(data => setCustomers(Array.isArray(data) ? data : (data.customers ?? [])))
+      .then(data => setCustomers(Array.isArray(data) ? data : (data.data ?? [])))
       .catch(() => {})
     fetch('/api/users?limit=100')
       .then(r => r.json())

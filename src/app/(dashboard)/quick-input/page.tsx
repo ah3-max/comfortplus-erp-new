@@ -291,7 +291,7 @@ export default function QuickInputPage() {
     fetch('/api/customers')
       .then((r) => r.ok ? r.json() : [])
       .then((data) => {
-        const list = Array.isArray(data) ? data : (data.customers ?? [])
+        const list = Array.isArray(data) ? data : (data.data ?? [])
         setAllCustomers(
           list.map((c: Customer) => ({
             id: c.id,
