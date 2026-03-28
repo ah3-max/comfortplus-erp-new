@@ -83,6 +83,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
   'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' | 'deliveryPerformance' | 'deadStock' | 'meetingRecords' | 'salespersonPerformance' | 'returnAnalysis' |
   'promoCalendar' | 'vehicles' | 'fulfillmentRate' | 'priceLists' | 'channelOrders' |
+  'defectiveGoods' | 'deliveryTrips' | 'inventoryLots' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -150,6 +151,8 @@ const navGroups: NavGroup[] = [
       { href: '/dead-stock',         key: 'deadStock',         icon: PackageX },
       { href: '/sales-analysis',    key: 'salesAnalysis',    icon: TrendingUp },
       { href: '/gross-margin',      key: 'grossMargin',      icon: DollarSign },
+      { href: '/inventory-lots',    key: 'inventoryLots',    icon: Package },
+      { href: '/defective-goods',   key: 'defectiveGoods',   icon: PackageX },
       { href: '/wms',           key: 'wms',          icon: Warehouse },
     ],
   },
@@ -163,6 +166,7 @@ const navGroups: NavGroup[] = [
       { href: '/logistics',    key: 'logistics',   icon: Navigation },
       { href: '/delivery-performance', key: 'deliveryPerformance', icon: BarChart3 },
       { href: '/vehicles',             key: 'vehicles',            icon: Truck },
+      { href: '/delivery-trips',       key: 'deliveryTrips',       icon: Truck },
     ],
   },
   {

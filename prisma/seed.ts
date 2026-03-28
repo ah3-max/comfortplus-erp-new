@@ -1372,6 +1372,192 @@ async function main() {
     console.log('✅ RetailBrand (3) + RetailOutlet (4) 建立完成')
   } catch (e) { console.error('❌ RetailBrand/RetailOutlet 失敗:', e) }
 
+  // ========== Vehicle + DeliveryTrip ==========
+  try {
+    const v1 = await prisma.vehicle.upsert({
+      where: { plateNo: 'AEK-1234' },
+      update: {},
+      create: {
+        plateNo: 'AEK-1234', vehicleType: '3.5噸', brand: 'HINO', model: '300',
+        year: 2022, fuelType: 'DIESEL', currentOdometer: 48200,
+        insuranceExpiry: new Date('2026-09-30'), inspectionExpiry: new Date('2026-11-15'),
+        licenseTaxExpiry: new Date('2026-04-30'), isActive: true, notes: '主力配送車',
+      },
+    })
+    const v2 = await prisma.vehicle.upsert({
+      where: { plateNo: 'BFP-5678' },
+      update: {},
+      create: {
+        plateNo: 'BFP-5678', vehicleType: '1噸', brand: 'ISUZU', model: 'D-MAX',
+        year: 2020, fuelType: 'DIESEL', currentOdometer: 72100,
+        insuranceExpiry: new Date('2026-06-15'), inspectionExpiry: new Date('2025-12-31'),
+        isActive: true,
+      },
+    })
+    const wUser = await prisma.user.findFirst({ where: { email: 'warehouse@comfortplus.com' } })
+    const trips = [
+      { vehicleId: v1.id, vehicleNo: 'AEK-1234', driverName: '陳大明', driverPhone: '0912-345-678', region: '台北北區', tripDate: new Date('2026-03-20'), status: 'COMPLETED', totalFuelCost: 1200, tollFee: 150, driverAllowance: 800, totalTripCost: 2150, actualStops: 5 },
+      { vehicleId: v1.id, vehicleNo: 'AEK-1234', driverName: '陳大明', driverPhone: '0912-345-678', region: '台北南區', tripDate: new Date('2026-03-22'), status: 'COMPLETED', totalFuelCost: 1050, tollFee: 200, driverAllowance: 800, totalTripCost: 2050, actualStops: 4 },
+      { vehicleId: v2.id, vehicleNo: 'BFP-5678', driverName: '林志明', driverPhone: '0923-456-789', region: '新北市', tripDate: new Date('2026-03-25'), status: 'COMPLETED', totalFuelCost: 900, tollFee: 0, driverAllowance: 700, totalTripCost: 1600, actualStops: 3 },
+      { vehicleId: v1.id, vehicleNo: 'AEK-1234', driverName: '陳大明', driverPhone: '0912-345-678', region: '台北北區', tripDate: new Date('2026-03-28'), status: 'PLANNED', actualStops: 6 },
+    ]
+    for (const trip of trips) {
+      const exists = await prisma.deliveryTrip.findFirst({ where: { vehicleNo: trip.vehicleNo, tripDate: trip.tripDate } })
+      if (!exists) {
+        const no = await import('../src/lib/sequence').then(m => m.generateSequenceNo('TRIP')).catch(() => `TRIP${Date.now()}`)
+        await prisma.deliveryTrip.create({ data: { ...trip, tripNo: no, status: trip.status as 'PLANNED' | 'DEPARTED' | 'COMPLETED' | 'CANCELLED' } })
+      }
+    }
+    console.log('✅ Vehicle (2) + DeliveryTrip (4) 建立完成')
+  } catch (e) { console.error('❌ Vehicle/DeliveryTrip 失敗:', e) }
+
+  // ========== InventoryLot ==========
+  try {
+    const products = await prisma.product.findMany({ take: 5, select: { id: true, sku: true } })
+    const warehouses = await prisma.warehouse.findMany({ take: 2 })
+    const supplier = await prisma.supplier.findFirst()
+    if (products.length && warehouses.length) {
+      for (let i = 0; i < Math.min(products.length, 4); i++) {
+        const prod = products[i]
+        const wh = warehouses[i % warehouses.length]
+        const mfgDate = new Date(`2026-0${(i + 1)}-01`)
+        const expDate = new Date(`2027-0${(i + 1)}-01`)
+        const lotNo = `${prod.sku.toUpperCase().slice(0, 8)}-${wh.code}-202601-${String(i + 1).padStart(3, '0')}`
+        const exists = await prisma.inventoryLot.findUnique({ where: { lotNo } })
+        if (!exists) {
+          await prisma.inventoryLot.create({
+            data: {
+              lotNo,
+              productId: prod.id,
+              warehouseId: wh.id,
+              category: 'FINISHED_GOODS',
+              status: 'AVAILABLE',
+              quantity: (i + 1) * 200,
+              manufactureDate: mfgDate,
+              expiryDate: expDate,
+              supplierId: supplier?.id || null,
+              location: `A-0${i + 1}-01`,
+              notes: `批次 ${i + 1}`,
+            },
+          })
+        }
+      }
+      // one near-expiry lot
+      const nearLotNo = `NEAR-EXPIRY-TEST-001`
+      const existsNear = await prisma.inventoryLot.findUnique({ where: { lotNo: nearLotNo } })
+      if (!existsNear && products[0]) {
+        await prisma.inventoryLot.create({
+          data: {
+            lotNo: nearLotNo,
+            productId: products[0].id,
+            warehouseId: warehouses[0].id,
+            category: 'FINISHED_GOODS',
+            status: 'AVAILABLE',
+            quantity: 50,
+            expiryDate: new Date(Date.now() + 15 * 24 * 3600 * 1000), // 15 days
+            isNearExpiry: true,
+            location: 'Z-99-01',
+            notes: '即將到期測試批號',
+          },
+        })
+      }
+      console.log('✅ InventoryLot 建立完成')
+    }
+  } catch (e) { console.error('❌ InventoryLot 失敗:', e) }
+
+  // ========== DefectiveGoods ==========
+  try {
+    const product = await prisma.product.findFirst()
+    const warehouse = await prisma.warehouse.findFirst()
+    const adminDef = await prisma.user.findFirst({ where: { email: 'admin@comfortplus.com' } })
+    if (product && warehouse && adminDef) {
+      const defectives = [
+        { source: 'QC_FAIL', severity: 'MAJOR', quantity: 12, defectType: 'LEAK', description: '底部滲漏，QC驗收不通過', status: 'PENDING' },
+        { source: 'CUSTOMER_RETURN', severity: 'MINOR', quantity: 6, defectType: 'PACKAGING', description: '外包裝破損，客戶退回', status: 'PROCESSING' },
+        { source: 'WAREHOUSE_DAMAGE', severity: 'MINOR', quantity: 8, description: '搬運過程受潮', status: 'RESOLVED', disposition: 'SCRAP' },
+        { source: 'PRODUCTION', severity: 'CRITICAL', quantity: 30, defectType: 'ABSORPTION', description: '吸收力不達標，全批退廠', status: 'RESOLVED', disposition: 'RETURN_SUPPLIER' },
+      ]
+      for (const d of defectives) {
+        const no = `DEFECT-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+        const exists = await prisma.defectiveGoods.findFirst({ where: { source: d.source, description: d.description } })
+        if (!exists) {
+          await prisma.defectiveGoods.create({
+            data: {
+              defectNo: no, source: d.source, severity: d.severity,
+              productId: product.id, warehouseId: warehouse.id,
+              quantity: d.quantity, defectType: d.defectType ?? null,
+              description: d.description, status: d.status,
+              disposition: ('disposition' in d ? d.disposition as string : null) ?? null,
+              unitCost: 85, totalLoss: 85 * d.quantity,
+              createdById: adminDef.id,
+            },
+          })
+        }
+      }
+      console.log('✅ DefectiveGoods (4) 建立完成')
+    }
+  } catch (e) { console.error('❌ DefectiveGoods 失敗:', e) }
+
+  // ========== SpecialPrice ==========
+  try {
+    const customers = await prisma.customer.findMany({ take: 3, select: { id: true } })
+    const products2 = await prisma.product.findMany({ take: 3, select: { id: true, sellingPrice: true } })
+    if (customers.length && products2.length) {
+      for (let i = 0; i < Math.min(customers.length, products2.length); i++) {
+        const existing = await prisma.specialPrice.findUnique({
+          where: { customerId_productId: { customerId: customers[i].id, productId: products2[i].id } },
+        })
+        if (!existing) {
+          const basePrice = Number(products2[i].sellingPrice ?? 100)
+          await prisma.specialPrice.create({
+            data: {
+              customerId: customers[i].id, productId: products2[i].id,
+              price: basePrice * 0.9,
+              effectiveDate: new Date('2026-01-01'),
+              expiryDate: new Date('2026-12-31'),
+              notes: '年度合約特殊價',
+            },
+          })
+        }
+      }
+      console.log('✅ SpecialPrice 建立完成')
+    }
+  } catch (e) { console.error('❌ SpecialPrice 失敗:', e) }
+
+  // ========== MeetingRecord ==========
+  try {
+    const salesUser = await prisma.user.findFirst({ where: { email: 'sales@comfortplus.com' } })
+    const customer = await prisma.customer.findFirst()
+    if (salesUser && customer) {
+      type MeetingType = 'WEEKLY_ADMIN'|'CHANNEL_NEGOTIATION'|'ASSOCIATION_MEETING'|'EXHIBITION_DEBRIEF'|'PROMO_PLANNING'|'SUPPLIER_MEETING'|'INTERNAL'|'OTHER'
+      type MeetingStatus = 'SCHEDULED'|'IN_PROGRESS'|'COMPLETED'|'CANCELLED'
+      const meetings: Array<{ title: string; meetingType: MeetingType; location?: string; startTime: Date; endTime?: Date; status: MeetingStatus; summary?: string; nextMeetingDate?: Date }> = [
+        { title: '護理之家Q1採購討論', meetingType: 'CHANNEL_NEGOTIATION', location: '台北辦公室', startTime: new Date('2026-03-10T10:00:00'), endTime: new Date('2026-03-10T11:30:00'), status: 'COMPLETED', summary: '客戶確認Q1採購量為3000包，價格維持現行合約', nextMeetingDate: new Date('2026-04-07') },
+        { title: '月度業務周會', meetingType: 'WEEKLY_ADMIN', location: '公司會議室A', startTime: new Date('2026-03-17T09:00:00'), endTime: new Date('2026-03-17T10:00:00'), status: 'COMPLETED', summary: 'Q1業績達成85%，重點客戶追蹤3家' },
+        { title: '新客戶拜訪—中正長照中心', meetingType: 'INTERNAL', location: '客戶現場', startTime: new Date('2026-03-25T14:00:00'), endTime: new Date('2026-03-25T15:30:00'), status: 'COMPLETED', summary: '首次拜訪，客戶對愛舒樂系列有興趣，需要樣品' },
+        { title: 'Q2促銷規劃會議', meetingType: 'PROMO_PLANNING', location: '視訊會議', startTime: new Date('2026-04-02T10:00:00'), endTime: new Date('2026-04-02T11:00:00'), status: 'SCHEDULED' },
+      ]
+      for (const m of meetings) {
+        const exists = await prisma.meetingRecord.findFirst({ where: { title: m.title } })
+        if (!exists) {
+          const meetingNo = `MR-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(Math.floor(Math.random()*9000)+1000)}`
+          await prisma.meetingRecord.create({
+            data: {
+              ...m,
+              meetingNo,
+              meetingDate: m.startTime ?? new Date(),
+              facilitatorId: salesUser.id,
+              createdById: salesUser.id,
+              customerId: customer.id,
+              attendeesJson: [{ userId: salesUser.id, name: salesUser.name, role: salesUser.role }],
+            },
+          })
+        }
+      }
+      console.log('✅ MeetingRecord (4) 建立完成')
+    }
+  } catch (e) { console.error('❌ MeetingRecord 失敗:', e) }
+
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
   console.log('admin@comfortplus.com       / admin1234       (超級管理員)')
   console.log('gm@comfortplus.com          / gm12345678      (總經理)')
