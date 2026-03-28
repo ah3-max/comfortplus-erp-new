@@ -22,6 +22,35 @@ model AccountingAccount {
   @@index([parentCode])
 }
 
+// 會計期間（Fiscal Period）
+model FiscalPeriod {
+  id          String       @id @default(cuid())
+  periodCode  String       @unique  // e.g. "2024-01", "2024-Q1", "2024"
+  periodType  String       @default("MONTHLY")  // MONTHLY / QUARTERLY / ANNUAL
+  year        Int
+  month       Int?                  // 1-12，月結才有
+  quarter     Int?                  // 1-4，季結才有
+  startDate   DateTime     @db.Date
+  endDate     DateTime     @db.Date
+  status      PeriodStatus @default(OPEN)
+  closedAt    DateTime?
+  closedById  String?
+  closedBy    User?        @relation("FiscalPeriodClosedBy", fields: [closedById], references: [id])
+  lockedAt    DateTime?
+  lockedById  String?
+  lockedBy    User?        @relation("FiscalPeriodLockedBy", fields: [lockedById], references: [id])
+  notes       String?
+  createdById String
+  createdBy   User         @relation("FiscalPeriodCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  journalEntries JournalEntry[]
+
+  @@index([year, month])
+  @@index([status])
+}
+
 // 傳票（Journal Entry）
 model JournalEntry {
   id            String   @id @default(cuid())
@@ -39,6 +68,8 @@ model JournalEntry {
   postedBy      User?    @relation("JournalPostedBy", fields: [postedById], references: [id])
   reversedById  String?
   reversedEntryId String? // 沖正傳票 ID
+  periodId      String?
+  period        FiscalPeriod? @relation(fields: [periodId], references: [id])
   notes         String?
   createdById   String
   createdBy     User     @relation("JournalCreatedBy", fields: [createdById], references: [id])

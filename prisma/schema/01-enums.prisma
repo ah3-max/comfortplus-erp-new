@@ -608,6 +608,13 @@ enum ApStatus {
   PAID          // 已付清
 }
 
+enum PeriodStatus {
+  OPEN          // 開放（可建立傳票）
+  CLOSING       // 結帳中（執行結帳程序）
+  CLOSED        // 已結帳（不可再建傳票，允許調整）
+  LOCKED        // 鎖定（完全封鎖，不可異動）
+}
+
 // ── Care Incidents Enums ──
 
 enum IncidentType {

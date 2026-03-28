@@ -123,6 +123,9 @@ model User {
   // ── P2-3 會計基礎 ────────────────────────────────────
   journalEntriesCreated  JournalEntry[]         @relation("JournalCreatedBy")
   journalEntriesPosted   JournalEntry[]         @relation("JournalPostedBy")
+  fiscalPeriodsCreated   FiscalPeriod[]         @relation("FiscalPeriodCreatedBy")
+  fiscalPeriodsClosed    FiscalPeriod[]         @relation("FiscalPeriodClosedBy")
+  fiscalPeriodsLocked    FiscalPeriod[]         @relation("FiscalPeriodLockedBy")
 
   // ── P2-4 內部使用 + 不良品 ───────────────────────────
   internalUsesRequested  InternalUse[]          @relation("InternalUseRequested")
@@ -174,6 +177,9 @@ model User {
 
   // ── 折扣規則 ────────────────────────────────────────
   discountRulesCreated     DiscountRule[]       @relation("DiscountRuleCreatedBy")
+
+  // ── 進貨退貨 ────────────────────────────────────────
+  purchaseReturnsCreated   PurchaseReturn[]     @relation("PurchaseReturnCreatedBy")
 }
 
 // ========== 部門設定 ==========

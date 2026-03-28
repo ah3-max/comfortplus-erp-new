@@ -61,11 +61,14 @@ import {
   Network,
   Wallet,
   Scale,
+  RotateCcw,
+  CalendarCheck2,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' | 'keyAccounts' | 'products' | 'quotations' | 'orders' | 'salesInvoices' | 'eInvoices' |
+  'salesReturns' | 'purchaseReturns' |
   'shipments' | 'pickup' | 'picking' | 'dispatch' | 'logistics' | 'inventory' | 'warehouses' | 'wms' | 'purchases' | 'purchaseRequests' | 'rfq' | 'suppliers' |
   'production' | 'materialRequisitions' | 'productionReceipts' | 'seaFreight' | 'channels' | 'payments' | 'kpi' | 'pipeline' | 'opportunities' |
   'qc' | 'packaging' |
@@ -73,7 +76,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'alerts' | 'traceability' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
-  'vatLedger' | 'cashBook' | 'dailyMonthlySummary' |
+  'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
   'cashFlowStatement' | 'costDetail' | 'accountList' | 'incomeExpenseDetail' | 'retainedEarnings' |
   'dailyCashReport' | 'cashMovement' | 'cashPosition' | 'cashInoutDetail' |
@@ -108,6 +111,7 @@ const navGroups: NavGroup[] = [
       { href: '/orders',          key: 'orders',         icon: ShoppingCart },
       { href: '/sales-invoices', key: 'salesInvoices',  icon: Receipt },
       { href: '/e-invoices',     key: 'eInvoices',      icon: FileText },
+      { href: '/sales-returns',  key: 'salesReturns',   icon: RotateCcw },
       { href: '/margin-calc',    key: 'marginCalc',     icon: Calculator },
       { href: '/kpi',                 key: 'kpi',            icon: Zap },
       { href: '/pipeline',            key: 'pipeline',       icon: Target },
@@ -152,6 +156,7 @@ const navGroups: NavGroup[] = [
       { href: '/sea-freight',      key: 'seaFreight',     icon: Ship },
       { href: '/import-projects',  key: 'importProjects', icon: ShipIcon },
       { href: '/purchase-plans',   key: 'purchasePlans',  icon: ClipboardList },
+      { href: '/purchase-returns', key: 'purchaseReturns', icon: RotateCcw },
     ],
   },
   {
@@ -166,6 +171,7 @@ const navGroups: NavGroup[] = [
       { href: '/finance/account-detail',     key: 'accountDetail',   icon: BookOpen },
       { href: '/finance/account-summary',    key: 'accountSummary',  icon: BookOpen },
       { href: '/finance/account-movement',       key: 'accountMovement',      icon: BookOpen },
+      { href: '/period-close',                   key: 'periodClose',          icon: CalendarCheck2 },
       { href: '/finance/vat-ledger',             key: 'vatLedger',            icon: Receipt },
       { href: '/finance/cash-book',              key: 'cashBook',             icon: CreditCard },
       { href: '/finance/daily-monthly-summary',  key: 'dailyMonthlySummary',  icon: CalendarDays },
