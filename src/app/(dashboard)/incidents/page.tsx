@@ -138,8 +138,7 @@ export default function IncidentsPage() {
   useEffect(() => {
     load()
     fetch('/api/customers?limit=200').then(r => r.ok ? r.json() : null).then(d => {
-      if (d?.customers) setCustomers(d.customers)
-      else if (Array.isArray(d)) setCustomers(d)
+      setCustomers(Array.isArray(d) ? d : (d?.data ?? []))
     })
     fetch('/api/users').then(r => r.ok ? r.json() : null).then(d => {
       if (d?.users) setUsers(d.users)
