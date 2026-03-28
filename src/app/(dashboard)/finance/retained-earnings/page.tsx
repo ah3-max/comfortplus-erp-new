@@ -39,7 +39,7 @@ export default function RetainedEarningsPage() {
       const res = await fetch(`/api/finance/retained-earnings?year=${year}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [year])
 
@@ -50,7 +50,7 @@ export default function RetainedEarningsPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.retainedEarnings}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">盈餘公積金表</h1>
           <p className="text-sm text-muted-foreground">保留盈餘與股東權益變動</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function RetainedEarningsPage() {
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>
-          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}
         </Button>
       </div>
 
@@ -153,7 +153,7 @@ export default function RetainedEarningsPage() {
 
       {!data && !loading && (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          請選擇年度後點擊查詢
+          {dict.reportsExt.noData}
         </div>
       )}
     </div>

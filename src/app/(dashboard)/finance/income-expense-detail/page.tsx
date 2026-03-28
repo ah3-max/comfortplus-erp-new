@@ -87,7 +87,7 @@ export default function IncomeExpenseDetailPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.nav.incomeExpenseDetail}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">收入支出明細表</h1>
           <p className="text-sm text-muted-foreground">收入與費用逐筆明細</p>
         </div>
       </div>

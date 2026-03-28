@@ -137,8 +137,8 @@ export default function SettingsPage() {
       body: JSON.stringify(payload),
     })
     setSavingCfg(false)
-    if (res.ok) toast.success('設定已儲存')
-    else toast.error('儲存失敗')
+    if (res.ok) toast.success(dict.settingsExt.saveSuccess)
+    else toast.error(dict.settingsExt.saveFailed)
   }
 
   // ───────── load users ─────────
@@ -190,8 +190,8 @@ export default function SettingsPage() {
       body: JSON.stringify({ matrix: permData.matrix }),
     })
     setSavingPerm(false)
-    if (res.ok) toast.success('權限已儲存')
-    else toast.error('儲存失敗')
+    if (res.ok) toast.success(dict.settingsExt.saveSuccess)
+    else toast.error(dict.settingsExt.saveFailed)
   }
 
   // ───────── user save ─────────
@@ -213,14 +213,14 @@ export default function SettingsPage() {
     }
     setSavingUser(false)
     if (res.ok) {
-      toast.success(editUser ? '用戶已更新' : '用戶已新增')
+      toast.success(editUser ? dict.common.updateSuccess : dict.common.createSuccess)
       setUserDialog(false)
       setEditUser(null)
       setUserForm({ email: '', name: '', password: '', role: 'SALES' })
       loadUsers()
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '操作失敗')
+      toast.error(d.error ?? dict.common.error)
     }
   }
 
@@ -230,8 +230,8 @@ export default function SettingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: u.name, role: u.role, isActive: !u.isActive }),
     })
-    if (res.ok) { toast.success('已更新'); loadUsers() }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(dict.common.updateSuccess); loadUsers() }
+    else toast.error(dict.common.error)
   }
 
   // ───────── API key generate ─────────
@@ -342,7 +342,7 @@ export default function SettingsPage() {
               {isAdmin && (
                 <div className="flex justify-end">
                   <Button size="sm" onClick={() => { setEditUser(null); setUserForm({ email: '', name: '', password: '', role: 'SALES' }); setUserDialog(true) }}>
-                    <Plus className="h-4 w-4 mr-1" />新增用戶
+                    <Plus className="h-4 w-4 mr-1" />{dict.users.newUser}
                   </Button>
                 </div>
               )}
@@ -368,8 +368,8 @@ export default function SettingsPage() {
                           </td>
                           <td className="px-4 py-2">
                             {u.isActive
-                              ? <span className="flex items-center gap-1 text-green-600 text-xs"><CheckCircle2 className="h-3.5 w-3.5" />啟用</span>
-                              : <span className="flex items-center gap-1 text-slate-400 text-xs"><XCircle className="h-3.5 w-3.5" />停用</span>}
+                              ? <span className="flex items-center gap-1 text-green-600 text-xs"><CheckCircle2 className="h-3.5 w-3.5" />{dict.common.active}</span>
+                              : <span className="flex items-center gap-1 text-slate-400 text-xs"><XCircle className="h-3.5 w-3.5" />{dict.common.inactive}</span>}
                           </td>
                           <td className="px-4 py-2">
                             {isAdmin && (
@@ -717,7 +717,7 @@ export default function SettingsPage() {
       <Dialog open={userDialog} onOpenChange={setUserDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editUser ? '編輯用戶' : '新增用戶'}</DialogTitle>
+            <DialogTitle>{editUser ? dict.common.edit : dict.users.newUser}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             {!editUser && (
@@ -727,7 +727,7 @@ export default function SettingsPage() {
               </div>
             )}
             <div>
-              <Label className="text-sm">姓名</Label>
+              <Label className="text-sm">{dict.users.name}</Label>
               <Input value={userForm.name} onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))} placeholder="姓名" className="mt-1" />
             </div>
             <div>
@@ -735,7 +735,7 @@ export default function SettingsPage() {
               <Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" className="mt-1" />
             </div>
             <div>
-              <Label className="text-sm">角色</Label>
+              <Label className="text-sm">{dict.users.role}</Label>
               <Select value={userForm.role} onValueChange={(v: string | null) => setUserForm(f => ({ ...f, role: v ?? 'SALES' }))}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />

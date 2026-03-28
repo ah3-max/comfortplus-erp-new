@@ -106,6 +106,7 @@ function CheckItemRow({
   onUpdate: (id: string, data: Partial<CheckItem>) => void
   onDelete: (id: string) => void
 }) {
+  const { dict } = useI18n()
   const [actualValue, setActualValue] = useState(item.actualValue ?? '')
   const [isQualified, setIsQualified] = useState<boolean | null>(item.isQualified ?? null)
   const [defectType, setDefectType] = useState(item.defectType ?? '')
