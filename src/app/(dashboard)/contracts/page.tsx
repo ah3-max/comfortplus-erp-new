@@ -122,11 +122,16 @@ export default function ContractsPage() {
   const [editForm, setEditForm] = useState<EditForm>(emptyEditForm)
   const [editingId, setEditingId] = useState<string | null>(null)
 
+  // Customers/suppliers for create form
+  const [customers, setCustomers] = useState<{ id: string; name: string; code: string }[]>([])
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string; code: string }[]>([])
+
   // New schedule row state
   const [newSchedules, setNewSchedules] = useState<{ dueDate: string; amount: string; description: string }[]>([])
   const [form, setForm] = useState({
     title: '', contractType: 'SALES', effectiveFrom: '', effectiveTo: '',
     signedAt: '', totalValue: '', currency: 'TWD', paymentTerms: '', autoRenew: false, notes: '',
+    customerId: '', supplierId: '',
   })
 
   const fetchContracts = useCallback(async () => {
@@ -144,6 +149,16 @@ export default function ContractsPage() {
   }, [search, statusFilter, typeFilter, expiringSoon])
 
   useEffect(() => { fetchContracts() }, [fetchContracts])
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/customers?pageSize=500').then(r => r.json()),
+      fetch('/api/suppliers?pageSize=500').then(r => r.json()),
+    ]).then(([c, s]) => {
+      setCustomers(Array.isArray(c) ? c : (c.data ?? []))
+      setSuppliers(Array.isArray(s) ? s : (s.data ?? []))
+    }).catch(() => {})
+  }, [])
 
   async function refreshDetail(id: string) {
     const res = await fetch(`/api/contracts/${id}`)
@@ -166,7 +181,7 @@ export default function ContractsPage() {
     if (res.ok) {
       toast.success('合約已建立')
       setCreateOpen(false)
-      setForm({ title: '', contractType: 'SALES', effectiveFrom: '', effectiveTo: '', signedAt: '', totalValue: '', currency: 'TWD', paymentTerms: '', autoRenew: false, notes: '' })
+      setForm({ title: '', contractType: 'SALES', effectiveFrom: '', effectiveTo: '', signedAt: '', totalValue: '', currency: 'TWD', paymentTerms: '', autoRenew: false, notes: '', customerId: '', supplierId: '' })
       setNewSchedules([])
       fetchContracts()
     } else {
@@ -488,6 +503,20 @@ export default function ContractsPage() {
           <DialogHeader><DialogTitle>{dict.contracts.newContract}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div><Label>合約標題 *</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="mt-1" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>客戶</Label>
+                <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm" value={form.customerId} onChange={e => setForm(f => ({ ...f, customerId: e.target.value, supplierId: '' }))}>
+                  <option value="">— 選擇客戶 —</option>
+                  {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                </select>
+              </div>
+              <div><Label>供應商</Label>
+                <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm" value={form.supplierId} onChange={e => setForm(f => ({ ...f, supplierId: e.target.value, customerId: '' }))}>
+                  <option value="">— 選擇供應商 —</option>
+                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.name} ({s.code})</option>)}
+                </select>
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>合約類型 *</Label>
                 <Select value={form.contractType} onValueChange={v => setForm(f => ({ ...f, contractType: v ?? 'SALES' }))}>

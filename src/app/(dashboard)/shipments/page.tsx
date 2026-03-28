@@ -278,7 +278,8 @@ export default function ShipmentsPage() {
     setPickLoading(true)
     // Try by shipmentNo search
     const res = await fetch(`/api/shipments?search=${encodeURIComponent(pickShipmentId.trim())}`)
-    const list: Shipment[] = await res.json()
+    const json = await res.json()
+    const list: Shipment[] = Array.isArray(json) ? json : (json.data ?? [])
     setPickLoading(false)
     if (!list.length) { toast.error(dict.shipmentsExt.noResults); return }
     setPickData(list[0])

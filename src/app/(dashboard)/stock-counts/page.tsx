@@ -115,7 +115,7 @@ export default function StockCountsPage() {
   useEffect(() => {
     if (!showCreate) return
     fetch('/api/warehouses?pageSize=100').then(r => r.json())
-      .then(d => setWarehouses(d.data ?? []))
+      .then(d => setWarehouses(Array.isArray(d) ? d : (d.data ?? [])))
       .catch(() => {})
   }, [showCreate])
 

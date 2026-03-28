@@ -153,8 +153,8 @@ export default function InternalUsePage() {
       fetch('/api/warehouses?pageSize=100').then(r => r.json()),
       fetch('/api/products?pageSize=500&activeOnly=true').then(r => r.json()),
     ]).then(([w, p]) => {
-      setWarehouses(w.data ?? [])
-      setProducts(p.data ?? [])
+      setWarehouses(Array.isArray(w) ? w : (w.data ?? []))
+      setProducts(Array.isArray(p) ? p : (p.data ?? []))
     }).catch(() => {})
   }, [showIuDialog, showDgDialog])
 

@@ -44,13 +44,13 @@ interface Payment {
   customer: { id: string; name: string; code: string } | null
   supplier: { id: string; name: string; code: string } | null
   salesOrder: { id: string; orderNo: string } | null
-  purchaseOrder: { id: string; orderNo: string } | null
+  purchaseOrder: { id: string; poNo: string } | null
 }
 
 interface Customer { id: string; name: string; code: string }
 interface Supplier { id: string; name: string; code: string }
 interface SalesOrder { id: string; orderNo: string; customer: { id: string; name: string } }
-interface PurchaseOrder { id: string; orderNo: string; supplier: { id: string; name: string } }
+interface PurchaseOrder { id: string; poNo: string; supplier: { id: string; name: string } }
 
 /* ─── Constants ──────────────────────────────────────────── */
 const DIRECTION_COLOR: Record<PaymentDirection, string> = {
@@ -147,7 +147,7 @@ export default function PaymentsPage() {
     if (filterDateTo) params.set('dateTo', filterDateTo)
     const res = await fetch(`/api/payments?${params}`)
     const data = await res.json()
-    setPayments(Array.isArray(data) ? data : [])
+    setPayments(Array.isArray(data) ? data : (data.data ?? []))
     setLoading(false)
   }, [tab, filterDateFrom, filterDateTo])
 
@@ -163,10 +163,10 @@ export default function PaymentsPage() {
       fetch('/api/orders').then(r => r.json()),
       fetch('/api/purchases').then(r => r.json()),
     ]).then(([c, s, o, p]) => {
-      setCustomers(Array.isArray(c) ? c : [])
-      setSuppliers(Array.isArray(s) ? s : [])
-      setSalesOrders(Array.isArray(o) ? o : [])
-      setPurchaseOrders(Array.isArray(p) ? p : [])
+      setCustomers(Array.isArray(c) ? c : (c.data ?? []))
+      setSuppliers(Array.isArray(s) ? s : (s.data ?? []))
+      setSalesOrders(Array.isArray(o) ? o : (o.data ?? []))
+      setPurchaseOrders(Array.isArray(p) ? p : (p.data ?? []))
     })
   }, [])
 
@@ -216,10 +216,10 @@ export default function PaymentsPage() {
     setSaving(true)
     const body = {
       direction:       createForm.direction,
-      type:            createForm.type,
+      paymentType:     createForm.type,
       amount:          Number(createForm.amount),
       paymentDate:     createForm.paymentDate,
-      method:          createForm.method || null,
+      paymentMethod:   createForm.method || null,
       customerId:      createForm.customerId || null,
       supplierId:      createForm.supplierId || null,
       salesOrderId:    createForm.salesOrderId || null,
@@ -509,7 +509,7 @@ export default function PaymentsPage() {
                   : p.supplier?.name
                 const linkedOrder = p.direction === 'INCOMING'
                   ? p.salesOrder?.orderNo
-                  : p.purchaseOrder?.orderNo
+                  : p.purchaseOrder?.poNo
                 return (
                   <TableRow key={p.id} className="group hover:bg-slate-50/80">
                     <TableCell className="font-mono text-sm font-medium">{p.paymentNo}</TableCell>
@@ -710,7 +710,7 @@ export default function PaymentsPage() {
                         .filter(po => !createForm.supplierId || po.supplier.id === createForm.supplierId)
                         .map(po => (
                           <SelectItem key={po.id} value={po.id}>
-                            {po.orderNo} - {po.supplier.name}
+                            {po.poNo} - {po.supplier.name}
                           </SelectItem>
                         ))}
                     </SelectContent>

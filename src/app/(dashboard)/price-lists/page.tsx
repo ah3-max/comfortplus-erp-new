@@ -88,8 +88,9 @@ export default function PriceListsPage() {
       return
     }
     try {
-      const res = await fetch('/api/special-prices', {
-        method: 'POST',
+      const url = editing ? `/api/special-prices?id=${editing.id}` : '/api/special-prices'
+      const res = await fetch(url, {
+        method: editing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customerId: form.customerId,

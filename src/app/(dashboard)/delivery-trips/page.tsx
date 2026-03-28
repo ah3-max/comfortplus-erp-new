@@ -22,7 +22,7 @@ interface ShipmentItem {
   product: { name: string; sku: string; unit: string | null }
 }
 interface TripShipment {
-  id: string; shipNo: string
+  id: string; shipmentNo: string
   order: { customer: { name: string; code: string } }
   items: ShipmentItem[]
 }
@@ -285,7 +285,7 @@ export default function DeliveryTripsPage() {
                     </div>
                     {selected.shipments.map(s => (
                       <div key={s.id} className="text-xs border rounded p-2 mb-1">
-                        <div className="font-mono font-medium text-blue-700">{s.shipNo ?? s.id.slice(-8)}</div>
+                        <div className="font-mono font-medium text-blue-700">{s.shipmentNo ?? s.id.slice(-8)}</div>
                         <div className="text-gray-600">{s.order.customer.name}</div>
                         <div className="text-gray-400">{s.items.length} 品項</div>
                       </div>
