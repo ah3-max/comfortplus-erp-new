@@ -25,27 +25,15 @@ interface ExpenseReport {
   items: ExpenseItem[]
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: '草稿', color: 'bg-slate-100 text-slate-600' },
-  SUBMITTED: { label: '已提交', color: 'bg-blue-100 text-blue-700' },
-  APPROVED: { label: '已核准', color: 'bg-green-100 text-green-700' },
-  REJECTED: { label: '已退回', color: 'bg-red-100 text-red-700' },
-  PAID: { label: '已付款', color: 'bg-emerald-100 text-emerald-700' },
-}
-
-const CATEGORIES = [
-  { value: 'TRANSPORT', label: '交通費' },
-  { value: 'MEAL', label: '餐飲費' },
-  { value: 'HOTEL', label: '住宿費' },
-  { value: 'OFFICE', label: '辦公用品' },
-  { value: 'COMM', label: '通訊費' },
-  { value: 'OTHER', label: '其他' },
-]
+const CATEGORY_VALUES = ['TRANSPORT', 'MEAL', 'HOTEL', 'OFFICE', 'COMM', 'OTHER']
 
 function fmt(n: number) { return n.toLocaleString('zh-TW') }
 
 export default function ExpensesPage() {
   const { dict } = useI18n()
+  const ex = dict.expenses
+  type ExSt = keyof typeof ex.statuses
+  type ExCat = keyof typeof ex.categories
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const isFinance = ['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)
@@ -82,8 +70,8 @@ export default function ExpensesPage() {
       body: JSON.stringify({ title: form.title, notes: form.notes, items: items.filter(i => i.description && i.amount > 0) }),
     })
     setSaving(false)
-    if (res.ok) { toast.success('費用單已建立'); setShowDialog(false); load() }
-    else { const d = await res.json(); toast.error(d.error ?? '建立失敗') }
+    if (res.ok) { toast.success(ex.createSuccess); setShowDialog(false); load() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
   }
 
   async function doAction(id: string, action: string) {
@@ -92,8 +80,8 @@ export default function ExpensesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action }),
     })
-    if (res.ok) { toast.success('操作成功'); load(); setDetailReport(null) }
-    else toast.error('操作失敗')
+    if (res.ok) { toast.success(ex.actionSuccess); load(); setDetailReport(null) }
+    else toast.error(ex.actionFailed)
   }
 
   function addItem() {
@@ -103,9 +91,9 @@ export default function ExpensesPage() {
   const total = items.reduce((s, i) => s + (i.amount || 0), 0)
 
   const summaryCards = [
-    { label: '待審核', value: reports.filter(r => r.status === 'SUBMITTED').length, icon: Clock, color: 'text-blue-600' },
-    { label: '已核准', value: reports.filter(r => r.status === 'APPROVED').length, icon: CheckCircle2, color: 'text-green-600' },
-    { label: '總金額', value: `$${fmt(reports.reduce((s, r) => s + Number(r.totalAmount), 0))}`, icon: DollarSign, color: 'text-slate-900' },
+    { label: ex.pendingReview, value: reports.filter(r => r.status === 'SUBMITTED').length, icon: Clock, color: 'text-blue-600' },
+    { label: ex.statuses.APPROVED, value: reports.filter(r => r.status === 'APPROVED').length, icon: CheckCircle2, color: 'text-green-600' },
+    { label: ex.totalAmount, value: `$${fmt(reports.reduce((s, r) => s + Number(r.totalAmount), 0))}`, icon: DollarSign, color: 'text-slate-900' },
   ]
 
   return (
@@ -113,7 +101,7 @@ export default function ExpensesPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.expenses.title}</h1>
-          <p className="text-sm text-muted-foreground">管理差旅、辦公等費用報銷單</p>
+          <p className="text-sm text-muted-foreground">{ex.subtitle}</p>
         </div>
         <Button onClick={() => { setForm({ title: '', notes: '' }); setItems([{ date: new Date().toISOString().slice(0, 10), category: 'TRANSPORT', description: '', amount: 0, lineNo: 1 }]); setShowDialog(true) }}>
           <Plus className="h-4 w-4 mr-1" />{dict.expenses.newExpense}
@@ -137,13 +125,13 @@ export default function ExpensesPage() {
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="搜尋..." value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="pl-9" placeholder={dict.common.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={statusFilter || 'all'} onValueChange={(v: string | null) => setStatusFilter((v ?? '') === 'all' ? '' : (v ?? ''))}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部</SelectItem>
-            {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+            <SelectItem value="all">{dict.common.all}</SelectItem>
+            {Object.entries(ex.statuses).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -155,13 +143,14 @@ export default function ExpensesPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {reports.map(r => {
-            const st = STATUS_MAP[r.status] ?? { label: r.status, color: '' }
+            const stLabel = ex.statuses[r.status as ExSt] ?? r.status
+            const stColor = ex.statusColors[r.status as keyof typeof ex.statusColors] ?? ''
             return (
               <Card key={r.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDetailReport(r)}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium">{r.title}</CardTitle>
-                    <Badge variant="outline" className={st.color}>{st.label}</Badge>
+                    <Badge variant="outline" className={stColor}>{stLabel}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground font-mono">{r.reportNo}</p>
                 </CardHeader>
@@ -183,12 +172,12 @@ export default function ExpensesPage() {
           <DialogHeader><DialogTitle>{dict.expenses.newExpense}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>標題</Label>
-              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="2026/03 出差費用" className="mt-1" />
+              <Label>{ex.titleLabel}</Label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="mt-1" />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>明細項目</Label>
+                <Label>{ex.itemsLabel}</Label>
                 <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />新增</Button>
               </div>
               {items.map((item, i) => (
@@ -199,7 +188,7 @@ export default function ExpensesPage() {
                   <div className="col-span-2">
                     <Select value={item.category} onValueChange={(v: string | null) => setItems(prev => prev.map((x, j) => j === i ? { ...x, category: v ?? 'OTHER' } : x))}>
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>{CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                      <SelectContent>{CATEGORY_VALUES.map(v => <SelectItem key={v} value={v}>{ex.categories[v as ExCat] ?? v}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="col-span-5">
@@ -215,7 +204,7 @@ export default function ExpensesPage() {
                   </div>
                 </div>
               ))}
-              <div className="text-right font-bold">合計：${fmt(total)}</div>
+              <div className="text-right font-bold">{dict.common.total}：${fmt(total)}</div>
             </div>
           </div>
           <DialogFooter>
@@ -238,7 +227,7 @@ export default function ExpensesPage() {
               </DialogHeader>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className={STATUS_MAP[detailReport.status]?.color}>{STATUS_MAP[detailReport.status]?.label}</Badge>
+                  <Badge variant="outline" className={ex.statusColors[detailReport.status as keyof typeof ex.statusColors] ?? ''}>{ex.statuses[detailReport.status as ExSt] ?? detailReport.status}</Badge>
                   <span className="text-xl font-bold">${fmt(Number(detailReport.totalAmount))}</span>
                 </div>
                 <div className="rounded-md border divide-y">
@@ -246,7 +235,7 @@ export default function ExpensesPage() {
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-sm">
                       <div>
                         <span className="text-muted-foreground mr-2">{item.date?.slice(0, 10)}</span>
-                        <Badge variant="outline" className="text-xs mr-2">{CATEGORIES.find(c => c.value === item.category)?.label ?? item.category}</Badge>
+                        <Badge variant="outline" className="text-xs mr-2">{ex.categories[item.category as ExCat] ?? item.category}</Badge>
                         {item.description}
                       </div>
                       <span className="font-medium">${fmt(Number(item.amount))}</span>
@@ -264,7 +253,7 @@ export default function ExpensesPage() {
                     </>
                   )}
                   {detailReport.status === 'APPROVED' && isFinance && (
-                    <Button size="sm" onClick={() => doAction(detailReport.id, 'PAY')}>確認付款</Button>
+                    <Button size="sm" onClick={() => doAction(detailReport.id, 'PAY')}>{ex.confirmPay}</Button>
                   )}
                 </div>
               </div>
