@@ -71,7 +71,7 @@ export default function PurchaseRequestsPage() {
     DRAFT:     { label: dict.purchaseRequests.statuses.DRAFT, variant: 'outline' },
     SUBMITTED: { label: dict.purchaseRequests.statuses.SUBMITTED, variant: 'secondary' },
     APPROVED:  { label: dict.purchaseRequests.statuses.APPROVED, variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-    ORDERED:   { label: '已下單', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    ORDERED:   { label: dict.purchaseRequests.statuses.ORDERED, variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
     CANCELLED: { label: dict.purchaseRequests.statuses.CANCELLED, variant: 'destructive' },
   }
 
@@ -80,7 +80,7 @@ export default function PurchaseRequestsPage() {
     { value: 'DRAFT', label: dict.purchaseRequests.statuses.DRAFT },
     { value: 'SUBMITTED', label: dict.purchaseRequests.statuses.SUBMITTED },
     { value: 'APPROVED', label: dict.purchaseRequests.statuses.APPROVED },
-    { value: 'ORDERED', label: '已下單' },
+    { value: 'ORDERED', label: dict.purchaseRequests.statuses.ORDERED },
   ]
 
   const [requests, setRequests] = useState<PurchaseRequest[]>([])
@@ -227,6 +227,61 @@ export default function PurchaseRequestsPage() {
     setForm(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))
   }
 
+  async function openConvertDialog(pr: PurchaseRequest) {
+    setConvertTarget(pr)
+    setConvertSupplierId('')
+    setConvertOpen(true)
+    try {
+      const res = await fetch('/api/suppliers?limit=500')
+      const data = await res.json()
+      setConvertSuppliers(Array.isArray(data) ? data : data.data ?? [])
+    } catch {
+      toast.error('載入供應商失敗')
+    }
+  }
+
+  async function handleConvertToPurchase() {
+    if (!convertTarget) return
+    if (!convertSupplierId) { toast.error('請選擇供應商'); return }
+    setConverting(true)
+    try {
+      // 1. Update status to ORDERED
+      const statusRes = await fetch(`/api/purchase-requests/${convertTarget.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusOnly: true, status: 'ORDERED' }),
+      })
+      if (!statusRes.ok) throw new Error('更新狀態失敗')
+
+      // 2. Create purchase order
+      const items = convertTarget.items.map(i => ({
+        productId: i.product.id,
+        quantity: Number(i.quantity),
+        unitCost: Number(i.unitPrice ?? 0),
+      }))
+
+      const poRes = await fetch('/api/purchases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          supplierId: convertSupplierId,
+          orderType: 'FINISHED_GOODS',
+          notes: `由請購單 ${convertTarget.requestNumber} 轉入`,
+          items,
+        }),
+      })
+      if (!poRes.ok) throw new Error('建立採購單失敗')
+      const poData = await poRes.json()
+      toast.success(`已建立採購單 ${poData.poNo}`)
+      setConvertOpen(false)
+      fetchRequests()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '轉採購失敗')
+    } finally {
+      setConverting(false)
+    }
+  }
+
   const draftCount = requests.filter(r => r.status === 'DRAFT').length
   const submittedCount = requests.filter(r => r.status === 'SUBMITTED').length
 
@@ -344,8 +399,8 @@ export default function PurchaseRequestsPage() {
                             </DropdownMenuItem>
                           )}
                           {pr.status === 'APPROVED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(pr.id, 'ORDERED', '轉採購')}>
-                              <ShoppingCart className="mr-2 h-4 w-4" />標記已下單
+                            <DropdownMenuItem onClick={() => openConvertDialog(pr)}>
+                              <ShoppingCart className="mr-2 h-4 w-4" />轉採購單
                             </DropdownMenuItem>
                           )}
                           {['DRAFT', 'SUBMITTED'].includes(pr.status) && (

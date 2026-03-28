@@ -1817,6 +1817,8 @@ const en = {
     statuses: {
       DRAFT: 'Draft',
       SENT: 'Sent',
+      RESPONDED: 'Responded',
+      COMPLETED: 'Completed',
       RECEIVED: 'Quote Received',
       COMPARED: 'Compared',
       ORDERED: 'Ordered',
@@ -1838,8 +1840,10 @@ const en = {
     noRequisitions: 'No requisitions yet',
     statuses: {
       DRAFT: 'Draft',
+      CONFIRMED: 'Confirmed',
       APPROVED: 'Approved',
       ISSUED: 'Issued',
+      COMPLETED: 'Completed',
       CANCELLED: 'Cancelled',
     },
   },
@@ -1860,6 +1864,7 @@ const en = {
     statuses: {
       DRAFT: 'Draft',
       CONFIRMED: 'Confirmed',
+      RECEIVED: 'Received',
       STOCKED: 'Stocked',
       CANCELLED: 'Cancelled',
     },

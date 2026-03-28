@@ -202,9 +202,31 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
   const { dict } = useI18n()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ purchaseId: '', supplierId: '', returnType: 'RETURN', reason: '', deductAmount: '', debitNoteNo: '', notes: '' })
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string; code: string | null }[]>([])
+  const [purchases, setPurchases] = useState<{ id: string; poNo: string; supplier: { id: string; name: string } }[]>([])
+
+  useEffect(() => {
+    if (!open) return
+    Promise.all([
+      fetch('/api/suppliers?limit=500').then(r => r.json()),
+      fetch('/api/purchases').then(r => r.json()),
+    ]).then(([sRes, pRes]) => {
+      setSuppliers(Array.isArray(sRes) ? sRes : sRes.data ?? [])
+      setPurchases(Array.isArray(pRes) ? pRes : pRes.data ?? [])
+    }).catch(() => toast.error('載入參考資料失敗'))
+  }, [open])
+
+  // When purchase is selected, auto-fill supplier
+  function handlePurchaseChange(purchaseId: string) {
+    setForm(p => ({ ...p, purchaseId }))
+    const po = purchases.find(po => po.id === purchaseId)
+    if (po?.supplier) {
+      setForm(p => ({ ...p, purchaseId, supplierId: po.supplier.id }))
+    }
+  }
 
   async function handleSubmit() {
-    if (!form.purchaseId || !form.supplierId) { toast.error('請填寫採購單 ID 與供應商 ID'); return }
+    if (!form.purchaseId || !form.supplierId) { toast.error('請選擇採購單與供應商'); return }
     setSaving(true)
     try {
       const res = await fetch('/api/purchase-returns', {
@@ -219,22 +241,38 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
     finally { setSaving(false) }
   }
 
+  // Filter purchases by selected supplier
+  const filteredPurchases = form.supplierId
+    ? purchases.filter(po => po.supplier?.id === form.supplierId)
+    : purchases
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>{dict.purchaseReturns.newReturn}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
-          {[
-            { label: '採購單 ID', key: 'purchaseId', placeholder: '貼上採購單 ID' },
-            { label: '供應商 ID', key: 'supplierId', placeholder: '貼上供應商 ID' },
-            { label: '扣款金額', key: 'deductAmount', placeholder: '選填' },
-            { label: '扣款通知單號', key: 'debitNoteNo', placeholder: '選填' },
-          ].map(f => (
-            <div key={f.key} className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
-              <Input value={(form as Record<string, string>)[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} />
-            </div>
-          ))}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">供應商 *</label>
+            <select value={form.supplierId} onChange={e => setForm(p => ({ ...p, supplierId: e.target.value, purchaseId: '' }))} className="w-full rounded-md border px-3 py-2 text-sm">
+              <option value="">選擇供應商</option>
+              {suppliers.map(s => <option key={s.id} value={s.id}>{s.code ? `${s.code} - ` : ''}{s.name}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">採購單 *</label>
+            <select value={form.purchaseId} onChange={e => handlePurchaseChange(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm">
+              <option value="">選擇採購單</option>
+              {filteredPurchases.map(po => <option key={po.id} value={po.id}>{po.poNo} — {po.supplier?.name ?? ''}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">扣款金額</label>
+            <Input value={form.deductAmount} onChange={e => setForm(p => ({ ...p, deductAmount: e.target.value }))} placeholder="選填" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">扣款通知單號</label>
+            <Input value={form.debitNoteNo} onChange={e => setForm(p => ({ ...p, debitNoteNo: e.target.value }))} placeholder="選填" />
+          </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">退貨類型</label>
             <select value={form.returnType} onChange={e => setForm(p => ({ ...p, returnType: e.target.value }))} className="w-full rounded-md border px-3 py-2 text-sm">
