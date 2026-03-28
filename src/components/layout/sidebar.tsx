@@ -78,7 +78,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
-  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' |
+  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -135,6 +135,7 @@ const navGroups: NavGroup[] = [
       { href: '/traceability',     key: 'traceability',   icon: SearchCode },
       { href: '/expiry-tracking',   key: 'expiryTracking',   icon: Clock },
       { href: '/inventory-movement', key: 'inventoryMovement', icon: BarChart3 },
+      { href: '/sales-analysis',    key: 'salesAnalysis',    icon: TrendingUp },
       { href: '/wms',           key: 'wms',          icon: Warehouse },
     ],
   },
@@ -166,6 +167,7 @@ const navGroups: NavGroup[] = [
       { href: '/purchase-returns',      key: 'purchaseReturns',       icon: RotateCcw },
       { href: '/purchase-analysis',     key: 'purchaseAnalysis',      icon: BarChart3 },
       { href: '/supplier-performance',  key: 'supplierPerformance',   icon: Star },
+      { href: '/abc-analysis',          key: 'abcAnalysis',           icon: PieChart },
     ],
   },
   {

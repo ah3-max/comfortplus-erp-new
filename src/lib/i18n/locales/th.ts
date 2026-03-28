@@ -94,6 +94,8 @@ const th = {
     inventoryMovement: 'รายงานความเคลื่อนไหวสินค้า',
     purchaseAnalysis: 'วิเคราะห์การจัดซื้อ',
     supplierPerformance: 'ประสิทธิภาพผู้จัดจำหน่าย',
+    salesAnalysis: 'วิเคราะห์การขาย',
+    abcAnalysis: 'วิเคราะห์ ABC สินค้า',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',

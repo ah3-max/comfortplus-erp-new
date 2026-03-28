@@ -94,6 +94,8 @@ const en = {
     inventoryMovement: 'Inventory Movement',
     purchaseAnalysis: 'Purchase Analysis',
     supplierPerformance: 'Supplier Performance',
+    salesAnalysis: 'Sales Analysis',
+    abcAnalysis: 'Product ABC Analysis',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

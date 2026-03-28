@@ -1,0 +1,247 @@
+'use client'
+
+import { useState, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useI18n } from '@/lib/i18n/context'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts'
+import { RefreshCw, TrendingUp } from 'lucide-react'
+import { toast } from 'sonner'
+
+type ViewKey = 'monthly' | 'customer' | 'product'
+
+interface MonthlyRow { month: string; count: number; totalAmount: number; subtotal: number; tax: number; discount: number }
+interface CustomerRow { customerId: string; name: string; type: string; count: number; totalAmount: number; sharePct: number }
+interface ProductRow { productId: string; name: string; sku: string; qty: number; subtotal: number; avgPrice: number; orderCount: number }
+
+const PIE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+
+export default function SalesAnalysisPage() {
+  const { dict } = useI18n()
+  const now = new Date()
+  const [view, setView] = useState<ViewKey>('monthly')
+  const [startDate, setStartDate] = useState(`${now.getFullYear()}-01-01`)
+  const [endDate, setEndDate] = useState(now.toISOString().slice(0, 10))
+  const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const [monthly, setMonthly] = useState<MonthlyRow[]>([])
+  const [customers, setCustomers] = useState<CustomerRow[]>([])
+  const [products, setProducts] = useState<ProductRow[]>([])
+  const [total, setTotal] = useState(0)
+
+  const fmt = (n: number) => new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(n)
+
+  const query = useCallback(async () => {
+    setLoading(true); setSearched(true)
+    try {
+      const params = new URLSearchParams({ view, startDate, endDate })
+      const res = await fetch(`/api/finance/sales-analysis?${params}`)
+      if (!res.ok) throw new Error()
+      const json = await res.json()
+      if (view === 'monthly') setMonthly(json.data ?? [])
+      if (view === 'customer') { setCustomers(json.data ?? []); setTotal(json.total ?? 0) }
+      if (view === 'product') setProducts(json.data ?? [])
+    } catch { toast.error('查詢失敗') }
+    finally { setLoading(false) }
+  }, [view, startDate, endDate])
+
+  const tooltipFmt = (v: unknown) => typeof v === 'number' ? fmt(v) : String(v ?? '')
+
+  return (
+    <div className="p-4 md:p-6 space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold">{dict.nav?.salesAnalysis ?? '銷售分析報表'}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">銷售趨勢、客戶占比、品項銷售量分析</p>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
+        <div>
+          <div className="text-xs text-gray-500 mb-1">分析維度</div>
+          <Select value={view} onValueChange={v => { if (v) setView(v as ViewKey) }}>
+            <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">月度趨勢</SelectItem>
+              <SelectItem value="customer">客戶分析</SelectItem>
+              <SelectItem value="product">品項分析</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
+        </div>
+        <div>
+          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
+        </div>
+        <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          {loading ? '查詢中…' : '查詢'}
+        </Button>
+      </div>
+
+      {/* ── Monthly view ── */}
+      {searched && view === 'monthly' && (
+        <div className="space-y-4">
+          <div className="bg-white border rounded-xl p-4">
+            <h3 className="font-semibold mb-3 text-sm">月度銷售金額趨勢</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} />
+                <Tooltip formatter={tooltipFmt} />
+                <Bar dataKey="totalAmount" fill="#3b82f6" name="銷售金額" radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="rounded-xl border bg-white overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
+                <th className="px-4 py-3 text-left">月份</th>
+                <th className="px-4 py-3 text-right">訂單數</th>
+                <th className="px-4 py-3 text-right">稅前金額</th>
+                <th className="px-4 py-3 text-right">折扣</th>
+                <th className="px-4 py-3 text-right">稅額</th>
+                <th className="px-4 py-3 text-right">含稅合計</th>
+              </tr></thead>
+              <tbody>
+                {monthly.length === 0 ? (
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">無資料</td></tr>
+                ) : monthly.map(row => (
+                  <tr key={row.month} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3 font-mono">{row.month}</td>
+                    <td className="px-4 py-3 text-right">{row.count}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{fmt(row.subtotal)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-red-500">{row.discount > 0 ? `-${fmt(row.discount)}` : '-'}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-gray-500">{fmt(row.tax)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold">{fmt(row.totalAmount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Customer view ── */}
+      {searched && view === 'customer' && (
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-white border rounded-xl p-4">
+            <h3 className="font-semibold mb-3 text-sm">客戶銷售占比 TOP 8</h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={customers.slice(0, 8)}
+                  dataKey="totalAmount"
+                  nameKey="name"
+                  outerRadius={100}
+                  label={(props) => {
+                    const pct = (props as unknown as { sharePct?: number }).sharePct
+                    return pct !== undefined ? `${pct}%` : ''
+                  }}
+                >
+                  {customers.slice(0, 8).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={tooltipFmt} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="rounded-xl border bg-white overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
+                <th className="px-4 py-3 text-left">客戶</th>
+                <th className="px-4 py-3 text-right">訂單數</th>
+                <th className="px-4 py-3 text-right">銷售金額</th>
+                <th className="px-4 py-3 text-right">占比</th>
+              </tr></thead>
+              <tbody>
+                {customers.length === 0 ? (
+                  <tr><td colSpan={4} className="py-8 text-center text-gray-400">無資料</td></tr>
+                ) : customers.map((row, i) => (
+                  <tr key={row.customerId} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        <span className="font-medium">{row.name}</span>
+                      </div>
+                      <div className="text-xs text-gray-400 ml-5">{row.type}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right">{row.count}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{fmt(row.totalAmount)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-medium">{row.sharePct}%</td>
+                  </tr>
+                ))}
+              </tbody>
+              {total > 0 && (
+                <tfoot><tr className="border-t bg-gray-50 font-semibold">
+                  <td className="px-4 py-2 text-xs text-gray-500" colSpan={2}>合計</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{fmt(total)}</td>
+                  <td className="px-4 py-2 text-right">100%</td>
+                </tr></tfoot>
+              )}
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Product view ── */}
+      {searched && view === 'product' && (
+        <div className="space-y-4">
+          <div className="bg-white border rounded-xl p-4">
+            <h3 className="font-semibold mb-3 text-sm">品項銷售金額 TOP 15</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={products.slice(0, 15)} layout="vertical" margin={{ left: 140, right: 16, top: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} />
+                <Tooltip formatter={tooltipFmt} />
+                <Bar dataKey="subtotal" fill="#3b82f6" name="銷售金額" radius={[0, 3, 3, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="rounded-xl border bg-white overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
+                <th className="px-4 py-3 text-left">品項</th>
+                <th className="px-4 py-3 text-right">銷售量</th>
+                <th className="px-4 py-3 text-right">銷售金額</th>
+                <th className="px-4 py-3 text-right">平均單價</th>
+                <th className="px-4 py-3 text-right">訂單數</th>
+              </tr></thead>
+              <tbody>
+                {products.length === 0 ? (
+                  <tr><td colSpan={5} className="py-8 text-center text-gray-400">無資料</td></tr>
+                ) : products.map(row => (
+                  <tr key={row.productId} className="border-b last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{row.name}</div>
+                      <div className="text-xs text-gray-400 font-mono">{row.sku}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums">{row.qty.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(row.subtotal)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{fmt(row.avgPrice)}</td>
+                    <td className="px-4 py-3 text-right">{row.orderCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!searched && (
+        <div className="py-20 text-center text-gray-400">
+          <TrendingUp size={40} className="mx-auto mb-3 opacity-30" />
+          <p>請選擇維度與期間後按「查詢」</p>
+        </div>
+      )}
+    </div>
+  )
+}

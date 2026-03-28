@@ -96,6 +96,8 @@ const zhTW = {
     inventoryMovement: '進銷存彙總報表',
     purchaseAnalysis: '採購分析報表',
     supplierPerformance: '供應商績效分析',
+    salesAnalysis: '銷售分析報表',
+    abcAnalysis: '品項 ABC 分析',
     arAging: '應收帳齡',
     finance: '財務報表',
     apAging: '應付帳齡',
