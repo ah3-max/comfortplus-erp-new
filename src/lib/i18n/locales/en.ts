@@ -1656,9 +1656,16 @@ const en = {
     noResults: 'No matching records found',
     noRequests: 'No requests yet',
     statuses: {
-      PENDING: 'Pending',
+      DRAFT: 'Draft',
+      PENDING_APPROVAL: 'Pending Approval',
       APPROVED: 'Approved',
-      DEDUCTED: 'Deducted',
+      ISSUED: 'Issued',
+      CANCELLED: 'Cancelled',
+    },
+    defectStatuses: {
+      PENDING: 'Pending',
+      PROCESSING: 'Processing',
+      RESOLVED: 'Resolved',
       CANCELLED: 'Cancelled',
     },
   },

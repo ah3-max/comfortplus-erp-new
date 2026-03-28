@@ -26,12 +26,12 @@ import { useI18n } from '@/lib/i18n/context'
 const purposeLabels: Record<string, string> = {
   SAMPLE: '樣品', STAFF: '員工用', MARKETING: '行銷', TEST: '測試', DISPOSAL: '銷毀', OTHER: '其他',
 }
-const internalUseStatusConfig: Record<string, { label: string; className: string }> = {
-  DRAFT:            { label: '草稿',   className: 'bg-slate-100 text-slate-600' },
-  PENDING_APPROVAL: { label: '待審核', className: 'bg-amber-100 text-amber-700' },
-  APPROVED:         { label: '已審核', className: 'bg-blue-100 text-blue-700' },
-  ISSUED:           { label: '已出庫', className: 'bg-green-100 text-green-700' },
-  CANCELLED:        { label: '已取消', className: 'bg-red-100 text-red-700' },
+const internalUseStatusCls: Record<string, string> = {
+  DRAFT:            'bg-slate-100 text-slate-600',
+  PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
+  APPROVED:         'bg-blue-100 text-blue-700',
+  ISSUED:           'bg-green-100 text-green-700',
+  CANCELLED:        'bg-red-100 text-red-700',
 }
 
 // ── Defective Goods types ──
@@ -43,11 +43,11 @@ const severityConfig: Record<string, { label: string; className: string }> = {
   MAJOR:    { label: '嚴重', className: 'bg-orange-100 text-orange-700' },
   CRITICAL: { label: '重大', className: 'bg-red-100 text-red-700' },
 }
-const defectStatusConfig: Record<string, { label: string; className: string }> = {
-  PENDING:    { label: '待處置', className: 'bg-amber-100 text-amber-700' },
-  PROCESSING: { label: '處理中', className: 'bg-blue-100 text-blue-700' },
-  RESOLVED:   { label: '已處置', className: 'bg-green-100 text-green-700' },
-  CANCELLED:  { label: '已取消', className: 'bg-slate-100 text-slate-600' },
+const defectStatusCls: Record<string, string> = {
+  PENDING:    'bg-amber-100 text-amber-700',
+  PROCESSING: 'bg-blue-100 text-blue-700',
+  RESOLVED:   'bg-green-100 text-green-700',
+  CANCELLED:  'bg-slate-100 text-slate-600',
 }
 const dispositionLabels: Record<string, string> = {
   SCRAP: '報廢', REWORK: '重工', RETURN_SUPPLIER: '退供應商', DISCOUNT_SALE: '折價出售', QUARANTINE: '隔離',
@@ -86,6 +86,9 @@ function fmtDate(str: string) {
 
 export default function InternalUsePage() {
   const { dict } = useI18n()
+  const iu = dict.internalUse
+  type IUStatus = keyof typeof iu.statuses
+  type DGStatus = keyof typeof iu.defectStatuses
   const [tab, setTab] = useState('internal')
 
   // Internal Use
@@ -164,7 +167,7 @@ export default function InternalUsePage() {
       body: JSON.stringify({ action }),
     })
     if (res.ok) {
-      const labels: Record<string, string> = { APPROVE: '已審核', ISSUE: '已出庫', CANCEL: '已取消' }
+      const labels: Record<string, string> = { APPROVE: iu.statuses.APPROVED, ISSUE: iu.statuses.ISSUED, CANCEL: iu.statuses.CANCELLED }
       toast.success(labels[action] ?? '已更新')
       fetchIU()
     } else {
@@ -226,10 +229,10 @@ export default function InternalUsePage() {
   }
 
   const dgStatusFilters = [
-    { value: '', label: '全部' },
-    { value: 'PENDING', label: '待處置' },
-    { value: 'PROCESSING', label: '處理中' },
-    { value: 'RESOLVED', label: '已處置' },
+    { value: '', label: dict.common.all },
+    { value: 'PENDING', label: iu.defectStatuses.PENDING },
+    { value: 'PROCESSING', label: iu.defectStatuses.PROCESSING },
+    { value: 'RESOLVED', label: iu.defectStatuses.RESOLVED },
   ]
 
   return (
@@ -281,13 +284,14 @@ export default function InternalUsePage() {
                 ) : iuData.length === 0 ? (
                   <TableRow><TableCell colSpan={9} className="py-16 text-center text-muted-foreground">{dict.internalUse.noRequests}</TableCell></TableRow>
                 ) : iuData.map(d => {
-                  const sc = internalUseStatusConfig[d.status] ?? { label: d.status, className: '' }
+                  const scCls = internalUseStatusCls[d.status] ?? ''
+                  const scLabel = iu.statuses[d.status as IUStatus] ?? d.status
                   return (
                     <TableRow key={d.id} className="group">
                       <TableCell className="font-mono text-sm font-medium">{d.useNo}</TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{purposeLabels[d.purpose] ?? d.purpose}</Badge></TableCell>
                       <TableCell className="text-sm">{d.warehouse.name}</TableCell>
-                      <TableCell><Badge variant="outline" className={sc.className}>{sc.label}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={scCls}>{scLabel}</Badge></TableCell>
                       <TableCell className="text-right text-sm">{fmt(d.totalCost)}</TableCell>
                       <TableCell className="text-center text-sm">{d.items.length}</TableCell>
                       <TableCell className="text-sm">{d.requestedBy.name}</TableCell>
@@ -327,12 +331,13 @@ export default function InternalUsePage() {
           {/* Mobile cards */}
           <div className="block md:hidden space-y-3">
             {iuData.map(d => {
-              const sc = internalUseStatusConfig[d.status] ?? { label: d.status, className: '' }
+              const scCls2 = internalUseStatusCls[d.status] ?? ''
+              const scLabel2 = iu.statuses[d.status as IUStatus] ?? d.status
               return (
                 <div key={d.id} className="rounded-lg border bg-white p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-sm font-medium">{d.useNo}</span>
-                    <Badge variant="outline" className={sc.className}>{sc.label}</Badge>
+                    <Badge variant="outline" className={scCls2}>{scLabel2}</Badge>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span>{purposeLabels[d.purpose]}</span>
@@ -401,7 +406,8 @@ export default function InternalUsePage() {
                   </TableCell></TableRow>
                 ) : dgData.map(d => {
                   const sev = severityConfig[d.severity] ?? { label: d.severity, className: '' }
-                  const st = defectStatusConfig[d.status] ?? { label: d.status, className: '' }
+                  const stCls = defectStatusCls[d.status] ?? ''
+                  const stLabel = iu.defectStatuses[d.status as DGStatus] ?? d.status
                   return (
                     <TableRow key={d.id} className="group">
                       <TableCell className="font-mono text-sm font-medium">{d.defectNo}</TableCell>
@@ -411,7 +417,7 @@ export default function InternalUsePage() {
                       </TableCell>
                       <TableCell><Badge variant="outline" className="text-xs">{sourceLabels[d.source] ?? d.source}</Badge></TableCell>
                       <TableCell><Badge variant="outline" className={sev.className}>{sev.label}</Badge></TableCell>
-                      <TableCell><Badge variant="outline" className={st.className}>{st.label}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className={stCls}>{stLabel}</Badge></TableCell>
                       <TableCell className="text-right">{d.quantity} {d.product.unit}</TableCell>
                       <TableCell className={`text-right text-sm ${d.totalLoss ? 'text-red-600' : 'text-muted-foreground'}`}>{fmt(d.totalLoss)}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{d.disposition ? dispositionLabels[d.disposition] : '—'}</TableCell>
