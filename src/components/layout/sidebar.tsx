@@ -67,6 +67,7 @@ import {
   TrendingUp,
   Clock,
   DollarSign,
+  CheckCircle2,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -80,6 +81,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
   'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' | 'deliveryPerformance' | 'deadStock' | 'meetingRecords' | 'salespersonPerformance' | 'returnAnalysis' |
+  'promoCalendar' | 'vehicles' | 'fulfillmentRate' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -125,8 +127,10 @@ const navGroups: NavGroup[] = [
       { href: '/sales-opportunities', key: 'opportunities',  icon: Briefcase },
       { href: '/tasks',               key: 'tasks',          icon: ListTodo },
       { href: '/meeting-records',       key: 'meetingRecords',      icon: CalendarDays },
-      { href: '/return-analysis',       key: 'returnAnalysis',      icon: RotateCcw },
-      { href: '/salesperson-performance', key: 'salespersonPerformance', icon: Users },
+      { href: '/return-analysis',         key: 'returnAnalysis',          icon: RotateCcw },
+      { href: '/salesperson-performance', key: 'salespersonPerformance',   icon: Users },
+      { href: '/fulfillment-rate',        key: 'fulfillmentRate',          icon: CheckCircle2 },
+      { href: '/promo-calendar',          key: 'promoCalendar',            icon: CalendarRange },
     ],
   },
   {
@@ -155,6 +159,7 @@ const navGroups: NavGroup[] = [
       { href: '/pickup',       key: 'pickup',      icon: Package },
       { href: '/logistics',    key: 'logistics',   icon: Navigation },
       { href: '/delivery-performance', key: 'deliveryPerformance', icon: BarChart3 },
+      { href: '/vehicles',             key: 'vehicles',            icon: Truck },
     ],
   },
   {
