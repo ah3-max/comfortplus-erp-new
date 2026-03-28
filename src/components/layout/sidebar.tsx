@@ -79,7 +79,7 @@ type NavKey = 'dashboard' | 'dailyReport' | 'crm' | 'quickInput' | 'customers' |
   'tasks' | 'care' | 'calendar' | 'businessCalendar' | 'reports' | 'users' | 'settings' | 'incidents' |
   'alerts' | 'traceability' | 'expiryTracking' | 'arAging' | 'apAging' | 'priceTiers' | 'stockCounts' | 'internalUse' | 'approvals' | 'importProjects' | 'contracts' | 'afterSales' | 'fixedAssets' | 'budget' | 'finance' | 'marginCalc' | 'profit' | 'knowledge' | 'retail' | 'auditLog' | 'documents' |
   'expenses' | 'hr' | 'orgChart' | 'announcements' | 'assetLoans' | 'purchasePlans' | 'discountRules' | 'regionMapping' |
-  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' |
+  'creditManagement' | 'autoJournal' | 'statements' | 'inventoryMovement' | 'purchaseAnalysis' | 'supplierPerformance' | 'salesAnalysis' | 'abcAnalysis' | 'grossMargin' | 'reorderCycle' |
   'generalLedger' | 'accountDetail' | 'accountSummary' | 'accountMovement' |
   'vatLedger' | 'cashBook' | 'dailyMonthlySummary' | 'periodClose' | 'bankAccounts' | 'cheques' | 'vatFilings' |
   'forexLedger' | 'vendorLedger1' | 'vendorLedger2' | 'partyTransactions' |
@@ -119,6 +119,7 @@ const navGroups: NavGroup[] = [
       { href: '/sales-returns',  key: 'salesReturns',   icon: RotateCcw },
       { href: '/margin-calc',    key: 'marginCalc',     icon: Calculator },
       { href: '/profit',         key: 'profit',         icon: TrendingUp },
+      { href: '/reorder-cycle',  key: 'reorderCycle',   icon: Clock },
       { href: '/kpi',                 key: 'kpi',            icon: Zap },
       { href: '/pipeline',            key: 'pipeline',       icon: Target },
       { href: '/sales-opportunities', key: 'opportunities',  icon: Briefcase },

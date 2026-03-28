@@ -97,6 +97,7 @@ const en = {
     salesAnalysis: 'Sales Analysis',
     abcAnalysis: 'Product ABC Analysis',
     grossMargin: 'Gross Margin Analysis',
+    reorderCycle: 'Customer Reorder Cycle',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

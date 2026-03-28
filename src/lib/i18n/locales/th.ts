@@ -97,6 +97,7 @@ const th = {
     salesAnalysis: 'วิเคราะห์การขาย',
     abcAnalysis: 'วิเคราะห์ ABC สินค้า',
     grossMargin: 'วิเคราะห์กำไรขั้นต้น',
+    reorderCycle: 'วงจรการสั่งซื้อของลูกค้า',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',
