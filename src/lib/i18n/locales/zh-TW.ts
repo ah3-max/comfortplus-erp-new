@@ -90,6 +90,7 @@ const zhTW = {
     budget: '資金計畫/預算',
     traceability: '批次追溯',
     expiryTracking: '庫存效期管理',
+    creditManagement: '客戶信用管理',
     arAging: '應收帳齡',
     finance: '財務報表',
     apAging: '應付帳齡',

@@ -88,6 +88,7 @@ const th = {
     budget: 'งบประมาณ/กระแสเงินสด',
     traceability: 'ตรวจสอบย้อนกลับ',
     expiryTracking: 'ติดตามวันหมดอายุ',
+    creditManagement: 'การจัดการเครดิตลูกค้า',
     arAging: 'วิเคราะห์ลูกหนี้',
     finance: 'รายงานการเงิน',
     apAging: 'วิเคราะห์เจ้าหนี้',

@@ -88,6 +88,7 @@ const en = {
     budget: 'Budget & Cash Flow',
     traceability: 'Traceability',
     expiryTracking: 'Expiry Tracking',
+    creditManagement: 'Credit Management',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',
