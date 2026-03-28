@@ -96,6 +96,7 @@ const en = {
     supplierPerformance: 'Supplier Performance',
     salesAnalysis: 'Sales Analysis',
     abcAnalysis: 'Product ABC Analysis',
+    grossMargin: 'Gross Margin Analysis',
     arAging: 'AR Aging',
     finance: 'Financials',
     apAging: 'AP Aging',

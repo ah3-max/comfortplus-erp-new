@@ -98,6 +98,7 @@ const zhTW = {
     supplierPerformance: '供應商績效分析',
     salesAnalysis: '銷售分析報表',
     abcAnalysis: '品項 ABC 分析',
+    grossMargin: '毛利分析',
     arAging: '應收帳齡',
     finance: '財務報表',
     apAging: '應付帳齡',
