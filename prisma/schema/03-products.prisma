@@ -56,6 +56,7 @@ model Product {
   inboundItems       InboundItem[]
   outboundItems      OutboundItem[]
   returnItems        ReturnOrderItem[]
+  purchaseReturnItems PurchaseReturnItem[]
   costStructure      ProductCostStructure?
   careIncidents      CareIncident[]
 

@@ -134,6 +134,36 @@ model BankTransaction {
   @@index([isReconciled])
 }
 
+// 支票管理
+model Cheque {
+  id              String   @id @default(cuid())
+  chequeNo        String                    // 支票號碼
+  chequeType      String                    // RECEIVABLE（應收票）/ PAYABLE（應付票）
+  bankName        String
+  bankBranch      String?                   // 分行
+  accountNo       String?                   // 票面帳號
+  amount          Decimal  @db.Decimal(14, 2)
+  issueDate       DateTime @db.Date         // 簽發日
+  dueDate         DateTime @db.Date         // 票期到期日
+  status          String   @default("HOLDING") // HOLDING / DEPOSITED / CLEARED / BOUNCED / CANCELLED / TRANSFERRED
+  partyName       String?                   // 付款人/受款人
+  partyId         String?                   // 關聯客戶/供應商 ID
+  partyType       String?                   // CUSTOMER / SUPPLIER
+  bankAccountId   String?                   // 存入的銀行帳戶（兌現後）
+  depositedAt     DateTime?
+  clearedAt       DateTime?
+  returnReason    String?                   // 退票原因
+  paymentRecordId String?
+  notes           String?
+  createdById     String
+  createdBy       User     @relation("ChequeCreatedBy", fields: [createdById], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([chequeType, status])
+  @@index([dueDate])
+}
+
 // 傳票分錄
 model JournalEntryLine {
   id          String             @id @default(cuid())

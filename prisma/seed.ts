@@ -43,6 +43,8 @@ async function main() {
     { type: 'FIXED_ASSET',      prefix: 'FA' },
     { type: 'EXPENSE_REPORT',   prefix: 'EXP' },
     { type: 'PURCHASE_PLAN',    prefix: 'PP' },
+    { type: 'SALES_RETURN',     prefix: 'SR' },
+    { type: 'PURCHASE_RETURN',  prefix: 'PRR' },
   ]
   for (const seq of sequences) {
     await prisma.sequence.upsert({

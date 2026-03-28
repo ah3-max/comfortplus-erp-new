@@ -128,6 +128,7 @@ model User {
   fiscalPeriodsLocked    FiscalPeriod[]         @relation("FiscalPeriodLockedBy")
   bankAccountsCreated    BankAccount[]          @relation("BankAccountCreatedBy")
   bankTransactionsCreated BankTransaction[]     @relation("BankTxCreatedBy")
+  chequesCreated         Cheque[]               @relation("ChequeCreatedBy")
 
   // ── P2-4 內部使用 + 不良品 ───────────────────────────
   internalUsesRequested  InternalUse[]          @relation("InternalUseRequested")

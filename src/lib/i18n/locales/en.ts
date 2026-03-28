@@ -96,6 +96,7 @@ const en = {
     accountMovement: 'Account Movement',
     periodClose: 'Period Close',
     bankAccounts: 'Bank / Credit Card',
+    cheques: 'Cheque Management',
     vatLedger: 'VAT Ledger',
     cashBook: 'Cash Book',
     dailyMonthlySummary: 'Daily/Monthly Summary',

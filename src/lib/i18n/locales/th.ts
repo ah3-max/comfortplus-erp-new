@@ -96,6 +96,7 @@ const th = {
     accountMovement: 'การเคลื่อนไหวบัญชี',
     periodClose: 'ปิดงวดบัญชี',
     bankAccounts: 'บัญชีธนาคาร/บัตรเครดิต',
+    cheques: 'การจัดการเช็ค',
     vatLedger: 'บัญชีภาษีซื้อ/ขาย',
     cashBook: 'บัญชีเงินสด',
     dailyMonthlySummary: 'สรุปรายวัน/เดือน',
