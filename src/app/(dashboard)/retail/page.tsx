@@ -993,14 +993,14 @@ function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => vo
           <div className="space-y-1.5 border-t pt-2">
             {activeEvent && (
               <div className="flex items-center gap-2 text-xs">
-                <Badge className="border-0 bg-green-100 text-green-700 shrink-0">本次活動</Badge>
+                <Badge className="border-0 bg-green-100 text-green-700 shrink-0">{rt.currentEvent}</Badge>
                 <span className="text-slate-700 truncate">{activeEvent.eventName}</span>
-                {activeEvent.endDate && <span className="text-muted-foreground shrink-0">至 {fmtDate(activeEvent.endDate)}</span>}
+                {activeEvent.endDate && <span className="text-muted-foreground shrink-0">~ {fmtDate(activeEvent.endDate)}</span>}
               </div>
             )}
             {nextEvent && (
               <div className="flex items-center gap-2 text-xs">
-                <Badge className="border-0 bg-amber-100 text-amber-700 shrink-0">下次活動</Badge>
+                <Badge className="border-0 bg-amber-100 text-amber-700 shrink-0">{rt.nextEvent}</Badge>
                 <span className="text-slate-700 truncate">{nextEvent.eventName}</span>
                 <span className="text-muted-foreground shrink-0">{fmtDate(nextEvent.eventDate)}</span>
               </div>
@@ -1014,52 +1014,52 @@ function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => vo
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-slate-700 transition-colors w-full justify-center border-t pt-2"
         >
           {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-          {expanded ? '收合' : '展開更多資訊'}
+          {expanded ? rt.collapse : rt.expandMore}
         </button>
 
         {expanded && (
           <div className="space-y-2 pt-1 text-xs">
             {outlet.placementZone && (
               <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
-                <p className="font-medium text-slate-700">置放位置</p>
-                <InfoRow icon={Package} label="區域" value={outlet.placementZone} />
-                {outlet.placementDetail && <InfoRow icon={Tag} label="詳細" value={outlet.placementDetail} />}
+                <p className="font-medium text-slate-700">{rt.placementSectionCard}</p>
+                <InfoRow icon={Package} label={rt.placementZoneLabel} value={outlet.placementZone} />
+                {outlet.placementDetail && <InfoRow icon={Tag} label={rt.placementDetailLabel} value={outlet.placementDetail} />}
               </div>
             )}
             {(outlet.displayShelfCount || outlet.displayShelfSpec || outlet.displayRequirements) && (
               <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
-                <p className="font-medium text-slate-700">展示架</p>
-                {outlet.displayShelfCount && <InfoRow icon={Layers} label="數量" value={`${outlet.displayShelfCount} 座`} />}
-                {outlet.displayShelfSpec && <InfoRow icon={Layers} label="規格" value={outlet.displayShelfSpec} />}
-                {outlet.displayRequirements && <InfoRow icon={AlertCircle} label="陳列要求" value={outlet.displayRequirements} />}
-                {outlet.facingCount && <InfoRow icon={Layers} label="面排" value={`${outlet.facingCount} 排`} />}
+                <p className="font-medium text-slate-700">{rt.displaySectionCard}</p>
+                {outlet.displayShelfCount && <InfoRow icon={Layers} label={rt.displayShelfCountLabel} value={`${outlet.displayShelfCount} 座`} />}
+                {outlet.displayShelfSpec && <InfoRow icon={Layers} label={rt.displayShelfSpecLabel} value={outlet.displayShelfSpec} />}
+                {outlet.displayRequirements && <InfoRow icon={AlertCircle} label={rt.displayRequirementsLabel} value={outlet.displayRequirements} />}
+                {outlet.facingCount && <InfoRow icon={Layers} label={rt.facingCountLabel} value={`${outlet.facingCount} 排`} />}
               </div>
             )}
             {outlet.eventRequirements && (
               <div className="rounded-lg bg-orange-50 p-2.5 space-y-1">
-                <p className="font-medium text-orange-800">活動要求</p>
-                <InfoRow icon={CalendarCheck} label="通路要求" value={outlet.eventRequirements} />
-                {outlet.promoCalendarNote && <InfoRow icon={Calendar} label="檔期" value={outlet.promoCalendarNote} />}
-                {outlet.minOrderQtyPerEvent && <InfoRow icon={Package} label="最低訂量" value={`${outlet.minOrderQtyPerEvent} 件`} />}
+                <p className="font-medium text-orange-800">{rt.activitySectionCard}</p>
+                <InfoRow icon={CalendarCheck} label={rt.eventRequirementsLabel} value={outlet.eventRequirements} />
+                {outlet.promoCalendarNote && <InfoRow icon={Calendar} label={rt.promoCalendarNoteLabel} value={outlet.promoCalendarNote} />}
+                {outlet.minOrderQtyPerEvent && <InfoRow icon={Package} label={rt.minOrderQtyPerEventLabel} value={`${outlet.minOrderQtyPerEvent} 件`} />}
               </div>
             )}
             {(outlet.deliveryTimeWindow || outlet.parkingInfo) && (
               <div className="rounded-lg bg-blue-50 p-2.5 space-y-1">
-                <p className="font-medium text-blue-800">物流</p>
-                {outlet.deliveryTimeWindow && <InfoRow icon={Truck} label="收貨時間" value={outlet.deliveryTimeWindow} />}
-                {outlet.deliveryDayOfWeek && <InfoRow icon={Calendar} label="補貨星期" value={outlet.deliveryDayOfWeek} />}
-                {outlet.logisticsNote && <InfoRow icon={Truck} label="備注" value={outlet.logisticsNote} />}
-                {outlet.parkingInfo && <InfoRow icon={MapPin} label="停車" value={outlet.parkingInfo} />}
-                {outlet.loadingDockNote && <InfoRow icon={Truck} label="月台" value={outlet.loadingDockNote} />}
+                <p className="font-medium text-blue-800">{rt.logisticsSectionCard}</p>
+                {outlet.deliveryTimeWindow && <InfoRow icon={Truck} label={rt.deliveryTimeWindowLabel} value={outlet.deliveryTimeWindow} />}
+                {outlet.deliveryDayOfWeek && <InfoRow icon={Calendar} label={rt.deliveryDayOfWeekLabel} value={outlet.deliveryDayOfWeek} />}
+                {outlet.logisticsNote && <InfoRow icon={Truck} label={rt.logisticsNoteLabel} value={outlet.logisticsNote} />}
+                {outlet.parkingInfo && <InfoRow icon={MapPin} label={rt.parkingInfoLabel} value={outlet.parkingInfo} />}
+                {outlet.loadingDockNote && <InfoRow icon={Truck} label={rt.loadingDockNoteLabel} value={outlet.loadingDockNote} />}
               </div>
             )}
             {outlet.commissionRate && (
               <div className="rounded-lg bg-slate-50 p-2.5 space-y-1">
-                <p className="font-medium text-slate-700">財務條件</p>
-                <InfoRow icon={BarChart3} label="佣金" value={`${outlet.commissionRate}%`} />
-                {outlet.paymentTerms && <InfoRow icon={BarChart3} label="付款" value={outlet.paymentTerms} />}
-                {outlet.shelfRent && <InfoRow icon={BarChart3} label="上架費" value={fmtMoney(outlet.shelfRent)} />}
-                {outlet.displayFee && <InfoRow icon={BarChart3} label="陳列費" value={fmtMoney(outlet.displayFee)} />}
+                <p className="font-medium text-slate-700">{rt.financeSectionCard}</p>
+                <InfoRow icon={BarChart3} label={rt.commissionRateLabel} value={`${outlet.commissionRate}%`} />
+                {outlet.paymentTerms && <InfoRow icon={BarChart3} label={rt.outletPaymentTermsLabel} value={outlet.paymentTerms} />}
+                {outlet.shelfRent && <InfoRow icon={BarChart3} label={rt.shelfRentLabel} value={fmtMoney(outlet.shelfRent)} />}
+                {outlet.displayFee && <InfoRow icon={BarChart3} label={rt.displayFeeLabel} value={fmtMoney(outlet.displayFee)} />}
               </div>
             )}
             {outlet.notes && <p className="text-muted-foreground italic">{outlet.notes}</p>}
@@ -1147,7 +1147,7 @@ export default function RetailPage() {
             <Store className="h-6 w-6 text-blue-600" />{dict.retail.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {brands.length} 個品牌 · {outlets.length} 間門市 · {activeEvents} 個活動進行中
+            {rt.headerDesc.replace('{brands}', String(brands.length)).replace('{outlets}', String(outlets.length)).replace('{activeEvents}', String(activeEvents))}
           </p>
         </div>
         <div className="flex gap-2">
@@ -1160,11 +1160,11 @@ export default function RetailPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: '通路品牌',   value: brands.length,       icon: Building2,      color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200' },
-          { label: '營業門市',   value: outlets.filter(o => o.isActive).length, icon: Store, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
-          { label: '進行中活動', value: activeEvents,         icon: PartyPopper,    color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-          { label: '規劃中活動', value: planningEvents,       icon: CalendarCheck,  color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-200' },
-          { label: '團購活動',   value: groupBuyEvents,       icon: ShoppingBag,    color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
+          { label: rt.statBrands,        value: brands.length,       icon: Building2,      color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200' },
+          { label: rt.statOutlets,       value: outlets.filter(o => o.isActive).length, icon: Store, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200' },
+          { label: rt.statActiveEvents,  value: activeEvents,         icon: PartyPopper,    color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+          { label: rt.statPlanningEvents, value: planningEvents,      icon: CalendarCheck,  color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-200' },
+          { label: rt.statGroupBuys,     value: groupBuyEvents,       icon: ShoppingBag,    color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
         ].map(s => (
           <div key={s.label} className={`rounded-xl border ${s.border} ${s.bg} p-3 flex items-center gap-3`}>
             <s.icon className={`h-7 w-7 ${s.color}`} />
@@ -1196,16 +1196,16 @@ export default function RetailPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-2">
             <select className="border rounded-md px-3 py-1.5 text-sm" value={brandFilter} onChange={e => setBrandFilter(e.target.value)}>
-              <option value="">全部品牌</option>
+              <option value="">{rt.allBrands}</option>
               {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
-            <Input className="h-9 w-48 text-sm" placeholder="搜尋門市名稱/地址…" value={search} onChange={e => setSearch(e.target.value)} />
-            {(brandFilter || search) && <button onClick={() => { setBrandFilter(''); setSearch('') }} className="text-xs text-red-500 px-2">清除</button>}
+            <Input className="h-9 w-48 text-sm" placeholder={rt.searchOutletPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
+            {(brandFilter || search) && <button onClick={() => { setBrandFilter(''); setSearch('') }} className="text-xs text-red-500 px-2">{rt.clearFilter}</button>}
           </div>
           {filteredOutlets.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <Store className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>尚無門市資料，請先新增通路品牌再建立門市</p>
+              <p>{rt.noOutletData}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1230,7 +1230,7 @@ export default function RetailPage() {
           {brands.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <Building2 className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>尚無品牌資料，請點右上角「新增品牌」</p>
+              <p>{rt.noBrandData}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1249,7 +1249,7 @@ export default function RetailPage() {
                         <p className="font-semibold text-slate-900">{b.name}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-xs text-muted-foreground">{b._count?.outlets ?? 0} 間門市</span>
+                        <span className="text-xs text-muted-foreground">{b._count?.outlets ?? 0} {rt.outletCount}</span>
                         <button onClick={() => { setEditingBrand(b); setShowBrandForm(false) }} className="p-1 rounded hover:bg-slate-100 text-muted-foreground hover:text-slate-700">
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
@@ -1259,7 +1259,7 @@ export default function RetailPage() {
                     {/* 採購窗口 */}
                     {(b.buyerName || b.hqContact) && (
                       <div className="rounded-lg bg-blue-50 px-2.5 py-2 space-y-1 text-xs">
-                        <p className="font-medium text-blue-800 flex items-center gap-1"><User className="h-3 w-3" />採購窗口</p>
+                        <p className="font-medium text-blue-800 flex items-center gap-1"><User className="h-3 w-3" />{rt.buyerSection}</p>
                         {b.buyerName && (
                           <p className="text-slate-700">
                             {b.buyerName}
@@ -1269,7 +1269,7 @@ export default function RetailPage() {
                         )}
                         {b.buyerPhone && <p className="text-slate-600 flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" />{b.buyerPhone}</p>}
                         {b.buyerEmail && <p className="text-slate-600">{b.buyerEmail}</p>}
-                        {!b.buyerName && b.hqContact && <InfoRow icon={User} label="聯絡人" value={b.hqContact} />}
+                        {!b.buyerName && b.hqContact && <InfoRow icon={User} label={rt.hqContactLabel} value={b.hqContact} />}
                       </div>
                     )}
 
@@ -1286,14 +1286,14 @@ export default function RetailPage() {
                         )}
                         {b.deliveryLeadDays && (
                           <span className="text-[11px] bg-green-50 text-green-700 px-2 py-0.5 rounded flex items-center gap-1">
-                            <Truck className="h-2.5 w-2.5" />交期 {b.deliveryLeadDays}天
+                            <Truck className="h-2.5 w-2.5" />{rt.deliveryDays.replace('{n}', String(b.deliveryLeadDays))}
                           </span>
                         )}
                         {b.creditDays && (
-                          <span className="text-[11px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded">帳期 {b.creditDays}天</span>
+                          <span className="text-[11px] bg-orange-50 text-orange-700 px-2 py-0.5 rounded">{rt.creditDays.replace('{n}', String(b.creditDays))}</span>
                         )}
                         {b.minOrderQty && (
-                          <span className="text-[11px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded">最低 {b.minOrderQty} 件</span>
+                          <span className="text-[11px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded">{rt.minOrderDisplay.replace('{n}', String(b.minOrderQty))}</span>
                         )}
                       </div>
                     )}
@@ -1301,7 +1301,7 @@ export default function RetailPage() {
                     {/* 合約到期 */}
                     {b.contractExpiry && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />合約到期：{new Date(b.contractExpiry).toLocaleDateString('zh-TW')}
+                        <Calendar className="h-3 w-3" />{rt.contractExpiry}{new Date(b.contractExpiry).toLocaleDateString('zh-TW')}
                       </p>
                     )}
 
@@ -1323,23 +1323,23 @@ export default function RetailPage() {
           {/* Filters */}
           <div className="flex flex-wrap gap-2">
             <select className="border rounded-md px-3 py-1.5 text-sm" value={eventStatusFilter} onChange={e => setEventStatusFilter(e.target.value)}>
-              <option value="">全部狀態</option>
+              <option value="">{rt.allStatuses}</option>
               {Object.entries(rt.eventStatuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
-            {eventStatusFilter && <button onClick={() => setEventStatusFilter('')} className="text-xs text-red-500 px-2">清除</button>}
+            {eventStatusFilter && <button onClick={() => setEventStatusFilter('')} className="text-xs text-red-500 px-2">{rt.clearFilter}</button>}
           </div>
 
           {filteredEvents.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <PartyPopper className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>尚無活動紀錄</p>
+              <p>{rt.noEventData}</p>
             </div>
           ) : (
             <Card>
               <CardContent className="p-0">
                 {/* Header */}
                 <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1.5fr_auto] gap-3 px-4 py-2.5 text-xs font-semibold text-muted-foreground bg-slate-50">
-                  <span>活動名稱 / 門市</span><span>類型</span><span>日期</span><span>狀態</span><span>成效</span><span></span>
+                  <span>{rt.colEventName}</span><span>{rt.colType}</span><span>{rt.colDate}</span><span>{rt.colStatus}</span><span>{rt.colResult}</span><span></span>
                 </div>
                 <div className="divide-y">
                   {filteredEvents.map(ev => {
@@ -1353,14 +1353,14 @@ export default function RetailPage() {
                           {ev.outlet && <p className="text-xs text-muted-foreground">{ev.outlet.brand.name} · {ev.outlet.outletName}</p>}
                           {ev.eventType === 'GROUP_BUY' && ev.groupBuy && (
                             <Badge className={`text-xs border-0 mt-0.5 ${GROUP_BUY_STATUS_COLOR[ev.groupBuy.status] ?? 'bg-slate-100'}`}>
-                              {rt.groupBuyStatuses[ev.groupBuy.status as GbSt] ?? ev.groupBuy.status} · 最低 {ev.groupBuy.minQty} 件
+                              {rt.groupBuyStatuses[ev.groupBuy.status as GbSt] ?? ev.groupBuy.status} · {rt.groupBuyMinQtyLabel} {ev.groupBuy.minQty}
                             </Badge>
                           )}
                         </div>
                         <Badge className={`text-xs border-0 w-fit ${BRAND_TYPE_COLOR['OTHER']}`}>{rt.eventTypes[ev.eventType as EvTy] ?? ev.eventType}</Badge>
                         <div className="text-xs text-slate-600">
                           <p>{fmtDate(ev.eventDate)}</p>
-                          {ev.endDate && <p className="text-muted-foreground">至 {fmtDate(ev.endDate)}</p>}
+                          {ev.endDate && <p className="text-muted-foreground">~ {fmtDate(ev.endDate)}</p>}
                         </div>
                         <Badge className={`text-xs border-0 w-fit ${statusColor}`}>{statusLabel}</Badge>
                         <div className="text-xs text-slate-600 space-y-0.5">
@@ -1368,8 +1368,8 @@ export default function RetailPage() {
                             <>
                               {ev.revenueDuringEvent && <p className="text-green-600 font-medium">{fmtMoney(ev.revenueDuringEvent)}</p>}
                               <div className="flex gap-2">
-                                {ev.ordersTaken && <span>成交 {ev.ordersTaken} 筆</span>}
-                                {ev.attendeeCount && <span>到場 {ev.attendeeCount} 人</span>}
+                                {ev.ordersTaken && <span>{rt.ordersTakenLabel} {ev.ordersTaken}</span>}
+                                {ev.attendeeCount && <span>{rt.attendeeCountLabel} {ev.attendeeCount}</span>}
                               </div>
                               {ev.roi && <p className="flex items-center gap-1"><TrendingUp className="h-3 w-3 text-blue-500" />ROI {ev.roi}x</p>}
                             </>
