@@ -29,13 +29,13 @@ interface Cheque {
   createdAt: string
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  HOLDING:     { label: '持有中',  color: 'bg-blue-100 text-blue-700' },
-  DEPOSITED:   { label: '已存入',  color: 'bg-yellow-100 text-yellow-700' },
-  CLEARED:     { label: '已兌現',  color: 'bg-green-100 text-green-700' },
-  BOUNCED:     { label: '退票',    color: 'bg-red-100 text-red-700' },
-  CANCELLED:   { label: '作廢',    color: 'bg-gray-100 text-gray-500' },
-  TRANSFERRED: { label: '背書轉讓', color: 'bg-purple-100 text-purple-700' },
+const STATUS_COLORS: Record<string, string> = {
+  HOLDING:     'bg-blue-100 text-blue-700',
+  DEPOSITED:   'bg-yellow-100 text-yellow-700',
+  CLEARED:     'bg-green-100 text-green-700',
+  BOUNCED:     'bg-red-100 text-red-700',
+  CANCELLED:   'bg-gray-100 text-gray-500',
+  TRANSFERRED: 'bg-purple-100 text-purple-700',
 }
 
 const fmt = (v: string | number) =>
@@ -43,6 +43,7 @@ const fmt = (v: string | number) =>
 
 export default function ChequesPage() {
   const { dict } = useI18n()
+  const ch = dict.cheques
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const canManage = ['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)
@@ -64,6 +65,8 @@ export default function ChequesPage() {
 
   const [statusForm, setStatusForm] = useState({ status: '', returnReason: '', depositedAt: '', clearedAt: '' })
 
+  const STATUS_LABELS = ch.statusLabels as Record<string, string>
+
   const fetchCheques = useCallback(async () => {
     setLoading(true)
     try {
@@ -81,7 +84,6 @@ export default function ChequesPage() {
 
   useEffect(() => { fetchCheques() }, [fetchCheques])
 
-  // Highlight due-soon cheques (within 7 days)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const dueSoon = (dateStr: string) => {
@@ -101,7 +103,7 @@ export default function ChequesPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
-      toast.success(dict.cheques.created)
+      toast.success(ch.created)
       setShowNew(false)
       fetchCheques()
     } finally {
@@ -120,7 +122,7 @@ export default function ChequesPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? dict.common.updateFailed); return }
-      toast.success(dict.cheques.statusUpdated)
+      toast.success(ch.statusUpdated)
       setEditCheque(null)
       fetchCheques()
     } finally {
@@ -135,86 +137,86 @@ export default function ChequesPage() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-bold">{dict.nav.cheques ?? '支票交易管理'}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">管理應收票、應付票與票期兌現追蹤</p>
+          <h1 className="text-xl font-bold">{dict.nav.cheques ?? ch.createTitle}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{ch.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchCheques}><RefreshCw className="w-4 h-4" /></Button>
-          {canManage && <Button size="sm" onClick={() => setShowNew(true)}><Plus className="w-4 h-4 mr-1" />新增支票</Button>}
+          {canManage && <Button size="sm" onClick={() => setShowNew(true)}><Plus className="w-4 h-4 mr-1" />{ch.addCheque}</Button>}
         </div>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div className="border rounded-lg p-3 bg-card">
-          <div className="text-xs text-muted-foreground">應收票（持有中）</div>
+          <div className="text-xs text-muted-foreground">{ch.cardReceivable}</div>
           <div className="text-lg font-bold text-green-700 mt-1">
             {fmt(holdingReceivable.reduce((s, c) => s + Number(c.amount), 0))}
           </div>
-          <div className="text-xs text-muted-foreground">{holdingReceivable.length} 張</div>
+          <div className="text-xs text-muted-foreground">{holdingReceivable.length} {ch.countUnit}</div>
         </div>
         <div className="border rounded-lg p-3 bg-card">
-          <div className="text-xs text-muted-foreground">應付票（持有中）</div>
+          <div className="text-xs text-muted-foreground">{ch.cardPayable}</div>
           <div className="text-lg font-bold text-red-600 mt-1">
             {fmt(holdingPayable.reduce((s, c) => s + Number(c.amount), 0))}
           </div>
-          <div className="text-xs text-muted-foreground">{holdingPayable.length} 張</div>
+          <div className="text-xs text-muted-foreground">{holdingPayable.length} {ch.countUnit}</div>
         </div>
         <div className="border rounded-lg p-3 bg-card">
-          <div className="text-xs text-muted-foreground">7天內到期</div>
+          <div className="text-xs text-muted-foreground">{ch.cardDueSoon}</div>
           <div className="text-lg font-bold text-yellow-600 mt-1">
-            {cheques.filter(c => c.status === 'HOLDING' && dueSoon(c.dueDate)).length} 張
+            {cheques.filter(c => c.status === 'HOLDING' && dueSoon(c.dueDate)).length} {ch.countUnit}
           </div>
         </div>
         <div className="border rounded-lg p-3 bg-card">
-          <div className="text-xs text-muted-foreground">已過期未兌現</div>
+          <div className="text-xs text-muted-foreground">{ch.cardOverdue}</div>
           <div className="text-lg font-bold text-red-700 mt-1">
-            {cheques.filter(c => c.status === 'HOLDING' && overdue(c.dueDate)).length} 張
+            {cheques.filter(c => c.status === 'HOLDING' && overdue(c.dueDate)).length} {ch.countUnit}
           </div>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <Input className="w-48" placeholder="搜尋票號/往來對象" value={search}
+        <Input className="w-48" placeholder={ch.searchPlaceholder} value={search}
           onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && fetchCheques()} />
         <Select value={typeFilter || '__all__'} onValueChange={v => { if (v) setTypeFilter(v === '__all__' ? '' : v) }}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="票據類型" /></SelectTrigger>
+          <SelectTrigger className="w-32"><SelectValue placeholder={ch.allTypes} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">全部類型</SelectItem>
-            <SelectItem value="RECEIVABLE">應收票</SelectItem>
-            <SelectItem value="PAYABLE">應付票</SelectItem>
+            <SelectItem value="__all__">{ch.allTypes}</SelectItem>
+            <SelectItem value="RECEIVABLE">{ch.typeReceivable}</SelectItem>
+            <SelectItem value="PAYABLE">{ch.typePayable}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={statusFilter || '__all__'} onValueChange={v => { if (v) setStatusFilter(v === '__all__' ? '' : v) }}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="狀態" /></SelectTrigger>
+          <SelectTrigger className="w-32"><SelectValue placeholder={ch.allStatuses} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">全部狀態</SelectItem>
-            {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+            <SelectItem value="__all__">{ch.allStatuses}</SelectItem>
+            {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
       {/* List */}
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">載入中...</div>
+        <div className="text-center py-12 text-muted-foreground">{ch.loading}</div>
       ) : cheques.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>尚無支票紀錄</p>
+          <p>{ch.noData}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-muted-foreground border-b">
-                <th className="text-left py-2 pr-3">票號</th>
-                <th className="text-left py-2 pr-3">類型</th>
-                <th className="text-left py-2 pr-3">往來對象</th>
-                <th className="text-left py-2 pr-3">銀行</th>
-                <th className="text-right py-2 pr-3">金額</th>
-                <th className="text-left py-2 pr-3">到期日</th>
-                <th className="text-left py-2 pr-3">狀態</th>
+                <th className="text-left py-2 pr-3">{ch.colChequeNo}</th>
+                <th className="text-left py-2 pr-3">{ch.colType}</th>
+                <th className="text-left py-2 pr-3">{ch.colParty}</th>
+                <th className="text-left py-2 pr-3">{ch.colBank}</th>
+                <th className="text-right py-2 pr-3">{ch.colAmount}</th>
+                <th className="text-left py-2 pr-3">{ch.colDueDate}</th>
+                <th className="text-left py-2 pr-3">{ch.colStatus}</th>
                 {canManage && <th className="py-2"></th>}
               </tr>
             </thead>
@@ -227,7 +229,7 @@ export default function ChequesPage() {
                   <td className="py-2 pr-3 font-medium">{c.chequeNo}</td>
                   <td className="py-2 pr-3">
                     <Badge className={c.chequeType === 'RECEIVABLE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                      {c.chequeType === 'RECEIVABLE' ? '應收' : '應付'}
+                      {c.chequeType === 'RECEIVABLE' ? ch.typeBadgeReceivable : ch.typeBadgePayable}
                     </Badge>
                   </td>
                   <td className="py-2 pr-3">{c.partyName ?? '-'}</td>
@@ -245,8 +247,8 @@ export default function ChequesPage() {
                     </span>
                   </td>
                   <td className="py-2 pr-3">
-                    <Badge className={STATUS_MAP[c.status]?.color ?? ''}>
-                      {STATUS_MAP[c.status]?.label ?? c.status}
+                    <Badge className={STATUS_COLORS[c.status] ?? ''}>
+                      {STATUS_LABELS[c.status] ?? c.status}
                     </Badge>
                   </td>
                   {canManage && (
@@ -254,7 +256,7 @@ export default function ChequesPage() {
                       <Button size="sm" variant="ghost" onClick={() => {
                         setEditCheque(c)
                         setStatusForm({ status: c.status, returnReason: c.returnReason ?? '', depositedAt: '', clearedAt: '' })
-                      }}>更新</Button>
+                      }}>{ch.updateBtn}</Button>
                     </td>
                   )}
                 </tr>
@@ -267,60 +269,60 @@ export default function ChequesPage() {
       {/* New Cheque Dialog */}
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增支票</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{ch.createTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>票據類型</Label>
+                <Label>{ch.fieldType}</Label>
                 <Select value={form.chequeType} onValueChange={v => { if (v) setForm(f => ({ ...f, chequeType: v })) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="RECEIVABLE">應收票</SelectItem>
-                    <SelectItem value="PAYABLE">應付票</SelectItem>
+                    <SelectItem value="RECEIVABLE">{ch.typeReceivable}</SelectItem>
+                    <SelectItem value="PAYABLE">{ch.typePayable}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>票號 *</Label>
+                <Label>{ch.fieldChequeNo}</Label>
                 <Input value={form.chequeNo} onChange={e => setForm(f => ({ ...f, chequeNo: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>銀行名稱 *</Label>
+                <Label>{ch.fieldBankName}</Label>
                 <Input value={form.bankName} onChange={e => setForm(f => ({ ...f, bankName: e.target.value }))} />
               </div>
               <div>
-                <Label>分行</Label>
+                <Label>{ch.fieldBranch}</Label>
                 <Input value={form.bankBranch} onChange={e => setForm(f => ({ ...f, bankBranch: e.target.value }))} />
               </div>
             </div>
             <div>
-              <Label>往來對象</Label>
-              <Input value={form.partyName} onChange={e => setForm(f => ({ ...f, partyName: e.target.value }))} placeholder="付款人/受款人" />
+              <Label>{ch.fieldParty}</Label>
+              <Input value={form.partyName} onChange={e => setForm(f => ({ ...f, partyName: e.target.value }))} placeholder={ch.partyPlaceholder} />
             </div>
             <div>
-              <Label>金額 *</Label>
+              <Label>{ch.fieldAmount}</Label>
               <Input type="number" min={0} value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>簽發日</Label>
+                <Label>{ch.fieldIssueDate}</Label>
                 <Input type="date" value={form.issueDate} onChange={e => setForm(f => ({ ...f, issueDate: e.target.value }))} />
               </div>
               <div>
-                <Label>到期日 *</Label>
+                <Label>{ch.fieldDueDate}</Label>
                 <Input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
               </div>
             </div>
             <div>
-              <Label>備註</Label>
-              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="選填" />
+              <Label>{ch.fieldNotes}</Label>
+              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder={ch.notesPlaceholder} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNew(false)}>取消</Button>
-            <Button onClick={handleCreate} disabled={actionLoading}>{actionLoading ? '建立中...' : '建立'}</Button>
+            <Button variant="outline" onClick={() => setShowNew(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreate} disabled={actionLoading}>{actionLoading ? ch.creating : ch.btnCreate}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -329,27 +331,27 @@ export default function ChequesPage() {
       <Dialog open={!!editCheque} onOpenChange={open => { if (!open) setEditCheque(null) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>更新支票狀態 — {editCheque?.chequeNo}</DialogTitle>
+            <DialogTitle>{ch.updateStatusTitle} — {editCheque?.chequeNo}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>狀態</Label>
+              <Label>{ch.fieldStatus}</Label>
               <Select value={statusForm.status} onValueChange={v => { if (v) setStatusForm(f => ({ ...f, status: v })) }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                  {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             {(statusForm.status === 'DEPOSITED' || statusForm.status === 'CLEARED') && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>存入日期</Label>
+                  <Label>{ch.fieldDepositedAt}</Label>
                   <Input type="date" value={statusForm.depositedAt} onChange={e => setStatusForm(f => ({ ...f, depositedAt: e.target.value }))} />
                 </div>
                 {statusForm.status === 'CLEARED' && (
                   <div>
-                    <Label>兌現日期</Label>
+                    <Label>{ch.fieldClearedAt}</Label>
                     <Input type="date" value={statusForm.clearedAt} onChange={e => setStatusForm(f => ({ ...f, clearedAt: e.target.value }))} />
                   </div>
                 )}
@@ -357,14 +359,14 @@ export default function ChequesPage() {
             )}
             {statusForm.status === 'BOUNCED' && (
               <div>
-                <Label>退票原因</Label>
-                <Input value={statusForm.returnReason} onChange={e => setStatusForm(f => ({ ...f, returnReason: e.target.value }))} placeholder="例：存款不足" />
+                <Label>{ch.fieldReturnReason}</Label>
+                <Input value={statusForm.returnReason} onChange={e => setStatusForm(f => ({ ...f, returnReason: e.target.value }))} placeholder={ch.returnReasonPlaceholder} />
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditCheque(null)}>取消</Button>
-            <Button onClick={handleUpdateStatus} disabled={actionLoading}>{actionLoading ? '更新中...' : '更新'}</Button>
+            <Button variant="outline" onClick={() => setEditCheque(null)}>{dict.common.cancel}</Button>
+            <Button onClick={handleUpdateStatus} disabled={actionLoading}>{actionLoading ? ch.updating : ch.btnUpdate}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

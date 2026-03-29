@@ -10,20 +10,21 @@ import {
   Bell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/context'
 
 interface NavItem {
-  label: string
+  labelKey: string
   href: string
   icon: React.ComponentType<{ className?: string }>
   isFab?: boolean
 }
 
 const navItems: NavItem[] = [
-  { label: '首頁', href: '/dashboard', icon: LayoutDashboard },
-  { label: '日報', href: '/daily-report', icon: ClipboardCheck },
-  { label: '快速輸入', href: '/quick-input', icon: Plus, isFab: true },
-  { label: '客訴', href: '/incidents', icon: AlertOctagon },
-  { label: '通知', href: '/alerts', icon: Bell },
+  { labelKey: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { labelKey: 'dailyReport', href: '/daily-report', icon: ClipboardCheck },
+  { labelKey: 'quickInput', href: '/quick-input', icon: Plus, isFab: true },
+  { labelKey: 'incidents', href: '/incidents', icon: AlertOctagon },
+  { labelKey: 'alerts', href: '/alerts', icon: Bell },
 ]
 
 interface MobileNavProps {
@@ -32,6 +33,7 @@ interface MobileNavProps {
 
 export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
   const pathname = usePathname()
+  const { dict } = useI18n()
 
   return (
     <nav
@@ -47,6 +49,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
           const Icon = item.icon
+          const label = (dict.nav as Record<string, string>)[item.labelKey] ?? item.labelKey
 
           if (item.isFab) {
             return (
@@ -71,7 +74,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
                     isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400'
                   )}
                 >
-                  {item.label}
+                  {label}
                 </span>
               </Link>
             )
@@ -117,7 +120,7 @@ export function MobileNav({ unreadCount = 0 }: MobileNavProps) {
                 'text-[11px] leading-none tracking-wide',
                 isActive ? 'font-semibold' : 'font-medium',
               )}>
-                {item.label}
+                {label}
               </span>
             </Link>
           )

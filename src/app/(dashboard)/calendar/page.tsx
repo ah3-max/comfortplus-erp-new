@@ -74,39 +74,25 @@ interface EventFormState {
 // Constants
 // ---------------------------------------------------------------------------
 
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
-
-const UI_EVENT_TYPES: { value: UiEventType; label: string; color: string }[] = [
-  { value: 'MEETING',    label: '會議',   color: '#6366f1' },
-  { value: 'VISIT',      label: '拜訪',   color: '#3b82f6' },
-  { value: 'DELIVERY',   label: '送貨',   color: '#f59e0b' },
-  { value: 'PRODUCTION', label: '生產',   color: '#8b5cf6' },
-  { value: 'HOLIDAY',    label: '假日',   color: '#ef4444' },
-  { value: 'OTHER',      label: '其他',   color: '#64748b' },
+const UI_EVENT_TYPE_VALUES: { value: UiEventType; color: string }[] = [
+  { value: 'MEETING',    color: '#6366f1' },
+  { value: 'VISIT',      color: '#3b82f6' },
+  { value: 'DELIVERY',   color: '#f59e0b' },
+  { value: 'PRODUCTION', color: '#8b5cf6' },
+  { value: 'HOLIDAY',    color: '#ef4444' },
+  { value: 'OTHER',      color: '#64748b' },
 ]
 
-const UI_EVENT_TYPE_MAP = Object.fromEntries(
-  UI_EVENT_TYPES.map(t => [t.value, t])
-) as Record<UiEventType, { value: UiEventType; label: string; color: string }>
-
-const TYPE_LABELS: Record<CalEventType, string> = {
-  visit:    '拜訪',
-  call:     '電訪',
-  task:     '工作',
-  care:     '督導',
-  schedule: '行程',
-  biz:      '行事',
+const FILTER_TYPE_KEYS = ['', 'visit', 'call', 'task', 'care', 'schedule', 'biz'] as const
+const FILTER_TYPE_COLORS: Record<string, string> = {
+  '':       '#64748b',
+  visit:    '#3b82f6',
+  call:     '#8b5cf6',
+  task:     '#10b981',
+  care:     '#14b8a6',
+  schedule: '#f59e0b',
+  biz:      '#6366f1',
 }
-
-const FILTER_TYPES: { key: string; label: string; color: string }[] = [
-  { key: '',         label: '全部', color: '#64748b' },
-  { key: 'visit',    label: '拜訪', color: '#3b82f6' },
-  { key: 'call',     label: '電訪', color: '#8b5cf6' },
-  { key: 'task',     label: '工作', color: '#10b981' },
-  { key: 'care',     label: '督導', color: '#14b8a6' },
-  { key: 'schedule', label: '行程', color: '#f59e0b' },
-  { key: 'biz',      label: '事件', color: '#6366f1' },
-]
 
 const EMPTY_FORM: EventFormState = {
   title:       '',
@@ -147,6 +133,32 @@ export default function CalendarPage() {
   const { dict } = useI18n()
   const today     = new Date()
   const todayStr  = `${today.getFullYear()}-${padTwo(today.getMonth() + 1)}-${padTwo(today.getDate())}`
+
+  // Build derived constants that depend on dict
+  const UI_EVENT_TYPES = UI_EVENT_TYPE_VALUES.map(t => ({
+    ...t,
+    label: dict.calendarPage.eventTypeLabels[t.value],
+  }))
+  const UI_EVENT_TYPE_MAP = Object.fromEntries(
+    UI_EVENT_TYPES.map(t => [t.value, t])
+  ) as Record<UiEventType, { value: UiEventType; label: string; color: string }>
+
+  const TYPE_LABELS: Record<CalEventType, string> = {
+    visit:    dict.calendarPage.typeLabels.visit,
+    call:     dict.calendarPage.typeLabels.call,
+    task:     dict.calendarPage.typeLabels.task,
+    care:     dict.calendarPage.typeLabels.care,
+    schedule: dict.calendarPage.typeLabels.schedule,
+    biz:      dict.calendarPage.typeLabels.biz,
+  }
+
+  const FILTER_TYPES = FILTER_TYPE_KEYS.map((key, i) => ({
+    key,
+    label: dict.calendarPage.filterTypes[i] ?? key,
+    color: FILTER_TYPE_COLORS[key],
+  }))
+
+  const WEEKDAYS = dict.calendarPage.weekdays
 
   const [year,     setYear]     = useState(today.getFullYear())
   const [month,    setMonth]    = useState(today.getMonth() + 1)
@@ -397,7 +409,7 @@ export default function CalendarPage() {
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-xl font-semibold w-36 text-center select-none">
-          {year} 年 {month} 月
+          {year}{dict.calendarPage.yearLabel} {month}{dict.calendarPage.monthLabel}
         </h2>
         <Button variant="outline" size="icon" onClick={next} className="min-h-[44px] min-w-[44px]">
           <ChevronRight className="h-4 w-4" />
@@ -477,7 +489,7 @@ export default function CalendarPage() {
                           </div>
                         ))}
                         {dayEvs.length > 3 && (
-                          <div className="text-xs text-slate-400 px-1">+{dayEvs.length - 3} 件</div>
+                          <div className="text-xs text-slate-400 px-1">+{dayEvs.length - 3} {dict.calendarPage.moreEventsUnit}</div>
                         )}
                       </div>
                     </div>
@@ -489,15 +501,15 @@ export default function CalendarPage() {
 
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-3 mt-2 px-1">
-            {[
-              { color: '#6366f1', label: '會議/事件' },
-              { color: '#3b82f6', label: '客戶拜訪' },
-              { color: '#8b5cf6', label: '電訪' },
-              { color: '#ef4444', label: '緊急/假日' },
-              { color: '#f59e0b', label: '高優先/送貨' },
-              { color: '#10b981', label: '一般工作' },
-              { color: '#14b8a6', label: '督導排程' },
-            ].map(l => (
+            {([
+              { color: '#6366f1', label: dict.calendarPage.legendMeeting },
+              { color: '#3b82f6', label: dict.calendarPage.legendVisit },
+              { color: '#8b5cf6', label: dict.calendarPage.legendCall },
+              { color: '#ef4444', label: dict.calendarPage.legendUrgent },
+              { color: '#f59e0b', label: dict.calendarPage.legendHigh },
+              { color: '#10b981', label: dict.calendarPage.legendNormal },
+              { color: '#14b8a6', label: dict.calendarPage.legendCare },
+            ] as { color: string; label: string }[]).map(l => (
               <div key={l.label} className="flex items-center gap-1">
                 <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: l.color }} />
                 <span className="text-xs text-slate-500">{l.label}</span>
@@ -521,7 +533,7 @@ export default function CalendarPage() {
                       onClick={() => openCreateDialog(selected)}
                     >
                       <Plus className="h-3.5 w-3.5 mr-0.5" />
-                      新增
+                      {dict.calendarPage.addEventShort}
                     </Button>
                     <button
                       onClick={() => setSelected(null)}
@@ -554,10 +566,10 @@ export default function CalendarPage() {
                           </span>
                           {e.priority && (
                             <span className="text-xs text-slate-400">
-                              {e.priority === 'URGENT' ? '緊急'
-                                : e.priority === 'HIGH'   ? '高'
-                                : e.priority === 'MEDIUM' ? '中'
-                                : '低'}
+                              {e.priority === 'URGENT' ? dict.calendarPage.priorityUrgent
+                                : e.priority === 'HIGH'   ? dict.calendarPage.priorityHigh
+                                : e.priority === 'MEDIUM' ? dict.calendarPage.priorityMedium
+                                : dict.calendarPage.priorityLow}
                             </span>
                           )}
                           {e.status && !e.isEditable && (
@@ -570,14 +582,14 @@ export default function CalendarPage() {
                               <button
                                 onClick={() => openEditDialog(e)}
                                 className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
-                                title="編輯"
+                                title={dict.calendarPage.editEventTitle}
                               >
                                 <Edit className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 onClick={() => confirmDelete(e)}
                                 className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
-                                title="刪除"
+                                title={dict.calendarPage.deleteEventTitle}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
@@ -597,7 +609,7 @@ export default function CalendarPage() {
                           </p>
                         )}
                         {e.isAllDay && (
-                          <Badge variant="secondary" className="text-xs mt-0.5">全天</Badge>
+                          <Badge variant="secondary" className="text-xs mt-0.5">{dict.calendarPage.allDayBadge}</Badge>
                         )}
 
                         {e.description && (
@@ -629,20 +641,20 @@ export default function CalendarPage() {
             {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="ev-title">
-                標題 <span className="text-red-500">*</span>
+                {dict.calendarPage.fieldTitle} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="ev-title"
                 value={form.title}
                 onChange={e => setField('title', e.target.value)}
-                placeholder="請輸入事件標題"
+                placeholder={dict.calendarPage.fieldTitlePlaceholder}
                 className="min-h-[44px]"
               />
             </div>
 
             {/* Event Type */}
             <div className="space-y-1.5">
-              <Label>事件類型</Label>
+              <Label>{dict.calendarPage.fieldEventType}</Label>
               <Select
                 value={form.eventType}
                 onValueChange={v => setField('eventType', v as UiEventType)}
@@ -684,7 +696,7 @@ export default function CalendarPage() {
                 />
               </button>
               <Label className="cursor-pointer select-none" onClick={() => setField('isAllDay', !form.isAllDay)}>
-                全天事件
+                {dict.calendarPage.fieldAllDay}
               </Label>
             </div>
 
@@ -692,7 +704,7 @@ export default function CalendarPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="ev-start-date">
-                  開始日期 <span className="text-red-500">*</span>
+                  {dict.calendarPage.fieldStartDate}
                 </Label>
                 <Input
                   id="ev-start-date"
@@ -704,7 +716,7 @@ export default function CalendarPage() {
               </div>
               {!form.isAllDay && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="ev-start-time">開始時間</Label>
+                  <Label htmlFor="ev-start-time">{dict.calendarPage.fieldStartTime}</Label>
                   <Input
                     id="ev-start-time"
                     type="time"
@@ -719,7 +731,7 @@ export default function CalendarPage() {
             {/* End date + time (optional) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="ev-end-date">結束日期（選填）</Label>
+                <Label htmlFor="ev-end-date">{dict.calendarPage.fieldEndDate}</Label>
                 <Input
                   id="ev-end-date"
                   type="date"
@@ -731,7 +743,7 @@ export default function CalendarPage() {
               </div>
               {!form.isAllDay && (
                 <div className="space-y-1.5">
-                  <Label htmlFor="ev-end-time">結束時間（選填）</Label>
+                  <Label htmlFor="ev-end-time">{dict.calendarPage.fieldEndTime}</Label>
                   <Input
                     id="ev-end-time"
                     type="time"
@@ -745,12 +757,12 @@ export default function CalendarPage() {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="ev-desc">備註（選填）</Label>
+              <Label htmlFor="ev-desc">{dict.calendarPage.fieldNotes}</Label>
               <Textarea
                 id="ev-desc"
                 value={form.description}
                 onChange={e => setField('description', e.target.value)}
-                placeholder="請輸入備註說明…"
+                placeholder={dict.calendarPage.notesPlaceholder}
                 rows={3}
                 className="resize-none"
               />
@@ -787,7 +799,7 @@ export default function CalendarPage() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-600 py-2">
-            確定要刪除事件「<span className="font-semibold text-slate-800">{deleteTarget?.title}</span>」嗎？此操作無法復原。
+            {dict.calendarPage.deleteConfirmPrefix}<span className="font-semibold text-slate-800">{deleteTarget?.title}</span>{dict.calendarPage.deleteConfirmSuffix}
           </p>
           <DialogFooter className="gap-2">
             <Button

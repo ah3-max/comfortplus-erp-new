@@ -90,13 +90,13 @@ export function GmDashboard() {
     purchaseTrend, repurchaseRate } = data
 
   const alertItems = [
-    pending.orders    > 0 && { label: `${pending.orders} 筆訂單待確認`,   href: '/orders?status=PENDING',   icon: Clock,         cls: 'border-amber-300 bg-amber-50 text-amber-700' },
-    pending.shipments > 0 && { label: `${pending.shipments} 筆出貨待處理`, href: '/shipments',               icon: Truck,         cls: 'border-blue-300 bg-blue-50 text-blue-700' },
-    complaints.count  > 0 && { label: `${complaints.count} 件客訴未結案`,  href: '/incidents',               icon: AlertOctagon,  cls: 'border-red-300 bg-red-50 text-red-700' },
-    outOfStock.count  > 0 && { label: `${outOfStock.count} 個商品缺貨`,    href: '/inventory',               icon: Ban,           cls: 'border-red-300 bg-red-50 text-red-700' },
-    lowStock.count    > 0 && { label: `${lowStock.count} 個商品低庫存`,    href: '/inventory',               icon: AlertTriangle, cls: 'border-amber-300 bg-amber-50 text-amber-700' },
-    deliveryAnomalies.count > 0 && { label: `${deliveryAnomalies.count} 件出貨異常`, href: '/shipments',    icon: Truck,         cls: 'border-orange-300 bg-orange-50 text-orange-700' },
-    oemAnomalies.count > 0 && { label: `${oemAnomalies.count} 件代工異常`, href: '/production',              icon: Factory,       cls: 'border-orange-300 bg-orange-50 text-orange-700' },
+    pending.orders    > 0 && { label: `${pending.orders} ${dict.roleDashboard.pendingOrdersAlert}`,   href: '/orders?status=PENDING',   icon: Clock,         cls: 'border-amber-300 bg-amber-50 text-amber-700' },
+    pending.shipments > 0 && { label: `${pending.shipments} ${dict.roleDashboard.pendingShipmentsAlert}`, href: '/shipments',               icon: Truck,         cls: 'border-blue-300 bg-blue-50 text-blue-700' },
+    complaints.count  > 0 && { label: `${complaints.count} ${dict.roleDashboard.complaintsAlert}`,  href: '/incidents',               icon: AlertOctagon,  cls: 'border-red-300 bg-red-50 text-red-700' },
+    outOfStock.count  > 0 && { label: `${outOfStock.count} ${dict.roleDashboard.outOfStockAlert}`,    href: '/inventory',               icon: Ban,           cls: 'border-red-300 bg-red-50 text-red-700' },
+    lowStock.count    > 0 && { label: `${lowStock.count} ${dict.roleDashboard.lowStockAlert}`,    href: '/inventory',               icon: AlertTriangle, cls: 'border-amber-300 bg-amber-50 text-amber-700' },
+    deliveryAnomalies.count > 0 && { label: `${deliveryAnomalies.count} ${dict.roleDashboard.deliveryAnomalyAlert}`, href: '/shipments',    icon: Truck,         cls: 'border-orange-300 bg-orange-50 text-orange-700' },
+    oemAnomalies.count > 0 && { label: `${oemAnomalies.count} ${dict.roleDashboard.oemAnomalyAlert}`, href: '/production',              icon: Factory,       cls: 'border-orange-300 bg-orange-50 text-orange-700' },
   ].filter(Boolean) as { label: string; href: string; icon: typeof Clock; cls: string }[]
 
   return (
@@ -107,18 +107,18 @@ export function GmDashboard() {
       <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 p-5 text-white shadow-lg">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-blue-200 text-sm font-medium">本月累計營收</p>
+            <p className="text-blue-200 text-sm font-medium">{dict.roleDashboard.monthRevenue}</p>
             <p className="text-4xl font-bold mt-1">{fmt(month.revenue)}</p>
             {month.revenueGrowth !== null && (
               <p className={`text-sm mt-1 flex items-center gap-1 ${month.revenueGrowth >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 {month.revenueGrowth >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                {month.revenueGrowth >= 0 ? '+' : ''}{month.revenueGrowth}% 相比上月
+                {month.revenueGrowth >= 0 ? '+' : ''}{month.revenueGrowth}% {dict.roleDashboard.vsLastMonthLabel}
               </p>
             )}
           </div>
           <div className="text-right">
-            <p className="text-blue-200 text-sm">本月訂單</p>
-            <p className="text-2xl font-bold">{month.orders} <span className="text-lg text-blue-200">筆</span></p>
+            <p className="text-blue-200 text-sm">{dict.roleDashboard.monthOrdersLabel}</p>
+            <p className="text-2xl font-bold">{month.orders} <span className="text-lg text-blue-200">{dict.roleDashboard.monthOrderUnit}</span></p>
             {month.orderGrowth !== null && (
               <p className={`text-xs ${month.orderGrowth >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                 {month.orderGrowth >= 0 ? '+' : ''}{month.orderGrowth}%
@@ -128,14 +128,14 @@ export function GmDashboard() {
         </div>
         <div className="grid grid-cols-2 gap-3 border-t border-blue-500 pt-4">
           <div>
-            <p className="text-blue-200 text-xs">毛利</p>
+            <p className="text-blue-200 text-xs">{dict.roleDashboard.grossProfitLabel}</p>
             <p className="text-lg font-semibold">{fmt(month.grossProfit)}</p>
-            <p className="text-blue-300 text-xs">利潤率 {month.grossMargin}%</p>
+            <p className="text-blue-300 text-xs">{dict.roleDashboard.marginRateLabel} {month.grossMargin}%</p>
           </div>
           <div>
-            <p className="text-blue-200 text-xs">今日</p>
+            <p className="text-blue-200 text-xs">{dict.roleDashboard.todayLabel}</p>
             <p className="text-lg font-semibold">{fmt(today.revenue)}</p>
-            <p className="text-blue-300 text-xs">{today.orders} 筆訂單</p>
+            <p className="text-blue-300 text-xs">{today.orders} {dict.roleDashboard.todayOrderUnit}</p>
           </div>
         </div>
       </div>
@@ -145,7 +145,7 @@ export function GmDashboard() {
         <div className="space-y-2">
           <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            需要處理
+            {dict.roleDashboard.needsAttention}
           </h2>
           <AlertBanner items={alertItems} />
         </div>
@@ -160,7 +160,7 @@ export function GmDashboard() {
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">{d.receivable}</p>
                   <p className="text-lg font-bold text-amber-700 mt-0.5">{fmt(receivable.total)}</p>
-                  <p className="text-xs text-muted-foreground">{receivable.count} 筆未收</p>
+                  <p className="text-xs text-muted-foreground">{receivable.count} {dict.roleDashboard.unpaidCount}</p>
                 </CardContent>
               </Card>
             </Link>
@@ -171,7 +171,7 @@ export function GmDashboard() {
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">{d.payable}</p>
                   <p className="text-lg font-bold text-slate-800 mt-0.5">{fmt(payable.total)}</p>
-                  <p className="text-xs text-muted-foreground">{payable.count} 筆未付</p>
+                  <p className="text-xs text-muted-foreground">{payable.count} {dict.roleDashboard.unpaidPayCount}</p>
                 </CardContent>
               </Card>
             </Link>
@@ -328,7 +328,7 @@ export function GmDashboard() {
         >
           {showAnalytics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           {d.analyticsPanel}
-          <span className="text-xs text-muted-foreground font-normal ml-1">— 業績排行、通路分析</span>
+          <span className="text-xs text-muted-foreground font-normal ml-1">{dict.roleDashboard.analyticsPanelSub}</span>
         </button>
       </div>
 

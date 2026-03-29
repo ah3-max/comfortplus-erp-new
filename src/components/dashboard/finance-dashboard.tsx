@@ -43,11 +43,12 @@ export function FinanceDashboard() {
 
   const { receivable, payable, arAging, todayCollections, monthSummary, overdueCustomers, pendingReconciliation } = data
 
+  const rd = dict.roleDashboard
   const agingData = [
-    { name: '30天內', amount: arAging.current },
-    { name: '31-60天', amount: arAging.days30 },
-    { name: '61-90天', amount: arAging.days60 },
-    { name: '90天以上', amount: arAging.over90 },
+    { name: rd.aging30, amount: arAging.current },
+    { name: rd.aging31to60, amount: arAging.days30 },
+    { name: rd.aging61to90, amount: arAging.days60 },
+    { name: rd.agingOver90, amount: arAging.over90 },
   ]
 
   const hasOverdue = arAging.days60 + arAging.over90 > 0
@@ -96,7 +97,7 @@ export function FinanceDashboard() {
       {/* ── Alerts ── */}
       {(hasOverdue || pendingReconciliation > 0) && (
         <div className="space-y-2">
-          <SectionHeader title="需要處理" icon={AlertTriangle} iconColor="text-amber-500" />
+          <SectionHeader title={dict.roleDashboard.needsAttention} icon={AlertTriangle} iconColor="text-amber-500" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {hasOverdue && (
               <Link href="/ar-aging"

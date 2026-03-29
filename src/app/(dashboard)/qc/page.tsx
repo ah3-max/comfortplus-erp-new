@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, type ReactNode } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -39,16 +39,7 @@ interface QcRecord {
   _count:          { checkItems: number }
 }
 
-// ── Label maps ─────────────────────────────────────────────────────────────
-const INSPECTION_TYPE_LABEL: Record<string, string> = {
-  RAW_MATERIAL:     '原物料 QC',
-  PACKAGING:        '包材 QC',
-  IN_PRODUCTION:    '生產中 QC',
-  FINISHED_PRODUCT: '成品 QC',
-  PRE_SHIPMENT:     '出貨前 QC',
-  INCOMING:         '到貨驗收',
-  COMPLAINT_TRACE:  '客訴反查',
-}
+// ── Label maps (color-only; labels come from dict) ─────────────────────────
 const INSPECTION_TYPE_COLOR: Record<string, string> = {
   RAW_MATERIAL:     'bg-slate-100 text-slate-700',
   PACKAGING:        'bg-purple-100 text-purple-700',
@@ -58,20 +49,26 @@ const INSPECTION_TYPE_COLOR: Record<string, string> = {
   INCOMING:         'bg-orange-100 text-orange-700',
   COMPLAINT_TRACE:  'bg-red-100 text-red-700',
 }
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  PENDING:     { label: '待檢驗', color: 'bg-slate-100 text-slate-600',  icon: <Clock className="h-3 w-3" /> },
-  IN_PROGRESS: { label: '檢驗中', color: 'bg-blue-100 text-blue-700',    icon: <Loader2 className="h-3 w-3" /> },
-  COMPLETED:   { label: '已完成', color: 'bg-green-100 text-green-700',  icon: <CheckCircle2 className="h-3 w-3" /> },
-  ON_HOLD:     { label: '暫停',   color: 'bg-amber-100 text-amber-700',  icon: <AlertTriangle className="h-3 w-3" /> },
+const STATUS_COLOR: Record<string, string> = {
+  PENDING:     'bg-slate-100 text-slate-600',
+  IN_PROGRESS: 'bg-blue-100 text-blue-700',
+  COMPLETED:   'bg-green-100 text-green-700',
+  ON_HOLD:     'bg-amber-100 text-amber-700',
 }
-const RESULT_CONFIG: Record<string, { label: string; color: string }> = {
-  ACCEPTED:          { label: '✅ 允收',    color: 'bg-green-100 text-green-700' },
-  CONDITIONAL_ACCEPT:{ label: '⚠️ 條件允收', color: 'bg-amber-100 text-amber-700' },
-  REWORK:            { label: '🔧 重工',    color: 'bg-orange-100 text-orange-700' },
-  RETURN_TO_SUPPLIER:{ label: '↩️ 退供應商', color: 'bg-red-100 text-red-700' },
-  SUPPLEMENT:        { label: '➕ 補貨',    color: 'bg-blue-100 text-blue-700' },
-  DEDUCTION:         { label: '💲 扣款',    color: 'bg-rose-100 text-rose-700' },
-  ANOMALY_CLOSED:    { label: '📁 異常結案', color: 'bg-slate-100 text-slate-600' },
+const STATUS_ICON: Record<string, ReactNode> = {
+  PENDING:     <Clock className="h-3 w-3" />,
+  IN_PROGRESS: <Loader2 className="h-3 w-3" />,
+  COMPLETED:   <CheckCircle2 className="h-3 w-3" />,
+  ON_HOLD:     <AlertTriangle className="h-3 w-3" />,
+}
+const RESULT_COLOR: Record<string, string> = {
+  ACCEPTED:          'bg-green-100 text-green-700',
+  CONDITIONAL_ACCEPT:'bg-amber-100 text-amber-700',
+  REWORK:            'bg-orange-100 text-orange-700',
+  RETURN_TO_SUPPLIER:'bg-red-100 text-red-700',
+  SUPPLEMENT:        'bg-blue-100 text-blue-700',
+  DEDUCTION:         'bg-rose-100 text-rose-700',
+  ANOMALY_CLOSED:    'bg-slate-100 text-slate-600',
 }
 
 function fmtDate(d: string | null) {
@@ -138,11 +135,11 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* 檢驗類型 */}
+        {/* Inspection type */}
         <div>
           <Label className="text-xs text-slate-600 mb-2 block">{dict.common.type} *</Label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {Object.entries(INSPECTION_TYPE_LABEL).map(([key, label]) => (
+            {Object.entries(dict.qcExt.inspectionTypeLabels).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setInspectionType(key)}
@@ -159,7 +156,7 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {/* 商品搜尋 */}
+          {/* Product search */}
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.product}（{dict.common.optional}）</Label>
             {selectedProduct ? (
@@ -172,7 +169,7 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   className="pl-8 text-sm h-9"
-                  placeholder="搜尋 SKU 或商品名稱…"
+                  placeholder={dict.qcExt.productSearchPlaceholder}
                   value={productSearch}
                   onChange={e => setProductSearch(e.target.value)}
                 />
@@ -193,29 +190,29 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
             )}
           </div>
 
-          {/* 批次號 */}
+          {/* Batch No */}
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">{dict.qcExt.batchNo}</Label>
-            <Input value={batchNo} onChange={e => setBatchNo(e.target.value)} className="text-sm h-9" placeholder="例：LOT-20260318" />
+            <Input value={batchNo} onChange={e => setBatchNo(e.target.value)} className="text-sm h-9" placeholder="e.g. LOT-20260318" />
           </div>
 
-          {/* 檢驗日期 */}
+          {/* Inspection date */}
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">{dict.qcExt.inspectionDate}</Label>
             <Input type="date" value={inspectionDate} onChange={e => setInspectionDate(e.target.value)} className="text-sm h-9" />
           </div>
 
-          {/* 抽樣數 */}
+          {/* Sample qty */}
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">{dict.qcExt.sampleQty}</Label>
-            <Input type="number" min={1} value={sampleSize} onChange={e => setSampleSize(e.target.value)} className="text-sm h-9" placeholder="例：50" />
+            <Input type="number" min={1} value={sampleSize} onChange={e => setSampleSize(e.target.value)} className="text-sm h-9" placeholder="e.g. 50" />
           </div>
         </div>
 
-        {/* 備註 */}
+        {/* Notes */}
         <div>
           <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.notes}</Label>
-          <Input value={notes} onChange={e => setNotes(e.target.value)} className="text-sm h-9" placeholder="（選填）" />
+          <Input value={notes} onChange={e => setNotes(e.target.value)} className="text-sm h-9" placeholder={`（${dict.common.optional}）`} />
         </div>
 
         <div className="flex gap-2 pt-1">
@@ -328,9 +325,9 @@ export default function QcPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <ClipboardCheck className="h-6 w-6 text-blue-600" />
-            品質檢驗管理
+            {dict.qcExt.pageTitle}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">QC Quality Control — 共 {total} 筆</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{dict.qcExt.pageSubtitle} {total} {dict.qcExt.pageSubtitleSuffix}</p>
         </div>
         <Button onClick={() => setShowForm(s => !s)} className="gap-2">
           <Plus className="h-4 w-4" />{dict.qcExt.newInspection}
@@ -348,10 +345,10 @@ export default function QcPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
         {[
-          { label: '待檢驗',  value: stats.pending,    color: 'text-slate-600',  bg: 'bg-slate-50',  border: 'border-slate-200' },
-          { label: '檢驗中',  value: stats.inProgress, color: 'text-blue-700',   bg: 'bg-blue-50',   border: 'border-blue-200' },
-          { label: '已完成',  value: stats.completed,  color: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-200' },
-          { label: '退/重工', value: stats.failed,     color: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-200' },
+          { label: dict.qcExt.statPending,    value: stats.pending,    color: 'text-slate-600',  bg: 'bg-slate-50',  border: 'border-slate-200' },
+          { label: dict.qcExt.statInProgress, value: stats.inProgress, color: 'text-blue-700',   bg: 'bg-blue-50',   border: 'border-blue-200' },
+          { label: dict.qcExt.statCompleted,  value: stats.completed,  color: 'text-green-700',  bg: 'bg-green-50',  border: 'border-green-200' },
+          { label: dict.qcExt.statFailed,     value: stats.failed,     color: 'text-red-700',    bg: 'bg-red-50',    border: 'border-red-200' },
         ].map(s => (
           <div key={s.label} className={`rounded-xl border ${s.border} ${s.bg} p-3 text-center`}>
             <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -368,8 +365,8 @@ export default function QcPage() {
           onChange={e => setStatusFilter(e.target.value)}
         >
           <option value="">{dict.common.all}{dict.common.status}</option>
-          {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-            <option key={k} value={k}>{v.label}</option>
+          {Object.entries(dict.qcExt.statusLabels).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
           ))}
         </select>
         <select
@@ -378,7 +375,7 @@ export default function QcPage() {
           onChange={e => setTypeFilter(e.target.value)}
         >
           <option value="">{dict.common.all}{dict.common.type}</option>
-          {Object.entries(INSPECTION_TYPE_LABEL).map(([k, v]) => (
+          {Object.entries(dict.qcExt.inspectionTypeLabels).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
@@ -408,17 +405,20 @@ export default function QcPage() {
             <div className="divide-y">
               {/* Header row */}
               <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1.5fr_auto] gap-3 px-4 py-2.5 text-xs font-semibold text-muted-foreground bg-slate-50">
-                <span>QC 單號 / 商品</span>
-                <span>類型</span>
-                <span>批次 / 日期</span>
-                <span>抽樣 / 良品</span>
-                <span>狀態</span>
-                <span>結果</span>
+                <span>{dict.qcExt.colQcNoProduct}</span>
+                <span>{dict.qcExt.colType}</span>
+                <span>{dict.qcExt.colBatchDate}</span>
+                <span>{dict.qcExt.colSamplePass}</span>
+                <span>{dict.qcExt.colStatus}</span>
+                <span>{dict.qcExt.colResult}</span>
                 <span></span>
               </div>
               {records.map(r => {
-                const statusCfg = STATUS_CONFIG[r.qcStatus] ?? { label: r.qcStatus, color: '', icon: null }
-                const resultCfg = r.result ? RESULT_CONFIG[r.result] : null
+                const statusLabel = dict.qcExt.statusLabels[r.qcStatus as keyof typeof dict.qcExt.statusLabels] ?? r.qcStatus
+                const statusColor = STATUS_COLOR[r.qcStatus] ?? ''
+                const statusIcon  = STATUS_ICON[r.qcStatus] ?? null
+                const resultLabel = r.result ? (dict.qcExt.resultLabels[r.result as keyof typeof dict.qcExt.resultLabels] ?? r.result) : null
+                const resultColor = r.result ? (RESULT_COLOR[r.result] ?? '') : ''
                 const isPending    = r.qcStatus === 'PENDING'
                 const isInProgress = r.qcStatus === 'IN_PROGRESS'
                 return (
@@ -428,12 +428,12 @@ export default function QcPage() {
                       {r.product && <p className="text-xs text-muted-foreground truncate">{r.product.sku} · {r.product.name}</p>}
                       {r.supplier && !r.product && <p className="text-xs text-muted-foreground">{r.supplier.name}</p>}
                       {r._count.checkItems > 0 && (
-                        <p className="text-xs text-blue-600">{r._count.checkItems} 項明細</p>
+                        <p className="text-xs text-blue-600">{r._count.checkItems} {dict.qcExt.itemDetails}</p>
                       )}
                     </Link>
                     <div>
                       <Badge className={`text-xs font-normal border-0 ${INSPECTION_TYPE_COLOR[r.inspectionType] ?? 'bg-slate-100'}`}>
-                        {INSPECTION_TYPE_LABEL[r.inspectionType] ?? r.inspectionType}
+                        {dict.qcExt.inspectionTypeLabels[r.inspectionType as keyof typeof dict.qcExt.inspectionTypeLabels] ?? r.inspectionType}
                       </Badge>
                     </div>
                     <div className="text-xs text-slate-600">
@@ -443,20 +443,20 @@ export default function QcPage() {
                     <div className="text-xs text-slate-600">
                       {r.sampleSize != null ? (
                         <>
-                          <p>抽 {r.sampleSize} 件</p>
-                          {r.passedQty != null && <p className="text-green-600">良品 {r.passedQty}</p>}
-                          {r.defectRate != null && <p className="text-red-600">不良 {Number(r.defectRate).toFixed(1)}%</p>}
+                          <p>{dict.qcExt.samplePrefix} {r.sampleSize} {dict.qcExt.sampleUnit}</p>
+                          {r.passedQty != null && <p className="text-green-600">{dict.qcExt.passPrefix} {r.passedQty}</p>}
+                          {r.defectRate != null && <p className="text-red-600">{dict.qcExt.defectPrefix} {Number(r.defectRate).toFixed(1)}%</p>}
                         </>
                       ) : <span className="text-muted-foreground">—</span>}
                     </div>
                     <div>
-                      <Badge className={`text-xs font-normal gap-1 border-0 ${statusCfg.color}`}>
-                        {statusCfg.icon}{statusCfg.label}
+                      <Badge className={`text-xs font-normal gap-1 border-0 ${statusColor}`}>
+                        {statusIcon}{statusLabel}
                       </Badge>
                     </div>
                     <div>
-                      {resultCfg
-                        ? <Badge className={`text-xs font-normal border-0 ${resultCfg.color}`}>{resultCfg.label}</Badge>
+                      {resultLabel
+                        ? <Badge className={`text-xs font-normal border-0 ${resultColor}`}>{resultLabel}</Badge>
                         : <span className="text-xs text-muted-foreground">{dict.qcExt.result}</span>}
                       {r.resultSummary && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">{r.resultSummary}</p>}
                     </div>
@@ -465,7 +465,7 @@ export default function QcPage() {
                         <button
                           onClick={() => handleStartQc(r)}
                           className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-0.5 px-1.5 py-1 rounded hover:bg-blue-50"
-                          title="開始檢驗"
+                          title={dict.qcExt.startQcTitle}
                         >
                           <PlayCircle className="h-3.5 w-3.5" />
                         </button>
@@ -474,7 +474,7 @@ export default function QcPage() {
                         <button
                           onClick={() => openComplete(r)}
                           className="text-xs text-green-600 hover:text-green-800 flex items-center gap-0.5 px-1.5 py-1 rounded hover:bg-green-50"
-                          title="完成判定"
+                          title={dict.qcExt.completeQcTitle}
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </button>
@@ -495,7 +495,7 @@ export default function QcPage() {
       <Dialog open={!!completeTarget} onOpenChange={o => !o && setCompleteTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>完成 QC 判定 — {completeTarget?.qcNo}</DialogTitle>
+            <DialogTitle>{dict.qcExt.completeDialogTitle} — {completeTarget?.qcNo}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div>
@@ -505,8 +505,8 @@ export default function QcPage() {
                 value={completeForm.result}
                 onChange={e => setCompleteForm(f => ({ ...f, result: e.target.value }))}
               >
-                {Object.entries(RESULT_CONFIG).map(([k, v]) => (
-                  <option key={k} value={k}>{v.label}</option>
+                {Object.entries(dict.qcExt.resultLabels).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
                 ))}
               </select>
             </div>
@@ -536,7 +536,7 @@ export default function QcPage() {
                 value={completeForm.resultSummary}
                 onChange={e => setCompleteForm(f => ({ ...f, resultSummary: e.target.value }))}
                 rows={2}
-                placeholder="簡短說明判定依據…"
+                placeholder={`${dict.common.description}…`}
               />
             </div>
           </div>

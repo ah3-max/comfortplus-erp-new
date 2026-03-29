@@ -73,34 +73,34 @@ export default function DeliveryPerformancePage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.deliveryPerformance ?? '出貨準時率分析'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">分析出貨準時率、平均延誤天數、物流商表現</p>
+        <h1 className="text-2xl font-bold">{dict.deliveryPerformance.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{dict.deliveryPerformance.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">分析維度</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.deliveryPerformance.dimLabel}</div>
           <Select value={view} onValueChange={v => { if (v) setView(v as ViewKey) }}>
             <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="monthly">月度趨勢</SelectItem>
-              <SelectItem value="provider">物流商分析</SelectItem>
-              <SelectItem value="customer">客戶分析</SelectItem>
+              <SelectItem value="monthly">{dict.deliveryPerformance.viewMonthly}</SelectItem>
+              <SelectItem value="provider">{dict.deliveryPerformance.viewProvider}</SelectItem>
+              <SelectItem value="customer">{dict.deliveryPerformance.viewCustomer}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.deliveryPerformance.periodFrom}</div>
           <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.deliveryPerformance.periodTo}</div>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? dict.deliveryPerformance.querying : dict.deliveryPerformance.query}
         </Button>
       </div>
 
@@ -110,62 +110,62 @@ export default function DeliveryPerformancePage() {
           {monthly.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">期間出貨量</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.deliveryPerformance.totalShipments}</div>
                 <div className="text-2xl font-bold">{totalShipments}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">整體準時率</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.deliveryPerformance.overallOnTimePct}</div>
                 <div className="text-2xl font-bold">{overallOnTimePct != null ? `${overallOnTimePct}%` : '-'}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">準時出貨</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.deliveryPerformance.onTimeCount}</div>
                 <div className="text-2xl font-bold text-emerald-600">{totalOnTime}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">延誤出貨</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.deliveryPerformance.lateCount}</div>
                 <div className="text-2xl font-bold text-red-600">{totalEval - totalOnTime}</div>
               </div>
             </div>
           )}
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">月度準時率趨勢</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.deliveryPerformance.monthlyTrendChart}</h3>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 100]} />
-                <Tooltip formatter={(v: unknown) => [`${v}%`, '準時率']} />
-                <Line dataKey="onTimePct" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name="準時率" />
+                <Tooltip formatter={(v: unknown) => [`${v}%`, dict.deliveryPerformance.lineOnTimePct]} />
+                <Line dataKey="onTimePct" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} name={dict.deliveryPerformance.lineOnTimePct} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">月度準時 vs 延誤出貨量</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.deliveryPerformance.onTimeVsLateChart}</h3>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="onTime" fill="#10b981" name="準時" stackId="a" />
-                <Bar dataKey="late" fill="#ef4444" name="延誤" stackId="a" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="onTime" fill="#10b981" name={dict.deliveryPerformance.legendOnTime} stackId="a" />
+                <Bar dataKey="late" fill="#ef4444" name={dict.deliveryPerformance.legendLate} stackId="a" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">月份</th>
-                <th className="px-4 py-3 text-right">出貨量</th>
-                <th className="px-4 py-3 text-right">準時</th>
-                <th className="px-4 py-3 text-right">延誤</th>
-                <th className="px-4 py-3 text-right">準時率</th>
-                <th className="px-4 py-3 text-right">平均延誤</th>
-                <th className="px-4 py-3 text-right">異常件</th>
+                <th className="px-4 py-3 text-left">{dict.deliveryPerformance.colMonth}</th>
+                <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colTotal}</th>
+                <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colOnTime}</th>
+                <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colLate}</th>
+                <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colOnTimePct}</th>
+                <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colAvgDelay}</th>
+                <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colAnomalies}</th>
               </tr></thead>
               <tbody>
                 {monthly.length === 0 ? (
-                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">{dict.deliveryPerformance.noData}</td></tr>
                 ) : monthly.map(row => (
                   <tr key={row.month} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono">{row.month}</td>
@@ -173,7 +173,7 @@ export default function DeliveryPerformancePage() {
                     <td className="px-4 py-3 text-right text-emerald-600">{row.onTime}</td>
                     <td className="px-4 py-3 text-right text-red-500">{row.late}</td>
                     <td className="px-4 py-3 text-right"><OnTimeBadge pct={row.onTimePct} /></td>
-                    <td className="px-4 py-3 text-right text-gray-500">{row.avgDelayDays > 0 ? `+${row.avgDelayDays}天` : '-'}</td>
+                    <td className="px-4 py-3 text-right text-gray-500">{row.avgDelayDays > 0 ? `+${row.avgDelayDays}${dict.deliveryPerformance.delayDaysUnit}` : '-'}</td>
                     <td className="px-4 py-3 text-right">{row.anomalies > 0 ? <span className="text-orange-500">{row.anomalies}</span> : '-'}</td>
                   </tr>
                 ))}
@@ -188,18 +188,18 @@ export default function DeliveryPerformancePage() {
         <div className="rounded-xl border bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-              <th className="px-4 py-3 text-left">物流商</th>
-              <th className="px-4 py-3 text-right">出貨量</th>
-              <th className="px-4 py-3 text-right">準時</th>
-              <th className="px-4 py-3 text-right">延誤</th>
-              <th className="px-4 py-3 text-right">準時率</th>
-              <th className="px-4 py-3 text-right">平均延誤</th>
-              <th className="px-4 py-3 text-right">異常件</th>
-              <th className="px-4 py-3 text-right">物流費用</th>
+              <th className="px-4 py-3 text-left">{dict.deliveryPerformance.colProvider}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colTotal}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colOnTime}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colLate}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colOnTimePct}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colAvgDelay}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colAnomalies}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colFreight}</th>
             </tr></thead>
             <tbody>
               {providers.length === 0 ? (
-                <tr><td colSpan={8} className="py-8 text-center text-gray-400">無資料</td></tr>
+                <tr><td colSpan={8} className="py-8 text-center text-gray-400">{dict.deliveryPerformance.noData}</td></tr>
               ) : providers.map(row => (
                 <tr key={row.providerId} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">{row.name}</td>
@@ -207,7 +207,7 @@ export default function DeliveryPerformancePage() {
                   <td className="px-4 py-3 text-right text-emerald-600">{row.onTime}</td>
                   <td className="px-4 py-3 text-right text-red-500">{row.late}</td>
                   <td className="px-4 py-3 text-right"><OnTimeBadge pct={row.onTimePct} /></td>
-                  <td className="px-4 py-3 text-right text-gray-500">{row.avgDelayDays > 0 ? `+${row.avgDelayDays}天` : '-'}</td>
+                  <td className="px-4 py-3 text-right text-gray-500">{row.avgDelayDays > 0 ? `+${row.avgDelayDays}${dict.deliveryPerformance.delayDaysUnit}` : '-'}</td>
                   <td className="px-4 py-3 text-right">{row.anomalies > 0 ? <span className="text-orange-500">{row.anomalies}</span> : '-'}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{fmt(row.totalFreight)}</td>
                 </tr>
@@ -222,16 +222,16 @@ export default function DeliveryPerformancePage() {
         <div className="rounded-xl border bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-              <th className="px-4 py-3 text-left">客戶</th>
-              <th className="px-4 py-3 text-right">出貨量</th>
-              <th className="px-4 py-3 text-right">準時</th>
-              <th className="px-4 py-3 text-right">延誤</th>
-              <th className="px-4 py-3 text-right">準時率</th>
-              <th className="px-4 py-3 text-right">平均延誤</th>
+              <th className="px-4 py-3 text-left">{dict.deliveryPerformance.colCustomer}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colTotal}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colOnTime}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colLate}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colOnTimePct}</th>
+              <th className="px-4 py-3 text-right">{dict.deliveryPerformance.colAvgDelay}</th>
             </tr></thead>
             <tbody>
               {customers.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-gray-400">無資料</td></tr>
+                <tr><td colSpan={6} className="py-8 text-center text-gray-400">{dict.deliveryPerformance.noData}</td></tr>
               ) : customers.map(row => (
                 <tr key={row.customerId} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">{row.name}</td>
@@ -239,7 +239,7 @@ export default function DeliveryPerformancePage() {
                   <td className="px-4 py-3 text-right text-emerald-600">{row.onTime}</td>
                   <td className="px-4 py-3 text-right text-red-500">{row.late}</td>
                   <td className="px-4 py-3 text-right"><OnTimeBadge pct={row.onTimePct} /></td>
-                  <td className="px-4 py-3 text-right text-gray-500">{row.avgDelayDays > 0 ? `+${row.avgDelayDays}天` : '-'}</td>
+                  <td className="px-4 py-3 text-right text-gray-500">{row.avgDelayDays > 0 ? `+${row.avgDelayDays}${dict.deliveryPerformance.delayDaysUnit}` : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -250,7 +250,7 @@ export default function DeliveryPerformancePage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <Truck size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇維度與期間後按「查詢」</p>
+          <p>{dict.deliveryPerformance.promptText}</p>
         </div>
       )}
     </div>

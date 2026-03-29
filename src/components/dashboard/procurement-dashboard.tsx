@@ -83,7 +83,7 @@ export function ProcurementDashboard() {
       {/* ── Alerts ── */}
       {alertCount > 0 && (
         <div className="space-y-2">
-          <SectionHeader title="需要處理" icon={AlertTriangle} iconColor="text-amber-500" />
+          <SectionHeader title={dict.roleDashboard.needsAttention} icon={AlertTriangle} iconColor="text-amber-500" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {data.qcAnomalyCount > 0 && (
               <Link href="/qc"

@@ -75,30 +75,33 @@ interface ImportProjectBase {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: '開案', IN_PROGRESS: '進行中', CUSTOMS: '清關中',
-  RECEIVED: '已到倉', CLOSED: '已結案', CANCELLED: '已取消',
-}
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'secondary', IN_PROGRESS: 'default', CUSTOMS: 'outline',
   RECEIVED: 'default', CLOSED: 'secondary', CANCELLED: 'destructive',
-}
-const COST_CATEGORIES: Record<string, string> = {
-  GOODS: '貨款', FREIGHT: '運費', INSURANCE: '保險費',
-  CUSTOMS_DUTY: '關稅', VAT: '營業稅', INSPECTION: '驗貨費',
-  AGENT_FEE: '代理費', OTHER: '其他',
-}
-const PAYMENT_TYPES: Record<string, string> = {
-  DEPOSIT: '訂金', PROGRESS: '期款', FINAL: '尾款', FULL: '全額',
-}
-const CUSTOMS_STATUS_LABELS: Record<string, string> = {
-  PENDING: '待報關', SUBMITTED: '已申報', CLEARED: '已放行', HELD: '扣留中',
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ImportProjectsPage() {
   const { dict } = useI18n()
+  const ip = dict.importProjects
+
+  const STATUS_LABELS: Record<string, string> = {
+    OPEN: ip.statusCodes.OPEN, IN_PROGRESS: ip.statusCodes.IN_PROGRESS, CUSTOMS: ip.statusCodes.CUSTOMS,
+    RECEIVED: ip.statusCodes.RECEIVED, CLOSED: ip.statusCodes.CLOSED, CANCELLED: ip.statusCodes.CANCELLED,
+  }
+  const COST_CATEGORIES: Record<string, string> = {
+    GOODS: ip.costCategories.GOODS, FREIGHT: ip.costCategories.FREIGHT, INSURANCE: ip.costCategories.INSURANCE,
+    CUSTOMS_DUTY: ip.costCategories.CUSTOMS_DUTY, VAT: ip.costCategories.VAT, INSPECTION: ip.costCategories.INSPECTION,
+    AGENT_FEE: ip.costCategories.AGENT_FEE, OTHER: ip.costCategories.OTHER,
+  }
+  const PAYMENT_TYPES: Record<string, string> = {
+    DEPOSIT: ip.paymentTypes.DEPOSIT, PROGRESS: ip.paymentTypes.PROGRESS, FINAL: ip.paymentTypes.FINAL, FULL: ip.paymentTypes.FULL,
+  }
+  const CUSTOMS_STATUS_LABELS: Record<string, string> = {
+    PENDING: ip.customsStatusCodes.PENDING, SUBMITTED: ip.customsStatusCodes.SUBMITTED,
+    CLEARED: ip.customsStatusCodes.CLEARED, HELD: ip.customsStatusCodes.HELD,
+  }
   const [projects, setProjects] = useState<ImportProjectBase[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -219,9 +222,9 @@ export default function ImportProjectsPage() {
       <div className="flex flex-wrap gap-2">
         <Input placeholder={dict.importProjects.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="h-8 w-52" />
         <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? '')}>
-          <SelectTrigger className="h-8 w-36"><SelectValue placeholder="全部狀態" /></SelectTrigger>
+          <SelectTrigger className="h-8 w-36"><SelectValue placeholder={ip.allStatuses} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部狀態</SelectItem>
+            <SelectItem value="">{ip.allStatuses}</SelectItem>
             {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -230,7 +233,7 @@ export default function ImportProjectsPage() {
       {/* List */}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {loading ? (
-          <p className="col-span-full py-8 text-center text-muted-foreground">載入中…</p>
+          <p className="col-span-full py-8 text-center text-muted-foreground">{dict.common.loading}</p>
         ) : projects.length === 0 ? (
           <p className="col-span-full py-8 text-center text-muted-foreground">{dict.importProjects.noProjects}</p>
         ) : projects.map(p => (
@@ -248,9 +251,9 @@ export default function ImportProjectsPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-1 text-sm">
-                {p.supplier && <p className="text-muted-foreground truncate">供應商：{p.supplier.name}</p>}
-                {p.eta && <p className="text-muted-foreground">{dict.importProjects.eta}：{new Date(p.eta).toLocaleDateString('zh-TW')}</p>}
-                <p className="text-muted-foreground">費用項目：{p.costItems.length} 筆</p>
+                {p.supplier && <p className="text-muted-foreground truncate">{ip.supplierLabel}{p.supplier.name}</p>}
+                {p.eta && <p className="text-muted-foreground">{ip.eta}：{new Date(p.eta).toLocaleDateString('zh-TW')}</p>}
+                <p className="text-muted-foreground">{ip.costItemsLabel}{p.costItems.length} {ip.costItemsUnit}</p>
                 <p className="font-medium">{fmt(p.totalCost)}</p>
               </div>
             </CardContent>
@@ -281,24 +284,24 @@ export default function ImportProjectsPage() {
 
             <Tabs value={detailTab} onValueChange={setDetailTab}>
               <TabsList>
-                <TabsTrigger value="costs"><DollarSign className="mr-1 h-4 w-4" />費用明細</TabsTrigger>
-                <TabsTrigger value="payments"><FileText className="mr-1 h-4 w-4" />貨款付款</TabsTrigger>
-                <TabsTrigger value="customs"><Landmark className="mr-1 h-4 w-4" />清關資料</TabsTrigger>
+                <TabsTrigger value="costs"><DollarSign className="mr-1 h-4 w-4" />{ip.detailTabCosts}</TabsTrigger>
+                <TabsTrigger value="payments"><FileText className="mr-1 h-4 w-4" />{ip.detailTabPayments}</TabsTrigger>
+                <TabsTrigger value="customs"><Landmark className="mr-1 h-4 w-4" />{ip.detailTabCustoms}</TabsTrigger>
               </TabsList>
 
               {/* Cost Items */}
               <TabsContent value="costs">
                 <div className="flex justify-end mb-2">
-                  <Button size="sm" onClick={() => setCostDialog(true)}><Plus className="mr-1 h-4 w-4" />新增費用</Button>
+                  <Button size="sm" onClick={() => setCostDialog(true)}><Plus className="mr-1 h-4 w-4" />{ip.addCostBtn}</Button>
                 </div>
                 {detail.costItems.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-muted-foreground">尚無費用明細</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">{ip.noCostItems}</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead><tr className="border-b text-xs text-muted-foreground">
-                        <th className="py-1 text-left">類別</th><th className="py-1 text-left">說明</th>
-                        <th className="py-1 text-right">金額</th><th className="py-1 text-right">台幣</th>
+                        <th className="py-1 text-left">{ip.colCategory}</th><th className="py-1 text-left">{ip.colDesc}</th>
+                        <th className="py-1 text-right">{ip.colAmount}</th><th className="py-1 text-right">{ip.colTWD}</th>
                       </tr></thead>
                       <tbody>
                         {detail.costItems.map(item => (
@@ -310,7 +313,7 @@ export default function ImportProjectsPage() {
                           </tr>
                         ))}
                         <tr className="font-semibold">
-                          <td colSpan={3} className="py-1.5 text-right">總計</td>
+                          <td colSpan={3} className="py-1.5 text-right">{ip.subtotalLabel}</td>
                           <td className="py-1.5 text-right">{fmt(detail.totalCost)}</td>
                         </tr>
                       </tbody>
@@ -322,10 +325,10 @@ export default function ImportProjectsPage() {
               {/* Payments */}
               <TabsContent value="payments">
                 <div className="flex justify-end mb-2">
-                  <Button size="sm" onClick={() => setPaymentDialog(true)}><Plus className="mr-1 h-4 w-4" />新增付款</Button>
+                  <Button size="sm" onClick={() => setPaymentDialog(true)}><Plus className="mr-1 h-4 w-4" />{ip.addPaymentBtn}</Button>
                 </div>
                 {detail.payments.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-muted-foreground">尚無付款紀錄</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">{ip.noPayments}</p>
                 ) : (
                   <div className="space-y-2">
                     {detail.payments.map(pay => (
@@ -334,8 +337,8 @@ export default function ImportProjectsPage() {
                           <span><Badge variant="outline" className="mr-2 text-xs">{PAYMENT_TYPES[pay.paymentType] ?? pay.paymentType}</Badge>{new Date(pay.paymentDate).toLocaleDateString('zh-TW')}</span>
                           <span className="font-mono font-semibold">{pay.amount.toLocaleString()} {pay.currency}</span>
                         </div>
-                        {pay.amountTWD && <p className="text-muted-foreground">台幣：{fmt(pay.amountTWD)}{pay.exchangeRate ? `（匯率 ${pay.exchangeRate}）` : ''}</p>}
-                        {pay.remittanceRef && <p className="text-muted-foreground">匯款單：{pay.remittanceRef}</p>}
+                        {pay.amountTWD && <p className="text-muted-foreground">{ip.twdLabel}{fmt(pay.amountTWD)}{pay.exchangeRate ? `${ip.exchangeRateLabel}${pay.exchangeRate}）` : ''}</p>}
+                        {pay.remittanceRef && <p className="text-muted-foreground">{ip.remittanceLabel}{pay.remittanceRef}</p>}
                       </div>
                     ))}
                   </div>
@@ -349,10 +352,10 @@ export default function ImportProjectsPage() {
                     const c = detail.customs[0]
                     if (c) setNewCustoms({ declarationNo: c.declarationNo ?? '', declaredAt: c.declaredAt?.slice(0, 10) ?? '', customsValue: c.customsValue?.toString() ?? '', dutyRate: c.dutyRate?.toString() ?? '', dutyAmount: c.dutyAmount?.toString() ?? '', vatAmount: c.vatAmount?.toString() ?? '', status: c.status, clearedAt: c.clearedAt?.slice(0, 10) ?? '', notes: c.notes ?? '' })
                     setCustomsDialog(true)
-                  }}>{detail.customs[0] ? '更新清關' : '新增清關'}</Button>
+                  }}>{detail.customs[0] ? ip.updateCustomsBtn : ip.addCustomsBtn}</Button>
                 </div>
                 {detail.customs.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-muted-foreground">尚無清關資料</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">{ip.noCustoms}</p>
                 ) : detail.customs.map(c => (
                   <div key={c.id} className="rounded border p-3 text-sm space-y-1">
                     <div className="flex items-center gap-2">

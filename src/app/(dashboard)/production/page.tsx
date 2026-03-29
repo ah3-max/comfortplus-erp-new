@@ -57,17 +57,6 @@ interface SupplierOption {
 }
 
 // ── Status config ─────────────────────────────────────────────────────────────
-const MILESTONES: { key: ProductionStatus; label: string }[] = [
-  { key: 'PENDING',          label: '待排產' },
-  { key: 'SAMPLE_SUBMITTED', label: '打樣中' },
-  { key: 'SAMPLE_APPROVED',  label: '樣品確認' },
-  { key: 'IN_PRODUCTION',    label: '生產中' },
-  { key: 'QC_INSPECTION',    label: '驗貨中' },
-  { key: 'READY_TO_SHIP',    label: '待出廠' },
-  { key: 'SHIPPED',          label: '已出廠' },
-  { key: 'COMPLETED',        label: '已完成' },
-]
-
 const NEXT_STATUS: Partial<Record<ProductionStatus, ProductionStatus>> = {
   PENDING:          'SAMPLE_SUBMITTED',
   SAMPLE_SUBMITTED: 'SAMPLE_APPROVED',
@@ -76,28 +65,6 @@ const NEXT_STATUS: Partial<Record<ProductionStatus, ProductionStatus>> = {
   QC_INSPECTION:    'READY_TO_SHIP',
   READY_TO_SHIP:    'SHIPPED',
   SHIPPED:          'COMPLETED',
-}
-
-const NEXT_STATUS_LABEL: Partial<Record<ProductionStatus, string>> = {
-  PENDING:          '提交打樣',
-  SAMPLE_SUBMITTED: '確認樣品',
-  SAMPLE_APPROVED:  '開始生產',
-  IN_PRODUCTION:    '送驗',
-  QC_INSPECTION:    '待出廠',
-  READY_TO_SHIP:    '出廠',
-  SHIPPED:          '完成',
-}
-
-const statusLabel: Record<ProductionStatus, string> = {
-  PENDING:          '待排產',
-  SAMPLE_SUBMITTED: '打樣中',
-  SAMPLE_APPROVED:  '樣品確認',
-  IN_PRODUCTION:    '生產中',
-  QC_INSPECTION:    '驗貨中',
-  READY_TO_SHIP:    '待出廠',
-  SHIPPED:          '已出廠',
-  COMPLETED:        '已完成',
-  CANCELLED:        '已取消',
 }
 
 const statusBadgeCls: Record<ProductionStatus, string> = {
@@ -128,10 +95,14 @@ function toInputDate(s: string | null) {
   return new Date(s).toISOString().slice(0, 10)
 }
 
+const MILESTONE_ORDER: ProductionStatus[] = [
+  'PENDING', 'SAMPLE_SUBMITTED', 'SAMPLE_APPROVED', 'IN_PRODUCTION',
+  'QC_INSPECTION', 'READY_TO_SHIP', 'SHIPPED', 'COMPLETED',
+]
+
 function milestoneIndex(status: ProductionStatus): number {
   if (status === 'CANCELLED') return -1
-  const idx = MILESTONES.findIndex(m => m.key === status)
-  return idx
+  return MILESTONE_ORDER.indexOf(status)
 }
 
 // auto-fill date fields when advancing status
@@ -152,6 +123,40 @@ function getAutoDateFields(nextStatus: ProductionStatus): Record<string, string>
 export default function ProductionPage() {
   const { dict } = useI18n()
   const po = dict.production
+
+  const MILESTONES: { key: ProductionStatus; label: string }[] = [
+    { key: 'PENDING',          label: po.milestones.PENDING },
+    { key: 'SAMPLE_SUBMITTED', label: po.milestones.SAMPLE_SUBMITTED },
+    { key: 'SAMPLE_APPROVED',  label: po.milestones.SAMPLE_APPROVED },
+    { key: 'IN_PRODUCTION',    label: po.milestones.IN_PRODUCTION },
+    { key: 'QC_INSPECTION',    label: po.milestones.QC_INSPECTION },
+    { key: 'READY_TO_SHIP',    label: po.milestones.READY_TO_SHIP },
+    { key: 'SHIPPED',          label: po.milestones.SHIPPED },
+    { key: 'COMPLETED',        label: po.milestones.COMPLETED },
+  ]
+
+  const NEXT_STATUS_LABEL: Partial<Record<ProductionStatus, string>> = {
+    PENDING:          po.nextStatusLabels.PENDING,
+    SAMPLE_SUBMITTED: po.nextStatusLabels.SAMPLE_SUBMITTED,
+    SAMPLE_APPROVED:  po.nextStatusLabels.SAMPLE_APPROVED,
+    IN_PRODUCTION:    po.nextStatusLabels.IN_PRODUCTION,
+    QC_INSPECTION:    po.nextStatusLabels.QC_INSPECTION,
+    READY_TO_SHIP:    po.nextStatusLabels.READY_TO_SHIP,
+    SHIPPED:          po.nextStatusLabels.SHIPPED,
+  }
+
+  const statusLabel: Record<ProductionStatus, string> = {
+    PENDING:          po.statuses.PENDING,
+    SAMPLE_SUBMITTED: po.statuses.SAMPLE_SUBMITTED,
+    SAMPLE_APPROVED:  po.statuses.SAMPLE_APPROVED,
+    IN_PRODUCTION:    po.statuses.IN_PRODUCTION,
+    QC_INSPECTION:    po.statuses.QC_INSPECTION,
+    READY_TO_SHIP:    po.statuses.READY_TO_SHIP,
+    SHIPPED:          po.statuses.SHIPPED,
+    COMPLETED:        po.statuses.COMPLETED,
+    CANCELLED:        po.statuses.CANCELLED,
+  }
+
   const [orders, setOrders]         = useState<ProductionOrder[]>([])
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
@@ -246,7 +251,7 @@ export default function ProductionPage() {
   }
 
   async function handleCancel(o: ProductionOrder) {
-    if (!confirm(`確定要取消生產單 ${o.productionNo} 嗎？`)) return
+    if (!confirm(`${po.cancelConfirm} ${o.productionNo} ${po.cancelConfirmSuffix}`)) return
     setAdvancing(o.id)
     const res = await fetch(`/api/production/${o.id}`, {
       method: 'PUT',
@@ -292,7 +297,7 @@ export default function ProductionPage() {
           fromWarehouseId: warehouses[0].id,
           toWarehouseId: warehouses.length > 1 ? warehouses[1].id : warehouses[0].id,
           date: new Date().toISOString().slice(0, 10),
-          notes: `由生產單 ${o.productionNo} 自動建立`,
+          notes: `${po.autoCreatedNote} ${o.productionNo} ${po.autoCreatedNoteSuffix}`,
           items,
         }),
       })
@@ -342,7 +347,7 @@ export default function ProductionPage() {
           receivingWarehouseId: warehouses[0].id,
           productionOrderId: o.id,
           date: new Date().toISOString().slice(0, 10),
-          notes: `由生產單 ${o.productionNo} 自動建立`,
+          notes: `${po.autoCreatedNote} ${o.productionNo} ${po.autoCreatedNoteSuffix}`,
           items,
         }),
       })
@@ -498,7 +503,7 @@ export default function ProductionPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.production.title}</h1>
-          <p className="text-sm text-muted-foreground">共 {filtered.length} 筆生產單</p>
+          <p className="text-sm text-muted-foreground">{dict.common.total} {filtered.length} {po.totalCount}</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />{dict.production.newOrder}
@@ -511,7 +516,7 @@ export default function ProductionPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="搜尋生產單號、工廠、採購單..."
+            placeholder={po.searchPlaceholder}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -599,37 +604,37 @@ export default function ProductionPage() {
                   <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Package className="h-3 w-3" />
-                      訂購 {o.orderQty.toLocaleString()}
+                      {po.orderQtyLabel} {o.orderQty.toLocaleString()}
                       {o.producedQty != null && (
                         <span className="text-blue-600 font-medium ml-1">
-                          / 產出 {o.producedQty.toLocaleString()}
+                          {po.producedQtyLabel} {o.producedQty.toLocaleString()}
                         </span>
                       )}
                     </div>
                     {o.passedQty != null && (
                       <div className="flex items-center gap-1">
-                        良品 {o.passedQty.toLocaleString()}
+                        {po.passedQtyLabel} {o.passedQty.toLocaleString()}
                         {o.defectRate != null && (
                           <span className="text-red-500">
-                            (不良 {Number(o.defectRate).toFixed(1)}%)
+                            {po.defectLabel} {Number(o.defectRate).toFixed(1)}%)
                           </span>
                         )}
                       </div>
                     )}
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      建立 {fmtShortDate(o.createdAt)}
+                      {po.createdLabel} {fmtShortDate(o.createdAt)}
                     </div>
                   </div>
 
                   {/* Milestone dates */}
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-                    {o.sampleSubmitDate && <span>打樣送出: {fmtShortDate(o.sampleSubmitDate)}</span>}
-                    {o.sampleApproveDate && <span>樣品確認: {fmtShortDate(o.sampleApproveDate)}</span>}
-                    {o.productionStartDate && <span>開始生產: {fmtShortDate(o.productionStartDate)}</span>}
-                    {o.productionEndDate && <span>生產完成: {fmtShortDate(o.productionEndDate)}</span>}
-                    {o.inspectionDate && <span>驗貨日: {fmtShortDate(o.inspectionDate)}</span>}
-                    {o.shipmentDate && <span>出廠日: {fmtShortDate(o.shipmentDate)}</span>}
+                    {o.sampleSubmitDate && <span>{po.sampleSubmitDateLabel}: {fmtShortDate(o.sampleSubmitDate)}</span>}
+                    {o.sampleApproveDate && <span>{po.sampleApproveDateLabel}: {fmtShortDate(o.sampleApproveDate)}</span>}
+                    {o.productionStartDate && <span>{po.productionStartDateLabel}: {fmtShortDate(o.productionStartDate)}</span>}
+                    {o.productionEndDate && <span>{po.productionEndDateLabel}: {fmtShortDate(o.productionEndDate)}</span>}
+                    {o.inspectionDate && <span>{po.inspectionDateLabel}: {fmtShortDate(o.inspectionDate)}</span>}
+                    {o.shipmentDate && <span>{po.shipmentDateLabel}: {fmtShortDate(o.shipmentDate)}</span>}
                   </div>
 
                   {/* Sea freight link */}
@@ -637,7 +642,7 @@ export default function ProductionPage() {
                     <div className="mt-3 border-t pt-2">
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                         <Ship className="h-3 w-3" />
-                        <span className="font-medium">關聯海運</span>
+                        <span className="font-medium">{po.relatedFreight}</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {o.seaFreights.map(sf => (
@@ -660,7 +665,7 @@ export default function ProductionPage() {
                   {/* Notes */}
                   {o.notes && (
                     <p className="mt-2 text-xs text-muted-foreground border-t pt-2 line-clamp-2">
-                      備註：{o.notes}
+                      {po.notesPrefix}{o.notes}
                     </p>
                   )}
 
@@ -691,7 +696,7 @@ export default function ProductionPage() {
                         {creatingRequisition === o.id
                           ? <Loader2 className="h-3 w-3 animate-spin" />
                           : <ClipboardList className="h-3 w-3" />}
-                        建領料單
+                        {po.buildRequisition}
                       </Button>
                       <Button
                         size="sm"
@@ -703,7 +708,7 @@ export default function ProductionPage() {
                         {creatingReceipt === o.id
                           ? <Loader2 className="h-3 w-3 animate-spin" />
                           : <PackageCheck className="h-3 w-3" />}
-                        建入庫單
+                        {po.buildReceipt}
                       </Button>
                       <Button
                         size="sm"
@@ -712,7 +717,7 @@ export default function ProductionPage() {
                         disabled={isAdvancing}
                         onClick={() => handleCancel(o)}
                       >
-                        <XCircle className="h-3 w-3" />取消
+                        <XCircle className="h-3 w-3" />{po.cancelText}
                       </Button>
                     </div>
                   )}
@@ -731,19 +736,19 @@ export default function ProductionPage() {
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
-              <Label>採購單 <span className="text-red-500">*</span></Label>
+              <Label>{po.purchaseOrderLabel} <span className="text-red-500">*</span></Label>
               <Select
                 value={createForm.purchaseOrderId || '_none'}
                 onValueChange={v => setCreateForm(f => ({ ...f, purchaseOrderId: v === '_none' ? '' : (v ?? '') }))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選擇採購單" />
+                  <SelectValue placeholder={po.selectPOPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">請選擇採購單</SelectItem>
-                  {purchases.map(po => (
-                    <SelectItem key={po.id} value={po.id}>
-                      {po.poNo} — {po.supplier?.name ?? '未知供應商'}
+                  <SelectItem value="_none">{po.selectPOOption}</SelectItem>
+                  {purchases.map(purch => (
+                    <SelectItem key={purch.id} value={purch.id}>
+                      {purch.poNo} — {purch.supplier?.name ?? po.unknownSupplier}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -757,10 +762,10 @@ export default function ProductionPage() {
                 onValueChange={v => setCreateForm(f => ({ ...f, factoryId: v === '_none' ? '' : (v ?? '') }))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選擇工廠" />
+                  <SelectValue placeholder={po.selectFactoryPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">請選擇工廠</SelectItem>
+                  <SelectItem value="_none">{po.selectFactoryOption}</SelectItem>
                   {suppliers.map(s => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name} ({s.code})
@@ -777,7 +782,7 @@ export default function ProductionPage() {
                 min={1}
                 value={createForm.orderQty}
                 onChange={e => setCreateForm(f => ({ ...f, orderQty: e.target.value }))}
-                placeholder="輸入數量"
+                placeholder={po.enterQtyPH}
               />
             </div>
 
@@ -787,7 +792,7 @@ export default function ProductionPage() {
                 value={createForm.notes}
                 onChange={e => setCreateForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2}
-                placeholder="特殊需求、規格說明..."
+                placeholder={po.specialReqPH}
               />
             </div>
           </div>
@@ -866,7 +871,7 @@ export default function ProductionPage() {
             <p className="text-xs font-medium text-slate-500 pt-1">{dict.common.date}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>打樣送出日</Label>
+                <Label>{po.sampleSubmitDateField}</Label>
                 <Input
                   type="date"
                   value={editForm.sampleSubmitDate}
@@ -874,7 +879,7 @@ export default function ProductionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>樣品確認日</Label>
+                <Label>{po.sampleApproveDateField}</Label>
                 <Input
                   type="date"
                   value={editForm.sampleApproveDate}
@@ -882,7 +887,7 @@ export default function ProductionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>開始生產日</Label>
+                <Label>{po.productionStartDateField}</Label>
                 <Input
                   type="date"
                   value={editForm.productionStartDate}
@@ -890,7 +895,7 @@ export default function ProductionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>生產完成日</Label>
+                <Label>{po.productionEndDateField}</Label>
                 <Input
                   type="date"
                   value={editForm.productionEndDate}
@@ -898,7 +903,7 @@ export default function ProductionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>驗貨日</Label>
+                <Label>{po.inspectionDateField}</Label>
                 <Input
                   type="date"
                   value={editForm.inspectionDate}
@@ -906,7 +911,7 @@ export default function ProductionPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>出廠日</Label>
+                <Label>{po.shipmentDateField}</Label>
                 <Input
                   type="date"
                   value={editForm.shipmentDate}
@@ -922,7 +927,7 @@ export default function ProductionPage() {
                 value={editForm.notes}
                 onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2}
-                placeholder="生產備註..."
+                placeholder={po.productionNotesPH}
               />
             </div>
           </div>

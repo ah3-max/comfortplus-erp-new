@@ -20,6 +20,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/context'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -138,16 +139,6 @@ function isComplaint(log: { logType: string; content: string }): boolean {
   )
 }
 
-function formatAmount(amount: number): string {
-  if (amount >= 100_000_000) {
-    return `$${(amount / 100_000_000).toFixed(1)}億`
-  }
-  if (amount >= 10_000) {
-    return `$${(amount / 10_000).toFixed(amount >= 100_000 ? 0 : 1)}萬`
-  }
-  return `$${amount.toLocaleString()}`
-}
-
 function calcActivityScore(summary: MobileDailyReportProps['report']['summary']): number {
   // Weighted activity score (0-100)
   const raw =
@@ -167,14 +158,6 @@ const TYPE_STYLES: Record<Highlight['type'], { bg: string; text: string; border:
   complaint: { bg: 'bg-red-50 dark:bg-red-950/40', text: 'text-red-700 dark:text-red-400', border: 'border-red-200 dark:border-red-800' },
   'new-customer': { bg: 'bg-amber-50 dark:bg-amber-950/40', text: 'text-amber-700 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800' },
   visit: { bg: 'bg-violet-50 dark:bg-violet-950/40', text: 'text-violet-700 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800' },
-}
-
-const TYPE_LABELS: Record<Highlight['type'], string> = {
-  order: '訂單',
-  quotation: '報價',
-  complaint: '客訴',
-  'new-customer': '新客戶',
-  visit: '拜訪',
 }
 
 // ---------------------------------------------------------------------------
@@ -212,7 +195,7 @@ function SummaryCard({
   )
 }
 
-function HighlightCard({ item, onClick }: { item: Highlight; onClick: () => void }) {
+function HighlightCard({ item, onClick, typeLabel }: { item: Highlight; onClick: () => void; typeLabel: string }) {
   const style = TYPE_STYLES[item.type]
   return (
     <button
@@ -228,7 +211,7 @@ function HighlightCard({ item, onClick }: { item: Highlight; onClick: () => void
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <Badge variant="secondary" className={cn('text-[10px] px-1.5 py-0', style.text)}>
-              {TYPE_LABELS[item.type]}
+              {typeLabel}
             </Badge>
             <span className="text-[11px] text-muted-foreground">{item.rep}</span>
           </div>
@@ -237,7 +220,7 @@ function HighlightCard({ item, onClick }: { item: Highlight; onClick: () => void
           </p>
           {item.amount != null && item.amount > 0 && (
             <p className={cn('text-base font-bold mt-1 tabular-nums', style.text)}>
-              {formatAmount(item.amount)}
+              {item.amount}
             </p>
           )}
         </div>
@@ -279,7 +262,27 @@ function RepBar({ name, score, max }: { name: string; score: number; max: number
 
 export default function MobileDailyReport({ report }: MobileDailyReportProps) {
   const router = useRouter()
+  const { dict } = useI18n()
+  const dr = dict.dailyReport
   const { summary, details, repSummaries } = report
+
+  const TYPE_LABELS: Record<Highlight['type'], string> = {
+    order: dr.highlightTypeOrder,
+    quotation: dr.highlightTypeQuotation,
+    complaint: dr.highlightTypeComplaint,
+    'new-customer': dr.highlightTypeNewCustomer,
+    visit: dr.highlightTypeVisit,
+  }
+
+  function formatAmount(amount: number): string {
+    if (amount >= 100_000_000) {
+      return `$${(amount / 100_000_000).toFixed(1)}${dr.unitYi}`
+    }
+    if (amount >= 10_000) {
+      return `$${(amount / 10_000).toFixed(amount >= 100_000 ? 0 : 1)}${dr.unitWan}`
+    }
+    return `$${amount.toLocaleString()}`
+  }
 
   // --- Compute highlights -------------------------------------------------
   const highlights = useMemo<Highlight[]>(() => {
@@ -293,7 +296,7 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
         id: `order-${order.id}`,
         type: 'order',
         emoji: '💰',
-        summary: `${order.customer.name} 成交 ${order.orderNo}`,
+        summary: `${order.customer.name} ${dr.orderSummary} ${order.orderNo}`,
         amount,
         rep: order.createdBy.name,
         href: `/orders/${order.id}`,
@@ -308,7 +311,7 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
         id: `quote-${q.id}`,
         type: 'quotation',
         emoji: '📋',
-        summary: `${q.customer.name} 報價 ${q.quotationNo}`,
+        summary: `${q.customer.name} ${dr.quoteSummary} ${q.quotationNo}`,
         amount,
         rep: q.createdBy.name,
         href: `/quotations/${q.id}`,
@@ -338,7 +341,7 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
           id: `visit-${log.id}`,
           type: 'visit',
           emoji: '🤝',
-          summary: `拜訪 ${log.customer.name}：${log.content.slice(0, 50)}`,
+          summary: `${dr.visitSummary} ${log.customer.name}：${log.content.slice(0, 50)}`,
           rep: log.createdBy.name,
           href: `/customers/${log.customer.id}`,
         })
@@ -352,8 +355,8 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
         id: `customer-${c.id}`,
         type: 'new-customer',
         emoji: '🆕',
-        summary: `新客戶 ${c.name}${c.source ? `（來源：${c.source}）` : ''}`,
-        rep: c.salesRep?.name ?? '未指派',
+        summary: `${dr.newCustomerSummary} ${c.name}${c.source ? `（${dr.sourceLabel}：${c.source}）` : ''}`,
+        rep: c.salesRep?.name ?? dr.unassigned,
         href: `/customers/${c.id}`,
       })
     }
@@ -375,7 +378,8 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
     })
 
     return items
-  }, [details])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [details, dr])
 
   // --- Compute complaint count --------------------------------------------
   const complaintCount = useMemo(
@@ -412,12 +416,12 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
   const formattedDate = useMemo(() => {
     try {
       const d = new Date(report.date)
-      const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+      const weekdays = dr.weekdays as readonly string[]
       return `${d.getMonth() + 1}/${d.getDate()}（${weekdays[d.getDay()]}）`
     } catch {
       return report.date
     }
-  }, [report.date])
+  }, [report.date, dr.weekdays])
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -425,13 +429,13 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
       <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold tracking-tight">每日簡報</h1>
+            <h1 className="text-lg font-bold tracking-tight">{dr.mobileTitle}</h1>
             <p className="text-xs text-muted-foreground">{formattedDate}</p>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-xs font-medium">
             <Activity className="size-3" />
             <span className="tabular-nums">{activityScore}</span>
-            <span className="text-muted-foreground">分</span>
+            <span className="text-muted-foreground">{dr.scoreUnit}</span>
           </div>
         </div>
       </div>
@@ -441,38 +445,38 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
         <div className="flex gap-2.5 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-none">
           <SummaryCard
             icon={DollarSign}
-            label="今日營收"
+            label={dr.todayRevenueStat}
             value={formatAmount(summary.orderAmount)}
             valueClass="text-emerald-600 dark:text-emerald-400"
-            sub={`${summary.orders} 筆訂單`}
+            sub={`${summary.orders} ${dr.ordersCountUnit}`}
           />
           <SummaryCard
             icon={Handshake}
-            label="進行中交易"
+            label={dr.activeDeals}
             value={String(activeDeals)}
-            sub={`${summary.quotations} 報價 / ${summary.orders} 訂單`}
+            sub={`${summary.quotations} ${dr.quotationsCountUnit} / ${summary.orders} ${dr.ordersCountUnit}`}
           />
           <SummaryCard
             icon={UserPlus}
-            label="新客戶"
+            label={dr.newCustomerStat}
             value={String(summary.newCustomers)}
             valueClass={summary.newCustomers > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
           />
           <SummaryCard
             icon={AlertTriangle}
-            label="客訴"
+            label={dr.complaintStat}
             value={String(complaintCount)}
             valueClass={complaintCount > 0 ? 'text-red-600 dark:text-red-400' : undefined}
           />
           <SummaryCard
             icon={TrendingUp}
-            label="團隊活動"
+            label={dr.teamActivity}
             value={`${summary.totalCalls + summary.totalVisits}`}
-            sub={`${summary.totalCalls} 電話 / ${summary.totalVisits} 拜訪`}
+            sub={`${summary.totalCalls} ${dr.phoneStat} / ${summary.totalVisits} ${dr.visitStat}`}
           />
           <SummaryCard
             icon={CheckCircle2}
-            label="完成任務"
+            label={dr.completedTasks}
             value={String(summary.completedTasks)}
           />
         </div>
@@ -481,12 +485,12 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
       {/* Key Highlights */}
       <section className="px-4 mt-6">
         <h2 className="text-sm font-bold text-muted-foreground tracking-widest uppercase mb-3">
-          重點摘要
+          {dr.keyHighlights}
         </h2>
         {highlights.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-sm text-muted-foreground">今日無重點項目</p>
+              <p className="text-sm text-muted-foreground">{dr.noHighlights}</p>
             </CardContent>
           </Card>
         ) : (
@@ -495,6 +499,7 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
               <HighlightCard
                 key={item.id}
                 item={item}
+                typeLabel={TYPE_LABELS[item.type]}
                 onClick={() => router.push(item.href)}
               />
             ))}
@@ -506,7 +511,7 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
       {activeReps.length > 0 && (
         <section className="px-4 mt-6">
           <h2 className="text-sm font-bold text-muted-foreground tracking-widest uppercase mb-3">
-            團隊表現
+            {dr.teamPerformance}
           </h2>
           <Card>
             <CardContent className="flex flex-col gap-2.5 py-4">
@@ -524,17 +529,17 @@ export default function MobileDailyReport({ report }: MobileDailyReportProps) {
           <div className="rounded-lg bg-muted/50 py-2.5">
             <Phone className="size-3.5 mx-auto mb-0.5 text-muted-foreground" />
             <span className="text-base font-bold tabular-nums">{summary.totalCalls}</span>
-            <p className="text-[10px] text-muted-foreground">電話</p>
+            <p className="text-[10px] text-muted-foreground">{dr.phoneStat}</p>
           </div>
           <div className="rounded-lg bg-muted/50 py-2.5">
             <MapPin className="size-3.5 mx-auto mb-0.5 text-muted-foreground" />
             <span className="text-base font-bold tabular-nums">{summary.totalVisits}</span>
-            <p className="text-[10px] text-muted-foreground">拜訪</p>
+            <p className="text-[10px] text-muted-foreground">{dr.visitStat}</p>
           </div>
           <div className="rounded-lg bg-muted/50 py-2.5">
             <ShoppingCart className="size-3.5 mx-auto mb-0.5 text-muted-foreground" />
             <span className="text-base font-bold tabular-nums">{summary.shipments}</span>
-            <p className="text-[10px] text-muted-foreground">出貨</p>
+            <p className="text-[10px] text-muted-foreground">{dr.shipmentStat}</p>
           </div>
         </div>
       </div>

@@ -68,26 +68,26 @@ interface Product {
   sellingPrice: number | null
 }
 
-/* ─── Constants ──────────────────────────────────────────── */
-const PLATFORMS: Record<string, { label: string; color: string }> = {
-  SHOPEE:    { label: '蝦皮購物',   color: 'bg-orange-100 text-orange-700' },
-  MOMO:      { label: 'momo購物',   color: 'bg-pink-100 text-pink-700' },
-  PCHOME:    { label: 'PChome',     color: 'bg-blue-100 text-blue-700' },
-  YAHOO:     { label: 'Yahoo購物',  color: 'bg-purple-100 text-purple-700' },
-  RAKUTEN:   { label: '樂天市場',   color: 'bg-red-100 text-red-700' },
-  LINE_SHOP: { label: 'LINE購物',   color: 'bg-green-100 text-green-700' },
-  OFFICIAL:  { label: '官方商城',   color: 'bg-slate-100 text-slate-700' },
-  OTHER:     { label: '其他',       color: 'bg-gray-100 text-gray-600' },
+/* ─── Constants (color-only, no labels) ─────────────────── */
+const PLATFORM_COLORS: Record<string, string> = {
+  SHOPEE:    'bg-orange-100 text-orange-700',
+  MOMO:      'bg-pink-100 text-pink-700',
+  PCHOME:    'bg-blue-100 text-blue-700',
+  YAHOO:     'bg-purple-100 text-purple-700',
+  RAKUTEN:   'bg-red-100 text-red-700',
+  LINE_SHOP: 'bg-green-100 text-green-700',
+  OFFICIAL:  'bg-slate-100 text-slate-700',
+  OTHER:     'bg-gray-100 text-gray-600',
 }
 
-const ORDER_STATUSES: Record<string, { label: string; color: string }> = {
-  PENDING:    { label: '待處理', color: 'bg-yellow-100 text-yellow-700' },
-  CONFIRMED:  { label: '已確認', color: 'bg-blue-100 text-blue-700' },
-  SHIPPED:    { label: '已出貨', color: 'bg-indigo-100 text-indigo-700' },
-  DELIVERED:  { label: '已送達', color: 'bg-teal-100 text-teal-700' },
-  COMPLETED:  { label: '已完成', color: 'bg-green-100 text-green-700' },
-  CANCELLED:  { label: '已取消', color: 'bg-slate-100 text-slate-500' },
-  RETURNED:   { label: '已退貨', color: 'bg-red-100 text-red-700' },
+const ORDER_STATUS_COLORS: Record<string, string> = {
+  PENDING:    'bg-yellow-100 text-yellow-700',
+  CONFIRMED:  'bg-blue-100 text-blue-700',
+  SHIPPED:    'bg-indigo-100 text-indigo-700',
+  DELIVERED:  'bg-teal-100 text-teal-700',
+  COMPLETED:  'bg-green-100 text-green-700',
+  CANCELLED:  'bg-slate-100 text-slate-500',
+  RETURNED:   'bg-red-100 text-red-700',
 }
 
 const emptyChannel = {
@@ -106,6 +106,28 @@ const emptyOrder = {
 /* ─── Component ──────────────────────────────────────────── */
 export default function ChannelsPage() {
   const { dict } = useI18n()
+  const cExt = dict.channelsExt
+
+  const PLATFORMS: Record<string, { label: string; color: string }> = {
+    SHOPEE:    { label: cExt.platforms.SHOPEE,    color: PLATFORM_COLORS.SHOPEE },
+    MOMO:      { label: cExt.platforms.MOMO,      color: PLATFORM_COLORS.MOMO },
+    PCHOME:    { label: cExt.platforms.PCHOME,    color: PLATFORM_COLORS.PCHOME },
+    YAHOO:     { label: cExt.platforms.YAHOO,     color: PLATFORM_COLORS.YAHOO },
+    RAKUTEN:   { label: cExt.platforms.RAKUTEN,   color: PLATFORM_COLORS.RAKUTEN },
+    LINE_SHOP: { label: cExt.platforms.LINE_SHOP, color: PLATFORM_COLORS.LINE_SHOP },
+    OFFICIAL:  { label: cExt.platforms.OFFICIAL,  color: PLATFORM_COLORS.OFFICIAL },
+    OTHER:     { label: cExt.platforms.OTHER,     color: PLATFORM_COLORS.OTHER },
+  }
+
+  const ORDER_STATUSES: Record<string, { label: string; color: string }> = {
+    PENDING:   { label: cExt.orderStatuses.PENDING,   color: ORDER_STATUS_COLORS.PENDING },
+    CONFIRMED: { label: cExt.orderStatuses.CONFIRMED, color: ORDER_STATUS_COLORS.CONFIRMED },
+    SHIPPED:   { label: cExt.orderStatuses.SHIPPED,   color: ORDER_STATUS_COLORS.SHIPPED },
+    DELIVERED: { label: cExt.orderStatuses.DELIVERED, color: ORDER_STATUS_COLORS.DELIVERED },
+    COMPLETED: { label: cExt.orderStatuses.COMPLETED, color: ORDER_STATUS_COLORS.COMPLETED },
+    CANCELLED: { label: cExt.orderStatuses.CANCELLED, color: ORDER_STATUS_COLORS.CANCELLED },
+    RETURNED:  { label: cExt.orderStatuses.RETURNED,  color: ORDER_STATUS_COLORS.RETURNED },
+  }
   const [channels, setChannels]       = useState<SalesChannel[]>([])
   const [orders, setOrders]           = useState<ChannelOrder[]>([])
   const [products, setProducts]       = useState<Product[]>([])
@@ -229,7 +251,7 @@ export default function ChannelsPage() {
   }
 
   async function deleteChannel(ch: SalesChannel) {
-    if (!confirm(`確定要刪除通路「${ch.name}」嗎？`)) return
+    if (!confirm(cExt.confirmDeleteChannel.replace('{name}', ch.name))) return
     const res = await fetch(`/api/channels/${ch.id}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success(dict.channels.deletedSuccess)
@@ -338,7 +360,7 @@ export default function ChannelsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.channels.title}</h1>
-          <p className="text-sm text-slate-500 mt-1">管理各電商平台通路與通路訂單</p>
+          <p className="text-sm text-slate-500 mt-1">{dict.channels.subtitle}</p>
         </div>
       </div>
 
@@ -369,7 +391,7 @@ export default function ChannelsPage() {
               <p className="text-2xl font-bold">
                 ${orderTotal.toLocaleString()}
               </p>
-              <p className="text-sm text-slate-500">訂單總金額</p>
+              <p className="text-sm text-slate-500">{dict.channels.orderTotal}</p>
             </div>
           </CardContent>
         </Card>
@@ -399,25 +421,25 @@ export default function ChannelsPage() {
               <div className="space-y-4 py-2">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>通路代碼 *</Label>
+                    <Label>{cExt.channelCode} *</Label>
                     <Input
                       value={chForm.code}
                       onChange={e => setChForm(f => ({ ...f, code: e.target.value }))}
-                      placeholder="例：SHOPEE-01"
+                      placeholder="e.g. SHOPEE-01"
                     />
                   </div>
                   <div>
-                    <Label>通路名稱 *</Label>
+                    <Label>{cExt.channelName} *</Label>
                     <Input
                       value={chForm.name}
                       onChange={e => setChForm(f => ({ ...f, name: e.target.value }))}
-                      placeholder="例：蝦皮旗艦店"
+                      placeholder="e.g. Shopee Flagship"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>平台</Label>
+                    <Label>{cExt.platformHeader}</Label>
                     <Select
                       value={chForm.platform}
                       onValueChange={v => setChForm(f => ({ ...f, platform: v ?? 'SHOPEE' }))}
@@ -433,7 +455,7 @@ export default function ChannelsPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>佣金費率 (%)</Label>
+                    <Label>{cExt.commissionRate}</Label>
                     <Input
                       type="number"
                       step="0.1"
@@ -441,12 +463,12 @@ export default function ChannelsPage() {
                       max="100"
                       value={chForm.commissionRate}
                       onChange={e => setChForm(f => ({ ...f, commissionRate: e.target.value }))}
-                      placeholder="例：5.5"
+                      placeholder="e.g. 5.5"
                     />
                   </div>
                 </div>
                 <div>
-                  <Label>商店網址</Label>
+                  <Label>{cExt.shopUrl}</Label>
                   <Input
                     value={chForm.shopUrl}
                     onChange={e => setChForm(f => ({ ...f, shopUrl: e.target.value }))}
@@ -454,11 +476,11 @@ export default function ChannelsPage() {
                   />
                 </div>
                 <div>
-                  <Label>聯絡資訊</Label>
+                  <Label>{cExt.contact}</Label>
                   <Input
                     value={chForm.contact}
                     onChange={e => setChForm(f => ({ ...f, contact: e.target.value }))}
-                    placeholder="聯絡人 / 電話 / Email"
+                    placeholder="Contact / Phone / Email"
                   />
                 </div>
               </div>
@@ -507,7 +529,7 @@ export default function ChannelsPage() {
                               : 'bg-slate-50 text-slate-500'
                           }`}
                         >
-                          {ch.isActive ? '啟用' : '停用'}
+                          {ch.isActive ? cExt.enable : cExt.disable}
                         </Badge>
                       </div>
 
@@ -521,10 +543,10 @@ export default function ChannelsPage() {
                       <div className="flex items-center gap-4 text-sm text-slate-500">
                         <span className="flex items-center gap-1">
                           <ShoppingBag className="h-3.5 w-3.5" />
-                          {ch._count.channelOrders} 筆訂單
+                          {ch._count.channelOrders} {cExt.ordersCount}
                         </span>
                         {ch.commissionRate != null && (
-                          <span>佣金 {ch.commissionRate}%</span>
+                          <span>{cExt.commissionLabel} {ch.commissionRate}%</span>
                         )}
                       </div>
 
@@ -543,7 +565,7 @@ export default function ChannelsPage() {
                           onClick={e => e.stopPropagation()}
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
-                          商店連結
+                          {cExt.shopLink}
                         </a>
                       )}
 
@@ -554,7 +576,7 @@ export default function ChannelsPage() {
                           variant="outline"
                           onClick={() => openEditChannel(ch)}
                         >
-                          <Pencil className="h-3.5 w-3.5 mr-1" />編輯
+                          <Pencil className="h-3.5 w-3.5 mr-1" />{dict.common.edit}
                         </Button>
                         <Button
                           size="sm"
@@ -563,8 +585,8 @@ export default function ChannelsPage() {
                           className={ch.isActive ? 'text-amber-600 border-amber-200 hover:bg-amber-50' : 'text-green-600 border-green-200 hover:bg-green-50'}
                         >
                           {ch.isActive
-                            ? <><PowerOff className="h-3.5 w-3.5 mr-1" />停用</>
-                            : <><Power className="h-3.5 w-3.5 mr-1" />啟用</>
+                            ? <><PowerOff className="h-3.5 w-3.5 mr-1" />{cExt.disable}</>
+                            : <><Power className="h-3.5 w-3.5 mr-1" />{cExt.enable}</>
                           }
                         </Button>
                         {ch._count.channelOrders === 0 && (
@@ -574,7 +596,7 @@ export default function ChannelsPage() {
                             onClick={() => deleteChannel(ch)}
                             className="text-red-500 border-red-200 hover:bg-red-50"
                           >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" />刪除
+                            <Trash2 className="h-3.5 w-3.5 mr-1" />{dict.common.delete}
                           </Button>
                         )}
                       </div>
@@ -597,10 +619,10 @@ export default function ChannelsPage() {
               onValueChange={v => setFilterChannel(v ?? '_none')}
             >
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="所有通路" />
+                <SelectValue placeholder={dict.channels.allChannels} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_none">所有通路</SelectItem>
+                <SelectItem value="_none">{dict.channels.allChannels}</SelectItem>
                 {channels.filter(c => c.isActive).map(c => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
@@ -612,10 +634,10 @@ export default function ChannelsPage() {
               onValueChange={v => setFilterStatus(v ?? '_none')}
             >
               <SelectTrigger className="w-36">
-                <SelectValue placeholder="所有狀態" />
+                <SelectValue placeholder={dict.channels.allStatuses} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="_none">所有狀態</SelectItem>
+                <SelectItem value="_none">{dict.channels.allStatuses}</SelectItem>
                 {Object.entries(ORDER_STATUSES).map(([k, { label }]) => (
                   <SelectItem key={k} value={k}>{label}</SelectItem>
                 ))}
@@ -639,16 +661,16 @@ export default function ChannelsPage() {
                 {/* Channel + Status */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>通路 *</Label>
+                    <Label>{cExt.channelSelect} *</Label>
                     <Select
                       value={ordForm.channelId || '_none'}
                       onValueChange={v => setOrdForm(f => ({ ...f, channelId: v === '_none' ? '' : (v ?? '') }))}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="選擇通路" />
+                        <SelectValue placeholder={cExt.channelSelect} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="_none">-- 選擇通路 --</SelectItem>
+                        <SelectItem value="_none">-- {cExt.channelSelect} --</SelectItem>
                         {channels.filter(c => c.isActive).map(c => (
                           <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                         ))}
@@ -656,7 +678,7 @@ export default function ChannelsPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label>狀態</Label>
+                    <Label>{dict.common.status}</Label>
                     <Select
                       value={ordForm.status}
                       onValueChange={v => setOrdForm(f => ({ ...f, status: v ?? 'PENDING' }))}
@@ -676,44 +698,44 @@ export default function ChannelsPage() {
                 {/* Buyer Info */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>買家姓名 *</Label>
+                    <Label>{cExt.buyerName} *</Label>
                     <Input
                       value={ordForm.buyerName}
                       onChange={e => setOrdForm(f => ({ ...f, buyerName: e.target.value }))}
-                      placeholder="買家姓名"
+                      placeholder={cExt.buyerName}
                     />
                   </div>
                   <div>
-                    <Label>買家電話</Label>
+                    <Label>{cExt.buyerPhone}</Label>
                     <Input
                       value={ordForm.buyerPhone}
                       onChange={e => setOrdForm(f => ({ ...f, buyerPhone: e.target.value }))}
-                      placeholder="電話"
+                      placeholder={cExt.buyerPhone}
                     />
                   </div>
                 </div>
                 <div>
-                  <Label>買家地址</Label>
+                  <Label>{cExt.buyerAddress}</Label>
                   <Input
                     value={ordForm.buyerAddress}
                     onChange={e => setOrdForm(f => ({ ...f, buyerAddress: e.target.value }))}
-                    placeholder="配送地址"
+                    placeholder={cExt.buyerAddress}
                   />
                 </div>
 
                 {/* Order Items */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label>訂單明細</Label>
+                    <Label>{cExt.orderItems}</Label>
                     <Button size="sm" variant="outline" onClick={addOrderItem}>
-                      <Plus className="h-3.5 w-3.5 mr-1" />新增品項
+                      <Plus className="h-3.5 w-3.5 mr-1" />{cExt.addItem}
                     </Button>
                   </div>
                   <div className="space-y-2">
                     {ordForm.items.map((item, idx) => (
                       <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                         <div className="col-span-5">
-                          {idx === 0 && <Label className="text-xs text-slate-500">產品</Label>}
+                          {idx === 0 && <Label className="text-xs text-slate-500">{dict.common.product}</Label>}
                           <Select
                             value={item.productId || '_none'}
                             onValueChange={v => {
@@ -727,10 +749,10 @@ export default function ChannelsPage() {
                             }}
                           >
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="選擇產品" />
+                              <SelectValue placeholder={dict.common.product} />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="_none">-- 選擇產品 --</SelectItem>
+                              <SelectItem value="_none">-- {dict.common.product} --</SelectItem>
                               {products.map(p => (
                                 <SelectItem key={p.id} value={p.id}>
                                   [{p.code}] {p.name}
@@ -740,7 +762,7 @@ export default function ChannelsPage() {
                           </Select>
                         </div>
                         <div className="col-span-2">
-                          {idx === 0 && <Label className="text-xs text-slate-500">數量</Label>}
+                          {idx === 0 && <Label className="text-xs text-slate-500">{dict.common.quantity}</Label>}
                           <Input
                             type="number"
                             min="1"
@@ -749,7 +771,7 @@ export default function ChannelsPage() {
                           />
                         </div>
                         <div className="col-span-3">
-                          {idx === 0 && <Label className="text-xs text-slate-500">單價</Label>}
+                          {idx === 0 && <Label className="text-xs text-slate-500">{dict.formLabels.unitPrice}</Label>}
                           <Input
                             type="number"
                             min="0"
@@ -776,14 +798,14 @@ export default function ChannelsPage() {
                     ))}
                   </div>
                   <div className="text-right text-sm font-medium text-slate-700 mt-2">
-                    小計：${itemsTotal.toLocaleString()}
+                    {cExt.subtotal}：${itemsTotal.toLocaleString()}
                   </div>
                 </div>
 
                 {/* Platform fee + notes */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>平台手續費</Label>
+                    <Label>{cExt.platformFee}</Label>
                     <Input
                       type="number"
                       min="0"
@@ -794,18 +816,18 @@ export default function ChannelsPage() {
                   </div>
                   <div className="flex items-end">
                     <div className="text-sm text-slate-500">
-                      實收金額：$
+                      {cExt.netAmount}：$
                       {(itemsTotal - (parseFloat(ordForm.platformFee) || 0)).toLocaleString()}
                     </div>
                   </div>
                 </div>
                 <div>
-                  <Label>備註</Label>
+                  <Label>{dict.common.notes}</Label>
                   <Textarea
                     rows={2}
                     value={ordForm.notes}
                     onChange={e => setOrdForm(f => ({ ...f, notes: e.target.value }))}
-                    placeholder="備註..."
+                    placeholder={dict.common.notes}
                   />
                 </div>
               </div>
@@ -827,14 +849,14 @@ export default function ChannelsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>平台/通路</TableHead>
-                    <TableHead>通路訂單編號</TableHead>
-                    <TableHead>買家資訊</TableHead>
-                    <TableHead className="text-right">金額</TableHead>
-                    <TableHead className="text-right">平台手續費</TableHead>
-                    <TableHead>狀態</TableHead>
-                    <TableHead>內部訂單</TableHead>
-                    <TableHead>建立日期</TableHead>
+                    <TableHead>{cExt.platformHeader}</TableHead>
+                    <TableHead>{cExt.orderNoHeader}</TableHead>
+                    <TableHead>{cExt.buyerHeader}</TableHead>
+                    <TableHead className="text-right">{cExt.amountHeader}</TableHead>
+                    <TableHead className="text-right">{cExt.feeHeader}</TableHead>
+                    <TableHead>{dict.common.status}</TableHead>
+                    <TableHead>{cExt.linkedOrderHeader}</TableHead>
+                    <TableHead>{dict.common.createdAt}</TableHead>
                     <TableHead className="w-16" />
                   </TableRow>
                 </TableHeader>
@@ -849,7 +871,7 @@ export default function ChannelsPage() {
                     <TableRow>
                       <TableCell colSpan={9} className="py-16 text-center text-slate-400">
                         <ShoppingBag className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                        目前無通路訂單
+                        {dict.channels.noOrders}
                       </TableCell>
                     </TableRow>
                   ) : orders.map(o => {

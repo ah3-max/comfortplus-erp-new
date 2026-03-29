@@ -67,15 +67,17 @@ interface Summary {
 }
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const TABS = [
-  { key: 'monthly',     label: '月利潤分析',    icon: BarChart3 },
-  { key: 'customer',    label: '客戶利潤分析',   icon: Users },
-  { key: 'product',     label: '商品利潤分析',   icon: Package },
-  { key: 'salesperson', label: '業務員利潤分析', icon: UserCheck },
-]
 
 export default function ProfitPage() {
   const { dict } = useI18n()
+  const pp = dict.profitPage
+
+  const TABS = [
+    { key: 'monthly',     label: pp.tabMonthly,     icon: BarChart3 },
+    { key: 'customer',    label: pp.tabCustomer,     icon: Users },
+    { key: 'product',     label: pp.tabProduct,      icon: Package },
+    { key: 'salesperson', label: pp.tabSalesperson,  icon: UserCheck },
+  ]
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const canView = ['SUPER_ADMIN', 'GM', 'FINANCE', 'SALES_MANAGER'].includes(role)
@@ -107,7 +109,7 @@ export default function ProfitPage() {
   useEffect(() => { fetchData(activeTab) }, [fetchData, activeTab])
 
   if (!canView) {
-    return <div className="p-8 text-center text-muted-foreground">權限不足</div>
+    return <div className="p-8 text-center text-muted-foreground">{pp.insufficientPermission}</div>
   }
 
   const summary = monthlyData?.summary
@@ -124,8 +126,8 @@ export default function ProfitPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-bold">{dict.nav.profit ?? '利潤管理'}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">銷售/商品/客戶/業務員利潤分析</p>
+          <h1 className="text-xl font-bold">{dict.nav.profit}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{pp.subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={year} onValueChange={v => { if (v) setYear(v) }}>
@@ -146,16 +148,16 @@ export default function ProfitPage() {
       {activeTab === 'monthly' && summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <div className="border rounded-lg p-3 bg-card">
-            <div className="text-xs text-muted-foreground">年度營收</div>
+            <div className="text-xs text-muted-foreground">{pp.yearlyRevenue}</div>
             <div className="text-xl font-bold mt-1">{fmt(summary.totalRevenue)}</div>
           </div>
           <div className="border rounded-lg p-3 bg-card">
-            <div className="text-xs text-muted-foreground">毛利</div>
+            <div className="text-xs text-muted-foreground">{pp.grossProfit}</div>
             <div className="text-xl font-bold mt-1 text-green-700">{fmt(summary.totalGrossProfit)}</div>
             <div className="text-xs text-muted-foreground">{pct(summary.avgGrossMarginPct)}</div>
           </div>
           <div className="border rounded-lg p-3 bg-card">
-            <div className="text-xs text-muted-foreground">淨利</div>
+            <div className="text-xs text-muted-foreground">{pp.netProfit}</div>
             <div className={`text-xl font-bold mt-1 ${summary.totalNetProfit >= 0 ? 'text-green-700' : 'text-red-600'}`}>
               {summary.totalNetProfit >= 0
                 ? <span className="flex items-center gap-1"><TrendingUp className="w-4 h-4" />{fmt(summary.totalNetProfit)}</span>
@@ -163,7 +165,7 @@ export default function ProfitPage() {
             </div>
           </div>
           <div className="border rounded-lg p-3 bg-card">
-            <div className="text-xs text-muted-foreground">銷貨成本</div>
+            <div className="text-xs text-muted-foreground">{pp.cogs}</div>
             <div className="text-xl font-bold mt-1 text-orange-600">{fmt(summary.totalCost)}</div>
             <div className="text-xs text-muted-foreground">
               {summary.totalRevenue > 0 ? pct((summary.totalCost / summary.totalRevenue) * 100) : '-'}
@@ -191,7 +193,7 @@ export default function ProfitPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">載入中...</div>
+        <div className="text-center py-16 text-muted-foreground">{dict.common.loading}</div>
       ) : (
         <>
           {/* Monthly Tab */}
@@ -199,7 +201,7 @@ export default function ProfitPage() {
             <div className="space-y-6">
               {/* Bar chart: revenue vs gross profit */}
               <div className="border rounded-lg p-4 bg-card">
-                <h3 className="font-medium mb-3 text-sm">月度營收與毛利</h3>
+                <h3 className="font-medium mb-3 text-sm">{pp.monthlyRevenueTrend}</h3>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -207,23 +209,23 @@ export default function ProfitPage() {
                     <YAxis tickFormatter={fmt} tick={{ fontSize: 11 }} width={48} />
                     <Tooltip formatter={(v) => typeof v === 'number' ? fmtFull(v) : String(v ?? '')} />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="revenue" name="營收" fill="#3b82f6" radius={[2,2,0,0]} />
-                    <Bar dataKey="grossProfit" name="毛利" fill="#10b981" radius={[2,2,0,0]} />
-                    <Bar dataKey="netProfit" name="淨利" fill="#8b5cf6" radius={[2,2,0,0]} />
+                    <Bar dataKey="revenue" name={pp.chartRevenue} fill="#3b82f6" radius={[2,2,0,0]} />
+                    <Bar dataKey="grossProfit" name={pp.chartGrossProfit} fill="#10b981" radius={[2,2,0,0]} />
+                    <Bar dataKey="netProfit" name={pp.chartNetProfit} fill="#8b5cf6" radius={[2,2,0,0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
 
               {/* Line chart: margin % */}
               <div className="border rounded-lg p-4 bg-card">
-                <h3 className="font-medium mb-3 text-sm">月度毛利率 (%)</h3>
+                <h3 className="font-medium mb-3 text-sm">{pp.monthlyMarginTrend}</h3>
                 <ResponsiveContainer width="100%" height={180}>
                   <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                     <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fontSize: 11 }} width={40} />
                     <Tooltip formatter={(v) => typeof v === 'number' ? `${v.toFixed(1)}%` : String(v ?? '')} />
-                    <Line type="monotone" dataKey="margin" name="毛利率" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="margin" name={pp.chartMargin} stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -233,19 +235,19 @@ export default function ProfitPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/40">
                     <tr className="text-xs text-muted-foreground">
-                      <th className="text-left p-3">月份</th>
-                      <th className="text-right p-3">營收</th>
-                      <th className="text-right p-3">成本</th>
-                      <th className="text-right p-3">毛利</th>
-                      <th className="text-right p-3">毛利率</th>
-                      <th className="text-right p-3">淨利</th>
-                      <th className="text-right p-3">訂單數</th>
+                      <th className="text-left p-3">{pp.colMonth}</th>
+                      <th className="text-right p-3">{pp.colRevenue}</th>
+                      <th className="text-right p-3">{pp.colCost}</th>
+                      <th className="text-right p-3">{pp.colGrossProfit}</th>
+                      <th className="text-right p-3">{pp.colGrossMargin}</th>
+                      <th className="text-right p-3">{pp.colNetProfit}</th>
+                      <th className="text-right p-3">{pp.colOrderCount}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(monthlyData?.rows ?? []).map(r => (
                       <tr key={r.month} className="border-t hover:bg-muted/20">
-                        <td className="p-3 font-medium">{r.month} 月</td>
+                        <td className="p-3 font-medium">{r.month}{pp.monthSuffix}</td>
                         <td className="p-3 text-right">{fmtFull(r.revenue)}</td>
                         <td className="p-3 text-right text-muted-foreground">{fmtFull(r.cost)}</td>
                         <td className="p-3 text-right text-green-700 font-medium">{fmtFull(r.grossProfit)}</td>
@@ -262,7 +264,7 @@ export default function ProfitPage() {
                   {summary && (
                     <tfoot className="bg-muted/40 font-medium border-t-2">
                       <tr>
-                        <td className="p-3">合計</td>
+                        <td className="p-3">{pp.subtotalRow}</td>
                         <td className="p-3 text-right">{fmtFull(summary.totalRevenue)}</td>
                         <td className="p-3 text-right text-muted-foreground">{fmtFull(summary.totalCost)}</td>
                         <td className="p-3 text-right text-green-700">{fmtFull(summary.totalGrossProfit)}</td>
@@ -281,18 +283,18 @@ export default function ProfitPage() {
           {activeTab === 'customer' && (
             <div className="space-y-4">
               {customerData.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">無資料</div>
+                <div className="text-center py-16 text-muted-foreground">{pp.noData}</div>
               ) : (
                 <>
                   <div className="border rounded-lg p-4 bg-card">
-                    <h3 className="font-medium mb-3 text-sm">客戶毛利 Top 10</h3>
+                    <h3 className="font-medium mb-3 text-sm">{pp.customerGrossTop10}</h3>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={customerData.slice(0, 10).map(r => ({ name: r.customerName.slice(0, 8), grossProfit: r.grossProfit, revenue: r.revenue }))} layout="vertical" margin={{ left: 60 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis type="number" tickFormatter={fmt} tick={{ fontSize: 11 }} />
                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={64} />
                         <Tooltip formatter={(v) => typeof v === 'number' ? fmtFull(v) : String(v ?? '')} />
-                        <Bar dataKey="grossProfit" name="毛利" fill="#10b981" radius={[0,2,2,0]} />
+                        <Bar dataKey="grossProfit" name={pp.chartGrossProfit} fill="#10b981" radius={[0,2,2,0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -300,13 +302,13 @@ export default function ProfitPage() {
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40">
                         <tr className="text-xs text-muted-foreground">
-                          <th className="text-left p-3">排名</th>
-                          <th className="text-left p-3">客戶</th>
-                          <th className="text-right p-3">營收</th>
-                          <th className="text-right p-3">毛利</th>
-                          <th className="text-right p-3">毛利率</th>
-                          <th className="text-right p-3">淨利</th>
-                          <th className="text-right p-3">訂單數</th>
+                          <th className="text-left p-3">{pp.colRank}</th>
+                          <th className="text-left p-3">{pp.colCustomer}</th>
+                          <th className="text-right p-3">{pp.colRevenue}</th>
+                          <th className="text-right p-3">{pp.colGrossProfit}</th>
+                          <th className="text-right p-3">{pp.colGrossMargin}</th>
+                          <th className="text-right p-3">{pp.colNetProfit}</th>
+                          <th className="text-right p-3">{pp.colOrderCount}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -340,19 +342,19 @@ export default function ProfitPage() {
           {activeTab === 'product' && (
             <div className="space-y-4">
               {productData.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">無資料</div>
+                <div className="text-center py-16 text-muted-foreground">{pp.noData}</div>
               ) : (
                 <>
-                  <p className="text-xs text-muted-foreground">* 商品成本以商品檔案「成本價」計算，為估算值</p>
+                  <p className="text-xs text-muted-foreground">{pp.costEstimateNote}</p>
                   <div className="border rounded-lg p-4 bg-card">
-                    <h3 className="font-medium mb-3 text-sm">商品毛利 Top 10</h3>
+                    <h3 className="font-medium mb-3 text-sm">{pp.productGrossTop10}</h3>
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={productData.slice(0, 10).map(r => ({ name: r.productName.slice(0, 10), grossProfit: r.estimatedGrossProfit, revenue: r.revenue }))} layout="vertical" margin={{ left: 70 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis type="number" tickFormatter={fmt} tick={{ fontSize: 11 }} />
                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={72} />
                         <Tooltip formatter={(v) => typeof v === 'number' ? fmtFull(v) : String(v ?? '')} />
-                        <Bar dataKey="grossProfit" name="估算毛利" fill="#8b5cf6" radius={[0,2,2,0]} />
+                        <Bar dataKey="grossProfit" name={pp.chartEstGrossProfit} fill="#8b5cf6" radius={[0,2,2,0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -360,13 +362,13 @@ export default function ProfitPage() {
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40">
                         <tr className="text-xs text-muted-foreground">
-                          <th className="text-left p-3">排名</th>
-                          <th className="text-left p-3">商品</th>
-                          <th className="text-right p-3">銷售數量</th>
-                          <th className="text-right p-3">營收</th>
-                          <th className="text-right p-3">估算成本</th>
-                          <th className="text-right p-3">估算毛利</th>
-                          <th className="text-right p-3">毛利率</th>
+                          <th className="text-left p-3">{pp.colRank}</th>
+                          <th className="text-left p-3">{pp.colProduct}</th>
+                          <th className="text-right p-3">{pp.colSalesQty}</th>
+                          <th className="text-right p-3">{pp.colRevenue}</th>
+                          <th className="text-right p-3">{pp.colEstCost}</th>
+                          <th className="text-right p-3">{pp.colEstGrossProfit}</th>
+                          <th className="text-right p-3">{pp.colGrossMargin}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -400,11 +402,11 @@ export default function ProfitPage() {
           {activeTab === 'salesperson' && (
             <div className="space-y-4">
               {salesData.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground">無資料</div>
+                <div className="text-center py-16 text-muted-foreground">{pp.noData}</div>
               ) : (
                 <>
                   <div className="border rounded-lg p-4 bg-card">
-                    <h3 className="font-medium mb-3 text-sm">業務員毛利排行</h3>
+                    <h3 className="font-medium mb-3 text-sm">{pp.salespersonRanking}</h3>
                     <ResponsiveContainer width="100%" height={220}>
                       <BarChart data={salesData.map(r => ({ name: r.salesName, grossProfit: r.grossProfit, revenue: r.revenue }))}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -412,8 +414,8 @@ export default function ProfitPage() {
                         <YAxis tickFormatter={fmt} tick={{ fontSize: 11 }} width={48} />
                         <Tooltip formatter={(v) => typeof v === 'number' ? fmtFull(v) : String(v ?? '')} />
                         <Legend wrapperStyle={{ fontSize: 12 }} />
-                        <Bar dataKey="revenue" name="營收" fill="#3b82f6" radius={[2,2,0,0]} />
-                        <Bar dataKey="grossProfit" name="毛利" fill="#10b981" radius={[2,2,0,0]} />
+                        <Bar dataKey="revenue" name={pp.chartRevenue} fill="#3b82f6" radius={[2,2,0,0]} />
+                        <Bar dataKey="grossProfit" name={pp.chartGrossProfit} fill="#10b981" radius={[2,2,0,0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -421,14 +423,14 @@ export default function ProfitPage() {
                     <table className="w-full text-sm">
                       <thead className="bg-muted/40">
                         <tr className="text-xs text-muted-foreground">
-                          <th className="text-left p-3">排名</th>
-                          <th className="text-left p-3">業務員</th>
-                          <th className="text-right p-3">營收</th>
-                          <th className="text-right p-3">毛利</th>
-                          <th className="text-right p-3">毛利率</th>
-                          <th className="text-right p-3">淨利</th>
-                          <th className="text-right p-3">訂單數</th>
-                          <th className="text-right p-3">平均單筆</th>
+                          <th className="text-left p-3">{pp.colRank}</th>
+                          <th className="text-left p-3">{pp.colSalesperson}</th>
+                          <th className="text-right p-3">{pp.colRevenue}</th>
+                          <th className="text-right p-3">{pp.colGrossProfit}</th>
+                          <th className="text-right p-3">{pp.colGrossMargin}</th>
+                          <th className="text-right p-3">{pp.colNetProfit}</th>
+                          <th className="text-right p-3">{pp.colOrderCount}</th>
+                          <th className="text-right p-3">{pp.colAvgOrder}</th>
                         </tr>
                       </thead>
                       <tbody>

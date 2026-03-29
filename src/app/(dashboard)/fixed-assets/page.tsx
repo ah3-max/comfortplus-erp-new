@@ -67,15 +67,11 @@ interface EditForm {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORIES: Record<string, string> = {
-  VEHICLE: '車輛', EQUIPMENT: '設備機器', FURNITURE: '辦公家具',
-  BUILDING: '房屋建物', IT: 'IT設備', OTHER: '其他',
-}
-const STATUS_CONFIG: Record<string, { label: string; color: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  ACTIVE:      { label: '使用中',   color: 'default' },
-  DISPOSED:    { label: '已處分',   color: 'secondary' },
-  SCRAPPED:    { label: '已報廢',   color: 'destructive' },
-  TRANSFERRED: { label: '已移轉',   color: 'outline' },
+const STATUS_CONFIG_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  ACTIVE:      'default',
+  DISPOSED:    'secondary',
+  SCRAPPED:    'destructive',
+  TRANSFERRED: 'outline',
 }
 
 const fmt = (n: number | null | undefined) =>
@@ -126,6 +122,22 @@ function buildDepSchedule(cost: number, salvage: number, lifeYears: number, star
 export default function FixedAssetsPage() {
   const { dict } = useI18n()
   const fa = dict.fixedAssets
+
+  const CATEGORIES: Record<string, string> = {
+    VEHICLE:   fa.categories.VEHICLE,
+    EQUIPMENT: fa.categories.EQUIPMENT,
+    FURNITURE: fa.categories.FURNITURE,
+    BUILDING:  fa.categories.BUILDING,
+    IT:        fa.categories.IT,
+    OTHER:     fa.categories.OTHER,
+  }
+
+  const STATUS_CONFIG: Record<string, { label: string; color: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    ACTIVE:      { label: fa.statusConfig.ACTIVE,      color: STATUS_CONFIG_COLORS.ACTIVE },
+    DISPOSED:    { label: fa.statusConfig.DISPOSED,    color: STATUS_CONFIG_COLORS.DISPOSED },
+    SCRAPPED:    { label: fa.statusConfig.SCRAPPED,    color: STATUS_CONFIG_COLORS.SCRAPPED },
+    TRANSFERRED: { label: fa.statusConfig.TRANSFERRED, color: STATUS_CONFIG_COLORS.TRANSFERRED },
+  }
   const [assets, setAssets] = useState<FixedAsset[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -331,8 +343,8 @@ export default function FixedAssetsPage() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">資產總數</p><p className="text-xl font-bold">{assets.filter(a => a.status === 'ACTIVE').length}</p></CardContent></Card>
-        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">原始成本</p><p className="text-lg font-bold">{fmt(totalCost)}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">{fa.totalAssets}</p><p className="text-xl font-bold">{assets.filter(a => a.status === 'ACTIVE').length}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">{fa.originalCost}</p><p className="text-lg font-bold">{fmt(totalCost)}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">{dict.fixedAssets.currentValue}</p><p className="text-lg font-bold text-blue-600">{fmt(totalNBV)}</p></CardContent></Card>
         <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">{dict.fixedAssets.depreciation}</p><p className="text-lg font-bold text-orange-600">{fmt(totalCost - totalNBV)}</p></CardContent></Card>
       </div>
@@ -365,7 +377,7 @@ export default function FixedAssetsPage() {
                 <th className="px-4 py-2 text-left">{dict.fixedAssets.assetNo}</th>
                 <th className="px-4 py-2 text-left">{dict.fixedAssets.assetName}</th>
                 <th className="px-4 py-2 text-left">{dict.fixedAssets.category}</th>
-                <th className="px-4 py-2 text-right">原始成本</th>
+                <th className="px-4 py-2 text-right">{fa.originalCost}</th>
                 <th className="px-4 py-2 text-right">{dict.fixedAssets.currentValue}</th>
                 <th className="px-4 py-2 text-left">{dict.fixedAssets.purchaseDate}</th>
                 <th className="px-4 py-2 text-center">{dict.common.status}</th>
@@ -408,30 +420,30 @@ export default function FixedAssetsPage() {
                 <Pencil className="mr-1 h-3.5 w-3.5" />{dict.common.edit}
               </Button>
               {detail.status === 'ACTIVE' && (
-                <Button variant="outline" size="sm" onClick={() => { setDisposeForm({ status: 'DISPOSED', disposedAt: new Date().toISOString().slice(0, 10), disposalAmount: '', notes: '' }); setDisposeDialog(true) }}>{dict.fixedAssets.statuses.DISPOSED}/報廢</Button>
+                <Button variant="outline" size="sm" onClick={() => { setDisposeForm({ status: 'DISPOSED', disposedAt: new Date().toISOString().slice(0, 10), disposalAmount: '', notes: '' }); setDisposeDialog(true) }}>{fa.disposeOrScrap}</Button>
               )}
             </div>
 
             <Tabs value={detailTab} onValueChange={setDetailTab}>
               <TabsList>
-                <TabsTrigger value="info">基本資訊</TabsTrigger>
-                <TabsTrigger value="depreciation">折舊明細</TabsTrigger>
+                <TabsTrigger value="info">{fa.basicInfo}</TabsTrigger>
+                <TabsTrigger value="depreciation">{fa.depSchedule}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="text-muted-foreground">類別：</span>{CATEGORIES[detail.category] ?? detail.category}</div>
-                  <div><span className="text-muted-foreground">耐用年數：</span>{detail.usefulLifeYears} 年</div>
-                  <div><span className="text-muted-foreground">購入日期：</span>{new Date(detail.purchaseDate).toLocaleDateString('zh-TW')}</div>
-                  <div><span className="text-muted-foreground">購入金額：</span>{fmt(Number(detail.purchaseAmount))}</div>
-                  <div><span className="text-muted-foreground">殘值：</span>{fmt(Number(detail.salvageValue))}</div>
-                  <div><span className="text-muted-foreground">帳面淨值：</span><span className="font-semibold text-blue-600">{fmt(currentBookValue(detail))}</span></div>
-                  <div><span className="text-muted-foreground">月折舊額：</span><span className="text-orange-600">{fmt(calcMonthlyDep(Number(detail.purchaseAmount), Number(detail.salvageValue), detail.usefulLifeYears))}</span></div>
-                  <div><span className="text-muted-foreground">折舊法：</span>{detail.depreciationMethod === 'SL' ? '直線法' : detail.depreciationMethod}</div>
-                  {detail.location && <div><span className="text-muted-foreground">存放位置：</span>{detail.location}</div>}
-                  {detail.serialNo && <div><span className="text-muted-foreground">序號：</span>{detail.serialNo}</div>}
-                  {detail.supplier && <div><span className="text-muted-foreground">供應商：</span>{detail.supplier.name}</div>}
-                  {detail.assignedTo && <div><span className="text-muted-foreground">使用人：</span>{detail.assignedTo.name}</div>}
+                  <div><span className="text-muted-foreground">{fa.categoryLabel}</span>{CATEGORIES[detail.category] ?? detail.category}</div>
+                  <div><span className="text-muted-foreground">{fa.usefulLifeLabel}</span>{detail.usefulLifeYears} {fa.usefulLifeUnit}</div>
+                  <div><span className="text-muted-foreground">{fa.purchaseDateLabel}</span>{new Date(detail.purchaseDate).toLocaleDateString()}</div>
+                  <div><span className="text-muted-foreground">{fa.purchaseAmountLabel}</span>{fmt(Number(detail.purchaseAmount))}</div>
+                  <div><span className="text-muted-foreground">{fa.salvageLabel}</span>{fmt(Number(detail.salvageValue))}</div>
+                  <div><span className="text-muted-foreground">{fa.nbvLabel}</span><span className="font-semibold text-blue-600">{fmt(currentBookValue(detail))}</span></div>
+                  <div><span className="text-muted-foreground">{fa.monthlyDepLabel}</span><span className="text-orange-600">{fmt(calcMonthlyDep(Number(detail.purchaseAmount), Number(detail.salvageValue), detail.usefulLifeYears))}</span></div>
+                  <div><span className="text-muted-foreground">{fa.depMethodLabel}</span>{detail.depreciationMethod === 'SL' ? fa.straightLine : detail.depreciationMethod}</div>
+                  {detail.location && <div><span className="text-muted-foreground">{fa.locationLabel}</span>{detail.location}</div>}
+                  {detail.serialNo && <div><span className="text-muted-foreground">{fa.serialNoLabel}</span>{detail.serialNo}</div>}
+                  {detail.supplier && <div><span className="text-muted-foreground">{fa.supplierLabel}</span>{detail.supplier.name}</div>}
+                  {detail.assignedTo && <div><span className="text-muted-foreground">{fa.assignedToLabel}</span>{detail.assignedTo.name}</div>}
                 </div>
                 {detail.notes && <p className="mt-3 rounded bg-muted/40 p-2 text-sm">{detail.notes}</p>}
               </TabsContent>
@@ -443,11 +455,11 @@ export default function FixedAssetsPage() {
                   <div className="overflow-x-auto max-h-72 overflow-y-auto">
                     <table className="w-full text-sm">
                       <thead className="sticky top-0 bg-background"><tr className="border-b text-xs text-muted-foreground">
-                        <th className="py-1 text-left">期間</th>
-                        <th className="py-1 text-right">期初帳面</th>
-                        <th className="py-1 text-right">折舊金額</th>
-                        <th className="py-1 text-right">期末帳面</th>
-                        <th className="py-1 text-center">入帳</th>
+                        <th className="py-1 text-left">{fa.period}</th>
+                        <th className="py-1 text-right">{fa.openingValue}</th>
+                        <th className="py-1 text-right">{fa.depreciation}</th>
+                        <th className="py-1 text-right">{fa.closingValue}</th>
+                        <th className="py-1 text-center">{fa.post}</th>
                       </tr></thead>
                       <tbody>
                         {detail.depreciations.map(d => (
@@ -460,7 +472,7 @@ export default function FixedAssetsPage() {
                               {d.isPosted ? (
                                 <CheckCircle2 className="mx-auto h-4 w-4 text-green-500" />
                               ) : (
-                                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => handlePostDep(d.id)}>入帳</Button>
+                                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => handlePostDep(d.id)}>{fa.post}</Button>
                               )}
                             </td>
                           </tr>
@@ -483,18 +495,18 @@ export default function FixedAssetsPage() {
 
             <Tabs defaultValue="basic">
               <TabsList>
-                <TabsTrigger value="basic">基本資訊</TabsTrigger>
-                <TabsTrigger value="schedule">折舊預覽</TabsTrigger>
+                <TabsTrigger value="basic">{fa.basicInfo}</TabsTrigger>
+                <TabsTrigger value="schedule">{fa.depSchedulePreview}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>資產名稱 *</Label>
+                    <Label>{fa.assetName} *</Label>
                     <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className="mt-1" />
                   </div>
                   <div>
-                    <Label>類別 *</Label>
+                    <Label>{fa.category} *</Label>
                     <Select value={editForm.category} onValueChange={v => setEditForm(f => ({ ...f, category: v ?? 'EQUIPMENT' }))}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                       <SelectContent>{Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
@@ -504,46 +516,46 @@ export default function FixedAssetsPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>購入日期 *</Label>
+                    <Label>{fa.purchaseDate} *</Label>
                     <Input type="date" value={editForm.purchaseDate} onChange={e => setEditForm(f => ({ ...f, purchaseDate: e.target.value }))} className="mt-1" />
                   </div>
                   <div>
-                    <Label>購入金額 *</Label>
+                    <Label>{fa.purchaseAmount} *</Label>
                     <Input type="number" value={editForm.purchaseAmount} onChange={e => setEditForm(f => ({ ...f, purchaseAmount: e.target.value }))} className="mt-1" />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <Label>殘值</Label>
+                    <Label>{fa.salvageValue}</Label>
                     <Input type="number" value={editForm.salvageValue} onChange={e => setEditForm(f => ({ ...f, salvageValue: e.target.value }))} className="mt-1" />
                   </div>
                   <div>
-                    <Label>耐用年數 *</Label>
+                    <Label>{fa.usefulLifeYears} *</Label>
                     <Input type="number" min="1" value={editForm.usefulLifeYears} onChange={e => setEditForm(f => ({ ...f, usefulLifeYears: e.target.value }))} className="mt-1" />
                   </div>
                   <div>
-                    <Label>折舊法</Label>
+                    <Label>{fa.depMethod}</Label>
                     <Select value={editForm.depreciationMethod} onValueChange={v => setEditForm(f => ({ ...f, depreciationMethod: v ?? 'SL' }))}>
                       <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="SL">直線法</SelectItem></SelectContent>
+                      <SelectContent><SelectItem value="SL">{fa.straightLine}</SelectItem></SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>位置</Label>
+                    <Label>{fa.location}</Label>
                     <Input value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))} className="mt-1" />
                   </div>
                   <div>
-                    <Label>序號</Label>
+                    <Label>{fa.serialNo}</Label>
                     <Input value={editForm.serialNo} onChange={e => setEditForm(f => ({ ...f, serialNo: e.target.value }))} className="mt-1" />
                   </div>
                 </div>
 
                 <div>
-                  <Label>備註</Label>
+                  <Label>{dict.common.notes}</Label>
                   <Textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" rows={2} />
                 </div>
 
@@ -551,19 +563,19 @@ export default function FixedAssetsPage() {
                 {editForm.purchaseAmount && Number(editForm.purchaseAmount) > 0 && Number(editForm.usefulLifeYears) > 0 && (
                   <div className="rounded-md bg-muted/40 p-3 text-sm grid grid-cols-3 gap-2">
                     <div>
-                      <p className="text-xs text-muted-foreground">月折舊額</p>
+                      <p className="text-xs text-muted-foreground">{fa.monthlyDep}</p>
                       <p className="font-semibold text-orange-600">
                         {fmt(calcMonthlyDep(Number(editForm.purchaseAmount), Number(editForm.salvageValue || '0'), Number(editForm.usefulLifeYears)))}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">年折舊額</p>
+                      <p className="text-xs text-muted-foreground">{fa.annualDep}</p>
                       <p className="font-semibold text-orange-600">
                         {fmt(calcMonthlyDep(Number(editForm.purchaseAmount), Number(editForm.salvageValue || '0'), Number(editForm.usefulLifeYears)) * 12)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">耐用期末殘值</p>
+                      <p className="text-xs text-muted-foreground">{fa.salvageValue}</p>
                       <p className="font-semibold">{fmt(Number(editForm.salvageValue || '0'))}</p>
                     </div>
                   </div>
@@ -572,20 +584,20 @@ export default function FixedAssetsPage() {
 
               <TabsContent value="schedule">
                 {editDepSchedule.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted-foreground">請先填寫購入日期、金額及耐用年數</p>
+                  <p className="py-6 text-center text-sm text-muted-foreground">{fa.fillScheduleFields}</p>
                 ) : (
                   <>
                     <Card className="mb-3">
-                      <CardHeader className="pb-1 pt-3 px-4"><CardTitle className="text-xs text-muted-foreground">折舊排程預覽（直線法，共 {editDepSchedule.length} 期）</CardTitle></CardHeader>
+                      <CardHeader className="pb-1 pt-3 px-4"><CardTitle className="text-xs text-muted-foreground">{fa.depSchedulePreview}（{fa.straightLine}，{editDepSchedule.length} {fa.period}）</CardTitle></CardHeader>
                       <CardContent className="p-0">
                         <div className="max-h-64 overflow-y-auto">
                           <table className="w-full text-sm">
                             <thead className="sticky top-0 bg-background">
                               <tr className="border-b text-xs text-muted-foreground">
-                                <th className="px-3 py-1.5 text-left">期間</th>
-                                <th className="px-3 py-1.5 text-right">期初帳面</th>
-                                <th className="px-3 py-1.5 text-right">月折舊額</th>
-                                <th className="px-3 py-1.5 text-right">期末帳面</th>
+                                <th className="px-3 py-1.5 text-left">{fa.period}</th>
+                                <th className="px-3 py-1.5 text-right">{fa.openingValue}</th>
+                                <th className="px-3 py-1.5 text-right">{fa.monthlyDep}</th>
+                                <th className="px-3 py-1.5 text-right">{fa.closingValue}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -602,7 +614,7 @@ export default function FixedAssetsPage() {
                         </div>
                       </CardContent>
                     </Card>
-                    <p className="text-xs text-muted-foreground">* 此為預覽。實際折舊排程在儲存後由系統重新計算。</p>
+                    <p className="text-xs text-muted-foreground">{fa.scheduleNote}</p>
                   </>
                 )}
               </TabsContent>
@@ -623,23 +635,23 @@ export default function FixedAssetsPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>{dict.fixedAssets.statuses.DISPOSED}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>處分方式</Label>
+            <div><Label>{fa.disposeMethod}</Label>
               <Select value={disposeForm.status} onValueChange={v => setDisposeForm(f => ({ ...f, status: v ?? 'DISPOSED' }))}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DISPOSED">處分</SelectItem>
-                  <SelectItem value="SCRAPPED">報廢</SelectItem>
-                  <SelectItem value="TRANSFERRED">移轉</SelectItem>
+                  <SelectItem value="DISPOSED">{fa.disposeOption}</SelectItem>
+                  <SelectItem value="SCRAPPED">{fa.scrapOption}</SelectItem>
+                  <SelectItem value="TRANSFERRED">{fa.transferOption}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div><Label>處分日期</Label><Input type="date" value={disposeForm.disposedAt} onChange={e => setDisposeForm(f => ({ ...f, disposedAt: e.target.value }))} className="mt-1" /></div>
-            <div><Label>處分金額</Label><Input type="number" value={disposeForm.disposalAmount} onChange={e => setDisposeForm(f => ({ ...f, disposalAmount: e.target.value }))} className="mt-1" /></div>
-            <div><Label>備註</Label><Textarea value={disposeForm.notes} onChange={e => setDisposeForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" rows={2} /></div>
+            <div><Label>{fa.disposeDate}</Label><Input type="date" value={disposeForm.disposedAt} onChange={e => setDisposeForm(f => ({ ...f, disposedAt: e.target.value }))} className="mt-1" /></div>
+            <div><Label>{fa.disposeAmount}</Label><Input type="number" value={disposeForm.disposalAmount} onChange={e => setDisposeForm(f => ({ ...f, disposalAmount: e.target.value }))} className="mt-1" /></div>
+            <div><Label>{dict.common.notes}</Label><Textarea value={disposeForm.notes} onChange={e => setDisposeForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDisposeDialog(false)}>{dict.common.cancel}</Button>
-            <Button variant="destructive" onClick={handleDispose} disabled={saving}>{dict.common.confirm}{dict.fixedAssets.statuses.DISPOSED}</Button>
+            <Button variant="destructive" onClick={handleDispose} disabled={saving}>{dict.common.confirm} {fa.disposeOption}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -650,8 +662,8 @@ export default function FixedAssetsPage() {
           <DialogHeader><DialogTitle>{dict.fixedAssets.newAsset}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>資產名稱 *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="mt-1" /></div>
-              <div><Label>類別 *</Label>
+              <div><Label>{fa.assetName} *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{fa.category} *</Label>
                 <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v ?? 'EQUIPMENT' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
@@ -659,24 +671,24 @@ export default function FixedAssetsPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>購入日期 *</Label><Input type="date" value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} className="mt-1" /></div>
-              <div><Label>購入金額 *</Label><Input type="number" value={form.purchaseAmount} onChange={e => setForm(f => ({ ...f, purchaseAmount: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{fa.purchaseDate} *</Label><Input type="date" value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{fa.purchaseAmount} *</Label><Input type="number" value={form.purchaseAmount} onChange={e => setForm(f => ({ ...f, purchaseAmount: e.target.value }))} className="mt-1" /></div>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <div><Label>殘值</Label><Input type="number" value={form.salvageValue} onChange={e => setForm(f => ({ ...f, salvageValue: e.target.value }))} className="mt-1" /></div>
-              <div><Label>耐用年數 *</Label><Input type="number" value={form.usefulLifeYears} onChange={e => setForm(f => ({ ...f, usefulLifeYears: e.target.value }))} className="mt-1" /></div>
-              <div><Label>折舊法</Label>
+              <div><Label>{fa.salvageValue}</Label><Input type="number" value={form.salvageValue} onChange={e => setForm(f => ({ ...f, salvageValue: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{fa.usefulLifeYears} *</Label><Input type="number" value={form.usefulLifeYears} onChange={e => setForm(f => ({ ...f, usefulLifeYears: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{fa.depMethod}</Label>
                 <Select value={form.depreciationMethod} onValueChange={v => setForm(f => ({ ...f, depreciationMethod: v ?? 'SL' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="SL">直線法</SelectItem></SelectContent>
+                  <SelectContent><SelectItem value="SL">{fa.straightLine}</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>位置</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="mt-1" /></div>
-              <div><Label>序號</Label><Input value={form.serialNo} onChange={e => setForm(f => ({ ...f, serialNo: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{fa.location}</Label><Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{fa.serialNo}</Label><Input value={form.serialNo} onChange={e => setForm(f => ({ ...f, serialNo: e.target.value }))} className="mt-1" /></div>
             </div>
-            <div><Label>備註</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" rows={2} /></div>
+            <div><Label>{dict.common.notes}</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>{dict.common.cancel}</Button>

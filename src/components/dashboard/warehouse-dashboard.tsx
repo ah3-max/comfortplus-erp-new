@@ -98,37 +98,37 @@ export function WarehouseDashboard() {
 
       {/* ── Inbound Pipeline ── */}
       <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white shadow-lg">
-        <p className="text-emerald-200 text-sm font-medium mb-3">入庫管線總覽</p>
+        <p className="text-emerald-200 text-sm font-medium mb-3">{dict.roleDashboard.inboundPipeline}</p>
         <div className="grid grid-cols-4 gap-3">
           <div className="text-center">
             <Ship className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
             <p className="text-2xl font-bold">{seaFreights.length}</p>
-            <p className="text-emerald-200 text-xs">海運中</p>
+            <p className="text-emerald-200 text-xs">{dict.roleDashboard.seaTransitLabel}</p>
           </div>
           <div className="text-center">
             <ArrowDownToLine className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
             <p className="text-2xl font-bold">{pendingQc.length}</p>
-            <p className="text-emerald-200 text-xs">待 QC</p>
+            <p className="text-emerald-200 text-xs">{dict.roleDashboard.qcPendingLabel}</p>
           </div>
           <div className="text-center">
             <ShieldCheck className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
             <p className="text-2xl font-bold">{pendingPutaway.length}</p>
-            <p className="text-emerald-200 text-xs">待上架</p>
+            <p className="text-emerald-200 text-xs">{dict.roleDashboard.putawayPendingLabel}</p>
           </div>
           <div className="text-center">
             <CheckCircle2 className="h-5 w-5 mx-auto mb-1 text-emerald-200" />
             <p className="text-2xl font-bold">{inbounds.filter(i => i.putawayStatus === 'COMPLETED').length}</p>
-            <p className="text-emerald-200 text-xs">已完成</p>
+            <p className="text-emerald-200 text-xs">{dict.roleDashboard.completedLabel}</p>
           </div>
         </div>
       </div>
 
       {/* ── Quick Actions ── */}
       <div className="grid grid-cols-5 gap-3">
-        <QuickAction label="快速建單" href="/quick-input" icon={PlusCircle} color="bg-rose-600" />
-        <QuickAction label="海運追蹤" href="/sea-freight" icon={Ship} color="bg-cyan-600" />
+        <QuickAction label={dict.roleDashboard.quickShip} href="/quick-input" icon={PlusCircle} color="bg-rose-600" />
+        <QuickAction label={dict.roleDashboard.seaFreightTracking} href="/sea-freight" icon={Ship} color="bg-cyan-600" />
         <QuickAction label={dict.roleDashboard.scanShip} href="/shipments" icon={ArrowUpFromLine} color="bg-blue-600" />
-        <QuickAction label="QC 驗收" href="/qc" icon={ShieldCheck} color="bg-emerald-600" />
+        <QuickAction label={dict.roleDashboard.qcReceiving} href="/qc" icon={ShieldCheck} color="bg-emerald-600" />
         <QuickAction label={dict.roleDashboard.stockCount} href="/inventory" icon={ClipboardCheck} color="bg-violet-600" />
       </div>
 
@@ -142,7 +142,7 @@ export function WarehouseDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Ship className="h-4 w-4 text-cyan-500" />
-                海運中貨物
+                {dict.roleDashboard.seaTransitStatus}
                 <Badge variant="outline" className="text-xs ml-1">{seaFreights.length}</Badge>
               </CardTitle>
               <Link href="/sea-freight" className="text-xs text-blue-600 hover:underline">{`${dict.common.all} →`}</Link>
@@ -163,11 +163,11 @@ export function WarehouseDashboard() {
                       </span>
                     )}
                     <Badge variant="secondary" className="text-[10px]">
-                      {sf.status === 'IN_TRANSIT' ? '海運中' :
-                       sf.status === 'ARRIVED' ? '已到港' :
-                       sf.status === 'CUSTOMS_DEST' ? '清關中' :
-                       sf.status === 'DELIVERING' ? '拖車中' :
-                       sf.status === 'DEVANNING' ? '拆櫃中' :
+                      {sf.status === 'IN_TRANSIT' ? dict.roleDashboard.seaTransitLabel :
+                       sf.status === 'ARRIVED' ? dict.roleDashboard.arrivedStatus :
+                       sf.status === 'CUSTOMS_DEST' ? dict.roleDashboard.customsClearingStatus :
+                       sf.status === 'DELIVERING' ? dict.roleDashboard.truckingStatus :
+                       sf.status === 'DEVANNING' ? dict.roleDashboard.devanningStatus :
                        sf.status}
                     </Badge>
                   </div>
@@ -184,7 +184,7 @@ export function WarehouseDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-amber-500" />
-              待 QC 驗收
+              {dict.roleDashboard.qcPendingCardTitle}
               <Badge className="bg-amber-100 text-amber-700 text-xs ml-1">{pendingQc.length}</Badge>
             </CardTitle>
           </CardHeader>
@@ -197,7 +197,7 @@ export function WarehouseDashboard() {
                       <span className="font-mono text-xs font-bold">{ib.inboundNo}</span>
                       {ib.seaFreight && <span className="text-xs text-muted-foreground ml-2">{ib.seaFreight.freightNo}</span>}
                     </div>
-                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">待驗收</Badge>
+                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-300">{dict.roleDashboard.awaitingInspection}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {ib.items.map(i => `${i.product.name} × ${i.quantity}`).join('、')}
@@ -215,7 +215,7 @@ export function WarehouseDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <MapPin className="h-4 w-4 text-violet-500" />
-              待上架
+              {dict.roleDashboard.putawayCardTitle}
               <Badge className="bg-violet-100 text-violet-700 text-xs ml-1">{pendingPutaway.length}</Badge>
             </CardTitle>
           </CardHeader>
@@ -225,7 +225,7 @@ export function WarehouseDashboard() {
                 <div key={ib.id} className="px-4 py-3">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-xs font-bold">{ib.inboundNo}</span>
-                    <Badge variant="outline" className="text-xs text-violet-600 border-violet-300">QC 通過，待上架</Badge>
+                    <Badge variant="outline" className="text-xs text-violet-600 border-violet-300">{dict.roleDashboard.qcPassedPutaway}</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {ib.items.map(i => `${i.product.name} × ${i.quantity}`).join('、')}
@@ -242,11 +242,11 @@ export function WarehouseDashboard() {
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-orange-200 text-sm font-medium">{dict.roleDashboard.todayShipments}</p>
-            <p className="text-4xl font-bold mt-1">{data.todayShipments} <span className="text-2xl text-orange-200">筆</span></p>
+            <p className="text-4xl font-bold mt-1">{data.todayShipments} <span className="text-2xl text-orange-200">{dict.roleDashboard.shipCountUnit}</span></p>
           </div>
           <div className="text-right">
             <p className="text-orange-200 text-sm">{dict.roleDashboard.pending}</p>
-            <p className="text-2xl font-bold">{extra.pendingShipments} <span className="text-lg text-orange-200">筆</span></p>
+            <p className="text-2xl font-bold">{extra.pendingShipments} <span className="text-lg text-orange-200">{dict.roleDashboard.pendingCountUnit}</span></p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3 border-t border-orange-400 pt-3">
@@ -268,27 +268,27 @@ export function WarehouseDashboard() {
       {/* ── Alerts ── */}
       {alertCount > 0 && (
         <div className="space-y-2">
-          <SectionHeader title="需要處理" icon={AlertTriangle} iconColor="text-amber-500" />
+          <SectionHeader title={dict.roleDashboard.needsAttention} icon={AlertTriangle} iconColor="text-amber-500" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {extra.pendingShipments > 0 && (
               <Link href="/shipments"
                 className="flex items-center gap-2 rounded-xl border border-blue-300 bg-blue-50 text-blue-700 px-4 py-3 hover:opacity-90 transition-opacity">
                 <Truck className="h-4 w-4" />
-                <span className="text-sm font-medium">{extra.pendingShipments} 筆出貨待處理</span>
+                <span className="text-sm font-medium">{extra.pendingShipments} {dict.roleDashboard.pendingShipOrders}</span>
               </Link>
             )}
             {extra.outOfStockCount > 0 && (
               <Link href="/inventory"
                 className="flex items-center gap-2 rounded-xl border border-red-300 bg-red-50 text-red-700 px-4 py-3 hover:opacity-90 transition-opacity">
                 <XCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">{extra.outOfStockCount} 個商品缺貨</span>
+                <span className="text-sm font-medium">{extra.outOfStockCount} {dict.roleDashboard.outOfStockMsg}</span>
               </Link>
             )}
             {data.logisticsAnomalyCount > 0 && (
               <Link href="/shipments"
                 className="flex items-center gap-2 rounded-xl border border-orange-300 bg-orange-50 text-orange-700 px-4 py-3 hover:opacity-90 transition-opacity">
                 <AlertTriangle className="h-4 w-4" />
-                <span className="text-sm font-medium">{data.logisticsAnomalyCount} 件物流異常</span>
+                <span className="text-sm font-medium">{data.logisticsAnomalyCount} {dict.roleDashboard.logisticsAnomalyMsg}</span>
               </Link>
             )}
           </div>
@@ -411,20 +411,20 @@ function PendingDispatchPanel({ orders }: { orders: DispatchOrder[] }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <ShoppingCart className="h-4 w-4 text-rose-500" />
-            業務訂單 → 待出貨
+            {dict.roleDashboard.pendingDispatch}
             {pending.length > 0 && (
-              <Badge className="bg-rose-500 text-white text-xs ml-1 animate-pulse">{pending.length} 筆新單</Badge>
+              <Badge className="bg-rose-500 text-white text-xs ml-1 animate-pulse">{pending.length} {dict.roleDashboard.newOrdersBadge}</Badge>
             )}
           </CardTitle>
-          <Link href="/orders?status=CONFIRMED" className="text-xs text-blue-600 hover:underline">全部訂單 →</Link>
+          <Link href="/orders?status=CONFIRMED" className="text-xs text-blue-600 hover:underline">{dict.roleDashboard.viewAllOrders} →</Link>
         </div>
       </CardHeader>
       <CardContent className="p-0">
         {pending.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">
             <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-300" />
-            目前沒有待出貨訂單
-            {dispatched.size > 0 && <p className="mt-1 text-emerald-600 font-medium">已處理 {dispatched.size} 筆</p>}
+            {dict.roleDashboard.noDispatchOrders}
+            {dispatched.size > 0 && <p className="mt-1 text-emerald-600 font-medium">{dict.roleDashboard.processedCount} {dispatched.size}</p>}
           </div>
         ) : (
           <div className="divide-y">
@@ -452,7 +452,7 @@ function PendingDispatchPanel({ orders }: { orders: DispatchOrder[] }) {
                       ) : (
                         <Zap className="h-3.5 w-3.5 mr-1" />
                       )}
-                      一鍵出貨
+                      {dict.roleDashboard.oneClickShip}
                     </Button>
                   </div>
                 </div>

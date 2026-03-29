@@ -43,12 +43,6 @@ interface BankTransaction {
   notes: string | null
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  CHECKING: '活期帳戶',
-  SAVINGS: '儲蓄帳戶',
-  CREDIT_CARD: '信用卡',
-}
-
 const TYPE_COLORS: Record<string, string> = {
   CHECKING: 'bg-blue-100 text-blue-700',
   SAVINGS: 'bg-green-100 text-green-700',
@@ -60,9 +54,16 @@ const fmt = (v: string | number) =>
 
 export default function BankAccountsPage() {
   const { dict } = useI18n()
+  const ba = dict.bankAccounts
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const canManage = ['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)
+
+  const TYPE_LABELS: Record<string, string> = {
+    CHECKING: ba.typeChecking,
+    SAVINGS: ba.typeSavings,
+    CREDIT_CARD: ba.typeCreditCard,
+  }
 
   const [accounts, setAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading] = useState(true)
@@ -129,7 +130,7 @@ export default function BankAccountsPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
-      toast.success(dict.bankAccounts.accountCreated)
+      toast.success(ba.accountCreated)
       setShowNewAccount(false)
       fetchAccounts()
     } finally {
@@ -148,7 +149,7 @@ export default function BankAccountsPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
-      toast.success(dict.bankAccounts.transactionRecorded)
+      toast.success(ba.transactionRecorded)
       setShowNewTx(null)
       // Refresh account list + transactions
       fetchAccounts()
@@ -167,14 +168,14 @@ export default function BankAccountsPage() {
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-bold">{dict.nav.bankAccounts ?? '存摺/信用卡管理'}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">管理銀行帳戶、存摺對帳與信用卡交易</p>
+          <h1 className="text-xl font-bold">{dict.nav.bankAccounts}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{ba.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchAccounts}><RefreshCw className="w-4 h-4" /></Button>
           {canManage && (
             <Button size="sm" onClick={() => setShowNewAccount(true)}>
-              <Plus className="w-4 h-4 mr-1" />新增帳戶
+              <Plus className="w-4 h-4 mr-1" />{ba.newAccount}
             </Button>
           )}
         </div>
@@ -193,7 +194,7 @@ export default function BankAccountsPage() {
                 <div className="text-lg font-bold mt-1">
                   {total < 0 ? <span className="text-red-600">-{fmt(Math.abs(total))}</span> : fmt(total)}
                 </div>
-                <div className="text-xs text-muted-foreground">{filtered.length} 個帳戶</div>
+                <div className="text-xs text-muted-foreground">{filtered.length} {ba.accountCount}</div>
               </div>
             )
           })}
@@ -202,11 +203,11 @@ export default function BankAccountsPage() {
 
       {/* Account list */}
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">載入中...</div>
+        <div className="text-center py-12 text-muted-foreground">{dict.common.loading}</div>
       ) : accounts.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Landmark className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>尚無銀行帳戶，請新增</p>
+          <p>{ba.noAccounts}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -225,22 +226,22 @@ export default function BankAccountsPage() {
                     <div className="text-sm text-muted-foreground">{a.bankName} · {a.accountNo}</div>
                   </div>
                   <Badge className={TYPE_COLORS[a.accountType]}>{TYPE_LABELS[a.accountType]}</Badge>
-                  {!a.isActive && <Badge className="bg-gray-100 text-gray-500">停用</Badge>}
+                  {!a.isActive && <Badge className="bg-gray-100 text-gray-500">{ba.inactive}</Badge>}
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <div className="text-xs text-muted-foreground">目前餘額</div>
+                    <div className="text-xs text-muted-foreground">{ba.currentBalance}</div>
                     <div className={`text-lg font-bold ${Number(a.currentBalance) < 0 ? 'text-red-600' : 'text-green-700'}`}>
                       {fmt(a.currentBalance)} {a.currency}
                     </div>
                     {a.creditLimit && (
-                      <div className="text-xs text-muted-foreground">額度：{fmt(a.creditLimit)}</div>
+                      <div className="text-xs text-muted-foreground">{ba.creditLimit}{fmt(a.creditLimit)}</div>
                     )}
                   </div>
                   <div className="flex gap-1">
                     {canManage && (
                       <Button size="sm" variant="outline" onClick={() => { setShowNewTx(a.id); setTxForm(f => ({ ...f, txDate: new Date().toISOString().slice(0, 10) })) }}>
-                        <Plus className="w-3 h-3 mr-1" />記帳
+                        <Plus className="w-3 h-3 mr-1" />{ba.addTransaction}
                       </Button>
                     )}
                     <Button size="sm" variant="ghost" onClick={() => toggleExpand(a.id)}>
@@ -254,20 +255,20 @@ export default function BankAccountsPage() {
               {expandedId === a.id && (
                 <div className="border-t bg-muted/20 p-3">
                   {txLoading === a.id ? (
-                    <div className="text-center py-4 text-muted-foreground text-sm">載入中...</div>
+                    <div className="text-center py-4 text-muted-foreground text-sm">{dict.common.loading}</div>
                   ) : (transactions[a.id] ?? []).length === 0 ? (
-                    <div className="text-center py-4 text-muted-foreground text-sm">尚無交易紀錄</div>
+                    <div className="text-center py-4 text-muted-foreground text-sm">{ba.noTransactions}</div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-muted-foreground text-xs border-b">
-                            <th className="text-left py-1.5 pr-3">日期</th>
-                            <th className="text-left py-1.5 pr-3">說明</th>
-                            <th className="text-left py-1.5 pr-3">票號</th>
-                            <th className="text-right py-1.5 pr-3">支出</th>
-                            <th className="text-right py-1.5 pr-3">存入</th>
-                            <th className="text-right py-1.5">餘額</th>
+                            <th className="text-left py-1.5 pr-3">{ba.colDate}</th>
+                            <th className="text-left py-1.5 pr-3">{ba.colDesc}</th>
+                            <th className="text-left py-1.5 pr-3">{ba.colRef}</th>
+                            <th className="text-right py-1.5 pr-3">{ba.colDebit}</th>
+                            <th className="text-right py-1.5 pr-3">{ba.colCredit}</th>
+                            <th className="text-right py-1.5">{ba.colBalance}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -298,7 +299,7 @@ export default function BankAccountsPage() {
                         </tbody>
                       </table>
                       {(transactions[a.id] ?? []).length >= 30 && (
-                        <p className="text-xs text-center text-muted-foreground mt-2">顯示最近 30 筆</p>
+                        <p className="text-xs text-center text-muted-foreground mt-2">{ba.showingRecent}</p>
                       )}
                     </div>
                   )}
@@ -312,79 +313,79 @@ export default function BankAccountsPage() {
       {/* New Account Dialog */}
       <Dialog open={showNewAccount} onOpenChange={setShowNewAccount}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增銀行帳戶</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{ba.newAccountTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>帳戶類型</Label>
+                <Label>{ba.accountType}</Label>
                 <Select value={accountForm.accountType} onValueChange={v => { if (v) setAccountForm(f => ({ ...f, accountType: v })) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CHECKING">活期帳戶</SelectItem>
-                    <SelectItem value="SAVINGS">儲蓄帳戶</SelectItem>
-                    <SelectItem value="CREDIT_CARD">信用卡</SelectItem>
+                    <SelectItem value="CHECKING">{ba.typeChecking}</SelectItem>
+                    <SelectItem value="SAVINGS">{ba.typeSavings}</SelectItem>
+                    <SelectItem value="CREDIT_CARD">{ba.typeCreditCard}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>幣別</Label>
+                <Label>{ba.currency}</Label>
                 <Select value={accountForm.currency} onValueChange={v => { if (v) setAccountForm(f => ({ ...f, currency: v })) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TWD">TWD 新台幣</SelectItem>
-                    <SelectItem value="USD">USD 美元</SelectItem>
-                    <SelectItem value="CNY">CNY 人民幣</SelectItem>
-                    <SelectItem value="THB">THB 泰銖</SelectItem>
+                    <SelectItem value="TWD">{ba.currencyTWD}</SelectItem>
+                    <SelectItem value="USD">{ba.currencyUSD}</SelectItem>
+                    <SelectItem value="CNY">{ba.currencyCNY}</SelectItem>
+                    <SelectItem value="THB">{ba.currencyTHB}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label>帳戶名稱 *</Label>
-              <Input value={accountForm.accountName} onChange={e => setAccountForm(f => ({ ...f, accountName: e.target.value }))} placeholder="例：台灣銀行活期存款" />
+              <Label>{ba.accountName}</Label>
+              <Input value={accountForm.accountName} onChange={e => setAccountForm(f => ({ ...f, accountName: e.target.value }))} placeholder={ba.accountNamePlaceholder} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>銀行名稱 *</Label>
+                <Label>{ba.bankName}</Label>
                 <Input value={accountForm.bankName} onChange={e => setAccountForm(f => ({ ...f, bankName: e.target.value }))} />
               </div>
               <div>
-                <Label>銀行代碼</Label>
-                <Input value={accountForm.bankCode} onChange={e => setAccountForm(f => ({ ...f, bankCode: e.target.value }))} placeholder="例：004" />
+                <Label>{ba.bankCode}</Label>
+                <Input value={accountForm.bankCode} onChange={e => setAccountForm(f => ({ ...f, bankCode: e.target.value }))} placeholder={ba.bankCodePlaceholder} />
               </div>
             </div>
             <div>
-              <Label>帳號 *</Label>
+              <Label>{ba.accountNo}</Label>
               <Input value={accountForm.accountNo} onChange={e => setAccountForm(f => ({ ...f, accountNo: e.target.value }))} />
             </div>
             <div>
-              <Label>期初餘額</Label>
+              <Label>{ba.openingBalance}</Label>
               <Input type="number" value={accountForm.openingBalance} onChange={e => setAccountForm(f => ({ ...f, openingBalance: e.target.value }))} />
             </div>
             {accountForm.accountType === 'CREDIT_CARD' && (
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label>信用額度</Label>
+                  <Label>{ba.creditLimitLabel}</Label>
                   <Input type="number" value={accountForm.creditLimit} onChange={e => setAccountForm(f => ({ ...f, creditLimit: e.target.value }))} />
                 </div>
                 <div>
-                  <Label>結帳日</Label>
-                  <Input type="number" min={1} max={31} value={accountForm.statementDay} onChange={e => setAccountForm(f => ({ ...f, statementDay: e.target.value }))} placeholder="日" />
+                  <Label>{ba.statementDay}</Label>
+                  <Input type="number" min={1} max={31} value={accountForm.statementDay} onChange={e => setAccountForm(f => ({ ...f, statementDay: e.target.value }))} placeholder={ba.dayPlaceholder} />
                 </div>
                 <div>
-                  <Label>繳款日</Label>
-                  <Input type="number" min={1} max={31} value={accountForm.paymentDay} onChange={e => setAccountForm(f => ({ ...f, paymentDay: e.target.value }))} placeholder="日" />
+                  <Label>{ba.paymentDay}</Label>
+                  <Input type="number" min={1} max={31} value={accountForm.paymentDay} onChange={e => setAccountForm(f => ({ ...f, paymentDay: e.target.value }))} placeholder={ba.dayPlaceholder} />
                 </div>
               </div>
             )}
             <div>
-              <Label>備註</Label>
-              <Input value={accountForm.notes} onChange={e => setAccountForm(f => ({ ...f, notes: e.target.value }))} placeholder="選填" />
+              <Label>{dict.common.notes}</Label>
+              <Input value={accountForm.notes} onChange={e => setAccountForm(f => ({ ...f, notes: e.target.value }))} placeholder={dict.common.optional} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewAccount(false)}>取消</Button>
-            <Button onClick={handleCreateAccount} disabled={actionLoading}>{actionLoading ? '建立中...' : '建立'}</Button>
+            <Button variant="outline" onClick={() => setShowNewAccount(false)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreateAccount} disabled={actionLoading}>{actionLoading ? ba.creating : ba.createBtn}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -393,47 +394,47 @@ export default function BankAccountsPage() {
       <Dialog open={!!showNewTx} onOpenChange={open => { if (!open) setShowNewTx(null) }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>記錄交易</DialogTitle>
+            <DialogTitle>{ba.recordTransaction}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>交易日期</Label>
+                <Label>{ba.txDate}</Label>
                 <Input type="date" value={txForm.txDate} onChange={e => setTxForm(f => ({ ...f, txDate: e.target.value }))} />
               </div>
               <div>
-                <Label>方向</Label>
+                <Label>{ba.direction}</Label>
                 <Select value={txForm.direction} onValueChange={v => { if (v) setTxForm(f => ({ ...f, direction: v })) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DEBIT">支出（DEBIT）</SelectItem>
-                    <SelectItem value="CREDIT">存入（CREDIT）</SelectItem>
+                    <SelectItem value="DEBIT">{ba.directionDebit}</SelectItem>
+                    <SelectItem value="CREDIT">{ba.directionCredit}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label>說明 *</Label>
+              <Label>{ba.description}</Label>
               <Input value={txForm.description} onChange={e => setTxForm(f => ({ ...f, description: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>金額 *</Label>
+                <Label>{ba.amount}</Label>
                 <Input type="number" min={0} value={txForm.amount} onChange={e => setTxForm(f => ({ ...f, amount: e.target.value }))} />
               </div>
               <div>
-                <Label>票號/流水號</Label>
+                <Label>{ba.refNo}</Label>
                 <Input value={txForm.referenceNo} onChange={e => setTxForm(f => ({ ...f, referenceNo: e.target.value }))} />
               </div>
             </div>
             <div>
-              <Label>備註</Label>
-              <Input value={txForm.notes} onChange={e => setTxForm(f => ({ ...f, notes: e.target.value }))} placeholder="選填" />
+              <Label>{dict.common.notes}</Label>
+              <Input value={txForm.notes} onChange={e => setTxForm(f => ({ ...f, notes: e.target.value }))} placeholder={dict.common.optional} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewTx(null)}>取消</Button>
-            <Button onClick={handleCreateTx} disabled={actionLoading}>{actionLoading ? '記錄中...' : '記錄'}</Button>
+            <Button variant="outline" onClick={() => setShowNewTx(null)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreateTx} disabled={actionLoading}>{actionLoading ? ba.recording : ba.recordBtn}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

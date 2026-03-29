@@ -9,18 +9,11 @@ import { useI18n } from '@/lib/i18n/context'
 import { Plus, Search, Package, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-const STATUS_LABELS: Record<string, string> = {
-  AVAILABLE: '可用', LOCKED: '鎖定', PENDING_QC: '待驗', DEFECTIVE: '不良', SCRAPPED: '報廢', IN_TRANSIT: '在途', PENDING_TRANSFER: '待調撥',
-}
 const STATUS_COLORS: Record<string, string> = {
   AVAILABLE: 'bg-emerald-100 text-emerald-700', LOCKED: 'bg-yellow-100 text-yellow-700',
   PENDING_QC: 'bg-blue-100 text-blue-700', DEFECTIVE: 'bg-red-100 text-red-700',
   SCRAPPED: 'bg-gray-100 text-gray-500', IN_TRANSIT: 'bg-indigo-100 text-indigo-700',
   PENDING_TRANSFER: 'bg-orange-100 text-orange-700',
-}
-const CATEGORY_LABELS: Record<string, string> = {
-  FINISHED_GOODS: '成品', OEM_PENDING: 'OEM待交', IN_TRANSIT: '在途', PACKAGING: '包材',
-  RAW_MATERIAL: '原物料', DEFECTIVE: '不良品', GIFT_PROMO: '贈品',
 }
 
 interface InventoryLot {
@@ -39,6 +32,7 @@ interface Supplier { id: string; name: string; code: string }
 
 export default function InventoryLotsPage() {
   const { dict } = useI18n()
+  const il = dict.inventoryLots
   const [lots, setLots] = useState<InventoryLot[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
@@ -69,7 +63,7 @@ export default function InventoryLotsPage() {
       setLots(await res.json())
     } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
-  }, [search, filterWarehouse, filterStatus, expiryAlert])
+  }, [search, filterWarehouse, filterStatus, expiryAlert, dict.common.loadFailed])
 
   useEffect(() => {
     Promise.all([
@@ -87,7 +81,7 @@ export default function InventoryLotsPage() {
 
   const handleCreate = async () => {
     if (!form.productId || !form.warehouseId || !form.quantity) {
-      toast.error(dict.inventoryLots.fieldsRequired)
+      toast.error(il.fieldsRequired)
       return
     }
     try {
@@ -106,15 +100,12 @@ export default function InventoryLotsPage() {
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
-      toast.success(dict.inventoryLots.created)
+      toast.success(il.created)
       setShowCreate(false)
       setForm({ productId: '', warehouseId: '', supplierId: '', quantity: '', category: 'FINISHED_GOODS', location: '', manufactureDate: '', expiryDate: '', factoryLotNo: '', notes: '' })
       load()
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
-
-  const now = new Date()
-  const soon = new Date(now.getTime() + 30 * 24 * 3600 * 1000)
 
   const nearExpiryCount = lots.filter(l => l.isNearExpiry && !l.isExpired).length
   const expiredCount = lots.filter(l => l.isExpired).length
@@ -127,39 +118,42 @@ export default function InventoryLotsPage() {
     return ''
   }
 
+  const STATUS_LABELS = il.statusLabels as Record<string, string>
+  const CATEGORY_LABELS = il.categoryLabels as Record<string, string>
+
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.inventoryLots ?? '批號管理'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">批號建立、效期追蹤、倉位管理</p>
+          <h1 className="text-2xl font-bold">{dict.nav?.inventoryLots ?? il.createLot}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{il.subtitle}</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus size={16} />建立批號
+          <Plus size={16} />{il.createLot}
         </Button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">批號數</div>
+          <div className="text-xs text-gray-400 mb-1">{il.cardLots}</div>
           <div className="text-2xl font-bold">{lots.length}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">總庫存數量</div>
+          <div className="text-xs text-gray-400 mb-1">{il.cardTotalQty}</div>
           <div className="text-2xl font-bold">{totalQty.toLocaleString()}</div>
         </div>
         <div className="bg-white border rounded-xl p-4 cursor-pointer" onClick={() => setExpiryAlert(true)}>
           <div className="flex items-center gap-1.5 mb-1">
             <AlertTriangle size={13} className="text-orange-500" />
-            <span className="text-xs text-gray-400">30天內到期</span>
+            <span className="text-xs text-gray-400">{il.cardNearExpiry}</span>
           </div>
           <div className="text-2xl font-bold text-orange-600">{nearExpiryCount}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <AlertTriangle size={13} className="text-red-500" />
-            <span className="text-xs text-gray-400">已到期</span>
+            <span className="text-xs text-gray-400">{il.cardExpired}</span>
           </div>
           <div className="text-2xl font-bold text-red-600">{expiredCount}</div>
         </div>
@@ -170,21 +164,21 @@ export default function InventoryLotsPage() {
         <div className="relative flex-1 min-w-[180px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="搜尋批號、品名、工廠批號…" className="pl-8 h-9" />
+            placeholder={il.searchPlaceholder} className="pl-8 h-9" />
         </div>
         <select value={filterWarehouse} onChange={e => setFilterWarehouse(e.target.value)}
           className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">全部倉庫</option>
+          <option value="">{il.allWarehouses}</option>
           {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
           className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">全部狀態</option>
+          <option value="">{il.allStatuses}</option>
           {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <button onClick={() => setExpiryAlert(v => !v)}
           className={`px-3 h-9 rounded text-sm border transition-colors ${expiryAlert ? 'bg-orange-500 text-white border-orange-500' : 'hover:bg-gray-50'}`}>
-          <AlertTriangle size={13} className="inline mr-1" />效期警示
+          <AlertTriangle size={13} className="inline mr-1" />{il.expiryAlert}
         </button>
       </div>
 
@@ -194,19 +188,19 @@ export default function InventoryLotsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {['批號', '品項', '倉庫', '類別', '數量', '倉位', '製造日', '效期', '狀態'].map(h => (
+                {[il.colLotNo, il.colProduct, il.colWarehouse, il.colCategory, il.colQty, il.colLocation, il.colMfgDate, il.colExpiry, il.colStatus].map(h => (
                   <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="text-center py-10 text-gray-400">載入中…</td></tr>
+                <tr><td colSpan={9} className="text-center py-10 text-gray-400">{il.loading}</td></tr>
               ) : lots.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-14 text-gray-400">
                     <Package size={36} className="mx-auto mb-2 opacity-30" />
-                    <p>無批號資料</p>
+                    <p>{il.noData}</p>
                   </td>
                 </tr>
               ) : lots.map(lot => (
@@ -220,14 +214,14 @@ export default function InventoryLotsPage() {
                   <td className="px-4 py-2.5 text-xs text-gray-500">{CATEGORY_LABELS[lot.category] ?? lot.category}</td>
                   <td className="px-4 py-2.5 font-medium">
                     {lot.quantity} {lot.product.unit ?? ''}
-                    {lot.lockedQty > 0 && <span className="text-xs text-yellow-600 ml-1">(鎖{lot.lockedQty})</span>}
+                    {lot.lockedQty > 0 && <span className="text-xs text-yellow-600 ml-1">{il.lockedSuffix.replace('{n}', String(lot.lockedQty))}</span>}
                   </td>
                   <td className="px-4 py-2.5 text-xs text-gray-500">{lot.location ?? '-'}</td>
                   <td className="px-4 py-2.5 text-xs text-gray-500">{fmtDate(lot.manufactureDate)}</td>
                   <td className="px-4 py-2.5 text-xs">
                     <span className={expiryClass(lot)}>{fmtDate(lot.expiryDate)}</span>
-                    {lot.isExpired && <span className="ml-1 text-red-500">⚠ 已過期</span>}
-                    {lot.isNearExpiry && !lot.isExpired && <span className="ml-1 text-orange-400">⚠ 即將到期</span>}
+                    {lot.isExpired && <span className="ml-1 text-red-500">{il.isExpired}</span>}
+                    {lot.isNearExpiry && !lot.isExpired && <span className="ml-1 text-orange-400">{il.isNearExpiry}</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     <Badge className={STATUS_COLORS[lot.status] ?? 'bg-gray-100'}>{STATUS_LABELS[lot.status] ?? lot.status}</Badge>
@@ -242,76 +236,76 @@ export default function InventoryLotsPage() {
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>建立批號</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{il.createTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <div>
-              <div className="text-xs text-gray-500 mb-1">品項 *</div>
+              <div className="text-xs text-gray-500 mb-1">{il.fieldProduct}</div>
               <select value={form.productId} onChange={e => setForm(f => ({ ...f, productId: e.target.value }))}
                 className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                <option value="">請選擇品項</option>
+                <option value="">{il.selectProduct}</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">倉庫 *</div>
+                <div className="text-xs text-gray-500 mb-1">{il.fieldWarehouse}</div>
                 <select value={form.warehouseId} onChange={e => setForm(f => ({ ...f, warehouseId: e.target.value }))}
                   className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                  <option value="">請選擇</option>
+                  <option value="">{il.selectWarehouse}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">數量 *</div>
+                <div className="text-xs text-gray-500 mb-1">{il.fieldQty}</div>
                 <Input type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">類別</div>
+                <div className="text-xs text-gray-500 mb-1">{il.fieldCategory}</div>
                 <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                   className="w-full border rounded-md px-3 h-9 text-sm bg-white">
                   {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">倉位代碼</div>
+                <div className="text-xs text-gray-500 mb-1">{il.fieldLocation}</div>
                 <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
                   placeholder="A-01-03" className="h-9" />
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">供應商</div>
+              <div className="text-xs text-gray-500 mb-1">{il.fieldSupplier}</div>
               <select value={form.supplierId} onChange={e => setForm(f => ({ ...f, supplierId: e.target.value }))}
                 className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                <option value="">請選擇（選填）</option>
+                <option value="">{il.selectSupplier}</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">製造日期</div>
+                <div className="text-xs text-gray-500 mb-1">{il.fieldMfgDate}</div>
                 <Input type="date" value={form.manufactureDate} onChange={e => setForm(f => ({ ...f, manufactureDate: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">效期</div>
+                <div className="text-xs text-gray-500 mb-1">{il.fieldExpiry}</div>
                 <Input type="date" value={form.expiryDate} onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">工廠原始批號</div>
+              <div className="text-xs text-gray-500 mb-1">{il.fieldFactoryLotNo}</div>
               <Input value={form.factoryLotNo} onChange={e => setForm(f => ({ ...f, factoryLotNo: e.target.value }))}
-                placeholder="廠商提供的批號" className="h-9" />
+                placeholder={il.factoryLotNoPlaceholder} className="h-9" />
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">備註</div>
+              <div className="text-xs text-gray-500 mb-1">{il.fieldNotes}</div>
               <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="h-9" />
             </div>
             <div className="flex gap-2 pt-1">
               <Button onClick={handleCreate} className="flex-1" disabled={!form.productId || !form.warehouseId || !form.quantity}>
-                建立
+                {il.btnCreate}
               </Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>{dict.common.cancel}</Button>
             </div>
           </div>
         </DialogContent>
@@ -325,22 +319,22 @@ export default function InventoryLotsPage() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 font-mono">
                   {selected.lotNo}
-                  <Badge className={STATUS_COLORS[selected.status]}>{STATUS_LABELS[selected.status]}</Badge>
+                  <Badge className={STATUS_COLORS[selected.status]}>{STATUS_LABELS[selected.status] ?? selected.status}</Badge>
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-2 mt-2 text-sm">
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    ['品項', selected.product.name], ['SKU', selected.product.sku],
-                    ['倉庫', selected.warehouse.name], ['倉位', selected.location ?? '-'],
-                    ['類別', CATEGORY_LABELS[selected.category] ?? selected.category],
-                    ['數量', `${selected.quantity} ${selected.product.unit ?? ''}`],
-                    ['鎖定', `${selected.lockedQty}`],
-                    ['可用', `${selected.quantity - selected.lockedQty}`],
-                    ['供應商', selected.supplier?.name ?? '-'],
-                    ['工廠批號', selected.factoryLotNo ?? '-'],
-                    ['採購單', selected.purchaseOrder?.poNo ?? '-'],
-                    ['製造日', selected.manufactureDate ? new Date(selected.manufactureDate).toLocaleDateString('zh-TW') : '-'],
+                    [il.detailProduct, selected.product.name], [il.detailSku, selected.product.sku],
+                    [il.detailWarehouse, selected.warehouse.name], [il.detailLocation, selected.location ?? '-'],
+                    [il.detailCategory, CATEGORY_LABELS[selected.category] ?? selected.category],
+                    [il.detailQty, `${selected.quantity} ${selected.product.unit ?? ''}`],
+                    [il.detailLocked, `${selected.lockedQty}`],
+                    [il.detailAvailable, `${selected.quantity - selected.lockedQty}`],
+                    [il.detailSupplier, selected.supplier?.name ?? '-'],
+                    [il.detailFactoryLotNo, selected.factoryLotNo ?? '-'],
+                    [il.detailPO, selected.purchaseOrder?.poNo ?? '-'],
+                    [il.detailMfgDate, selected.manufactureDate ? new Date(selected.manufactureDate).toLocaleDateString('zh-TW') : '-'],
                   ].map(([k, v]) => (
                     <div key={k} className="bg-gray-50 rounded p-2">
                       <div className="text-gray-400">{k}</div>
@@ -352,9 +346,9 @@ export default function InventoryLotsPage() {
                   <div className={`text-xs rounded p-2 ${selected.isExpired ? 'bg-red-50 text-red-700' : selected.isNearExpiry ? 'bg-orange-50 text-orange-700' : 'bg-emerald-50 text-emerald-700'}`}>
                     <div className="flex items-center gap-1.5">
                       {selected.isExpired || selected.isNearExpiry ? <AlertTriangle size={12} /> : <CheckCircle2 size={12} />}
-                      效期：{new Date(selected.expiryDate).toLocaleDateString('zh-TW')}
-                      {selected.isExpired && ' — 已過期'}
-                      {selected.isNearExpiry && !selected.isExpired && ' — 30天內到期'}
+                      {il.expiryLabel}{new Date(selected.expiryDate).toLocaleDateString('zh-TW')}
+                      {selected.isExpired && il.expiredNote}
+                      {selected.isNearExpiry && !selected.isExpired && il.nearExpiryNote}
                     </div>
                   </div>
                 )}

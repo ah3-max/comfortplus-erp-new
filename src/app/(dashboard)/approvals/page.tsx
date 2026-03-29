@@ -58,43 +58,23 @@ interface ApprovalTemplate {
   createdBy: { id: string; name: string }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-const MODULE_LABELS: Record<string, string> = {
-  ORDER: '訂單',
-  PURCHASE: '採購單',
-  INTERNAL_USE: '內部領用',
-  QUOTATION: '報價單',
-  PURCHASE_REQUEST: '請購單',
-  CUSTOM: '自訂',
-}
-
-const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode }> = {
-  PENDING:   { label: '待審核', variant: 'secondary',    icon: <Clock className="h-3 w-3" /> },
-  APPROVED:  { label: '已批准', variant: 'default',      icon: <CheckCircle2 className="h-3 w-3" /> },
-  REJECTED:  { label: '已拒絕', variant: 'destructive',  icon: <XCircle className="h-3 w-3" /> },
-  CANCELLED: { label: '已取消', variant: 'outline',      icon: <AlertTriangle className="h-3 w-3" /> },
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: '超級管理員', GM: '總經理', SALES_MANAGER: '業務主管',
-  SALES: '業務', CS: '客服', WAREHOUSE_MANAGER: '倉管主管',
-  WAREHOUSE: '倉庫', FINANCE: '財務', PROCUREMENT: '採購',
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, variant: 'outline' as const, icon: null }
-  return (
-    <Badge variant={cfg.variant} className="flex items-center gap-1">
-      {cfg.icon}{cfg.label}
-    </Badge>
-  )
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ApprovalsPage() {
   const { dict } = useI18n()
+  const ap = dict.approvalsPage
+  const MODULE_LABELS = ap.moduleLabels as Record<string, string>
+
+  const approvalStatuses = dict.approvals.statuses as Record<string, string>
+  const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode }> = {
+    PENDING:   { label: approvalStatuses.PENDING ?? '待審核',   variant: 'secondary',    icon: <Clock className="h-3 w-3" /> },
+    APPROVED:  { label: approvalStatuses.APPROVED ?? '已批准',  variant: 'default',      icon: <CheckCircle2 className="h-3 w-3" /> },
+    REJECTED:  { label: approvalStatuses.REJECTED ?? '已拒絕',  variant: 'destructive',  icon: <XCircle className="h-3 w-3" /> },
+    CANCELLED: { label: approvalStatuses.CANCELLED ?? '已取消', variant: 'outline',      icon: <AlertTriangle className="h-3 w-3" /> },
+  }
+
+  const ROLE_LABELS = (dict.orgChart?.roles ?? {}) as Record<string, string>
+
   const [tab, setTab] = useState('inbox')
   const [requests, setRequests] = useState<ApprovalRequest[]>([])
   const [templates, setTemplates] = useState<ApprovalTemplate[]>([])
@@ -106,10 +86,9 @@ export default function ApprovalsPage() {
   const [comment, setComment] = useState('')
   const [tmplDialog, setTmplDialog] = useState(false)
   const [tmplForm, setTmplForm] = useState({ name: '', description: '', module: 'ORDER' })
-  const [tmplSteps, setTmplSteps] = useState<TemplateStep[]>([{ stepName: '主管核准', approverRole: 'GM', isOptional: false }])
+  const [tmplSteps, setTmplSteps] = useState<TemplateStep[]>([{ stepName: '', approverRole: 'GM', isOptional: false }])
   const [saving, setSaving] = useState(false)
 
-  // New approval request dialog
   const [newReqDialog, setNewReqDialog] = useState(false)
   const [newReqForm, setNewReqForm] = useState({
     templateId: '',
@@ -153,14 +132,14 @@ export default function ApprovalsPage() {
 
   async function handleSubmitNewReq() {
     if (!newReqForm.subject.trim()) {
-      toast.error(dict.approvalsPage.subjectRequired)
+      toast.error(ap.subjectRequired)
       return
     }
     const selectedTemplate = newReqTemplates.find(t => t.id === newReqForm.templateId)
     const module = selectedTemplate?.module ?? 'CUSTOM'
     const noteParts: string[] = []
     if (newReqForm.description.trim()) noteParts.push(newReqForm.description.trim())
-    if (newReqForm.refDoc.trim()) noteParts.push(`參考單據：${newReqForm.refDoc.trim()}`)
+    if (newReqForm.refDoc.trim()) noteParts.push(`${ap.refDocPrefix}${newReqForm.refDoc.trim()}`)
     const notes = noteParts.length > 0 ? noteParts.join('\n') : null
 
     setNewReqSaving(true)
@@ -177,7 +156,7 @@ export default function ApprovalsPage() {
         }),
       })
       if (res.ok) {
-        toast.success(dict.approvalsPage.submitted)
+        toast.success(ap.submitted)
         setNewReqDialog(false)
         setNewReqForm({ templateId: '', subject: '', description: '', refDoc: '' })
         fetchRequests()
@@ -207,7 +186,7 @@ export default function ApprovalsPage() {
   }
 
   async function handleCancel(id: string) {
-    if (!confirm('確定要取消此簽核申請？')) return
+    if (!confirm(ap.cancelConfirm)) return
     await fetch(`/api/approvals/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -237,7 +216,7 @@ export default function ApprovalsPage() {
     setSaving(false)
     setTmplDialog(false)
     setTmplForm({ name: '', description: '', module: 'ORDER' })
-    setTmplSteps([{ stepName: '主管核准', approverRole: 'GM', isOptional: false }])
+    setTmplSteps([{ stepName: '', approverRole: 'GM', isOptional: false }])
     fetchTemplates()
   }
 
@@ -245,24 +224,29 @@ export default function ApprovalsPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const RequestRow = ({ req }: { req: ApprovalRequest }) => (
-    <div
-      className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
-      onClick={() => openDetail(req)}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono text-muted-foreground">{req.requestNo}</span>
-          <Badge variant="outline" className="text-xs">{MODULE_LABELS[req.module] ?? req.module}</Badge>
+  const RequestRow = ({ req }: { req: ApprovalRequest }) => {
+    const cfg = STATUS_CONFIG[req.status] ?? { label: req.status, variant: 'outline' as const, icon: null }
+    return (
+      <div
+        className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 cursor-pointer"
+        onClick={() => openDetail(req)}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-muted-foreground">{req.requestNo}</span>
+            <Badge variant="outline" className="text-xs">{MODULE_LABELS[req.module] ?? req.module}</Badge>
+          </div>
+          <p className="mt-0.5 truncate font-medium">{req.entityLabel}</p>
+          <p className="text-xs text-muted-foreground">{ap.requestedByLabel}{req.requestedBy.name} · {new Date(req.requestedAt).toLocaleDateString('zh-TW')}</p>
         </div>
-        <p className="mt-0.5 truncate font-medium">{req.entityLabel}</p>
-        <p className="text-xs text-muted-foreground">申請人：{req.requestedBy.name} · {new Date(req.requestedAt).toLocaleDateString('zh-TW')}</p>
+        <div className="ml-3 shrink-0">
+          <Badge variant={cfg.variant} className="flex items-center gap-1">
+            {cfg.icon}{cfg.label}
+          </Badge>
+        </div>
       </div>
-      <div className="ml-3 shrink-0">
-        <StatusBadge status={req.status} />
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="space-y-4 p-4 md:p-6">
@@ -275,10 +259,10 @@ export default function ApprovalsPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="w-full md:w-auto">
-          <TabsTrigger value="inbox">我的待辦</TabsTrigger>
-          <TabsTrigger value="mine">我的申請</TabsTrigger>
-          <TabsTrigger value="all">{dict.common.all}申請</TabsTrigger>
-          <TabsTrigger value="templates">簽核範本</TabsTrigger>
+          <TabsTrigger value="inbox">{ap.tabInbox}</TabsTrigger>
+          <TabsTrigger value="mine">{ap.tabMine}</TabsTrigger>
+          <TabsTrigger value="all">{ap.tabAll}</TabsTrigger>
+          <TabsTrigger value="templates">{ap.tabTemplates}</TabsTrigger>
         </TabsList>
 
         {/* ── Filters ── */}
@@ -286,10 +270,10 @@ export default function ApprovalsPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <Select value={statusFilter} onValueChange={v => setStatusFilter(v ?? '')}>
               <SelectTrigger className="h-8 w-36">
-                <SelectValue placeholder={dict.common.all + dict.common.status} />
+                <SelectValue placeholder={dict.common.all + (dict.common.status ?? '')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{dict.common.all + dict.common.status}</SelectItem>
+                <SelectItem value="">{dict.common.all}{dict.common.status ?? ''}</SelectItem>
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v.label}</SelectItem>
                 ))}
@@ -297,10 +281,10 @@ export default function ApprovalsPage() {
             </Select>
             <Select value={moduleFilter} onValueChange={v => setModuleFilter(v ?? '')}>
               <SelectTrigger className="h-8 w-36">
-                <SelectValue placeholder={dict.common.all + '模組'} />
+                <SelectValue placeholder={ap.allModules} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{dict.common.all + '模組'}</SelectItem>
+                <SelectItem value="">{ap.allModules}</SelectItem>
                 {Object.entries(MODULE_LABELS).map(([k, v]) => (
                   <SelectItem key={k} value={k}>{v}</SelectItem>
                 ))}
@@ -332,9 +316,9 @@ export default function ApprovalsPage() {
         <TabsContent value="templates">
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base">簽核範本管理</CardTitle>
+              <CardTitle className="text-base">{ap.templatesMgmtTitle}</CardTitle>
               <Button size="sm" onClick={() => setTmplDialog(true)}>
-                <Plus className="mr-1 h-4 w-4" />{dict.common.create}範本
+                <Plus className="mr-1 h-4 w-4" />{ap.createTemplate}
               </Button>
             </CardHeader>
             <CardContent>
@@ -348,7 +332,7 @@ export default function ApprovalsPage() {
                         <div>
                           <span className="font-medium">{t.name}</span>
                           <Badge variant="outline" className="ml-2 text-xs">{MODULE_LABELS[t.module] ?? t.module}</Badge>
-                          {!t.isActive && <Badge variant="secondary" className="ml-1 text-xs">停用</Badge>}
+                          {!t.isActive && <Badge variant="secondary" className="ml-1 text-xs">{ap.disabledBadge}</Badge>}
                         </div>
                         <Button variant="ghost" size="sm" onClick={() => handleToggleTemplate(t.id)}>
                           <Settings className="h-4 w-4" />
@@ -378,16 +362,23 @@ export default function ApprovalsPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <span className="font-mono text-sm text-muted-foreground">{detail.requestNo}</span>
-                <StatusBadge status={detail.status} />
+                {(() => {
+                  const cfg = STATUS_CONFIG[detail.status] ?? { label: detail.status, variant: 'outline' as const, icon: null }
+                  return (
+                    <Badge variant={cfg.variant} className="flex items-center gap-1">
+                      {cfg.icon}{cfg.label}
+                    </Badge>
+                  )
+                })()}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div><span className="text-muted-foreground">模組：</span>{MODULE_LABELS[detail.module] ?? detail.module}</div>
-                <div><span className="text-muted-foreground">單據：</span>{detail.entityLabel}</div>
-                <div><span className="text-muted-foreground">申請人：</span>{detail.requestedBy.name}</div>
-                <div><span className="text-muted-foreground">申請時間：</span>{new Date(detail.requestedAt).toLocaleString('zh-TW')}</div>
+                <div><span className="text-muted-foreground">{ap.moduleLabel}</span>{MODULE_LABELS[detail.module] ?? detail.module}</div>
+                <div><span className="text-muted-foreground">{ap.docLabel}</span>{detail.entityLabel}</div>
+                <div><span className="text-muted-foreground">{ap.requestedByLabel}</span>{detail.requestedBy.name}</div>
+                <div><span className="text-muted-foreground">{ap.requestedAtLabel}</span>{new Date(detail.requestedAt).toLocaleString('zh-TW')}</div>
               </div>
               {detail.notes && (
                 <p className="rounded bg-muted/40 p-2 text-sm">{detail.notes}</p>
@@ -395,7 +386,7 @@ export default function ApprovalsPage() {
 
               {/* Steps timeline */}
               <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">簽核流程</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase">{ap.stepsTitle}</p>
                 {detail.steps.map(step => (
                   <div key={step.id} className={`flex items-start gap-3 rounded-lg border p-2 ${step.stepOrder === detail.currentStep && detail.status === 'PENDING' ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/20' : ''}`}>
                     <div className="mt-0.5 shrink-0">
@@ -405,8 +396,8 @@ export default function ApprovalsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium">{step.stepOrder}. {step.stepName}</p>
-                      {step.approver && <p className="text-xs text-muted-foreground">審核人：{step.approver.name}</p>}
-                      {step.comment && <p className="mt-1 text-xs italic text-muted-foreground">備註：{step.comment}</p>}
+                      {step.approver && <p className="text-xs text-muted-foreground">{ap.approverLabel}{step.approver.name}</p>}
+                      {step.comment && <p className="mt-1 text-xs italic text-muted-foreground">{ap.commentLabel}{step.comment}</p>}
                       {step.actedAt && <p className="text-xs text-muted-foreground">{new Date(step.actedAt).toLocaleString('zh-TW')}</p>}
                     </div>
                   </div>
@@ -421,15 +412,15 @@ export default function ApprovalsPage() {
                     variant="destructive" size="sm"
                     onClick={() => { setActionDialog({ open: true, requestId: detail.id, action: 'REJECT' }); setDetail(null) }}
                   >
-                    <XCircle className="mr-1 h-4 w-4" />拒絕
+                    <XCircle className="mr-1 h-4 w-4" />{ap.rejectBtn}
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => { setActionDialog({ open: true, requestId: detail.id, action: 'APPROVE' }); setDetail(null) }}
                   >
-                    <CheckCircle2 className="mr-1 h-4 w-4" />批准
+                    <CheckCircle2 className="mr-1 h-4 w-4" />{ap.approveBtn}
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleCancel(detail.id)}>{dict.common.cancel}申請</Button>
+                  <Button variant="outline" size="sm" onClick={() => handleCancel(detail.id)}>{ap.cancelRequestBtn}</Button>
                 </>
               )}
               <Button variant="ghost" size="sm" onClick={() => setDetail(null)}>{dict.common.close}</Button>
@@ -442,13 +433,17 @@ export default function ApprovalsPage() {
       <Dialog open={actionDialog.open} onOpenChange={o => !o && setActionDialog({ open: false, requestId: '', action: 'APPROVE' })}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{actionDialog.action === 'APPROVE' ? dict.common.approve + '簽核' : dict.common.reject + '簽核'}</DialogTitle>
+            <DialogTitle>
+              {actionDialog.action === 'APPROVE'
+                ? `${dict.common.approve ?? ''}${ap.approveSuffix}`
+                : `${dict.common.reject ?? ''}${ap.rejectSuffix}`}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <Label>備註（選填）</Label>
+              <Label>{ap.commentLabel2}</Label>
               <Textarea
-                placeholder="請輸入備註說明…"
+                placeholder={ap.commentPlaceholder}
                 value={comment}
                 onChange={e => setComment(e.target.value)}
                 rows={3}
@@ -463,7 +458,7 @@ export default function ApprovalsPage() {
               onClick={handleAction}
               disabled={saving}
             >
-              {dict.common.confirm}{actionDialog.action === 'APPROVE' ? dict.common.approve : dict.common.reject}
+              {dict.common.confirm}{actionDialog.action === 'APPROVE' ? (dict.common.approve ?? '') : (dict.common.reject ?? '')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -478,16 +473,16 @@ export default function ApprovalsPage() {
           <div className="space-y-4">
             {/* Template selector */}
             <div className="space-y-1.5">
-              <Label>簽核範本（選填）</Label>
+              <Label>{ap.newReqTemplateLabel}</Label>
               <Select
                 value={newReqForm.templateId}
                 onValueChange={v => setNewReqForm(f => ({ ...f, templateId: (!v || v === '__none__') ? '' : v }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇範本（不選則使用預設流程）" />
+                  <SelectValue placeholder={ap.noTemplatePlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">不使用範本（預設流程）</SelectItem>
+                  <SelectItem value="__none__">{ap.noTemplate}</SelectItem>
                   {newReqTemplates.map(t => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
@@ -514,19 +509,19 @@ export default function ApprovalsPage() {
 
             {/* Subject */}
             <div className="space-y-1.5">
-              <Label>申請主旨 <span className="text-red-500">*</span></Label>
+              <Label>{ap.subjectStar}</Label>
               <Input
-                placeholder="例：採購辦公用品申請"
+                placeholder={ap.subjectPlaceholder}
                 value={newReqForm.subject}
                 onChange={e => setNewReqForm(f => ({ ...f, subject: e.target.value }))}
               />
             </div>
 
-            {/* Description / reason */}
+            {/* Description */}
             <div className="space-y-1.5">
-              <Label>說明 / 申請原因</Label>
+              <Label>{ap.descLabel}</Label>
               <Textarea
-                placeholder="請說明申請原因或補充說明..."
+                placeholder={ap.descPlaceholder}
                 value={newReqForm.description}
                 onChange={e => setNewReqForm(f => ({ ...f, description: e.target.value }))}
                 rows={3}
@@ -535,9 +530,9 @@ export default function ApprovalsPage() {
 
             {/* Reference doc */}
             <div className="space-y-1.5">
-              <Label>參考單據編號（選填）</Label>
+              <Label>{ap.refDocLabel}</Label>
               <Input
-                placeholder="例：PO-2026-001、合約編號..."
+                placeholder={ap.refDocPlaceholder}
                 value={newReqForm.refDoc}
                 onChange={e => setNewReqForm(f => ({ ...f, refDoc: e.target.value }))}
               />
@@ -549,7 +544,7 @@ export default function ApprovalsPage() {
             </Button>
             <Button onClick={handleSubmitNewReq} disabled={newReqSaving || !newReqForm.subject.trim()}>
               {newReqSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {dict.common.submit}申請
+              {ap.submitBtn}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -559,16 +554,16 @@ export default function ApprovalsPage() {
       <Dialog open={tmplDialog} onOpenChange={setTmplDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{dict.common.create}簽核範本</DialogTitle>
+            <DialogTitle>{ap.createTemplate}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>範本名稱 *</Label>
+                <Label>{ap.tmplNameLabel}</Label>
                 <Input value={tmplForm.name} onChange={e => setTmplForm(f => ({ ...f, name: e.target.value }))} className="mt-1" />
               </div>
               <div>
-                <Label>適用模組 *</Label>
+                <Label>{ap.tmplModuleLabel}</Label>
                 <Select value={tmplForm.module} onValueChange={v => setTmplForm(f => ({ ...f, module: v ?? 'ORDER' }))}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -582,13 +577,13 @@ export default function ApprovalsPage() {
               </div>
             </div>
             <div>
-              <Label>說明</Label>
+              <Label>{ap.tmplDescLabel}</Label>
               <Input value={tmplForm.description} onChange={e => setTmplForm(f => ({ ...f, description: e.target.value }))} className="mt-1" />
             </div>
 
             <div>
               <div className="flex items-center justify-between">
-                <Label>簽核步驟</Label>
+                <Label>{ap.tmplStepsLabel}</Label>
                 <Button variant="ghost" size="sm" onClick={() => setTmplSteps(s => [...s, { stepName: '', approverRole: 'GM', isOptional: false }])}>
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -598,7 +593,7 @@ export default function ApprovalsPage() {
                   <div key={i} className="flex items-center gap-2">
                     <span className="w-4 shrink-0 text-center text-xs text-muted-foreground">{i + 1}</span>
                     <Input
-                      placeholder="步驟名稱"
+                      placeholder={ap.tmplStepNamePlaceholder}
                       value={step.stepName}
                       onChange={e => setTmplSteps(s => s.map((x, j) => j === i ? { ...x, stepName: e.target.value } : x))}
                       className="flex-1"
@@ -628,7 +623,7 @@ export default function ApprovalsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTmplDialog(false)}>{dict.common.cancel}</Button>
-            <Button onClick={handleSaveTemplate} disabled={saving || !tmplForm.name}>{dict.common.save}範本</Button>
+            <Button onClick={handleSaveTemplate} disabled={saving || !tmplForm.name}>{ap.saveTmplBtn}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

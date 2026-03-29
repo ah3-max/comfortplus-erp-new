@@ -39,55 +39,56 @@ interface PendingData {
 
 type TabKey = 'pending' | 'recent' | 'rules'
 
-const JOURNAL_RULES = [
-  {
-    type: '銷貨確認',
-    trigger: '銷售訂單狀態變更為 CONFIRMED/SHIPPED',
-    debit: '1130 應收帳款（含稅）',
-    credit: '4110/4120 銷貨收入 + 2160 銷項稅額（5%）',
-    cogDebit: '5100 銷貨成本（若有 costOfGoods）',
-    cogCredit: '1150 存貨',
-  },
-  {
-    type: '採購進貨',
-    trigger: '採購訂單狀態變更為 RECEIVED/COMPLETED',
-    debit: '1150 存貨 + 1180 進項稅額（5%）',
-    credit: '2130 應付帳款（含稅）',
-  },
-  {
-    type: '銷貨退回',
-    trigger: '退貨單狀態核准',
-    debit: '4200 銷貨退回 + 1180 進項稅額',
-    credit: '1130 應收帳款',
-  },
-  {
-    type: '採購退貨',
-    trigger: '進貨退貨單核准',
-    debit: '2130 應付帳款',
-    credit: '1150 存貨 + 1180 進項稅額',
-  },
-  {
-    type: '收款入帳',
-    trigger: '收款紀錄建立（direction=INCOMING）',
-    debit: '1102 銀行存款',
-    credit: '1130 應收帳款',
-  },
-  {
-    type: '付款出帳',
-    trigger: '付款紀錄建立（direction=OUTGOING）',
-    debit: '2130 應付帳款',
-    credit: '1102 銀行存款',
-  },
-]
-
 export default function AutoJournalPage() {
   const { dict } = useI18n()
+  const aj = dict.autoJournal
   const [tab, setTab] = useState<TabKey>('pending')
   const [pending, setPending] = useState<PendingData | null>(null)
   const [recent, setRecent] = useState<RecentEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [posting, setPosting] = useState<string | null>(null) // 'all' | 'sales' | 'purchase'
   const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  const JOURNAL_RULES = [
+    {
+      type: aj.rules.salesConfirmType,
+      trigger: aj.rules.salesConfirmTrigger,
+      debit: aj.rules.salesConfirmDebit,
+      credit: aj.rules.salesConfirmCredit,
+      cogDebit: aj.rules.salesConfirmCogDebit,
+      cogCredit: aj.rules.salesConfirmCogCredit,
+    },
+    {
+      type: aj.rules.purchaseReceiptType,
+      trigger: aj.rules.purchaseReceiptTrigger,
+      debit: aj.rules.purchaseReceiptDebit,
+      credit: aj.rules.purchaseReceiptCredit,
+    },
+    {
+      type: aj.rules.salesReturnType,
+      trigger: aj.rules.salesReturnTrigger,
+      debit: aj.rules.salesReturnDebit,
+      credit: aj.rules.salesReturnCredit,
+    },
+    {
+      type: aj.rules.purchaseReturnType,
+      trigger: aj.rules.purchaseReturnTrigger,
+      debit: aj.rules.purchaseReturnDebit,
+      credit: aj.rules.purchaseReturnCredit,
+    },
+    {
+      type: aj.rules.receiptEntryType,
+      trigger: aj.rules.receiptEntryTrigger,
+      debit: aj.rules.receiptEntryDebit,
+      credit: aj.rules.receiptEntryCredit,
+    },
+    {
+      type: aj.rules.paymentEntryType,
+      trigger: aj.rules.paymentEntryTrigger,
+      debit: aj.rules.paymentEntryDebit,
+      credit: aj.rules.paymentEntryCredit,
+    },
+  ]
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(n)
@@ -104,7 +105,7 @@ export default function AutoJournalPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [dict.common.loadFailed])
 
   const loadRecent = useCallback(async () => {
     setLoading(true)
@@ -118,7 +119,7 @@ export default function AutoJournalPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [dict.common.loadFailed])
 
   useEffect(() => {
     if (tab === 'pending') loadPending()
@@ -136,7 +137,7 @@ export default function AutoJournalPage() {
       })
       if (!res.ok) throw new Error()
       const json = await res.json()
-      toast.success(`✅ 已建立 ${json.created} 筆傳票，跳過 ${json.skipped} 筆（已存在）`)
+      toast.success(`✅ ${aj.createdMsg} ${json.created} ${aj.skippedMsg} ${json.skipped} ${aj.skippedExisted}`)
       setSelected(new Set())
       loadPending()
     } catch {
@@ -153,20 +154,20 @@ export default function AutoJournalPage() {
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.autoJournal ?? '自動化會計分錄'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">依標準科目範本自動補建傳票，安全冪等（不重複建立）</p>
+          <h1 className="text-2xl font-bold">{dict.nav?.autoJournal}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{aj.subtitle}</p>
         </div>
         <Button variant="outline" size="sm" className="gap-1.5 self-start sm:self-auto" onClick={() => tab === 'pending' ? loadPending() : loadRecent()}>
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />重新載入
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />{aj.reload}
         </Button>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">
         {([
-          { key: 'pending', label: '待補建傳票' },
-          { key: 'recent', label: '近期自動傳票' },
-          { key: 'rules', label: '科目規則' },
+          { key: 'pending', label: aj.tabPending },
+          { key: 'recent', label: aj.tabRecent },
+          { key: 'rules', label: aj.tabRules },
         ] as { key: TabKey; label: string }[]).map(t => (
           <button
             key={t.key}
@@ -195,7 +196,7 @@ export default function AutoJournalPage() {
               onClick={() => postSelected('ALL')}
             >
               <Zap size={14} />
-              {posting === 'all' ? '建立中…' : `全部補建傳票（${allPending.length} 筆）`}
+              {posting === 'all' ? aj.buildingAll : `${aj.buildAll}（${allPending.length} ${dict.common.items}）`}
             </Button>
             {selected.size > 0 && (
               <Button
@@ -211,17 +212,17 @@ export default function AutoJournalPage() {
                 }}
               >
                 <PlayCircle size={14} />
-                補建已選（{selected.size} 筆）
+                {aj.buildSelected}（{selected.size} {dict.common.items}）
               </Button>
             )}
           </div>
 
-          {loading && <div className="py-8 text-center text-gray-400">載入中…</div>}
+          {loading && <div className="py-8 text-center text-gray-400">{dict.common.loading}</div>}
 
           {/* Sales Orders */}
           {!loading && pending && pending.salesOrders.length > 0 && (
             <Section
-              title="銷售訂單"
+              title={aj.salesOrdersTitle}
               icon={FileText}
               items={pending.salesOrders}
               selected={selected}
@@ -233,13 +234,19 @@ export default function AutoJournalPage() {
               onPost={id => postSelected('SalesOrder', [id])}
               posting={posting}
               fmt={fmt}
+              buildActionLabel={aj.buildAction}
+              colDocNo={aj.colDocNo}
+              colParty={aj.colParty}
+              colAmount={dict.common.amount}
+              colStatus={dict.common.status}
+              colDate={dict.common.date}
             />
           )}
 
           {/* Purchase Orders */}
           {!loading && pending && pending.purchaseOrders.length > 0 && (
             <Section
-              title="採購訂單"
+              title={aj.purchaseOrdersTitle}
               icon={ShoppingBag}
               items={pending.purchaseOrders}
               selected={selected}
@@ -251,13 +258,19 @@ export default function AutoJournalPage() {
               onPost={id => postSelected('PurchaseOrder', [id])}
               posting={posting}
               fmt={fmt}
+              buildActionLabel={aj.buildAction}
+              colDocNo={aj.colDocNo}
+              colParty={aj.colParty}
+              colAmount={dict.common.amount}
+              colStatus={dict.common.status}
+              colDate={dict.common.date}
             />
           )}
 
           {!loading && pending && allPending.length === 0 && (
             <div className="py-16 text-center text-gray-400">
               <CheckCircle2 size={40} className="mx-auto mb-3 text-green-400" />
-              <p className="font-medium">所有文件均已建立傳票</p>
+              <p className="font-medium">{aj.noEntries}</p>
             </div>
           )}
         </div>
@@ -269,20 +282,20 @@ export default function AutoJournalPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">傳票號</th>
-                <th className="px-4 py-3 text-left">日期</th>
-                <th className="px-4 py-3 text-left">摘要</th>
-                <th className="px-4 py-3 text-left">來源類型</th>
-                <th className="px-4 py-3 text-right">借方合計</th>
-                <th className="px-4 py-3 text-right">貸方合計</th>
-                <th className="px-4 py-3 text-center">狀態</th>
+                <th className="px-4 py-3 text-left">{aj.colVoucherNo}</th>
+                <th className="px-4 py-3 text-left">{dict.common.date}</th>
+                <th className="px-4 py-3 text-left">{aj.colSummary}</th>
+                <th className="px-4 py-3 text-left">{aj.colSourceType}</th>
+                <th className="px-4 py-3 text-right">{aj.colDebitTotal}</th>
+                <th className="px-4 py-3 text-right">{aj.colCreditTotal}</th>
+                <th className="px-4 py-3 text-center">{dict.common.status}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="py-12 text-center text-gray-400">載入中…</td></tr>
+                <tr><td colSpan={7} className="py-12 text-center text-gray-400">{dict.common.loading}</td></tr>
               ) : recent.length === 0 ? (
-                <tr><td colSpan={7} className="py-12 text-center text-gray-400">無自動傳票</td></tr>
+                <tr><td colSpan={7} className="py-12 text-center text-gray-400">{aj.noAutoEntries}</td></tr>
               ) : recent.map(e => (
                 <tr key={e.id} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs">{e.entryNo}</td>
@@ -295,7 +308,7 @@ export default function AutoJournalPage() {
                   <td className="px-4 py-3 text-right tabular-nums">{fmt(Number(e.totalCredit))}</td>
                   <td className="px-4 py-3 text-center">
                     <Badge className={e.status === 'POSTED' ? 'bg-green-100 text-green-700 border-0' : 'bg-gray-100 text-gray-600 border-0'}>
-                      {e.status === 'POSTED' ? '已過帳' : e.status}
+                      {e.status === 'POSTED' ? aj.posted : e.status}
                     </Badge>
                   </td>
                 </tr>
@@ -308,7 +321,7 @@ export default function AutoJournalPage() {
       {/* ── Tab: Rules ── */}
       {tab === 'rules' && (
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">系統預設的自動分錄規則（依台灣會計實務）。稅率固定 5%，科目代碼可在傳票管理調整。</p>
+          <p className="text-sm text-gray-500">{aj.rulesDesc}</p>
           <div className="grid gap-3">
             {JOURNAL_RULES.map((r, i) => (
               <div key={i} className="border rounded-xl p-4 bg-white space-y-2">
@@ -318,14 +331,14 @@ export default function AutoJournalPage() {
                 </div>
                 <div className="grid sm:grid-cols-2 gap-1 text-xs">
                   <div className="bg-blue-50 rounded-lg p-2">
-                    <span className="font-semibold text-blue-700">借方（Dr）</span>
+                    <span className="font-semibold text-blue-700">{aj.debitLabel}</span>
                     <div className="mt-0.5 text-gray-700">{r.debit}</div>
-                    {r.cogDebit && <div className="mt-0.5 text-gray-500">＋ {r.cogDebit}（若有成本）</div>}
+                    {r.cogDebit && <div className="mt-0.5 text-gray-500">＋ {r.cogDebit}{aj.costNote}</div>}
                   </div>
                   <div className="bg-green-50 rounded-lg p-2">
-                    <span className="font-semibold text-green-700">貸方（Cr）</span>
+                    <span className="font-semibold text-green-700">{aj.creditLabel}</span>
                     <div className="mt-0.5 text-gray-700">{r.credit}</div>
-                    {r.cogCredit && <div className="mt-0.5 text-gray-500">＋ {r.cogCredit}（若有成本）</div>}
+                    {r.cogCredit && <div className="mt-0.5 text-gray-500">＋ {r.cogCredit}{aj.costNote}</div>}
                   </div>
                 </div>
               </div>
@@ -339,6 +352,7 @@ export default function AutoJournalPage() {
 
 function Section({
   title, icon: Icon, items, selected, onToggle, onPost, posting, fmt,
+  buildActionLabel, colDocNo, colParty, colAmount, colStatus, colDate,
 }: {
   title: string
   icon: React.ElementType
@@ -348,6 +362,12 @@ function Section({
   onPost: (id: string) => void
   posting: string | null
   fmt: (n: number) => string
+  buildActionLabel: string
+  colDocNo: string
+  colParty: string
+  colAmount: string
+  colStatus: string
+  colDate: string
 }) {
   return (
     <div className="rounded-xl border bg-white overflow-hidden">
@@ -360,11 +380,11 @@ function Section({
         <thead>
           <tr className="border-b text-xs text-gray-500">
             <th className="px-4 py-2 w-8"></th>
-            <th className="px-4 py-2 text-left">單號</th>
-            <th className="px-4 py-2 text-left">往來對象</th>
-            <th className="px-4 py-2 text-right">金額</th>
-            <th className="px-4 py-2 text-left">狀態</th>
-            <th className="px-4 py-2 text-center">日期</th>
+            <th className="px-4 py-2 text-left">{colDocNo}</th>
+            <th className="px-4 py-2 text-left">{colParty}</th>
+            <th className="px-4 py-2 text-right">{colAmount}</th>
+            <th className="px-4 py-2 text-left">{colStatus}</th>
+            <th className="px-4 py-2 text-center">{colDate}</th>
             <th className="px-4 py-2"></th>
           </tr>
         </thead>
@@ -396,7 +416,7 @@ function Section({
                   disabled={!!posting}
                   onClick={() => onPost(item.id)}
                 >
-                  <SkipForward size={11} />補建
+                  <SkipForward size={11} />{buildActionLabel}
                 </Button>
               </td>
             </tr>

@@ -65,35 +65,35 @@ export default function ReturnAnalysisPage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.returnAnalysis ?? '銷售退貨率分析'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">退貨率月度趨勢、高退貨品項/客戶、退貨原因分析</p>
+        <h1 className="text-2xl font-bold">{dict.returnAnalysis.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{dict.returnAnalysis.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">分析維度</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.returnAnalysis.dimLabel}</div>
           <Select value={view} onValueChange={v => { if (v) setView(v as ViewKey) }}>
             <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="monthly">月度趨勢</SelectItem>
-              <SelectItem value="product">品項分析</SelectItem>
-              <SelectItem value="customer">客戶分析</SelectItem>
-              <SelectItem value="reason">原因分析</SelectItem>
+              <SelectItem value="monthly">{dict.returnAnalysis.viewMonthly}</SelectItem>
+              <SelectItem value="product">{dict.returnAnalysis.viewProduct}</SelectItem>
+              <SelectItem value="customer">{dict.returnAnalysis.viewCustomer}</SelectItem>
+              <SelectItem value="reason">{dict.returnAnalysis.viewReason}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.returnAnalysis.periodFrom}</div>
           <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.returnAnalysis.periodTo}</div>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? dict.returnAnalysis.querying : dict.returnAnalysis.query}
         </Button>
       </div>
 
@@ -103,56 +103,56 @@ export default function ReturnAnalysisPage() {
           {monthly.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">期間退貨件數</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.returnAnalysis.totalReturns}</div>
                 <div className="text-2xl font-bold text-red-600">{totalReturns}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">退款總額</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.returnAnalysis.totalRefund}</div>
                 <div className="text-2xl font-bold text-red-600">{fmt(totalRefund)}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">平均退貨率</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.returnAnalysis.avgReturnRate}</div>
                 <div className="text-2xl font-bold">{avgReturnRate}%</div>
               </div>
             </div>
           )}
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">月度退貨率趨勢</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.returnAnalysis.monthlyRateTrend}</h3>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 'auto']} />
-                <Tooltip formatter={(v: unknown) => [`${v}%`, '退貨率']} />
-                <Line dataKey="returnRatePct" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name="退貨率" />
+                <Tooltip formatter={(v: unknown) => [`${v}%`, dict.returnAnalysis.lineReturnRate]} />
+                <Line dataKey="returnRatePct" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} name={dict.returnAnalysis.lineReturnRate} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">月度退款金額</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.returnAnalysis.monthlyRefundChart}</h3>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} />
                 <Tooltip formatter={tooltipFmt} />
-                <Bar dataKey="refundAmount" fill="#ef4444" name="退款金額" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="refundAmount" fill="#ef4444" name={dict.returnAnalysis.barRefundAmount} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">月份</th>
-                <th className="px-4 py-3 text-right">出貨筆數</th>
-                <th className="px-4 py-3 text-right">退貨件數</th>
-                <th className="px-4 py-3 text-right">退貨率</th>
-                <th className="px-4 py-3 text-right">退款金額</th>
-                <th className="px-4 py-3 text-right">退款率</th>
+                <th className="px-4 py-3 text-left">{dict.returnAnalysis.colMonth}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colSalesCount}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnCount}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnRate}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colRefund}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colRefundRate}</th>
               </tr></thead>
               <tbody>
                 {monthly.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">{dict.returnAnalysis.noData}</td></tr>
                 ) : monthly.map(row => (
                   <tr key={row.month} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono">{row.month}</td>
@@ -178,15 +178,15 @@ export default function ReturnAnalysisPage() {
         <div className="rounded-xl border bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-              <th className="px-4 py-3 text-left">品項</th>
-              <th className="px-4 py-3 text-right">銷售量</th>
-              <th className="px-4 py-3 text-right">退貨量</th>
-              <th className="px-4 py-3 text-right">退貨率</th>
-              <th className="px-4 py-3 text-right">退貨件數</th>
+              <th className="px-4 py-3 text-left">{dict.returnAnalysis.colProduct}</th>
+              <th className="px-4 py-3 text-right">{dict.returnAnalysis.colSalesQty}</th>
+              <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnQty}</th>
+              <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnRate}</th>
+              <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnCount}</th>
             </tr></thead>
             <tbody>
               {products.length === 0 ? (
-                <tr><td colSpan={5} className="py-8 text-center text-gray-400">無資料</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center text-gray-400">{dict.returnAnalysis.noData}</td></tr>
               ) : products.map(row => (
                 <tr key={row.productId} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3">
@@ -213,14 +213,14 @@ export default function ReturnAnalysisPage() {
         <div className="rounded-xl border bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-              <th className="px-4 py-3 text-left">客戶</th>
-              <th className="px-4 py-3 text-right">退貨件數</th>
-              <th className="px-4 py-3 text-right">退貨數量</th>
-              <th className="px-4 py-3 text-right">退款金額</th>
+              <th className="px-4 py-3 text-left">{dict.returnAnalysis.colCustomer}</th>
+              <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnCount}</th>
+              <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnQty}</th>
+              <th className="px-4 py-3 text-right">{dict.returnAnalysis.colRefund}</th>
             </tr></thead>
             <tbody>
               {customers.length === 0 ? (
-                <tr><td colSpan={4} className="py-8 text-center text-gray-400">無資料</td></tr>
+                <tr><td colSpan={4} className="py-8 text-center text-gray-400">{dict.returnAnalysis.noData}</td></tr>
               ) : customers.map(row => (
                 <tr key={row.customerId} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium">{row.name}</td>
@@ -238,7 +238,7 @@ export default function ReturnAnalysisPage() {
       {searched && view === 'reason' && (
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">退貨原因占比</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.returnAnalysis.reasonPieTitle}</h3>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie data={reasons} dataKey="count" nameKey="reason" outerRadius={100}
@@ -256,15 +256,15 @@ export default function ReturnAnalysisPage() {
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">原因</th>
-                <th className="px-4 py-3 text-right">件數</th>
-                <th className="px-4 py-3 text-right">數量</th>
-                <th className="px-4 py-3 text-right">退款</th>
-                <th className="px-4 py-3 text-right">占比</th>
+                <th className="px-4 py-3 text-left">{dict.returnAnalysis.colReason}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colReturnCount}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colQty}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colRefund}</th>
+                <th className="px-4 py-3 text-right">{dict.returnAnalysis.colSharePct}</th>
               </tr></thead>
               <tbody>
                 {reasons.length === 0 ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={5} className="py-8 text-center text-gray-400">{dict.returnAnalysis.noData}</td></tr>
                 ) : reasons.map((row, i) => (
                   <tr key={row.reason} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 flex items-center gap-2">
@@ -286,7 +286,7 @@ export default function ReturnAnalysisPage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <RotateCcw size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇維度與期間後按「查詢」</p>
+          <p>{dict.returnAnalysis.promptText}</p>
         </div>
       )}
     </div>

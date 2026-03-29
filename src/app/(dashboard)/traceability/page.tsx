@@ -69,7 +69,7 @@ function Dt({ label, value }: { label: string; value: React.ReactNode }) {
 // ── Page ────────────────────────────────────────────────────────────────────
 
 export default function TraceabilityPage() {
-  const { t } = useI18n()
+  const { dict } = useI18n()
   const [batch, setBatch] = useState('')
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<TraceData | null>(null)
@@ -89,12 +89,12 @@ export default function TraceabilityPage() {
   }
 
   const steps = [
-    { icon: Factory, label: '生產', active: !!data?.production },
-    { icon: Ship, label: '進口', active: !!data?.import },
-    { icon: Package, label: '倉儲', active: !!data?.warehouse },
-    { icon: ClipboardCheck, label: '品檢', active: !!data?.qc },
-    { icon: Truck, label: '配送', active: (data?.distribution?.length ?? 0) > 0 },
-    { icon: AlertTriangle, label: '異常', active: (data?.incidents?.length ?? 0) > 0 },
+    { icon: Factory, label: dict.traceability.stepProduction, active: !!data?.production },
+    { icon: Ship, label: dict.traceability.stepImport, active: !!data?.import },
+    { icon: Package, label: dict.traceability.stepWarehouse, active: !!data?.warehouse },
+    { icon: ClipboardCheck, label: dict.traceability.stepQC, active: !!data?.qc },
+    { icon: Truck, label: dict.traceability.stepDistribution, active: (data?.distribution?.length ?? 0) > 0 },
+    { icon: AlertTriangle, label: dict.traceability.stepIncident, active: (data?.incidents?.length ?? 0) > 0 },
   ]
 
   return (
@@ -104,7 +104,7 @@ export default function TraceabilityPage() {
         <CardContent className="pt-6">
           <div className="flex items-center gap-3 max-w-xl mx-auto">
             <Input
-              placeholder="輸入批號 (Batch No.)..."
+              placeholder={dict.traceability.searchPlaceholder}
               value={batch}
               onChange={e => setBatch(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && search()}
@@ -115,7 +115,7 @@ export default function TraceabilityPage() {
             </Button>
           </div>
           {notFound && (
-            <p className="text-center text-destructive mt-4 font-medium">未找到批次「{batch}」</p>
+            <p className="text-center text-destructive mt-4 font-medium">{dict.traceability.notFound}「{batch}」</p>
           )}
         </CardContent>
       </Card>
@@ -139,12 +139,12 @@ export default function TraceabilityPage() {
           {/* ── Production ───────────────────────────────────────── */}
           {data.production && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Factory className="h-4 w-4" /> 生產資訊</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Factory className="h-4 w-4" /> {dict.traceability.sectionProduction}</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Dt label="工廠" value={data.production.factoryName} />
-                <Dt label="國家" value={data.production.country} />
-                <Dt label="生產期間" value={`${data.production.startDate} ~ ${data.production.endDate}`} />
-                <Dt label="數量" value={data.production.quantity.toLocaleString()} />
+                <Dt label={dict.traceability.colFactory} value={data.production.factoryName} />
+                <Dt label={dict.traceability.colCountry} value={data.production.country} />
+                <Dt label={dict.traceability.colProductionPeriod} value={`${data.production.startDate} ~ ${data.production.endDate}`} />
+                <Dt label={dict.traceability.colQty} value={data.production.quantity.toLocaleString()} />
               </CardContent>
             </Card>
           )}
@@ -152,14 +152,14 @@ export default function TraceabilityPage() {
           {/* ── Import ───────────────────────────────────────────── */}
           {data.import && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Ship className="h-4 w-4" /> 進口資訊</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Ship className="h-4 w-4" /> {dict.traceability.sectionImport}</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Dt label="船名" value={data.import.vessel} />
-                <Dt label="櫃號" value={data.import.containerNo} />
-                <Dt label="裝貨港 → 卸貨港" value={`${data.import.portOfLoading} → ${data.import.portOfDischarge}`} />
-                <Dt label="ETD / ETA" value={`${data.import.etd} / ${data.import.eta}`} />
-                <Dt label="實際到港" value={data.import.actualArrival ?? '—'} />
-                <Dt label="通關狀態" value={<Badge variant="outline">{data.import.customsStatus}</Badge>} />
+                <Dt label={dict.traceability.colVesselName} value={data.import.vessel} />
+                <Dt label={dict.traceability.colContainer} value={data.import.containerNo} />
+                <Dt label={dict.traceability.colRoute} value={`${data.import.portOfLoading} → ${data.import.portOfDischarge}`} />
+                <Dt label={dict.traceability.colEtdEta} value={`${data.import.etd} / ${data.import.eta}`} />
+                <Dt label={dict.traceability.colActualArrival} value={data.import.actualArrival ?? '—'} />
+                <Dt label={dict.traceability.colCustomsStatus} value={<Badge variant="outline">{data.import.customsStatus}</Badge>} />
               </CardContent>
             </Card>
           )}
@@ -167,13 +167,13 @@ export default function TraceabilityPage() {
           {/* ── Warehouse ────────────────────────────────────────── */}
           {data.warehouse && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4" /> 倉儲資訊</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4" /> {dict.traceability.sectionWarehouse}</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Dt label="批號" value={data.warehouse.lotNumber} />
-                <Dt label="倉庫" value={data.warehouse.warehouse} />
-                <Dt label="數量" value={data.warehouse.quantity.toLocaleString()} />
-                <Dt label="製造 / 到期" value={`${data.warehouse.manufactureDate} / ${data.warehouse.expiryDate}`} />
-                <Dt label="狀態" value={<Badge variant={data.warehouse.status === 'AVAILABLE' ? 'default' : 'secondary'}>{data.warehouse.status}</Badge>} />
+                <Dt label={dict.traceability.colBatchNo} value={data.warehouse.lotNumber} />
+                <Dt label={dict.traceability.colWarehouse} value={data.warehouse.warehouse} />
+                <Dt label={dict.traceability.colQty} value={data.warehouse.quantity.toLocaleString()} />
+                <Dt label={dict.traceability.colMfgExpiry} value={`${data.warehouse.manufactureDate} / ${data.warehouse.expiryDate}`} />
+                <Dt label={dict.traceability.colStatus} value={<Badge variant={data.warehouse.status === 'AVAILABLE' ? 'default' : 'secondary'}>{data.warehouse.status}</Badge>} />
               </CardContent>
             </Card>
           )}
@@ -181,14 +181,14 @@ export default function TraceabilityPage() {
           {/* ── QC ───────────────────────────────────────────────── */}
           {data.qc && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><ClipboardCheck className="h-4 w-4" /> 品檢資訊</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><ClipboardCheck className="h-4 w-4" /> {dict.traceability.sectionQC}</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Dt label="品檢單號" value={data.qc.qcNumber} />
-                <Dt label="結果" value={
+                <Dt label={dict.traceability.colQcNo} value={data.qc.qcNumber} />
+                <Dt label={dict.traceability.colResult} value={
                   <Badge className={data.qc.result === 'PASS' ? 'bg-green-600' : 'bg-red-600'}>{data.qc.result}</Badge>
                 } />
-                <Dt label="抽樣數" value={data.qc.sampleSize} />
-                <Dt label="不良率" value={`${data.qc.defectRate}%`} />
+                <Dt label={dict.traceability.colSampleSize} value={data.qc.sampleSize} />
+                <Dt label={dict.traceability.colDefectRate} value={`${data.qc.defectRate}%`} />
               </CardContent>
             </Card>
           )}
@@ -196,9 +196,9 @@ export default function TraceabilityPage() {
           {/* ── Summary ──────────────────────────────────────────── */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: '受影響客戶', value: data.summary.affectedCustomers, icon: Hash },
-              { label: '配送總量', value: data.summary.totalQty.toLocaleString(), icon: Package },
-              { label: '出貨批次', value: data.summary.totalShipments, icon: Truck },
+              { label: dict.traceability.summaryAffectedCustomers, value: data.summary.affectedCustomers, icon: Hash },
+              { label: dict.traceability.summaryTotalQty, value: data.summary.totalQty.toLocaleString(), icon: Package },
+              { label: dict.traceability.summaryTotalShipments, value: data.summary.totalShipments, icon: Truck },
             ].map(s => (
               <Card key={s.label}>
                 <CardContent className="pt-4 flex items-center gap-3">
@@ -215,16 +215,16 @@ export default function TraceabilityPage() {
           {/* ── Distribution ─────────────────────────────────────── */}
           {data.distribution.length > 0 && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Truck className="h-4 w-4" /> 配送明細</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Truck className="h-4 w-4" /> {dict.traceability.sectionDistribution}</CardTitle></CardHeader>
               <CardContent className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-4">客戶</th>
-                      <th className="py-2 pr-4">訂單號</th>
-                      <th className="py-2 pr-4">出貨單號</th>
-                      <th className="py-2 pr-4">出貨日</th>
-                      <th className="py-2 text-right">數量</th>
+                      <th className="py-2 pr-4">{dict.traceability.colCustomer}</th>
+                      <th className="py-2 pr-4">{dict.traceability.colOrderNo}</th>
+                      <th className="py-2 pr-4">{dict.traceability.colShipmentNo}</th>
+                      <th className="py-2 pr-4">{dict.traceability.colShipDate}</th>
+                      <th className="py-2 text-right">{dict.traceability.colQty}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -246,7 +246,7 @@ export default function TraceabilityPage() {
           {/* ── Incidents ────────────────────────────────────────── */}
           {data.incidents.length > 0 && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-destructive" /> 相關客訴</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-destructive" /> {dict.traceability.sectionIncidents}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {data.incidents.map((inc, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">

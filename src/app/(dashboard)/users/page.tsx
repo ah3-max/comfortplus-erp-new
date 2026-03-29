@@ -25,69 +25,23 @@ type Role =
   | 'ECOMMERCE' | 'CS' | 'WAREHOUSE_MANAGER' | 'WAREHOUSE'
   | 'PROCUREMENT' | 'FINANCE'
 
-const roleConfig: Record<Role, { label: string; color: string }> = {
-  SUPER_ADMIN:       { label: '超級管理員', color: 'bg-red-100 text-red-700' },
-  GM:                { label: '總經理',     color: 'bg-purple-100 text-purple-700' },
-  SALES_MANAGER:     { label: '業務主管',   color: 'bg-violet-100 text-violet-700' },
-  SALES:             { label: '業務人員',   color: 'bg-blue-100 text-blue-700' },
-  CARE_SUPERVISOR:   { label: '照顧督導',   color: 'bg-pink-100 text-pink-700' },
-  ECOMMERCE:         { label: '電商營運',   color: 'bg-cyan-100 text-cyan-700' },
-  CS:                { label: '客服人員',   color: 'bg-teal-100 text-teal-700' },
-  WAREHOUSE_MANAGER: { label: '倉管主管',   color: 'bg-orange-100 text-orange-700' },
-  WAREHOUSE:         { label: '倉儲物流',   color: 'bg-amber-100 text-amber-700' },
-  PROCUREMENT:       { label: '採購人員',   color: 'bg-lime-100 text-lime-700' },
-  FINANCE:           { label: '財務人員',   color: 'bg-slate-100 text-slate-600' },
+const ROLE_COLORS: Record<Role, string> = {
+  SUPER_ADMIN:       'bg-red-100 text-red-700',
+  GM:                'bg-purple-100 text-purple-700',
+  SALES_MANAGER:     'bg-violet-100 text-violet-700',
+  SALES:             'bg-blue-100 text-blue-700',
+  CARE_SUPERVISOR:   'bg-pink-100 text-pink-700',
+  ECOMMERCE:         'bg-cyan-100 text-cyan-700',
+  CS:                'bg-teal-100 text-teal-700',
+  WAREHOUSE_MANAGER: 'bg-orange-100 text-orange-700',
+  WAREHOUSE:         'bg-amber-100 text-amber-700',
+  PROCUREMENT:       'bg-lime-100 text-lime-700',
+  FINANCE:           'bg-slate-100 text-slate-600',
 }
 const roles: Role[] = [
   'SUPER_ADMIN', 'GM', 'SALES_MANAGER', 'SALES', 'CARE_SUPERVISOR',
   'ECOMMERCE', 'CS', 'WAREHOUSE_MANAGER', 'WAREHOUSE',
   'PROCUREMENT', 'FINANCE',
-]
-
-// Module groups (same structure as sidebar)
-const MODULE_GROUPS = [
-  { label: '日常作業', modules: [
-    { key: 'dashboard',   label: '總覽' },
-    { key: 'dailyReport', label: '業務日報' },
-    { key: 'crm',         label: '追蹤中心' },
-    { key: 'calendar',    label: '行事曆' },
-  ]},
-  { label: '銷售業務', modules: [
-    { key: 'customers',   label: '客戶管理' },
-    { key: 'quotations',  label: '報價管理' },
-    { key: 'orders',      label: '訂單管理' },
-    { key: 'pipeline',    label: '銷售漏斗' },
-    { key: 'tasks',       label: '業務工作' },
-  ]},
-  { label: '商品庫存', modules: [
-    { key: 'products',    label: '商品管理' },
-    { key: 'inventory',   label: '庫存管理' },
-    { key: 'warehouses',  label: '倉庫管理' },
-  ]},
-  { label: '出貨物流', modules: [
-    { key: 'shipments',   label: '出貨管理' },
-    { key: 'logistics',   label: '物流商' },
-  ]},
-  { label: '採購生產', modules: [
-    { key: 'purchases',   label: '採購管理' },
-    { key: 'suppliers',   label: '供應商' },
-    { key: 'production',  label: 'OEM生產' },
-    { key: 'qc',          label: '品質檢驗' },
-    { key: 'packaging',   label: '包材管理' },
-    { key: 'seaFreight',  label: '海運追蹤' },
-  ]},
-  { label: '通路財務', modules: [
-    { key: 'channels',    label: '線上通路' },
-    { key: 'payments',    label: '收付款' },
-  ]},
-  { label: '服務', modules: [
-    { key: 'care',        label: '照顧督導' },
-  ]},
-  { label: '系統', modules: [
-    { key: 'reports',     label: '報表' },
-    { key: 'users',       label: '用戶管理' },
-    { key: 'settings',    label: '系統設定' },
-  ]},
 ]
 
 interface User {
@@ -111,8 +65,68 @@ type PageTab = 'users' | 'permissions'
 
 export default function UsersPage() {
   const { dict } = useI18n()
+  const up = dict.usersPage
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'SUPER_ADMIN' || session?.user?.role === 'GM'
+
+  const roleConfig: Record<Role, { label: string; color: string }> = {
+    SUPER_ADMIN:       { label: dict.roles.SUPER_ADMIN,       color: ROLE_COLORS.SUPER_ADMIN },
+    GM:                { label: dict.roles.GM,                color: ROLE_COLORS.GM },
+    SALES_MANAGER:     { label: dict.roles.SALES_MANAGER,     color: ROLE_COLORS.SALES_MANAGER },
+    SALES:             { label: dict.roles.SALES,             color: ROLE_COLORS.SALES },
+    CARE_SUPERVISOR:   { label: dict.roles.CARE_SUPERVISOR,   color: ROLE_COLORS.CARE_SUPERVISOR },
+    ECOMMERCE:         { label: dict.roles.ECOMMERCE,         color: ROLE_COLORS.ECOMMERCE },
+    CS:                { label: dict.roles.CS,                color: ROLE_COLORS.CS },
+    WAREHOUSE_MANAGER: { label: dict.roles.WAREHOUSE_MANAGER, color: ROLE_COLORS.WAREHOUSE_MANAGER },
+    WAREHOUSE:         { label: dict.roles.WAREHOUSE,         color: ROLE_COLORS.WAREHOUSE },
+    PROCUREMENT:       { label: dict.roles.PROCUREMENT,       color: ROLE_COLORS.PROCUREMENT },
+    FINANCE:           { label: dict.roles.FINANCE,           color: ROLE_COLORS.FINANCE },
+  }
+
+  const MODULE_GROUPS = [
+    { label: up.groupDaily, modules: [
+      { key: 'dashboard',   label: dict.nav.dashboard },
+      { key: 'dailyReport', label: dict.nav.dailyReport },
+      { key: 'crm',         label: dict.nav.crm },
+      { key: 'calendar',    label: dict.nav.calendar },
+    ]},
+    { label: up.groupSales, modules: [
+      { key: 'customers',   label: dict.nav.customers },
+      { key: 'quotations',  label: dict.nav.quotations },
+      { key: 'orders',      label: dict.nav.orders },
+      { key: 'pipeline',    label: dict.nav.pipeline },
+      { key: 'tasks',       label: dict.nav.tasks },
+    ]},
+    { label: up.groupInventory, modules: [
+      { key: 'products',    label: dict.nav.products },
+      { key: 'inventory',   label: dict.nav.inventory },
+      { key: 'warehouses',  label: dict.nav.warehouses },
+    ]},
+    { label: up.groupLogistics, modules: [
+      { key: 'shipments',   label: dict.nav.shipments },
+      { key: 'logistics',   label: dict.nav.logistics },
+    ]},
+    { label: up.groupProduction, modules: [
+      { key: 'purchases',   label: dict.nav.purchases },
+      { key: 'suppliers',   label: dict.nav.suppliers },
+      { key: 'production',  label: dict.nav.production },
+      { key: 'qc',          label: dict.nav.qc },
+      { key: 'packaging',   label: dict.nav.packaging },
+      { key: 'seaFreight',  label: dict.nav.seaFreight },
+    ]},
+    { label: up.groupFinance, modules: [
+      { key: 'channels',    label: dict.nav.channels },
+      { key: 'payments',    label: dict.nav.payments },
+    ]},
+    { label: up.groupService, modules: [
+      { key: 'care',        label: dict.nav.care },
+    ]},
+    { label: up.groupSystem, modules: [
+      { key: 'reports',     label: dict.nav.reports },
+      { key: 'users',       label: dict.nav.users },
+      { key: 'settings',    label: dict.nav.settings },
+    ]},
+  ]
 
   const [tab, setTab] = useState<PageTab>('users')
 
@@ -187,7 +201,7 @@ export default function UsersPage() {
       toast.error(dict.usersPage.cannotDisableSuperAdmin)
       return
     }
-    if (!confirm('確定停用此使用者帳號？此操作無法復原')) return
+    if (!confirm(up.disableConfirm)) return
     setDeletingUserId(u.id)
     try {
       const res = await fetch(`/api/users/${u.id}`, { method: 'DELETE' })
@@ -240,7 +254,7 @@ export default function UsersPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
         <ShieldCheck className="h-12 w-12 text-slate-300" />
-        <p className="text-muted-foreground">此頁面僅限管理員存取</p>
+        <p className="text-muted-foreground">{up.adminOnly}</p>
       </div>
     )
   }
@@ -266,12 +280,12 @@ export default function UsersPage() {
         <button onClick={() => setTab('users')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             tab === 'users' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          用戶列表
+          {up.tabUsers}
         </button>
         <button onClick={() => setTab('permissions')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${
             tab === 'permissions' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-          <ShieldCheck className="h-3.5 w-3.5" />模組權限設定
+          <ShieldCheck className="h-3.5 w-3.5" />{up.tabPermissions}
         </button>
       </div>
 
@@ -319,7 +333,7 @@ export default function UsersPage() {
                         <button
                           onClick={() => openEdit(u)}
                           className="rounded p-1 hover:bg-slate-100"
-                          title="編輯"
+                          title={dict.common.edit}
                         >
                           <Pencil className="h-4 w-4 text-muted-foreground" />
                         </button>
@@ -328,7 +342,7 @@ export default function UsersPage() {
                             onClick={() => handleDeleteUser(u)}
                             disabled={deletingUserId === u.id}
                             className="rounded p-1 hover:bg-red-50 disabled:opacity-50"
-                            title="停用帳號"
+                            title={up.disableConfirm}
                           >
                             {deletingUserId === u.id
                               ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -354,9 +368,9 @@ export default function UsersPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-blue-600" />
-                各角色可看到的側邊欄模組
+                {up.permissionsTitle}
               </CardTitle>
-              <p className="text-xs text-muted-foreground">打勾 = 該角色在側邊欄可以看到此模組。修改後請按「儲存權限」。</p>
+              <p className="text-xs text-muted-foreground">{up.permissionsHint}</p>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -364,7 +378,7 @@ export default function UsersPage() {
                   <thead>
                     <tr className="border-b bg-slate-50">
                       <th className="sticky left-0 bg-slate-50 z-10 px-4 py-2 text-left font-semibold text-slate-600 min-w-[140px]">
-                        模組
+                        {up.moduleColumn}
                       </th>
                       {permRoles.map(role => {
                         const rc = roleConfig[role as Role]
@@ -384,7 +398,7 @@ export default function UsersPage() {
                                 checked={allChecked}
                                 onChange={() => toggleRoleAll(role, !allChecked)}
                                 className="h-3 w-3 rounded border-slate-300 text-blue-600 cursor-pointer"
-                                title="全選/取消全選"
+                                title={dict.common.selectAll}
                               />
                             </div>
                           </th>
@@ -448,7 +462,7 @@ export default function UsersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>{dict.users.name} <span className="text-red-500">*</span></Label>
-                <Input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="王小明" required />
+                <Input value={form.name} onChange={(e) => set('name', e.target.value)} required />
               </div>
               <div className="space-y-1.5">
                 <Label>{dict.users.role} <span className="text-red-500">*</span></Label>
@@ -466,9 +480,9 @@ export default function UsersPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>{editTarget ? '新密碼（留空不變更）' : '密碼'} {!editTarget && <span className="text-red-500">*</span>}</Label>
+              <Label>{editTarget ? up.newPasswordLabel : up.passwordLabel} {!editTarget && <span className="text-red-500">*</span>}</Label>
               <Input type="password" value={form.password} onChange={(e) => set('password', e.target.value)}
-                placeholder={editTarget ? '留空不更改密碼' : '至少 8 個字元'} />
+                placeholder={editTarget ? up.passwordPlaceholder : up.newPasswordPlaceholder} />
             </div>
             {editTarget && (
               <>

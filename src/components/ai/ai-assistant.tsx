@@ -122,7 +122,7 @@ export function AiAssistant() {
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '連線失敗')
+        throw new Error(err.error ?? dict.ai.connectionFailedShort)
       }
 
       const data = await res.json()
@@ -139,7 +139,7 @@ export function AiAssistant() {
 
   async function runAnalysis(type: string) {
     setAnalyzing(type)
-    setMessages(prev => [...prev, { role: 'user', content: `請幫我做${ANALYSES.find(a => a.key === type)?.label}` }])
+    setMessages(prev => [...prev, { role: 'user', content: `${dict.ai.runAnalysisPrefix}${ANALYSES.find(a => a.key === type)?.label}` }])
 
     try {
       const res = await fetch('/api/ai/analyze', {
@@ -150,7 +150,7 @@ export function AiAssistant() {
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '分析失敗')
+        throw new Error(err.error ?? dict.ai.analysisFailed)
       }
 
       const data = await res.json()
@@ -158,7 +158,7 @@ export function AiAssistant() {
     } catch (e) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `分析錯誤：${(e as Error).message}`,
+        content: `${dict.ai.analysisError}：${(e as Error).message}`,
       }])
     } finally {
       setAnalyzing(null)
@@ -249,10 +249,10 @@ export function AiAssistant() {
                   <p className="text-xs font-medium text-muted-foreground px-1">{dict.ai.quickCommands}</p>
                   <div className="space-y-1.5">
                     {[
-                      { text: '今天還有哪些地方要送貨？', emoji: '🚚' },
-                      { text: '庫存盤點狀況', emoji: '📦' },
-                      { text: '這個月的營收趨勢如何？', emoji: '📊' },
-                      { text: '哪些客戶快要流失了？', emoji: '👥' },
+                      { text: dict.ai.quickCmd1, emoji: '🚚' },
+                      { text: dict.ai.quickCmd2, emoji: '📦' },
+                      { text: dict.ai.quickCmd3, emoji: '📊' },
+                      { text: dict.ai.quickCmd4, emoji: '👥' },
                     ].map(q => (
                       <button
                         key={q.text}

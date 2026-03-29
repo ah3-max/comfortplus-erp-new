@@ -79,23 +79,23 @@ export function SalesManagerDashboard() {
           </div>
           <div className="text-right">
             <p className="text-indigo-200 text-sm">{dict.roleDashboard.teamMembers}</p>
-            <p className="text-2xl font-bold">{team.memberCount} <span className="text-lg text-indigo-200">人</span></p>
-            <p className="text-indigo-300 text-xs">{month.orders} 筆訂單</p>
+            <p className="text-2xl font-bold">{team.memberCount}</p>
+            <p className="text-indigo-300 text-xs">{month.orders} {dict.roleDashboard.orderCountUnit}</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3 border-t border-indigo-500 pt-3">
           <div>
             <p className="text-indigo-200 text-xs">{dict.roleDashboard.todayRevenue}</p>
             <p className="text-lg font-semibold">{fmt(today.revenue)}</p>
-            <p className="text-indigo-300 text-xs">{today.orders} 筆訂單</p>
+            <p className="text-indigo-300 text-xs">{today.orders} {dict.roleDashboard.orderCountUnit}</p>
           </div>
           <div>
-            <p className="text-indigo-200 text-xs">團隊拜訪</p>
+            <p className="text-indigo-200 text-xs">{dict.roleDashboard.teamVisits}</p>
             <p className="text-lg font-semibold">{activity.visits}</p>
             <p className="text-indigo-300 text-xs">{dict.roleDashboard.monthAccum}</p>
           </div>
           <div>
-            <p className="text-indigo-200 text-xs">團隊電訪</p>
+            <p className="text-indigo-200 text-xs">{dict.roleDashboard.teamCalls}</p>
             <p className="text-lg font-semibold">{activity.calls}</p>
             <p className="text-indigo-300 text-xs">{dict.roleDashboard.monthAccum}</p>
           </div>
@@ -104,11 +104,11 @@ export function SalesManagerDashboard() {
 
       {/* ── Quick Actions ── */}
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-        <QuickAction label="指派任務" href="/tasks?action=new" icon={ListTodo} color="bg-rose-600" />
-        <QuickAction label="快速下單" href="/orders?action=new" icon={ShoppingCart} color="bg-emerald-600" />
-        <QuickAction label="新增客戶" href="/customers?action=new" icon={Users} color="bg-cyan-600" />
-        <QuickAction label="新增報價" href="/quotations?action=new" icon={Plus} color="bg-blue-600" />
-        <QuickAction label="拜訪紀錄" href="/quick-input" icon={MapPin} color="bg-violet-600" />
+        <QuickAction label={dict.roleDashboard.assignTask} href="/tasks?action=new" icon={ListTodo} color="bg-rose-600" />
+        <QuickAction label={dict.roleDashboard.quickPlaceOrder} href="/orders?action=new" icon={ShoppingCart} color="bg-emerald-600" />
+        <QuickAction label={dict.roleDashboard.newCustomerBtn} href="/customers?action=new" icon={Users} color="bg-cyan-600" />
+        <QuickAction label={dict.roleDashboard.newQuotationBtn} href="/quotations?action=new" icon={Plus} color="bg-blue-600" />
+        <QuickAction label={dict.roleDashboard.visitLogBtn} href="/quick-input" icon={MapPin} color="bg-violet-600" />
       </div>
 
       {/* ── Team KPI Target ── */}
@@ -168,7 +168,7 @@ export function SalesManagerDashboard() {
       {/* ── Pending Approvals + Customer Health ── */}
       {(pendingTotal > 0 || customerHealth.unvisitedCount > 0) && (
         <div className="space-y-2">
-          <SectionHeader title="需要處理" icon={AlertTriangle} iconColor="text-amber-500" />
+          <SectionHeader title={dict.roleDashboard.needsAttention} icon={AlertTriangle} iconColor="text-amber-500" />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {pending.quotations > 0 && (
               <Link href="/quotations?status=PENDING_APPROVAL"
@@ -213,14 +213,14 @@ export function SalesManagerDashboard() {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{dict.roleDashboard.monthQuotes}</span>
-                <span className="font-bold">{funnel.quotes} 份</span>
+                <span className="font-bold">{funnel.quotes}</span>
               </div>
               <div className="h-3 rounded-full bg-slate-100">
                 <div className="h-3 rounded-full bg-indigo-500" style={{ width: '100%' }} />
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{dict.roleDashboard.converted}</span>
-                <span className="font-bold text-green-600">{funnel.converted} 份</span>
+                <span className="font-bold text-green-600">{funnel.converted}</span>
               </div>
               <div className="h-3 rounded-full bg-slate-100">
                 <div className="h-3 rounded-full bg-green-500" style={{ width: `${funnel.conversionRate}%` }} />
@@ -237,7 +237,7 @@ export function SalesManagerDashboard() {
             items={salesRanking.map(s => ({
               label: s.name,
               value: fmt(s.revenue),
-              sub: `${s.orders} 筆`,
+              sub: `${s.orders} ${dict.roleDashboard.orderUnit}`,
               revenue: s.revenue,
             }))}
             color="bg-indigo-500"
@@ -273,7 +273,7 @@ export function SalesManagerDashboard() {
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-bold">{fmt(memberSales?.revenue ?? 0)}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">{memberSales?.orders ?? 0} 筆</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{memberSales?.orders ?? 0} {dict.roleDashboard.orderUnit}</span>
                   </div>
                 </div>
               )

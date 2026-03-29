@@ -78,34 +78,34 @@ export default function GrossMarginPage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.grossMargin ?? '毛利分析'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">月度毛利趨勢、客戶毛利貢獻、品項毛利率分析</p>
+        <h1 className="text-2xl font-bold">{dict.grossMargin.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{dict.grossMargin.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">分析維度</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.grossMargin.dimLabel}</div>
           <Select value={view} onValueChange={v => { if (v) setView(v as ViewKey) }}>
             <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="monthly">月度趨勢</SelectItem>
-              <SelectItem value="customer">客戶分析</SelectItem>
-              <SelectItem value="product">品項分析</SelectItem>
+              <SelectItem value="monthly">{dict.grossMargin.viewMonthly}</SelectItem>
+              <SelectItem value="customer">{dict.grossMargin.viewCustomer}</SelectItem>
+              <SelectItem value="product">{dict.grossMargin.viewProduct}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.grossMargin.periodFrom}</div>
           <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.grossMargin.periodTo}</div>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? dict.grossMargin.querying : dict.grossMargin.query}
         </Button>
       </div>
 
@@ -116,15 +116,15 @@ export default function GrossMarginPage() {
           {monthly.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">期間銷售額</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.grossMargin.periodRevenue}</div>
                 <div className="text-xl font-bold">{fmt(totalRevenue)}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">期間毛利額</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.grossMargin.periodGP}</div>
                 <div className="text-xl font-bold text-emerald-600">{fmt(totalGP)}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">平均毛利率</div>
+                <div className="text-xs text-gray-400 mb-1">{dict.grossMargin.avgMarginPct}</div>
                 <div className="text-xl font-bold">{avgMarginPct}%</div>
               </div>
             </div>
@@ -132,7 +132,7 @@ export default function GrossMarginPage() {
 
           {/* Stacked bar: revenue + COGS */}
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">月度銷售額 vs 毛利額</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.grossMargin.revenueVsGPChart}</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -140,22 +140,22 @@ export default function GrossMarginPage() {
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} />
                 <Tooltip formatter={tooltipFmt} />
                 <Legend />
-                <Bar dataKey="revenue" fill="#93c5fd" name="銷售額" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="grossProfit" fill="#10b981" name="毛利額" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="revenue" fill="#93c5fd" name={dict.grossMargin.barRevenue} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="grossProfit" fill="#10b981" name={dict.grossMargin.barGrossProfit} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           {/* Margin % line chart */}
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">月度毛利率趨勢</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.grossMargin.marginTrendChart}</h3>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} domain={[0, 100]} />
-                <Tooltip formatter={(v: unknown) => [`${v}%`, '毛利率']} />
-                <Line dataKey="grossMarginPct" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} name="毛利率" />
+                <Tooltip formatter={(v: unknown) => [`${v}%`, dict.grossMargin.tooltipMarginPct]} />
+                <Line dataKey="grossMarginPct" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} name={dict.grossMargin.tooltipMarginPct} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -164,16 +164,16 @@ export default function GrossMarginPage() {
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">月份</th>
-                <th className="px-4 py-3 text-right">訂單數</th>
-                <th className="px-4 py-3 text-right">銷售額</th>
-                <th className="px-4 py-3 text-right">銷貨成本</th>
-                <th className="px-4 py-3 text-right">毛利額</th>
-                <th className="px-4 py-3 text-left">毛利率</th>
+                <th className="px-4 py-3 text-left">{dict.grossMargin.colMonth}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colOrderCount}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colRevenue}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colCogs}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colGP}</th>
+                <th className="px-4 py-3 text-left">{dict.grossMargin.colMarginPct}</th>
               </tr></thead>
               <tbody>
                 {monthly.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">{dict.grossMargin.noData}</td></tr>
                 ) : monthly.map(row => (
                   <tr key={row.month} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono">{row.month}</td>
@@ -195,15 +195,15 @@ export default function GrossMarginPage() {
         <div className="rounded-xl border bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-              <th className="px-4 py-3 text-left">客戶</th>
-              <th className="px-4 py-3 text-right">訂單數</th>
-              <th className="px-4 py-3 text-right">銷售額</th>
-              <th className="px-4 py-3 text-right">毛利額</th>
-              <th className="px-4 py-3 text-left w-40">毛利率</th>
+              <th className="px-4 py-3 text-left">{dict.grossMargin.colCustomer}</th>
+              <th className="px-4 py-3 text-right">{dict.grossMargin.colOrderCount}</th>
+              <th className="px-4 py-3 text-right">{dict.grossMargin.colRevenue}</th>
+              <th className="px-4 py-3 text-right">{dict.grossMargin.colGP}</th>
+              <th className="px-4 py-3 text-left w-40">{dict.grossMargin.colMarginPct}</th>
             </tr></thead>
             <tbody>
               {customers.length === 0 ? (
-                <tr><td colSpan={5} className="py-8 text-center text-gray-400">無資料</td></tr>
+                <tr><td colSpan={5} className="py-8 text-center text-gray-400">{dict.grossMargin.noData}</td></tr>
               ) : customers.map(row => (
                 <tr key={row.customerId} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="px-4 py-3">
@@ -225,30 +225,30 @@ export default function GrossMarginPage() {
       {searched && view === 'product' && (
         <div className="space-y-4">
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">品項毛利率排行</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.grossMargin.productRankChart}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={products.slice(0, 15)} layout="vertical" margin={{ left: 140, right: 40, top: 4, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `${v}%`} domain={[0, 100]} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} />
-                <Tooltip formatter={(v: unknown) => [`${v}%`, '毛利率']} />
-                <Bar dataKey="grossMarginPct" fill="#8b5cf6" name="毛利率" radius={[0, 3, 3, 0]} />
+                <Tooltip formatter={(v: unknown) => [`${v}%`, dict.grossMargin.tooltipMarginPct]} />
+                <Bar dataKey="grossMarginPct" fill="#8b5cf6" name={dict.grossMargin.tooltipMarginPct} radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">品項</th>
-                <th className="px-4 py-3 text-right">銷售量</th>
-                <th className="px-4 py-3 text-right">銷售額</th>
-                <th className="px-4 py-3 text-right">毛利額</th>
-                <th className="px-4 py-3 text-left w-40">毛利率</th>
-                <th className="px-4 py-3 text-right">訂單數</th>
+                <th className="px-4 py-3 text-left">{dict.grossMargin.colProduct}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colQty}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colRevenue}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colGP}</th>
+                <th className="px-4 py-3 text-left w-40">{dict.grossMargin.colMarginPct}</th>
+                <th className="px-4 py-3 text-right">{dict.grossMargin.colOrderCount}</th>
               </tr></thead>
               <tbody>
                 {products.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">{dict.grossMargin.noData}</td></tr>
                 ) : products.map(row => (
                   <tr key={row.productId} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3">
@@ -271,7 +271,7 @@ export default function GrossMarginPage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <DollarSign size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇維度與期間後按「查詢」</p>
+          <p>{dict.grossMargin.promptText}</p>
         </div>
       )}
     </div>

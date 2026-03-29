@@ -10,6 +10,7 @@ import { Loader2, Plus, Trash2, Search, ChevronDown, ChevronUp } from 'lucide-re
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
+// Static export for backward compat
 export const purchaseTypeOptions = [
   { value: 'FINISHED_GOODS',     label: '成品採購' },
   { value: 'OEM',                label: 'OEM代工採購' },
@@ -35,7 +36,6 @@ interface PurchaseOrder {
   specVersion?: string | null; taxRate?: string | null; taxAmount?: string | null
   inspectionCriteria?: string | null; warehouse?: string | null; projectNo?: string | null
   expectedDate: string | null; notes: string | null; items: PurchaseItem[]
-  // OEM
   oemProjectNo?: string | null; factory?: string | null
   sampleVersion?: string | null; packagingVersion?: string | null; productionBatch?: string | null
   inspectionRequirements?: string | null; shippingLabelRequirements?: string | null; customNotes?: string | null
@@ -52,7 +52,17 @@ const emptyItem = (): LineItem => ({
 
 export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
   const { dict } = useI18n()
+  const fl = dict.formLabels
   const isEdit = !!order
+
+  const purchaseTypeOptionsI18n = [
+    { value: 'FINISHED_GOODS',     label: fl.ptFinishedGoods },
+    { value: 'OEM',                label: fl.ptOem },
+    { value: 'PACKAGING',          label: fl.ptPackaging },
+    { value: 'RAW_MATERIAL',       label: fl.ptRawMaterial },
+    { value: 'GIFT_PROMO',         label: fl.ptGiftPromo },
+    { value: 'LOGISTICS_SUPPLIES', label: fl.ptLogisticsSupplies },
+  ]
 
   const [supplierId, setSupplierId]               = useState('')
   const [supplierSearch, setSupplierSearch]       = useState('')
@@ -69,15 +79,14 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
   const [expectedDate, setExpectedDate]           = useState('')
   const [notes, setNotes]                         = useState('')
   const [showAdvanced, setShowAdvanced]           = useState(false)
-  // OEM fields
-  const [oemProjectNo, setOemProjectNo]                       = useState('')
-  const [factory, setFactory]                                 = useState('')
-  const [sampleVersion, setSampleVersion]                     = useState('')
-  const [packagingVersion, setPackagingVersion]               = useState('')
-  const [productionBatch, setProductionBatch]                 = useState('')
-  const [inspectionReq, setInspectionReq]                     = useState('')
-  const [shippingLabelReq, setShippingLabelReq]               = useState('')
-  const [customNotes, setCustomNotes]                         = useState('')
+  const [oemProjectNo, setOemProjectNo]           = useState('')
+  const [factory, setFactory]                     = useState('')
+  const [sampleVersion, setSampleVersion]         = useState('')
+  const [packagingVersion, setPackagingVersion]   = useState('')
+  const [productionBatch, setProductionBatch]     = useState('')
+  const [inspectionReq, setInspectionReq]         = useState('')
+  const [shippingLabelReq, setShippingLabelReq]   = useState('')
+  const [customNotes, setCustomNotes]             = useState('')
 
   const [products, setProducts]                   = useState<Product[]>([])
   const [productSearch, setProductSearch]         = useState('')
@@ -96,7 +105,6 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
     setCustomNotes(o?.customNotes ?? '')
   }
 
-  // 開關重置
   useEffect(() => {
     if (!open) {
       setSupplierId(''); setSupplierSearch(''); setSelectedSupplier(null)
@@ -205,7 +213,6 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
         projectNo:          projectNo          || null,
         expectedDate:       expectedDate       || null,
         notes:              notes              || null,
-        // OEM
         oemProjectNo:              oemProjectNo    || null,
         factory:                   factory         || null,
         sampleVersion:             sampleVersion   || null,
@@ -231,14 +238,14 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? '編輯採購單' : '新增採購單'}</DialogTitle>
+          <DialogTitle>{isEdit ? fl.editPurchase : fl.newPurchase}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
 
           {/* 供應商 + 採購類型 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>供應商 <span className="text-red-500">*</span></Label>
+              <Label>{fl.supplierLabel}</Label>
               {selectedSupplier ? (
                 <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2">
                   <div>
@@ -246,12 +253,12 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
                     <span className="ml-2 text-xs text-muted-foreground">{selectedSupplier.code}</span>
                   </div>
                   <button type="button" onClick={() => { setSelectedSupplier(null); setSupplierId('') }}
-                    className="text-xs text-muted-foreground hover:text-foreground">更換</button>
+                    className="text-xs text-muted-foreground hover:text-foreground">{fl.changeSupplier}</button>
                 </div>
               ) : (
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="搜尋供應商..."
+                  <Input className="pl-9" placeholder={fl.searchSupplierPlaceholder}
                     value={supplierSearch}
                     onChange={(e) => { setSupplierSearch(e.target.value); setShowSupplierList(true) }}
                     onFocus={() => setShowSupplierList(true)} />
@@ -271,10 +278,10 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>採購類型</Label>
+              <Label>{fl.purchaseType}</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={orderType} onChange={(e) => setOrderType(e.target.value)}>
-                {purchaseTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                {purchaseTypeOptionsI18n.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
           </div>
@@ -282,36 +289,36 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
           {/* 日期 + 專案 */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <Label>預計到貨/交期</Label>
+              <Label>{fl.expectedDeliveryDate}</Label>
               <Input type="date" value={expectedDate}
                 onChange={(e) => setExpectedDate(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label>收貨倉庫</Label>
-              <Input value={warehouse} onChange={(e) => setWarehouse(e.target.value)} placeholder="主倉 / 台北倉..." />
+              <Label>{fl.warehouse}</Label>
+              <Input value={warehouse} onChange={(e) => setWarehouse(e.target.value)} placeholder={fl.warehousePlaceholder} />
             </div>
             <div className="space-y-1.5">
-              <Label>專案號</Label>
+              <Label>{fl.projectNo}</Label>
               <Input value={projectNo} onChange={(e) => setProjectNo(e.target.value)} placeholder="PROJECT-2026-001" />
             </div>
           </div>
 
-          {/* 進階欄位 (折疊) */}
+          {/* 進階欄位 */}
           <div className="rounded-lg border border-slate-200">
             <button type="button"
               onClick={() => setShowAdvanced(p => !p)}
               className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg">
-              <span>進階欄位（規格版本、稅額、驗收標準）</span>
+              <span>{fl.advancedFields}</span>
               {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
             {showAdvanced && (
               <div className="border-t px-4 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>規格版本</Label>
+                  <Label>{fl.specVersion}</Label>
                   <Input value={specVersion} onChange={(e) => setSpecVersion(e.target.value)} placeholder="v1.0 / Rev.A..." />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>稅率（%）</Label>
+                  <Label>{fl.taxRate}</Label>
                   <div className="relative">
                     <Input type="number" value={taxRate} onChange={(e) => setTaxRate(e.target.value)}
                       placeholder="0" min={0} max={100} step={0.01} className="pr-8" />
@@ -319,10 +326,10 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
                   </div>
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <Label>驗收標準</Label>
+                  <Label>{fl.inspectionCriteria}</Label>
                   <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     rows={2} value={inspectionCriteria} onChange={(e) => setInspectionCriteria(e.target.value)}
-                    placeholder="外觀檢驗、尺寸規格、功能測試要求..." />
+                    placeholder={fl.inspectionCriteriaPlaceholder} />
                 </div>
               </div>
             )}
@@ -331,45 +338,45 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
           {/* OEM 專屬欄位 */}
           {orderType === 'OEM' && (
             <div className="rounded-lg border border-orange-200 bg-orange-50/40 p-4 space-y-4">
-              <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">OEM 代工資訊</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">{fl.oemInfo}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>OEM 專案號</Label>
+                  <Label>{fl.oemProjectNo}</Label>
                   <Input value={oemProjectNo} onChange={e => setOemProjectNo(e.target.value)} placeholder="OEM-2026-001" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>對應工廠</Label>
-                  <Input value={factory} onChange={e => setFactory(e.target.value)} placeholder="工廠名稱" />
+                  <Label>{fl.factory}</Label>
+                  <Input value={factory} onChange={e => setFactory(e.target.value)} placeholder={fl.factoryPlaceholder} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>打樣版本</Label>
+                  <Label>{fl.sampleVersion}</Label>
                   <Input value={sampleVersion} onChange={e => setSampleVersion(e.target.value)} placeholder="S1 / S2 / Rev.A..." />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>包材版本</Label>
+                  <Label>{fl.packagingVersion}</Label>
                   <Input value={packagingVersion} onChange={e => setPackagingVersion(e.target.value)} placeholder="PKG-v1.0 / v2..." />
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <Label>生產批次</Label>
+                  <Label>{fl.productionBatch}</Label>
                   <Input value={productionBatch} onChange={e => setProductionBatch(e.target.value)} placeholder="BATCH-2026-03-A" />
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <Label>驗貨要求</Label>
+                  <Label>{fl.inspectionReq}</Label>
                   <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     rows={2} value={inspectionReq} onChange={e => setInspectionReq(e.target.value)}
-                    placeholder="外觀抽樣比例、功能測試項目、AQL標準..." />
+                    placeholder={fl.inspectionReqPlaceholder} />
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <Label>出貨標籤要求</Label>
+                  <Label>{fl.shippingLabelReq}</Label>
                   <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     rows={2} value={shippingLabelReq} onChange={e => setShippingLabelReq(e.target.value)}
-                    placeholder="標籤規格、條碼型式、中文標示要求..." />
+                    placeholder={fl.shippingLabelReqPlaceholder} />
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <Label>客製備註</Label>
+                  <Label>{fl.customNotes}</Label>
                   <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     rows={2} value={customNotes} onChange={e => setCustomNotes(e.target.value)}
-                    placeholder="特殊要求、客戶指定事項..." />
+                    placeholder={fl.customNotesPlaceholder} />
                 </div>
               </div>
             </div>
@@ -380,10 +387,10 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
           {/* 商品明細 */}
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">採購明細</p>
+              <p className="text-sm font-medium text-muted-foreground">{fl.purchaseItems}</p>
               <Button type="button" variant="outline" size="sm"
                 onClick={() => setItems(p => [...p, emptyItem()])}>
-                <Plus className="mr-1 h-3.5 w-3.5" />新增明細
+                <Plus className="mr-1 h-3.5 w-3.5" />{fl.addItem}
               </Button>
             </div>
 
@@ -391,11 +398,11 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
               <div className="mb-3 rounded-lg border bg-slate-50 p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input className="h-8 bg-white" placeholder="搜尋商品名稱或 SKU..."
+                  <Input className="h-8 bg-white" placeholder={fl.searchProductPlaceholder}
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)} autoFocus />
                   <button type="button" onClick={() => { setActiveItemIndex(null); setProductSearch('') }}
-                    className="text-xs text-muted-foreground hover:text-foreground shrink-0">關閉</button>
+                    className="text-xs text-muted-foreground hover:text-foreground shrink-0">{fl.close}</button>
                 </div>
                 <div className="max-h-48 overflow-y-auto space-y-1">
                   {products.slice(0, 10).map(p => (
@@ -418,10 +425,10 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium text-muted-foreground w-8">#</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">商品</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-24">採購數量</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">採購單價</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">小計</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">{fl.product}</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-24">{fl.purchaseQty}</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">{fl.purchaseUnitCost}</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">{fl.subtotal}</th>
                     <th className="px-3 py-2 w-8" />
                   </tr>
                 </thead>
@@ -440,7 +447,7 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
                           </div>
                         ) : (
                           <button type="button" onClick={() => setActiveItemIndex(idx)}
-                            className="text-blue-600 hover:text-blue-700 text-sm">+ 選擇商品</button>
+                            className="text-blue-600 hover:text-blue-700 text-sm">{fl.selectProduct}</button>
                         )}
                       </td>
                       <td className="px-3 py-2">
@@ -468,19 +475,19 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
                   {taxRate && Number(taxRate) > 0 && (
                     <>
                       <tr>
-                        <td colSpan={4} className="px-3 py-1.5 text-right text-xs text-muted-foreground">小計</td>
+                        <td colSpan={4} className="px-3 py-1.5 text-right text-xs text-muted-foreground">{fl.subtotal}</td>
                         <td className="px-3 py-1.5 text-right text-sm">{fmt(itemsTotal)}</td>
                         <td />
                       </tr>
                       <tr>
-                        <td colSpan={4} className="px-3 py-1.5 text-right text-xs text-muted-foreground">稅額 ({taxRate}%)</td>
+                        <td colSpan={4} className="px-3 py-1.5 text-right text-xs text-muted-foreground">{fl.taxLabel} ({taxRate}%)</td>
                         <td className="px-3 py-1.5 text-right text-sm">{fmt(taxAmount)}</td>
                         <td />
                       </tr>
                     </>
                   )}
                   <tr>
-                    <td colSpan={4} className="px-3 py-2.5 text-right font-medium text-sm">採購總額</td>
+                    <td colSpan={4} className="px-3 py-2.5 text-right font-medium text-sm">{fl.purchaseTotal}</td>
                     <td className="px-3 py-2.5 text-right font-bold text-base">{fmt(totalAmount)}</td>
                     <td />
                   </tr>
@@ -492,16 +499,16 @@ export function PurchaseForm({ open, onClose, onSuccess, order }: Props) {
           <Separator />
 
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{fl.notes}</Label>
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="採購備註..." />
+              rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={fl.purchaseNotesPlaceholder} />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>取消</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>{fl.cancel}</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? '儲存變更' : '建立採購單'}
+              {isEdit ? fl.saveChanges : fl.createPurchase}
             </Button>
           </DialogFooter>
         </form>

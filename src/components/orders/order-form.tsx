@@ -55,6 +55,7 @@ const emptyItem = (): LineItem => ({
 
 export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
   const { dict } = useI18n()
+  const fl = dict.formLabels
   const isEdit = !!order
 
   const [customerId, setCustomerId] = useState(order?.customerId ?? '')
@@ -187,13 +188,13 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? '編輯訂單' : '新增訂單'}</DialogTitle>
+          <DialogTitle>{isEdit ? fl.editOrder : fl.newOrder}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 客戶與交期 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>客戶 <span className="text-red-500">*</span></Label>
+              <Label>{fl.customerLabel}</Label>
               {selectedCustomer ? (
                 <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2">
                   <div>
@@ -201,12 +202,12 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
                     <span className="ml-2 text-xs text-muted-foreground">{selectedCustomer.code}</span>
                   </div>
                   <button type="button" onClick={() => { setSelectedCustomer(null); setCustomerId('') }}
-                    className="text-xs text-muted-foreground hover:text-foreground">更換</button>
+                    className="text-xs text-muted-foreground hover:text-foreground">{fl.change}</button>
                 </div>
               ) : (
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="搜尋客戶..."
+                  <Input className="pl-9" placeholder={fl.searchCustomerPlaceholder}
                     value={customerSearch}
                     onChange={(e) => { setCustomerSearch(e.target.value); setShowCustomerList(true) }}
                     onFocus={() => setShowCustomerList(true)} />
@@ -226,7 +227,7 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>預計出貨日期</Label>
+              <Label>{fl.expectedShipDate}</Label>
               <Input type="date" value={expectedShipDate}
                 onChange={(e) => setExpectedShipDate(e.target.value)}
                 min={new Date().toISOString().slice(0, 10)} />
@@ -238,10 +239,10 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
           {/* 商品明細 */}
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">商品明細</p>
+              <p className="text-sm font-medium text-muted-foreground">{fl.orderItems}</p>
               <Button type="button" variant="outline" size="sm"
                 onClick={() => setItems((p) => [...p, emptyItem()])}>
-                <Plus className="mr-1 h-3.5 w-3.5" />新增明細
+                <Plus className="mr-1 h-3.5 w-3.5" />{fl.addItem}
               </Button>
             </div>
 
@@ -249,11 +250,11 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
               <div className="mb-3 rounded-lg border bg-slate-50 p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input className="h-8 bg-white" placeholder="搜尋商品名稱或 SKU..."
+                  <Input className="h-8 bg-white" placeholder={fl.searchProductPlaceholder}
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)} autoFocus />
                   <button type="button" onClick={() => { setActiveItemIndex(null); setProductSearch('') }}
-                    className="text-xs text-muted-foreground hover:text-foreground shrink-0">關閉</button>
+                    className="text-xs text-muted-foreground hover:text-foreground shrink-0">{fl.close}</button>
                 </div>
                 <div className="max-h-48 overflow-y-auto space-y-1">
                   {products.slice(0, 10).map((p) => (
@@ -273,17 +274,17 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
               </div>
             )}
 
-            {/* Desktop: 表格 */}
+            {/* Desktop table */}
             <div className="hidden sm:block rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-3 py-2 text-left font-medium text-muted-foreground w-8">#</th>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">商品</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-20">數量</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">單價</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-20">折扣%</th>
-                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">小計</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">{fl.product}</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-20">{fl.quantity}</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">{fl.unitPrice}</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-20">{fl.discount}</th>
+                    <th className="px-3 py-2 text-right font-medium text-muted-foreground w-28">{fl.subtotal}</th>
                     <th className="px-3 py-2 w-8" />
                   </tr>
                 </thead>
@@ -304,7 +305,7 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
                             </div>
                           ) : (
                             <button type="button" onClick={() => setActiveItemIndex(index)}
-                              className="text-blue-600 hover:text-blue-700 text-sm">+ 選擇商品</button>
+                              className="text-blue-600 hover:text-blue-700 text-sm">{fl.selectProduct}</button>
                           )}
                         </td>
                         <td className="px-3 py-2">
@@ -335,7 +336,7 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
                 </tbody>
                 <tfoot className="bg-slate-50">
                   <tr>
-                    <td colSpan={5} className="px-3 py-2 text-right font-medium text-sm">合計</td>
+                    <td colSpan={5} className="px-3 py-2 text-right font-medium text-sm">{fl.total}</td>
                     <td className="px-3 py-2 text-right font-bold text-base">{formatCurrency(totalAmount)}</td>
                     <td />
                   </tr>
@@ -343,7 +344,7 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
               </table>
             </div>
 
-            {/* Mobile: 卡片式明細 */}
+            {/* Mobile card list */}
             <div className="sm:hidden space-y-3">
               {items.map((item, index) => {
                 const subtotal = item.quantity * item.unitPrice * (1 - item.discount / 100)
@@ -358,7 +359,7 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
                           </button>
                         ) : (
                           <button type="button" onClick={() => setActiveItemIndex(index)}
-                            className="text-blue-600 text-sm font-medium py-1">+ 選擇商品</button>
+                            className="text-blue-600 text-sm font-medium py-1">{fl.selectProduct}</button>
                         )}
                       </div>
                       <button type="button" onClick={() => setItems((p) => p.filter((_, i) => i !== index))}
@@ -368,19 +369,19 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">數量</label>
+                        <label className="text-xs text-muted-foreground">{fl.quantity}</label>
                         <Input type="number" className="text-center"
                           value={item.quantity}
                           onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))} min={1} />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">單價</label>
+                        <label className="text-xs text-muted-foreground">{fl.unitPrice}</label>
                         <Input type="number" className="text-center"
                           value={item.unitPrice}
                           onChange={(e) => updateItem(index, 'unitPrice', Number(e.target.value))} min={0} step={0.01} />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">折扣%</label>
+                        <label className="text-xs text-muted-foreground">{fl.discount}</label>
                         <Input type="number" className="text-center"
                           value={item.discount}
                           onChange={(e) => updateItem(index, 'discount', Number(e.target.value))} min={0} max={100} />
@@ -392,9 +393,8 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
                   </div>
                 )
               })}
-              {/* 合計 */}
               <div className="rounded-xl bg-slate-50 p-4 flex items-center justify-between">
-                <span className="font-medium text-sm">合計</span>
+                <span className="font-medium text-sm">{fl.total}</span>
                 <span className="text-lg font-bold">{formatCurrency(totalAmount)}</span>
               </div>
             </div>
@@ -403,16 +403,16 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
           <Separator />
 
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{fl.notes}</Label>
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="訂單備註..." />
+              rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={fl.orderNotesPlaceholder} />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>取消</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>{fl.cancel}</Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? '儲存變更' : '建立訂單'}
+              {isEdit ? fl.saveChanges : fl.createOrder}
             </Button>
           </DialogFooter>
         </form>

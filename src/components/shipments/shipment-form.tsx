@@ -43,16 +43,20 @@ interface ShipmentFormProps {
   preselectedOrderId?: string
 }
 
-const deliveryMethods = [
-  { value: 'OWN_FLEET', label: '自行配送（自有車隊）' },
-  { value: 'EXPRESS', label: '宅配' },
-  { value: 'FREIGHT', label: '貨運' },
-  { value: 'SELF_PICKUP', label: '客戶自取' },
-]
+// Static carriers (not translated — these are proper nouns)
 const carriers = ['（自行配送）', '黑貓宅急便', '宅配通', '新竹物流', '嘉里大榮', '順豐速運', '其他']
 
 export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: ShipmentFormProps) {
   const { dict } = useI18n()
+  const fl = dict.formLabels
+
+  const deliveryMethods = [
+    { value: 'OWN_FLEET',    label: fl.deliveryOwnFleet },
+    { value: 'EXPRESS',      label: fl.deliveryExpress },
+    { value: 'FREIGHT',      label: fl.deliveryFreight },
+    { value: 'SELF_PICKUP',  label: fl.deliverySelfPickup },
+  ]
+
   const [orderSearch, setOrderSearch] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -66,7 +70,6 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
   const [items, setItems] = useState<ShipItem[]>([])
   const [loading, setLoading] = useState(false)
 
-  // 關閉時清除所有狀態
   useEffect(() => {
     if (!open) {
       setOrderSearch('')
@@ -81,7 +84,6 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
     }
   }, [open])
 
-  // 載入可出貨訂單（CONFIRMED 或 PROCESSING）
   useEffect(() => {
     if (!open) return
     const params = new URLSearchParams()
@@ -96,7 +98,6 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
     return () => clearTimeout(timer)
   }, [open, orderSearch])
 
-  // 預選訂單
   useEffect(() => {
     if (preselectedOrderId && orders.length > 0) {
       const o = orders.find((o) => o.id === preselectedOrderId)
@@ -108,7 +109,6 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
     setSelectedOrder(order)
     setShowOrderList(false)
     setOrderSearch('')
-    // 建立出貨明細，預帶未出貨數量
     setItems(
       order.items
         .filter((i) => i.quantity > i.shippedQty)
@@ -172,12 +172,12 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>建立出貨單</DialogTitle>
+          <DialogTitle>{fl.createShipment}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 訂單選擇 */}
           <div className="space-y-1.5">
-            <Label>出貨訂單 <span className="text-red-500">*</span></Label>
+            <Label>{fl.shipmentOrder}</Label>
             {selectedOrder ? (
               <div className="rounded-lg border border-input bg-background p-3">
                 <div className="flex items-center justify-between">
@@ -189,17 +189,17 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
                   <button type="button"
                     onClick={() => { setSelectedOrder(null); setItems([]) }}
                     className="text-xs text-muted-foreground hover:text-foreground">
-                    更換
+                    {fl.changeOrder}
                   </button>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  共 {selectedOrder.items.length} 項商品
+                  {dict.common.pieces.replace ? selectedOrder.items.length + ' ' + fl.productCount : selectedOrder.items.length + ' ' + fl.productCount}
                 </div>
               </div>
             ) : (
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input className="pl-9" placeholder="搜尋訂單號或客戶名稱..."
+                <Input className="pl-9" placeholder={fl.searchOrderPlaceholder}
                   value={orderSearch}
                   onChange={(e) => { setOrderSearch(e.target.value); setShowOrderList(true) }}
                   onFocus={() => setShowOrderList(true)} />
@@ -216,7 +216,7 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
                       </button>
                     ))}
                     {orders.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">無可出貨訂單</div>
+                      <div className="px-3 py-2 text-sm text-muted-foreground">{fl.noShippableOrders}</div>
                     )}
                   </div>
                 )}
@@ -229,15 +229,15 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
             <>
               <Separator />
               <div>
-                <p className="mb-3 text-sm font-medium text-muted-foreground">出貨明細</p>
+                <p className="mb-3 text-sm font-medium text-muted-foreground">{fl.shipmentItems}</p>
                 <div className="rounded-lg border overflow-hidden">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium text-muted-foreground">商品</th>
-                        <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">訂購</th>
-                        <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">已出</th>
-                        <th className="px-3 py-2 text-center font-medium text-muted-foreground w-24">本次出貨</th>
+                        <th className="px-3 py-2 text-left font-medium text-muted-foreground">{fl.colProduct}</th>
+                        <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">{fl.colOrdered}</th>
+                        <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">{fl.colShipped}</th>
+                        <th className="px-3 py-2 text-center font-medium text-muted-foreground w-24">{fl.colThisShipment}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -257,7 +257,7 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
                                 onChange={(e) => updateQty(index, Number(e.target.value))}
                                 min={0} max={remaining} />
                               <div className="mt-0.5 text-center text-xs text-muted-foreground">
-                                最多 {remaining}
+                                {fl.maxQtyPrefix} {remaining}
                               </div>
                             </td>
                           </tr>
@@ -269,7 +269,7 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
                 {totalItems === 0 && (
                   <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600">
                     <AlertTriangle className="h-3.5 w-3.5" />
-                    請設定出貨數量
+                    {fl.setShipQtyWarning}
                   </div>
                 )}
               </div>
@@ -280,7 +280,7 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
 
           {/* 配送方式 */}
           <div>
-            <p className="mb-3 text-sm font-medium text-muted-foreground">配送方式</p>
+            <p className="mb-3 text-sm font-medium text-muted-foreground">{fl.deliveryMethodLabel}</p>
             <div className="flex flex-wrap gap-2 mb-4">
               {deliveryMethods.map(m => (
                 <button key={m.value} type="button"
@@ -304,46 +304,46 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
               {deliveryMethod !== 'OWN_FLEET' && deliveryMethod !== 'SELF_PICKUP' && (
                 <>
                   <div className="space-y-1.5">
-                    <Label>物流商</Label>
+                    <Label>{fl.carrier}</Label>
                     <select
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       value={carrier}
                       onChange={(e) => setCarrier(e.target.value)}
                     >
-                      <option value="">選擇物流商</option>
+                      <option value="">{fl.selectCarrier}</option>
                       {carriers.filter(c => !c.startsWith('（')).map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>追蹤單號</Label>
+                    <Label>{fl.trackingNo}</Label>
                     <Input value={trackingNo}
                       onChange={(e) => setTrackingNo(e.target.value)}
-                      placeholder="物流追蹤號碼" />
+                      placeholder={fl.trackingNoPlaceholder} />
                   </div>
                 </>
               )}
-              <div className={deliveryMethod !== 'OWN_FLEET' && deliveryMethod !== 'SELF_PICKUP' ? 'col-span-2 space-y-1.5' : 'col-span-2 space-y-1.5'}>
-                <Label>收貨地址</Label>
+              <div className="col-span-2 space-y-1.5">
+                <Label>{fl.deliveryAddress}</Label>
                 <Input value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="若與客戶地址不同請填寫" />
+                  placeholder={fl.deliveryAddressPlaceholder} />
               </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{fl.notes}</Label>
             <textarea
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               rows={2} value={notes} onChange={(e) => setNotes(e.target.value)}
-              placeholder="出貨備註..." />
+              placeholder={fl.shipmentNotesPlaceholder} />
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>取消</Button>
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>{fl.cancel}</Button>
             <Button type="submit" disabled={loading || !selectedOrder || totalItems === 0}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              建立出貨單
+              {fl.createShipment}
             </Button>
           </DialogFooter>
         </form>

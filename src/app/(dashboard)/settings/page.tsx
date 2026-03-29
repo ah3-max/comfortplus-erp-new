@@ -56,35 +56,46 @@ const ALL_ROLES = [
   'ECOMMERCE','CS','WAREHOUSE_MANAGER','WAREHOUSE','PROCUREMENT','FINANCE',
 ]
 
-const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN:'超級管理員', GM:'總經理', SALES_MANAGER:'業務主管',
-  SALES:'業務', CARE_SUPERVISOR:'護理主管', ECOMMERCE:'電商',
-  CS:'客服', WAREHOUSE_MANAGER:'倉管主管', WAREHOUSE:'倉庫',
-  PROCUREMENT:'採購', FINANCE:'財務',
-}
-
-const FEATURE_FLAGS = [
-  { key: 'feature_ecommerce',  label: '電商模組' },
-  { key: 'feature_care',       label: '護理模組' },
-  { key: 'feature_budget',     label: '預算管理' },
-  { key: 'feature_approvals',  label: '電子簽核' },
-  { key: 'feature_contracts',  label: '合約管理' },
-  { key: 'feature_ai',         label: 'AI 助手' },
-]
-
-const TEMPLATE_LIST = [
-  { name: '客戶匯入範本',   file: '/templates/customers.xlsx' },
-  { name: '產品匯入範本',   file: '/templates/products.xlsx' },
-  { name: '訂單匯入範本',   file: '/templates/orders.xlsx' },
-  { name: '庫存匯入範本',   file: '/templates/inventory.xlsx' },
-  { name: '供應商匯入範本', file: '/templates/suppliers.xlsx' },
-]
+// Static arrays/maps requiring dict are moved inside the component below
 
 // ───────────────────────── component ──────────────────────
 export default function SettingsPage() {
   const { dict } = useI18n()
   const { data: session } = useSession()
   const isAdmin = session?.user?.role === 'SUPER_ADMIN' || session?.user?.role === 'GM'
+  const sExt = dict.settingsExt
+  const orgRoles = dict.orgChart.roles
+
+  const ROLE_LABELS: Record<string, string> = {
+    SUPER_ADMIN:      orgRoles.SUPER_ADMIN,
+    GM:               orgRoles.GM,
+    SALES_MANAGER:    orgRoles.SALES_MANAGER,
+    SALES:            orgRoles.SALES,
+    CARE_SUPERVISOR:  orgRoles.CARE_SUPERVISOR,
+    ECOMMERCE:        orgRoles.ECOMMERCE,
+    CS:               orgRoles.CS,
+    WAREHOUSE_MANAGER: orgRoles.WAREHOUSE_MANAGER,
+    WAREHOUSE:        orgRoles.WAREHOUSE,
+    PROCUREMENT:      orgRoles.PROCUREMENT,
+    FINANCE:          orgRoles.FINANCE,
+  }
+
+  const FEATURE_FLAGS = [
+    { key: 'feature_ecommerce',  label: sExt.featureEcommerce },
+    { key: 'feature_care',       label: sExt.featureCare },
+    { key: 'feature_budget',     label: sExt.featureBudget },
+    { key: 'feature_approvals',  label: sExt.featureApprovals },
+    { key: 'feature_contracts',  label: sExt.featureContracts },
+    { key: 'feature_ai',         label: sExt.featureAI },
+  ]
+
+  const TEMPLATE_LIST = [
+    { name: sExt.templateCustomers,  file: '/templates/customers.xlsx' },
+    { name: sExt.templateProducts,   file: '/templates/products.xlsx' },
+    { name: sExt.templateOrders,     file: '/templates/orders.xlsx' },
+    { name: sExt.templateInventory,  file: '/templates/inventory.xlsx' },
+    { name: sExt.templateSuppliers,  file: '/templates/suppliers.xlsx' },
+  ]
 
   // ── shared config ──
   const [configs, setConfigs] = useState<Record<string, string>>({})
@@ -253,12 +264,12 @@ export default function SettingsPage() {
     <div className="space-y-4 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{dict.settings.title}</h1>
-        <p className="text-sm text-muted-foreground">管理公司資訊、用戶、功能與安全設定</p>
+        <p className="text-sm text-muted-foreground">{dict.settings.subtitle}</p>
       </div>
 
       {!isAdmin && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          目前為唯讀模式，僅管理員可修改設定。
+          {sExt.readOnlyMode}
         </div>
       )}
 
@@ -267,7 +278,7 @@ export default function SettingsPage() {
           <TabsTrigger value="info" className="gap-1.5"><Building2 className="h-3.5 w-3.5" />{dict.settingsExt.company}</TabsTrigger>
           <TabsTrigger value="users" className="gap-1.5" onClick={loadUsers}><Users className="h-3.5 w-3.5" />{dict.users.title}</TabsTrigger>
           <TabsTrigger value="prefs" className="gap-1.5"><SlidersHorizontal className="h-3.5 w-3.5" />{dict.settingsExt.preferences}</TabsTrigger>
-          <TabsTrigger value="other" className="gap-1.5"><Settings2 className="h-3.5 w-3.5" />其他管理</TabsTrigger>
+          <TabsTrigger value="other" className="gap-1.5"><Settings2 className="h-3.5 w-3.5" />{sExt.otherMgmt}</TabsTrigger>
           <TabsTrigger value="security" className="gap-1.5" onClick={() => loadAudit(auditModule)}><Shield className="h-3.5 w-3.5" />{dict.settingsExt.security}</TabsTrigger>
           <TabsTrigger value="download" className="gap-1.5"><Download className="h-3.5 w-3.5" />{dict.common.download}</TabsTrigger>
         </TabsList>
@@ -276,19 +287,19 @@ export default function SettingsPage() {
         <TabsContent value="info" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">公司基本資料</CardTitle>
+              <CardTitle className="text-base">{sExt.companyBasic}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-3">
               {[
-                { key: 'company_name',    label: '公司名稱',   ph: '舒適加股份有限公司' },
-                { key: 'company_tax_id',  label: '統一編號',   ph: '12345678' },
-                { key: 'company_phone',   label: '聯絡電話',   ph: '02-1234-5678' },
-                { key: 'company_address', label: '公司地址',   ph: '台北市信義區...' },
-                { key: 'company_email',   label: '公司 Email', ph: 'info@company.com' },
-                { key: 'company_website', label: '官方網站',   ph: 'https://www.company.com' },
-                { key: 'company_logo_url', label: 'Logo URL', ph: 'https://cdn.../logo.png' },
-                { key: 'company_seal_url', label: '印章圖片 URL', ph: 'https://cdn.../seal.png' },
+                { key: 'company_name',    label: sExt.companyName,    ph: 'ComfortPlus Co., Ltd.' },
+                { key: 'company_tax_id',  label: sExt.taxId,          ph: '12345678' },
+                { key: 'company_phone',   label: sExt.companyPhone,   ph: '02-1234-5678' },
+                { key: 'company_address', label: sExt.companyAddress, ph: '...' },
+                { key: 'company_email',   label: sExt.companyEmail,   ph: 'info@company.com' },
+                { key: 'company_website', label: 'Website',           ph: 'https://www.company.com' },
+                { key: 'company_logo_url', label: 'Logo URL',         ph: 'https://cdn.../logo.png' },
+                { key: 'company_seal_url', label: 'Seal URL',         ph: 'https://cdn.../seal.png' },
               ].map(f => (
                 <div key={f.key} className="grid grid-cols-3 items-center gap-3">
                   <Label className="text-right text-sm">{f.label}</Label>
@@ -303,19 +314,19 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2"><Key className="h-4 w-4" />API 金鑰</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2"><Key className="h-4 w-4" />{sExt.apiKey}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-3">
               <div className="flex items-center gap-2">
-                <Input value={configs['api_key_primary'] ?? ''} readOnly placeholder="尚未產生" className="font-mono text-xs" />
+                <Input value={configs['api_key_primary'] ?? ''} readOnly placeholder={sExt.apiKeyNotGenerated} className="font-mono text-xs" />
                 {isAdmin && (
                   <Button variant="outline" size="sm" onClick={generateKey} className="shrink-0">
-                    <RefreshCw className="h-3.5 w-3.5 mr-1" />產生
+                    <RefreshCw className="h-3.5 w-3.5 mr-1" />{sExt.generate}
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">此金鑰用於外部 API 呼叫，請妥善保管勿洩漏。</p>
+              <p className="text-xs text-muted-foreground">{sExt.apiKeyDesc}</p>
             </CardContent>
           </Card>
 
@@ -333,8 +344,8 @@ export default function SettingsPage() {
         <TabsContent value="users" className="space-y-4 mt-4">
           <Tabs defaultValue="userlist">
             <TabsList>
-              <TabsTrigger value="userlist">用戶列表</TabsTrigger>
-              <TabsTrigger value="permissions" onClick={loadPerms}>角色權限</TabsTrigger>
+              <TabsTrigger value="userlist">{sExt.userList}</TabsTrigger>
+              <TabsTrigger value="permissions" onClick={loadPerms}>{sExt.rolePerms}</TabsTrigger>
             </TabsList>
 
             {/* 用戶列表 */}
@@ -403,7 +414,7 @@ export default function SettingsPage() {
                     <table className="text-xs whitespace-nowrap">
                       <thead className="bg-slate-50 border-b">
                         <tr>
-                          <th className="px-3 py-2 text-left font-medium sticky left-0 bg-slate-50 border-r">模組</th>
+                          <th className="px-3 py-2 text-left font-medium sticky left-0 bg-slate-50 border-r">{dict.common.module}</th>
                           {permData.roles.map(r => (
                             <th key={r} className="px-2 py-2 text-center font-medium min-w-[64px]">
                               {ROLE_LABELS[r] ?? r}
@@ -447,17 +458,17 @@ export default function SettingsPage() {
         <TabsContent value="prefs" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">預設值設定</CardTitle>
+              <CardTitle className="text-base">{sExt.defaultValues}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-3">
               {[
-                { key: 'default_payment_terms',  label: '預設付款條件', ph: 'NET30' },
-                { key: 'quotation_valid_days',    label: '報價單有效天數', ph: '30' },
-                { key: 'default_currency',        label: '預設幣別', ph: 'TWD' },
-                { key: 'decimal_places',          label: '金額小數位數', ph: '0' },
-                { key: 'default_vat_rate',        label: '預設稅率 (%)', ph: '5' },
-                { key: 'low_stock_threshold',     label: '低庫存警戒量', ph: '10' },
+                { key: 'default_payment_terms',  label: sExt.defaultPaymentTerms, ph: 'NET30' },
+                { key: 'quotation_valid_days',    label: sExt.quotationValidDays,  ph: '30' },
+                { key: 'default_currency',        label: sExt.defaultCurrency,     ph: 'TWD' },
+                { key: 'decimal_places',          label: sExt.decimalPlaces,       ph: '0' },
+                { key: 'default_vat_rate',        label: sExt.defaultVatRate,      ph: '5' },
+                { key: 'low_stock_threshold',     label: sExt.lowStockThreshold,   ph: '10' },
               ].map(f => (
                 <div key={f.key} className="grid grid-cols-3 items-center gap-3">
                   <Label className="text-right text-sm">{f.label}</Label>

@@ -70,12 +70,28 @@ interface CreditDetail {
   }[]
 }
 
-const STATUS_CONFIG = {
-  EXCEEDED: { label: '超限', color: 'bg-red-100 text-red-700 border-red-200', icon: XCircle, iconColor: 'text-red-500' },
-  CRITICAL: { label: '危險', color: 'bg-orange-100 text-orange-700 border-orange-200', icon: ShieldAlert, iconColor: 'text-orange-500' },
-  WARNING:  { label: '警告', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', icon: AlertTriangle, iconColor: 'text-yellow-500' },
-  NORMAL:   { label: '正常', color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2, iconColor: 'text-green-500' },
-  NO_LIMIT: { label: '未設限', color: 'bg-gray-100 text-gray-600 border-gray-200', icon: DollarSign, iconColor: 'text-gray-400' },
+const STATUS_COLORS: Record<string, string> = {
+  EXCEEDED: 'bg-red-100 text-red-700 border-red-200',
+  CRITICAL: 'bg-orange-100 text-orange-700 border-orange-200',
+  WARNING:  'bg-yellow-100 text-yellow-700 border-yellow-200',
+  NORMAL:   'bg-green-100 text-green-700 border-green-200',
+  NO_LIMIT: 'bg-gray-100 text-gray-600 border-gray-200',
+}
+
+const STATUS_ICONS: Record<string, React.ElementType> = {
+  EXCEEDED: XCircle,
+  CRITICAL: ShieldAlert,
+  WARNING: AlertTriangle,
+  NORMAL: CheckCircle2,
+  NO_LIMIT: DollarSign,
+}
+
+const STATUS_ICON_COLORS: Record<string, string> = {
+  EXCEEDED: 'text-red-500',
+  CRITICAL: 'text-orange-500',
+  WARNING: 'text-yellow-500',
+  NORMAL: 'text-green-500',
+  NO_LIMIT: 'text-gray-400',
 }
 
 function UtilizationBar({ pct }: { pct: number | null }) {
@@ -95,6 +111,9 @@ function UtilizationBar({ pct }: { pct: number | null }) {
 export default function CreditManagementPage() {
   const { data: session } = useSession()
   const { dict } = useI18n()
+  const cm = dict.creditManagement
+  const STATUS_LABELS = cm.statusLabels as Record<string, string>
+
   const [rows, setRows] = useState<CreditRow[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -129,7 +148,7 @@ export default function CreditManagementPage() {
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, search])
+  }, [statusFilter, search, dict.common.loadFailed])
 
   useEffect(() => { load() }, [load])
 
@@ -148,7 +167,7 @@ export default function CreditManagementPage() {
     } finally {
       setDetailLoading(false)
     }
-  }, [])
+  }, [dict.common.loadFailed])
 
   const saveLimit = async () => {
     if (!detailId) return
@@ -161,7 +180,7 @@ export default function CreditManagementPage() {
         body: JSON.stringify({ creditLimit }),
       })
       if (!res.ok) throw new Error('Failed')
-      toast.success(dict.creditManagement.creditUpdated)
+      toast.success(cm.creditUpdated)
       setEditingLimit(false)
       await loadDetail(detailId)
       load()
@@ -173,19 +192,27 @@ export default function CreditManagementPage() {
   }
 
   const summaryCards = [
-    { label: '超限客戶', value: summary?.exceeded ?? 0, color: 'text-red-600', bg: 'bg-red-50', icon: XCircle },
-    { label: '危險客戶（90%+）', value: summary?.critical ?? 0, color: 'text-orange-600', bg: 'bg-orange-50', icon: ShieldAlert },
-    { label: '警告客戶（70%+）', value: summary?.warning ?? 0, color: 'text-yellow-600', bg: 'bg-yellow-50', icon: AlertTriangle },
-    { label: '總未收款', value: summary ? fmt(summary.totalOutstanding) : '—', color: 'text-blue-600', bg: 'bg-blue-50', icon: TrendingUp },
-    { label: '逾期未收', value: summary ? fmt(summary.totalOverdue) : '—', color: 'text-red-600', bg: 'bg-red-50', icon: DollarSign },
+    { label: 'EXCEEDED', value: summary?.exceeded ?? 0, color: 'text-red-600', bg: 'bg-red-50', icon: XCircle },
+    { label: 'CRITICAL', value: summary?.critical ?? 0, color: 'text-orange-600', bg: 'bg-orange-50', icon: ShieldAlert },
+    { label: 'WARNING', value: summary?.warning ?? 0, color: 'text-yellow-600', bg: 'bg-yellow-50', icon: AlertTriangle },
+    { label: 'outstanding', value: summary ? fmt(summary.totalOutstanding) : '—', color: 'text-blue-600', bg: 'bg-blue-50', icon: TrendingUp },
+    { label: 'overdue', value: summary ? fmt(summary.totalOverdue) : '—', color: 'text-red-600', bg: 'bg-red-50', icon: DollarSign },
   ]
+
+  const summaryLabels: Record<string, string> = {
+    EXCEEDED: STATUS_LABELS.EXCEEDED ?? 'Exceeded',
+    CRITICAL: STATUS_LABELS.CRITICAL ?? 'Critical',
+    WARNING: STATUS_LABELS.WARNING ?? 'Warning',
+    outstanding: cm.cardTotalCredit,
+    overdue: cm.cardOverdue,
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.creditManagement ?? '客戶信用管理'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">信用額度監控、帳齡追蹤、逾期預警</p>
+          <h1 className="text-2xl font-bold">{dict.nav?.creditManagement ?? cm.detailTitle}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{cm.subtitle}</p>
         </div>
       </div>
 
@@ -197,9 +224,9 @@ export default function CreditManagementPage() {
             <div key={i} className={`rounded-xl p-3 ${c.bg} flex flex-col gap-1`}>
               <div className="flex items-center gap-1.5">
                 <Icon size={14} className={c.color} />
-                <span className="text-xs text-gray-600">{c.label}</span>
+                <span className="text-xs text-gray-600">{summaryLabels[c.label] ?? c.label}</span>
               </div>
-              <div className={`text-lg font-bold ${c.color}`}>{c.value}</div>
+              <div className={`text-lg font-bold ${c.color}`}>{typeof c.value === 'number' ? c.value : c.value}</div>
             </div>
           )
         })}
@@ -210,7 +237,7 @@ export default function CreditManagementPage() {
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
-            placeholder="搜尋客戶名稱/代號…"
+            placeholder={cm.searchPlaceholder}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-8 h-9 text-sm"
@@ -219,11 +246,10 @@ export default function CreditManagementPage() {
         <Select value={statusFilter} onValueChange={v => { if (v) setStatusFilter(v) }}>
           <SelectTrigger className="w-36 h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">全部狀態</SelectItem>
-            <SelectItem value="EXCEEDED">超限</SelectItem>
-            <SelectItem value="CRITICAL">危險</SelectItem>
-            <SelectItem value="WARNING">警告</SelectItem>
-            <SelectItem value="NORMAL">正常</SelectItem>
+            <SelectItem value="ALL">{cm.allStatuses}</SelectItem>
+            {Object.entries(STATUS_LABELS).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
             <SelectItem value="NO_LIMIT">未設限</SelectItem>
           </SelectContent>
         </Select>
@@ -234,25 +260,26 @@ export default function CreditManagementPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-              <th className="px-4 py-3 text-left">客戶</th>
-              <th className="px-4 py-3 text-right">信用額度</th>
-              <th className="px-4 py-3 text-right">已用</th>
-              <th className="px-4 py-3 text-right">可用</th>
-              <th className="px-4 py-3 text-center min-w-[140px]">使用率</th>
-              <th className="px-4 py-3 text-right">逾期金額</th>
-              <th className="px-4 py-3 text-center">狀態</th>
-              <th className="px-4 py-3 text-left">付款條件</th>
-              <th className="px-4 py-3 text-left">業務</th>
+              <th className="px-4 py-3 text-left">{cm.colCustomer}</th>
+              <th className="px-4 py-3 text-right">{cm.colCreditLimit}</th>
+              <th className="px-4 py-3 text-right">{cm.colUsed}</th>
+              <th className="px-4 py-3 text-right">{cm.colAvailable}</th>
+              <th className="px-4 py-3 text-center min-w-[140px]">%</th>
+              <th className="px-4 py-3 text-right">{cm.colOverdue}</th>
+              <th className="px-4 py-3 text-center">{cm.colStatus}</th>
+              <th className="px-4 py-3 text-left">{cm.colPaymentTerms}</th>
+              <th className="px-4 py-3 text-left">{dict.common.salesRep}</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={10} className="py-12 text-center text-gray-400">載入中…</td></tr>
+              <tr><td colSpan={10} className="py-12 text-center text-gray-400">{cm.loading}</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={10} className="py-12 text-center text-gray-400">無資料</td></tr>
+              <tr><td colSpan={10} className="py-12 text-center text-gray-400">{cm.noData}</td></tr>
             ) : rows.map(row => {
-              const cfg = STATUS_CONFIG[row.creditStatus]
+              const statusColor = STATUS_COLORS[row.creditStatus] ?? STATUS_COLORS.NORMAL
+              const statusLabel = STATUS_LABELS[row.creditStatus] ?? row.creditStatus
               const isAlert = row.creditStatus === 'EXCEEDED' || row.creditStatus === 'CRITICAL'
               return (
                 <tr key={row.id} className={`border-b last:border-0 hover:bg-gray-50 transition-colors ${isAlert ? 'bg-red-50/30' : ''}`}>
@@ -278,13 +305,13 @@ export default function CreditManagementPage() {
                       : <span className="text-gray-400">0</span>}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <Badge className={`${cfg.color} border text-xs`}>{cfg.label}</Badge>
+                    <Badge className={`${statusColor} border text-xs`}>{statusLabel}</Badge>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{row.paymentTerms ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{row.salesRep ?? '—'}</td>
                   <td className="px-4 py-3">
                     <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => loadDetail(row.id)}>
-                      明細
+                      {cm.viewBtn}
                     </Button>
                   </td>
                 </tr>
@@ -299,21 +326,21 @@ export default function CreditManagementPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {detail ? `${detail.name} — 信用明細` : '載入中…'}
+              {detail ? `${detail.name} — ${cm.detailTitle}` : cm.loading}
             </DialogTitle>
           </DialogHeader>
 
-          {detailLoading && <div className="py-8 text-center text-gray-400">載入中…</div>}
+          {detailLoading && <div className="py-8 text-center text-gray-400">{cm.loading}</div>}
 
           {detail && !detailLoading && (
             <div className="space-y-4 text-sm">
               {/* Credit summary */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: '信用額度', value: detail.creditLimit !== null ? fmt(detail.creditLimit) : '未設限' },
-                  { label: '已用金額', value: fmt(detail.creditUsed) },
-                  { label: '可用金額', value: detail.creditAvailable !== null ? fmt(detail.creditAvailable) : '—' },
-                  { label: '使用率', value: detail.utilizationPct !== null ? `${detail.utilizationPct}%` : '—' },
+                  { label: cm.creditLimitLabel, value: detail.creditLimit !== null ? fmt(detail.creditLimit) : '未設限' },
+                  { label: cm.usedLabel, value: fmt(detail.creditUsed) },
+                  { label: cm.availableLabel, value: detail.creditAvailable !== null ? fmt(detail.creditAvailable) : '—' },
+                  { label: '%', value: detail.utilizationPct !== null ? `${detail.utilizationPct}%` : '—' },
                 ].map((item, i) => (
                   <div key={i} className="bg-gray-50 rounded-lg p-3">
                     <div className="text-xs text-gray-500">{item.label}</div>
@@ -332,17 +359,17 @@ export default function CreditManagementPage() {
                         min={0}
                         value={editLimit}
                         onChange={e => setEditLimit(e.target.value)}
-                        placeholder="輸入信用額度（留空=無限制）"
+                        placeholder={cm.newLimitPlaceholder}
                         className="h-8 text-sm max-w-[220px]"
                       />
                       <Button size="sm" onClick={saveLimit} disabled={saving} className="h-8">
-                        {saving ? '儲存中…' : '儲存'}
+                        {saving ? dict.common.saving : cm.saveBtn}
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingLimit(false)}>取消</Button>
+                      <Button size="sm" variant="ghost" className="h-8" onClick={() => setEditingLimit(false)}>{dict.common.cancel}</Button>
                     </>
                   ) : (
                     <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => setEditingLimit(true)}>
-                      <Pencil size={12} />調整額度
+                      <Pencil size={12} />{cm.editCreditBtn}
                     </Button>
                   )}
                 </div>
@@ -350,14 +377,14 @@ export default function CreditManagementPage() {
 
               {/* Aging breakdown */}
               <div>
-                <div className="font-semibold mb-2">帳齡分析</div>
+                <div className="font-semibold mb-2">{cm.agingTitle}</div>
                 <div className="grid grid-cols-5 gap-2 text-center">
                   {[
-                    { label: '未到期', value: detail.aging.current },
-                    { label: '1-30天', value: detail.aging.days30 },
-                    { label: '31-60天', value: detail.aging.days60 },
-                    { label: '61-90天', value: detail.aging.days90 },
-                    { label: '90天+', value: detail.aging.over90 },
+                    { label: cm.col0to30, value: detail.aging.current },
+                    { label: '1-30', value: detail.aging.days30 },
+                    { label: cm.col31to60, value: detail.aging.days60 },
+                    { label: cm.col61to90, value: detail.aging.days90 },
+                    { label: cm.colOver90, value: detail.aging.over90 },
                   ].map((b, i) => (
                     <div key={i} className={`rounded-lg p-2 ${b.value > 0 && i > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
                       <div className="text-xs text-gray-500">{b.label}</div>
@@ -372,16 +399,16 @@ export default function CreditManagementPage() {
               {/* AR items */}
               {detail.arItems.length > 0 && (
                 <div>
-                  <div className="font-semibold mb-2">未收款明細（{detail.arItems.length} 筆）</div>
+                  <div className="font-semibold mb-2">{cm.arTitle}（{detail.arItems.length}）</div>
                   <div className="border rounded-lg overflow-hidden">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="bg-gray-50 border-b text-gray-500">
-                          <th className="px-3 py-2 text-left">發票/訂單</th>
-                          <th className="px-3 py-2 text-right">應收金額</th>
-                          <th className="px-3 py-2 text-right">待收餘額</th>
-                          <th className="px-3 py-2 text-center">到期日</th>
-                          <th className="px-3 py-2 text-center">逾期天數</th>
+                          <th className="px-3 py-2 text-left">{cm.colInvoiceOrder}</th>
+                          <th className="px-3 py-2 text-right">{dict.common.amount}</th>
+                          <th className="px-3 py-2 text-right">{cm.colBalance}</th>
+                          <th className="px-3 py-2 text-center">{cm.colDueDate}</th>
+                          <th className="px-3 py-2 text-center">{cm.colOverdueDays}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -395,7 +422,7 @@ export default function CreditManagementPage() {
                             <td className="px-3 py-2 text-center">{ar.dueDate ? ar.dueDate.slice(0, 10) : '—'}</td>
                             <td className="px-3 py-2 text-center">
                               {ar.overdueDays > 0
-                                ? <span className="text-red-600 font-medium">{ar.overdueDays}天</span>
+                                ? <span className="text-red-600 font-medium">{ar.overdueDays}{cm.daysUnit}</span>
                                 : <span className="text-gray-400">—</span>}
                             </td>
                           </tr>
@@ -409,7 +436,7 @@ export default function CreditManagementPage() {
               {/* Recent payments */}
               {detail.recentPayments.length > 0 && (
                 <div>
-                  <div className="font-semibold mb-2">最近收款紀錄</div>
+                  <div className="font-semibold mb-2">{cm.paymentsTitle}</div>
                   <div className="space-y-1">
                     {detail.recentPayments.map((p, i) => (
                       <div key={i} className="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2">
@@ -425,7 +452,7 @@ export default function CreditManagementPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDetailId(null); setDetail(null); setEditingLimit(false) }}>關閉</Button>
+            <Button variant="outline" onClick={() => { setDetailId(null); setDetail(null); setEditingLimit(false) }}>{cm.closeBtn}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

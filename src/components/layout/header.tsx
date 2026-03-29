@@ -22,14 +22,14 @@ interface Notification {
   createdAt: string
 }
 
-function timeAgo(date: string) {
+function TimeAgo({ date, dict }: { date: string; dict: { header: { justNow: string; minutesAgo: string; hoursAgo: string; daysAgo: string } } }) {
   const now = Date.now()
   const d = new Date(date).getTime()
   const diff = Math.floor((now - d) / 1000)
-  if (diff < 60) return '剛剛'
-  if (diff < 3600) return `${Math.floor(diff / 60)} 分鐘前`
-  if (diff < 86400) return `${Math.floor(diff / 3600)} 小時前`
-  return `${Math.floor(diff / 86400)} 天前`
+  if (diff < 60) return <>{dict.header.justNow}</>
+  if (diff < 3600) return <>{Math.floor(diff / 60)} {dict.header.minutesAgo}</>
+  if (diff < 86400) return <>{Math.floor(diff / 3600)} {dict.header.hoursAgo}</>
+  return <>{Math.floor(diff / 86400)} {dict.header.daysAgo}</>
 }
 
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void) {
@@ -234,7 +234,7 @@ export function Header() {
                         {dict.notifications.markAllRead}
                       </button>
                     )}
-                    <button onClick={generateNotifications} disabled={generating} className="text-muted-foreground hover:text-slate-700 disabled:opacity-40" title="重新整理通知">
+                    <button onClick={generateNotifications} disabled={generating} className="text-muted-foreground hover:text-slate-700 disabled:opacity-40" title={dict.header.refreshNotif}>
                       <RefreshCw className={`h-3.5 w-3.5 ${generating ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
@@ -260,7 +260,7 @@ export function Header() {
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm leading-snug ${n.isRead ? 'text-slate-500' : 'font-semibold text-slate-800'}`}>{n.title}</p>
                           {n.message && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>}
-                          <p className="text-[11px] text-muted-foreground mt-1">{timeAgo(n.createdAt)}</p>
+                          <p className="text-[11px] text-muted-foreground mt-1"><TimeAgo date={n.createdAt} dict={dict} /></p>
                         </div>
                         {!n.isRead && <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shrink-0" />}
                       </button>
@@ -320,7 +320,7 @@ export function Header() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowProfileModal(false)}>
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">編輯個人資料</h2>
+              <h2 className="text-lg font-semibold">{dict.header.editProfile}</h2>
               <button onClick={() => setShowProfileModal(false)} className="text-slate-400 hover:text-slate-600">
                 <X className="h-5 w-5" />
               </button>
@@ -343,19 +343,19 @@ export function Header() {
               </div>
               {profileAvatar && (
                 <button onClick={() => setProfileAvatar('')} className="mt-2 text-xs text-red-500 hover:text-red-700">
-                  移除頭貼
+                  {dict.header.removeAvatar}
                 </button>
               )}
             </div>
 
             {/* Name */}
             <div className="space-y-2 mb-4">
-              <Label htmlFor="profile-name">姓名</Label>
+              <Label htmlFor="profile-name">{dict.header.labelName}</Label>
               <Input
                 id="profile-name"
                 value={profileName}
                 onChange={e => setProfileName(e.target.value)}
-                placeholder="輸入姓名"
+                placeholder={dict.header.namePlaceholder}
               />
             </div>
 
@@ -367,11 +367,11 @@ export function Header() {
 
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={() => setShowProfileModal(false)}>
-                取消
+                {dict.header.cancelBtn}
               </Button>
               <Button className="flex-1" onClick={saveProfile} disabled={saving || !profileName.trim()}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                儲存
+                {dict.header.saveBtn}
               </Button>
             </div>
           </div>
