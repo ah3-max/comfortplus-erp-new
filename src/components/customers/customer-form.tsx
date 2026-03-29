@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Separator } from '@/components/ui/separator'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 export const customerTypes = [
   { value: 'NURSING_HOME',     label: '護理之家' },
@@ -151,6 +152,7 @@ function SelField({ label, value, options, onChange, placeholder = '請選擇', 
 }
 
 export function CustomerForm({ open, onClose, onSuccess, customer }: Props) {
+  const { dict } = useI18n()
   const isEdit = !!customer
   const [form, setForm] = useState<FormData>(empty())
   const [salesReps, setSalesReps] = useState<SalesRep[]>([])
@@ -196,7 +198,7 @@ export function CustomerForm({ open, onClose, onSuccess, customer }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name || !form.type) { toast.error('請填寫客戶名稱與類型'); return }
+    if (!form.name || !form.type) { toast.error(dict.forms.customerNameTypeRequired); return }
     setLoading(true)
     const res = await fetch(isEdit ? `/api/customers/${customer!.id}` : '/api/customers', {
       method: isEdit ? 'PUT' : 'POST',
@@ -204,8 +206,8 @@ export function CustomerForm({ open, onClose, onSuccess, customer }: Props) {
       body: JSON.stringify(form),
     })
     setLoading(false)
-    if (res.ok) { toast.success(isEdit ? '客戶資料已更新' : '客戶新增成功'); onSuccess(); onClose() }
-    else { const d = await res.json(); toast.error(d.error ?? '操作失敗') }
+    if (res.ok) { toast.success(isEdit ? dict.forms.customerUpdated : dict.forms.customerCreated); onSuccess(); onClose() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
   }
 
   return (

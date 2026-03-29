@@ -2749,6 +2749,42 @@ const en = {
   partyTransactions: {
     partyIdRequired: 'Please enter party ID',
   },
+
+  // ── Form shared messages ──
+  forms: {
+    skuRequired: 'Please fill in required fields (SKU, name, category, price)',
+    costRequired: 'Please fill in cost price',
+    productUpdated: 'Product updated',
+    productCreated: 'Product created',
+    selectOrder: 'Please select an order',
+    setShipQty: 'Please set at least one shipping quantity',
+    shipmentCreated: 'Shipment created, inventory deducted',
+    profileUpdated: 'Profile updated',
+    imageTooLarge: 'Image must be under 2MB',
+    supplierNameRequired: 'Please fill in supplier name',
+    supplierUpdated: 'Supplier updated',
+    supplierCreated: 'Supplier created',
+    selectCustomer: 'Please select customer',
+    selectAllProducts: 'Please select products for all line items',
+    quantityPositive: 'Quantity must be greater than 0',
+    unitPricePositive: 'Unit price must be greater than 0',
+    orderUpdated: 'Order updated',
+    orderCreated: 'Order created',
+    selectSupplier: 'Please select supplier',
+    purchasePricePositive: 'Purchase unit cost must be greater than 0',
+    purchaseUpdated: 'Purchase order updated',
+    purchaseCreated: 'Purchase order created',
+    atLeastOneItem: 'At least one item is required',
+    quotationUpdated: 'Quotation updated',
+    quotationCreated: 'Quotation created',
+    validQuantity: 'Please enter a valid quantity',
+    inventoryAdjusted: 'Inventory adjusted',
+    adjustFailed: 'Adjustment failed',
+    customerNameTypeRequired: 'Please fill in customer name and type',
+    customerUpdated: 'Customer updated',
+    customerCreated: 'Customer created',
+    shipFailed: 'Shipment failed',
+  },
 } as const
 
 export default en

@@ -55,9 +55,9 @@ export default function PartyTransactionsPage() {
     try {
       const params = new URLSearchParams({ partyType, partyId, startDate, endDate })
       const res = await fetch(`/api/finance/party-transactions?${params}`)
-      if (!res.ok) throw new Error((await res.json()).error ?? '載入失敗')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.loadFailed)
       setData(await res.json())
-    } catch (e) { toast.error(e instanceof Error ? e.message : '載入失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [partyType, partyId, startDate, endDate])
 

@@ -124,7 +124,7 @@ function NewQcForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: (
       toast.success(dict.common.createSuccess)
       onCreated()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '建立失敗')
+      toast.error(e instanceof Error ? e.message : dict.common.createFailed)
     } finally {
       setSaving(false)
     }

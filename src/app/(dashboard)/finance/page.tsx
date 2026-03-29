@@ -219,7 +219,7 @@ export default function FinancePage() {
       setShowJournalDialog(false)
       setJForm({ entryDate: new Date().toISOString().slice(0, 10), description: '', notes: '', lines: [{ accountId: '', debit: '', credit: '', description: '' }, { accountId: '', debit: '', credit: '', description: '' }] })
       fetchJournals()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
     finally { setSubmitting(false) }
   }
 

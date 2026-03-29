@@ -207,7 +207,7 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ followUpResult: feedbackText, hasFeedback: true }),
       })
-      if (!res.ok) throw new Error('儲存失敗')
+      if (!res.ok) throw new Error(dict.common.saveFailed)
       setSamples(prev => prev.filter(s => s.id !== sampleId))
       setFeedbackId(null); setFeedbackText('')
       toast.success(dict.crmPage.feedbackRecorded)

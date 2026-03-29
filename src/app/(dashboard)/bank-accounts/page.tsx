@@ -128,7 +128,7 @@ export default function BankAccountsPage() {
         }),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
+      if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
       toast.success(dict.bankAccounts.accountCreated)
       setShowNewAccount(false)
       fetchAccounts()
@@ -147,7 +147,7 @@ export default function BankAccountsPage() {
         body: JSON.stringify({ ...txForm, amount: Number(txForm.amount) }),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
+      if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
       toast.success(dict.bankAccounts.transactionRecorded)
       setShowNewTx(null)
       // Refresh account list + transactions

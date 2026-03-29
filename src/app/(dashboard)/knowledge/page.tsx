@@ -184,14 +184,14 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? '操作失敗')
+        throw new Error(err.error ?? dict.common.operationFailed)
       }
 
       toast.success(isEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       onSaved()
       onClose()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '操作失敗，請稍後再試')
+      toast.error(err instanceof Error ? err.message : dict.common.operationFailed)
     } finally {
       setSaving(false)
     }
@@ -477,7 +477,7 @@ export default function KnowledgePage() {
       if (cat) params.set('type', cat)
 
       const res = await fetch(`/api/knowledge?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const data = await res.json()
       setArticles(data.entries ?? [])
       setTotal(data.total ?? 0)
@@ -508,13 +508,13 @@ export default function KnowledgePage() {
       const res = await fetch(`/api/knowledge/${deleteTarget.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? '刪除失敗')
+        throw new Error(err.error ?? dict.common.deleteFailed)
       }
       toast.success(dict.common.deleteSuccess)
       setDeleteTarget(null)
       fetchArticles()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '刪除失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.deleteFailed)
     } finally {
       setDeleting(false)
     }

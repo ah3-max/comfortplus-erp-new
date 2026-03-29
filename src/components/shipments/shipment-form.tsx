@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Separator } from '@/components/ui/separator'
 import { Loader2, Search, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface OrderItem {
   id: string
@@ -51,6 +52,7 @@ const deliveryMethods = [
 const carriers = ['（自行配送）', '黑貓宅急便', '宅配通', '新竹物流', '嘉里大榮', '順豐速運', '其他']
 
 export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: ShipmentFormProps) {
+  const { dict } = useI18n()
   const [orderSearch, setOrderSearch] = useState('')
   const [orders, setOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -136,9 +138,9 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedOrder) { toast.error('請選擇訂單'); return }
+    if (!selectedOrder) { toast.error(dict.forms.selectOrder); return }
     const validItems = items.filter((i) => i.quantity > 0)
-    if (validItems.length === 0) { toast.error('請設定至少一項出貨數量'); return }
+    if (validItems.length === 0) { toast.error(dict.forms.setShipQty); return }
 
     setLoading(true)
     const res = await fetch('/api/shipments', {
@@ -157,12 +159,12 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
 
     setLoading(false)
     if (res.ok) {
-      toast.success('出貨單建立成功，庫存已扣減')
+      toast.success(dict.forms.shipmentCreated)
       onSuccess()
       onClose()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '操作失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

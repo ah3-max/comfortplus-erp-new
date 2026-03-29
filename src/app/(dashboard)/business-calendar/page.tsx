@@ -193,9 +193,9 @@ function EventForm({ initial, users, onSaved, onCancel }: {
       const body   = { ...f, endDate: f.endDate || f.startDate }
       const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      toast.success(isEdit ? '活動已更新' : '活動已新增')
+      toast.success(isEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       onSaved()
-    } catch (e) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
@@ -338,7 +338,7 @@ function PromoForm({ initial, users, onSaved, onCancel }: {
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
       toast.success(isEdit ? '檔期已更新' : '大檔期已建立，提醒通知已排程')
       onSaved()
-    } catch (e) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 
@@ -466,9 +466,9 @@ function MeetingForm({ initial, users, onSaved, onCancel }: {
       const method = isEdit ? 'PUT' : 'POST'
       const res    = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      toast.success(isEdit ? '會議記錄已更新' : '會議記錄已建立')
+      toast.success(isEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       onSaved()
-    } catch (e) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Separator } from '@/components/ui/separator'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 const paymentTermOptions = ['Net 30', 'Net 60', 'Net 90', '月結30天', '月結60天', '貨到付款', '預付']
 
@@ -48,6 +49,7 @@ const empty = (): FormData => ({
 })
 
 export function SupplierForm({ open, onClose, onSuccess, supplier }: Props) {
+  const { dict } = useI18n()
   const isEdit = !!supplier
   const [form, setForm] = useState<FormData>(empty())
   const [saving, setSaving] = useState(false)
@@ -88,7 +90,7 @@ export function SupplierForm({ open, onClose, onSuccess, supplier }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name) { toast.error('請填寫供應商名稱'); return }
+    if (!form.name) { toast.error(dict.forms.supplierNameRequired); return }
     setSaving(true)
     const url    = isEdit ? `/api/suppliers/${supplier!.id}` : '/api/suppliers'
     const method = isEdit ? 'PUT' : 'POST'
@@ -104,11 +106,11 @@ export function SupplierForm({ open, onClose, onSuccess, supplier }: Props) {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success(isEdit ? '供應商已更新' : '供應商新增成功')
+      toast.success(isEdit ? dict.forms.supplierUpdated : dict.forms.supplierCreated)
       onSuccess(); onClose()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '操作失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

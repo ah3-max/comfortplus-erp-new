@@ -142,7 +142,7 @@ export default function NewPickupPage() {
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '建立失敗')
+        throw new Error(err.error ?? dict.common.createFailed)
       }
 
       const pickup = await res.json()

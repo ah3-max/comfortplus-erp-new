@@ -114,7 +114,7 @@ export default function RFQPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/rfq?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setRfqs(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
@@ -180,9 +180,9 @@ export default function RFQPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? '儲存失敗')
+        throw new Error(data.error ?? dict.common.saveFailed)
       }
-      toast.success(editTarget ? '詢價單已更新' : '詢價單已建立')
+      toast.success(editTarget ? dict.common.updateSuccess : dict.common.createSuccess)
       setFormOpen(false)
       fetchRfqs()
     } catch (err) {
@@ -208,7 +208,7 @@ export default function RFQPage() {
     if (res.ok) { toast.success(dict.rfq.cancelSuccess); fetchRfqs() }
     else {
       const data = await res.json()
-      toast.error(data.error ?? '取消失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 
@@ -242,7 +242,7 @@ export default function RFQPage() {
       })
       if (!res.ok) {
         const d = await res.json()
-        throw new Error(d.error ?? '建立失敗')
+        throw new Error(d.error ?? dict.common.createFailed)
       }
       const po = await res.json()
       toast.success(`採購單 ${po.poNo} 已建立`)
@@ -254,7 +254,7 @@ export default function RFQPage() {
         fetchRfqs()
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '建立失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.createFailed)
     } finally {
       setConverting(false)
     }

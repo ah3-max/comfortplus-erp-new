@@ -112,7 +112,7 @@ export default function PurchaseRequestsPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/purchase-requests?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setRequests(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
@@ -183,13 +183,13 @@ export default function PurchaseRequestsPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? '儲存失敗')
+        throw new Error(data.error ?? dict.common.saveFailed)
       }
       toast.success(editTarget ? pr.savedUpdated : pr.savedCreated)
       setFormOpen(false)
       fetchRequests()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '儲存失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -211,7 +211,7 @@ export default function PurchaseRequestsPage() {
     if (res.ok) { toast.success(pr.cancelSuccess); fetchRequests() }
     else {
       const data = await res.json()
-      toast.error(data.error ?? '取消失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

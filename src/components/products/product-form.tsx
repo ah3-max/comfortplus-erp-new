@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Separator } from '@/components/ui/separator'
 import { Loader2, Lock } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 const categories    = ['紙尿布', '護墊', '清潔用品', '護理用品', '防護用品', '輔具', '其他']
 const units         = ['包', '盒', '件', '個', '捲', '瓶', '袋']
@@ -66,6 +67,7 @@ const emptyForm = (): FormData => ({
 function toStr(v: string | number | null | undefined) { return v != null ? String(v) : '' }
 
 export function ProductForm({ open, onClose, onSuccess, product }: ProductFormProps) {
+  const { dict } = useI18n()
   const { data: session } = useSession()
   const role    = (session?.user?.role as string) ?? ''
   const isEdit  = !!product
@@ -114,11 +116,11 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.sku || !form.name || !form.category || !form.sellingPrice) {
-      toast.error('請填寫必填欄位（SKU、名稱、分類、建議售價）')
+      toast.error(dict.forms.skuRequired)
       return
     }
     if (canSeeCost && !form.costPrice) {
-      toast.error('請填寫成本價')
+      toast.error(dict.forms.costRequired)
       return
     }
     setLoading(true)
@@ -131,11 +133,11 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
     })
     setLoading(false)
     if (res.ok) {
-      toast.success(isEdit ? '商品資料已更新' : '商品新增成功')
+      toast.success(isEdit ? dict.forms.productUpdated : dict.forms.productCreated)
       onSuccess(); onClose()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '操作失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

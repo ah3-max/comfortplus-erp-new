@@ -127,7 +127,7 @@ export default function SalesInvoicesPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/sales-invoices?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setInvoices(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
@@ -210,9 +210,9 @@ export default function SalesInvoicesPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? '儲存失敗')
+        throw new Error(data.error ?? dict.common.saveFailed)
       }
-      toast.success(editTarget ? '銷貨單已更新' : '銷貨單已建立')
+      toast.success(editTarget ? dict.common.updateSuccess : dict.common.createSuccess)
       setFormOpen(false)
       fetchInvoices()
     } catch (err) {
@@ -238,7 +238,7 @@ export default function SalesInvoicesPage() {
     if (res.ok) { toast.success(dict.salesInvoicesPage.cancelSuccess); fetchInvoices() }
     else {
       const data = await res.json()
-      toast.error(data.error ?? '取消失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

@@ -402,10 +402,10 @@ function SupplierForm({ productId, initial, supplierOptions, onSaved, onCancel }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(f),
       })
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error ?? '儲存失敗') }
-      toast.success(isEdit ? '廠商資料已更新' : '廠商已加入')
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error ?? dict.common.saveFailed) }
+      toast.success(isEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       onSaved()
-    } catch (e) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
     finally { setSaving(false) }
   }
 

@@ -191,7 +191,7 @@ export default function DocumentsPage() {
         if (search) params.set('search', search)
 
         const res = await fetch(`/api/documents?${params}`)
-        if (!res.ok) throw new Error('載入失敗')
+        if (!res.ok) throw new Error(dict.common.loadFailed)
         const json = await res.json()
         setDocuments(json.data ?? [])
         setPagination(json.pagination ?? null)

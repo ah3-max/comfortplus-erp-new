@@ -93,7 +93,7 @@ export default function SalesInvoiceDetailPage() {
           setNotFound(true)
           return
         }
-        if (!res.ok) throw new Error('載入失敗')
+        if (!res.ok) throw new Error(dict.common.loadFailed)
         const data = await res.json()
         setInvoice(data)
       } catch {

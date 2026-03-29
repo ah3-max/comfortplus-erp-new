@@ -356,7 +356,7 @@ export default function CustomerDetailPage() {
       fetchCustomer()
     } else {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error ?? '儲存失敗')
+      toast.error(data.error ?? dict.common.saveFailed)
     }
   }
 
@@ -418,7 +418,7 @@ export default function CustomerDetailPage() {
       if (oppRes.ok) setOpportunities(await oppRes.json())
     } else {
       const data = await res.json().catch(() => ({}))
-      toast.error(data.error ?? '建立失敗')
+      toast.error(data.error ?? dict.common.createFailed)
     }
   }
 

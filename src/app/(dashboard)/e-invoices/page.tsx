@@ -108,7 +108,7 @@ export default function EInvoicesPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/e-invoices?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setInvoices(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
@@ -169,7 +169,7 @@ export default function EInvoicesPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? '儲存失敗')
+        throw new Error(data.error ?? dict.common.saveFailed)
       }
       toast.success(dict.eInvoicesPage.created)
       setFormOpen(false)
@@ -207,7 +207,7 @@ export default function EInvoicesPage() {
     if (res.ok) { toast.success(dict.eInvoicesPage.voided); fetchInvoices() }
     else {
       const data = await res.json()
-      toast.error(data.error ?? '作廢失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

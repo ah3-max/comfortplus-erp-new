@@ -93,12 +93,12 @@ function MaterialForm({
       })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '儲存失敗')
+        throw new Error(err.error ?? dict.common.saveFailed)
       }
-      toast.success(isEdit ? '包材已更新' : '包材已新增')
+      toast.success(isEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       onSaved()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '儲存失敗')
+      toast.error(e instanceof Error ? e.message : dict.common.saveFailed)
     } finally {
       setSaving(false)
     }

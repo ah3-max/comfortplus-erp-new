@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Loader2, TrendingUp, TrendingDown, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils'
 
 interface InventoryItem {
@@ -37,6 +38,7 @@ const typeConfig: Record<AdjustType, {
 }
 
 export function AdjustForm({ open, onClose, onSuccess, item }: AdjustFormProps) {
+  const { dict } = useI18n()
   const [type, setType] = useState<AdjustType>('IN')
   const [quantity, setQuantity] = useState('')
   const [notes, setNotes] = useState('')
@@ -53,7 +55,7 @@ export function AdjustForm({ open, onClose, onSuccess, item }: AdjustFormProps) 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!item) return
-    if (!quantity || qty <= 0) { toast.error('請輸入有效數量'); return }
+    if (!quantity || qty <= 0) { toast.error(dict.forms.validQuantity); return }
 
     setLoading(true)
     const res = await fetch('/api/inventory/adjust', {
@@ -69,14 +71,14 @@ export function AdjustForm({ open, onClose, onSuccess, item }: AdjustFormProps) 
     setLoading(false)
 
     if (res.ok) {
-      toast.success('庫存已調整')
+      toast.success(dict.forms.inventoryAdjusted)
       setQuantity('')
       setNotes('')
       onSuccess()
       onClose()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '調整失敗')
+      toast.error(data.error ?? dict.forms.adjustFailed)
     }
   }
 

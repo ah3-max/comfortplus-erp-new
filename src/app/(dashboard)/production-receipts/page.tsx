@@ -116,7 +116,7 @@ export default function ProductionReceiptsPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/production-receipts?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setReceipts(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)

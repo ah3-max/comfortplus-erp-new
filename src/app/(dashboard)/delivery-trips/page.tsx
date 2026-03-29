@@ -76,12 +76,12 @@ export default function DeliveryTripsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
       toast.success(dict.deliveryTrips.created)
       setShowCreate(false)
       setForm({ tripDate: new Date().toISOString().slice(0, 10), vehicleNo: '', driverName: '', driverPhone: '', region: '', notes: '' })
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
   const handleStatusUpdate = async (id: string, status: string) => {

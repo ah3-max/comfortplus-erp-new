@@ -116,7 +116,7 @@ export default function MaterialRequisitionsPage() {
     params.set('pageSize', '50')
     try {
       const res = await fetch(`/api/material-requisitions?${params}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setRequisitions(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
@@ -193,13 +193,13 @@ export default function MaterialRequisitionsPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? '儲存失敗')
+        throw new Error(data.error ?? dict.common.saveFailed)
       }
       toast.success(editTarget ? mr.savedUpdated : mr.savedCreated)
       setFormOpen(false)
       fetchRequisitions()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '儲存失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -221,7 +221,7 @@ export default function MaterialRequisitionsPage() {
     if (res.ok) { toast.success(mr.cancelSuccess); fetchRequisitions() }
     else {
       const data = await res.json()
-      toast.error(data.error ?? '取消失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

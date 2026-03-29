@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Separator } from '@/components/ui/separator'
 import { Loader2, Plus, Trash2, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface Customer { id: string; code: string; name: string }
 interface Product {
@@ -53,6 +54,7 @@ const emptyItem = (): LineItem => ({
 })
 
 export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
+  const { dict } = useI18n()
   const isEdit = !!order
 
   const [customerId, setCustomerId] = useState(order?.customerId ?? '')
@@ -156,10 +158,10 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!customerId) { toast.error('請選擇客戶'); return }
-    if (items.some((i) => !i.productId)) { toast.error('請選擇所有明細的商品'); return }
-    if (items.some((i) => i.quantity <= 0)) { toast.error('商品數量必須大於 0'); return }
-    if (items.some((i) => i.unitPrice <= 0)) { toast.error('商品單價必須大於 0'); return }
+    if (!customerId) { toast.error(dict.forms.selectCustomer); return }
+    if (items.some((i) => !i.productId)) { toast.error(dict.forms.selectAllProducts); return }
+    if (items.some((i) => i.quantity <= 0)) { toast.error(dict.forms.quantityPositive); return }
+    if (items.some((i) => i.unitPrice <= 0)) { toast.error(dict.forms.unitPricePositive); return }
 
     setLoading(true)
     const url = isEdit ? `/api/orders/${order.id}` : '/api/orders'
@@ -173,11 +175,11 @@ export function OrderForm({ open, onClose, onSuccess, order }: OrderFormProps) {
 
     setLoading(false)
     if (res.ok) {
-      toast.success(isEdit ? '訂單已更新' : '訂單建立成功')
+      toast.success(isEdit ? dict.forms.orderUpdated : dict.forms.orderCreated)
       onSuccess(); onClose()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '操作失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

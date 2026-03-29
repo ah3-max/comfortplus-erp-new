@@ -2813,6 +2813,42 @@ const zhTW = {
   partyTransactions: {
     partyIdRequired: '請輸入往來對象 ID',
   },
+
+  // ── 表單共用訊息 ──
+  forms: {
+    skuRequired: '請填寫必填欄位（SKU、名稱、分類、建議售價）',
+    costRequired: '請填寫成本價',
+    productUpdated: '商品資料已更新',
+    productCreated: '商品新增成功',
+    selectOrder: '請選擇訂單',
+    setShipQty: '請設定至少一項出貨數量',
+    shipmentCreated: '出貨單建立成功，庫存已扣減',
+    profileUpdated: '個人資料已更新',
+    imageTooLarge: '圖片不可超過 2MB',
+    supplierNameRequired: '請填寫供應商名稱',
+    supplierUpdated: '供應商已更新',
+    supplierCreated: '供應商新增成功',
+    selectCustomer: '請選擇客戶',
+    selectAllProducts: '請選擇所有明細的商品',
+    quantityPositive: '商品數量必須大於 0',
+    unitPricePositive: '商品單價必須大於 0',
+    orderUpdated: '訂單已更新',
+    orderCreated: '訂單建立成功',
+    selectSupplier: '請選擇供應商',
+    purchasePricePositive: '採購單價必須大於 0',
+    purchaseUpdated: '採購單已更新',
+    purchaseCreated: '採購單建立成功',
+    atLeastOneItem: '至少需要一項商品',
+    quotationUpdated: '報價單已更新',
+    quotationCreated: '報價單建立成功',
+    validQuantity: '請輸入有效數量',
+    inventoryAdjusted: '庫存已調整',
+    adjustFailed: '調整失敗',
+    customerNameTypeRequired: '請填寫客戶名稱與類型',
+    customerUpdated: '客戶資料已更新',
+    customerCreated: '客戶新增成功',
+    shipFailed: '出貨失敗',
+  },
 } as const
 
 export default zhTW

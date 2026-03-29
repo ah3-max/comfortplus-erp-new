@@ -155,15 +155,15 @@ export function Header() {
         body: JSON.stringify({ name: profileName, avatar: profileAvatar }),
       })
       if (res.ok) {
-        toast.success('個人資料已更新')
+        toast.success(dict.forms.profileUpdated)
         await updateSession()
         setShowProfileModal(false)
         router.refresh()
       } else {
-        toast.error('更新失敗')
+        toast.error(dict.common.updateFailed)
       }
     } catch {
-      toast.error('更新失敗')
+      toast.error(dict.common.updateFailed)
     } finally {
       setSaving(false)
     }
@@ -173,7 +173,7 @@ export function Header() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('圖片不可超過 2MB')
+      toast.error(dict.forms.imageTooLarge)
       return
     }
     // Convert to base64 data URL for simplicity

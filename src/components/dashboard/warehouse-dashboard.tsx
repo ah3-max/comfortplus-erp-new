@@ -375,6 +375,7 @@ interface DispatchOrder {
 }
 
 function PendingDispatchPanel({ orders }: { orders: DispatchOrder[] }) {
+  const { dict } = useI18n()
   const [dispatching, setDispatching] = useState<string | null>(null)
   const [dispatched, setDispatched] = useState<Set<string>>(new Set())
 
@@ -391,10 +392,10 @@ function PendingDispatchPanel({ orders }: { orders: DispatchOrder[] }) {
         toast.success(data.message)
         setDispatched(prev => new Set(prev).add(order.id))
       } else {
-        toast.error(data.error ?? '出貨失敗')
+        toast.error(data.error ?? dict.forms.shipFailed)
       }
     } catch {
-      toast.error('操作失敗')
+      toast.error(dict.common.operationFailed)
     } finally {
       setDispatching(null)
     }

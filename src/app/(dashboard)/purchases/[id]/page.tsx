@@ -174,7 +174,7 @@ export default function PurchaseDetailPage() {
       fetchOrder()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '驗收失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

@@ -149,7 +149,7 @@ export default function PeriodClosePage() {
         body: JSON.stringify({ action: confirmAction.action }),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '操作失敗'); return }
+      if (!res.ok) { toast.error(json.error ?? dict.common.operationFailed); return }
       toast.success(`${confirmAction.label}成功`)
       setConfirmAction(null)
       fetchPeriods()

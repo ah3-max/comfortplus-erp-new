@@ -143,7 +143,7 @@ export default function ShipmentsPage() {
     p.set('pageSize', '50')
     try {
       const res = await fetch(`/api/shipments?${p}`)
-      if (!res.ok) throw new Error('載入失敗')
+      if (!res.ok) throw new Error(dict.common.loadFailed)
       const result = await res.json()
       setShipments(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)

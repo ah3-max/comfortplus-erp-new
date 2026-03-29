@@ -80,7 +80,7 @@ export default function ProductionReceiptDetailPage() {
           setNotFound(true)
           return
         }
-        if (!res.ok) throw new Error('載入失敗')
+        if (!res.ok) throw new Error(dict.common.loadFailed)
         const data = await res.json()
         setReceipt(data)
       } catch {

@@ -73,12 +73,12 @@ export default function VehiclesPage() {
           licenseTaxExpiry: form.licenseTaxExpiry || null,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
       toast.success(dict.vehiclesPage.created)
       setShowCreate(false)
       setForm({ plateNo: '', vehicleType: '', brand: '', model: '', year: '', fuelType: 'DIESEL', insuranceExpiry: '', inspectionExpiry: '', licenseTaxExpiry: '', notes: '' })
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
   const filtered = vehicles.filter(v =>

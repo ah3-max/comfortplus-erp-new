@@ -85,7 +85,7 @@ export default function GeneralLedgerPage() {
       const res = await fetch(`/api/finance/general-ledger?${params}`)
       if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
       setData(await res.json())
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '載入失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [selectedId, startDate, endDate])
 

@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Plus, Trash2, Search } from 'lucide-react'
 import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
 
 interface Customer {
   id: string
@@ -68,6 +69,7 @@ const emptyItem = (): LineItem => ({
 })
 
 export function QuotationForm({ open, onClose, onSuccess, quotation }: QuotationFormProps) {
+  const { dict } = useI18n()
   const isEdit = !!quotation
 
   const [customerId, setCustomerId] = useState(quotation?.customerId ?? '')
@@ -198,11 +200,11 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!customerId) { toast.error('請選擇客戶'); return }
-    if (items.length === 0) { toast.error('至少需要一項商品'); return }
-    if (items.some((i) => !i.productId)) { toast.error('請選擇所有明細的商品'); return }
-    if (items.some((i) => i.quantity <= 0)) { toast.error('商品數量必須大於 0'); return }
-    if (items.some((i) => i.unitPrice <= 0)) { toast.error('商品單價必須大於 0'); return }
+    if (!customerId) { toast.error(dict.forms.selectCustomer); return }
+    if (items.length === 0) { toast.error(dict.forms.atLeastOneItem); return }
+    if (items.some((i) => !i.productId)) { toast.error(dict.forms.selectAllProducts); return }
+    if (items.some((i) => i.quantity <= 0)) { toast.error(dict.forms.quantityPositive); return }
+    if (items.some((i) => i.unitPrice <= 0)) { toast.error(dict.forms.unitPricePositive); return }
 
     setLoading(true)
     const url = isEdit ? `/api/quotations/${quotation.id}` : '/api/quotations'
@@ -216,12 +218,12 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
 
     setLoading(false)
     if (res.ok) {
-      toast.success(isEdit ? '報價單已更新' : '報價單建立成功')
+      toast.success(isEdit ? dict.forms.quotationUpdated : dict.forms.quotationCreated)
       onSuccess()
       onClose()
     } else {
       const data = await res.json()
-      toast.error(data.error ?? '操作失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

@@ -96,7 +96,7 @@ export default function PromoCalendarPage() {
           orderTarget: form.orderTarget ? Number(form.orderTarget) : null,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
       toast.success(dict.promoCalendar.created)
       setShowCreate(false)
       load()

@@ -97,7 +97,7 @@ export default function ExpiryTrackingPage() {
     try {
       const res = await fetch('/api/inventory/lots/refresh-expiry', { method: 'POST' })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '更新失敗'); return }
+      if (!res.ok) { toast.error(json.error ?? dict.common.updateFailed); return }
       toast.success(`已更新 ${json.updated} 筆效期狀態`)
       fetchLots()
     } finally {

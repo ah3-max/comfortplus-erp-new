@@ -79,7 +79,7 @@ export default function MaterialRequisitionDetailPage() {
           setNotFound(true)
           return
         }
-        if (!res.ok) throw new Error('載入失敗')
+        if (!res.ok) throw new Error(dict.common.loadFailed)
         const data = await res.json()
         setRequisition(data)
       } catch {
