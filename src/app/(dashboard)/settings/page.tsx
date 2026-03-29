@@ -283,7 +283,7 @@ export default function SettingsPage() {
           <TabsTrigger value="download" className="gap-1.5"><Download className="h-3.5 w-3.5" />{dict.common.download}</TabsTrigger>
         </TabsList>
 
-        {/* ═══════════ 0.1 資訊管理 ═══════════ */}
+        {/* ═══════════ 0.1 Company Info ═══════════ */}
         <TabsContent value="info" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
@@ -340,7 +340,7 @@ export default function SettingsPage() {
           )}
         </TabsContent>
 
-        {/* ═══════════ 0.2 用戶管理 ═══════════ */}
+        {/* ═══════════ 0.2 Users ═══════════ */}
         <TabsContent value="users" className="space-y-4 mt-4">
           <Tabs defaultValue="userlist">
             <TabsList>
@@ -348,7 +348,7 @@ export default function SettingsPage() {
               <TabsTrigger value="permissions" onClick={loadPerms}>{sExt.rolePerms}</TabsTrigger>
             </TabsList>
 
-            {/* 用戶列表 */}
+            {/* User List */}
             <TabsContent value="userlist" className="mt-4 space-y-3">
               {isAdmin && (
                 <div className="flex justify-end">
@@ -404,7 +404,7 @@ export default function SettingsPage() {
               )}
             </TabsContent>
 
-            {/* 角色權限矩陣 */}
+            {/* Role Permissions Matrix */}
             <TabsContent value="permissions" className="mt-4 space-y-3">
               {loadingPerm ? (
                 <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -454,7 +454,7 @@ export default function SettingsPage() {
           </Tabs>
         </TabsContent>
 
-        {/* ═══════════ 0.3 自主設定 ═══════════ */}
+        {/* ═══════════ 0.3 Preferences ═══════════ */}
         <TabsContent value="prefs" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
@@ -483,7 +483,7 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">功能開關</CardTitle>
+              <CardTitle className="text-base">{sExt.featureFlags}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-3">
@@ -510,7 +510,7 @@ export default function SettingsPage() {
           )}
         </TabsContent>
 
-        {/* ═══════════ 0.4 其他管理 ═══════════ */}
+        {/* ═══════════ 0.4 Other Mgmt ═══════════ */}
         <TabsContent value="other" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
@@ -519,12 +519,12 @@ export default function SettingsPage() {
             <Separator />
             <CardContent className="pt-4 space-y-3">
               {[
-                { key: 'line_notify_token',  label: 'LINE Notify Token', ph: 'xxxxxx' },
-                { key: 'smtp_host',          label: 'SMTP 主機',         ph: 'smtp.gmail.com' },
-                { key: 'smtp_port',          label: 'SMTP 埠',           ph: '587' },
-                { key: 'smtp_user',          label: 'SMTP 帳號',         ph: 'noreply@company.com' },
-                { key: 'smtp_password',      label: 'SMTP 密碼',         ph: '••••••••' },
-                { key: 'notify_from_name',   label: '寄件人名稱',         ph: '舒適加 ERP' },
+                { key: 'line_notify_token',  label: 'LINE Notify Token',  ph: 'xxxxxx' },
+                { key: 'smtp_host',          label: sExt.smtpHost,        ph: 'smtp.gmail.com' },
+                { key: 'smtp_port',          label: sExt.smtpPort,        ph: '587' },
+                { key: 'smtp_user',          label: sExt.smtpUser,        ph: 'noreply@company.com' },
+                { key: 'smtp_password',      label: sExt.smtpPassword,    ph: '••••••••' },
+                { key: 'notify_from_name',   label: sExt.notifyFromName,  ph: 'ComfortPlus ERP' },
               ].map(f => (
                 <div key={f.key} className="grid grid-cols-3 items-center gap-3">
                   <Label className="text-right text-sm">{f.label}</Label>
@@ -542,13 +542,13 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">客戶入口設定</CardTitle>
+              <CardTitle className="text-base">{sExt.customerPortal}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-3">
               {[
-                { key: 'customer_portal_url',   label: '客戶入口網址', ph: 'https://portal.company.com' },
-                { key: 'customer_portal_title',  label: '入口標題',     ph: '舒適加客戶服務中心' },
+                { key: 'customer_portal_url',   label: 'Portal URL',    ph: 'https://portal.company.com' },
+                { key: 'customer_portal_title',  label: 'Portal Title', ph: 'ComfortPlus Customer Portal' },
               ].map(f => (
                 <div key={f.key} className="grid grid-cols-3 items-center gap-3">
                   <Label className="text-right text-sm">{f.label}</Label>
@@ -571,18 +571,18 @@ export default function SettingsPage() {
           )}
         </TabsContent>
 
-        {/* ═══════════ 0.5 資安管理 ═══════════ */}
+        {/* ═══════════ 0.5 Security ═══════════ */}
         <TabsContent value="security" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">安全性設定</CardTitle>
+              <CardTitle className="text-base">{sExt.securitySettings}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-3">
               {[
-                { key: 'session_timeout_hours', label: 'Session 逾時 (小時)', ph: '8' },
-                { key: 'max_login_attempts',    label: '最大登入失敗次數',     ph: '5' },
-                { key: 'password_min_length',   label: '密碼最短長度',         ph: '8' },
+                { key: 'session_timeout_hours', label: sExt.sessionTimeoutH,    ph: '8' },
+                { key: 'max_login_attempts',    label: sExt.maxLoginAttempts,   ph: '5' },
+                { key: 'password_min_length',   label: sExt.passwordMinLength,  ph: '8' },
               ].map(f => (
                 <div key={f.key} className="grid grid-cols-3 items-center gap-3">
                   <Label className="text-right text-sm">{f.label}</Label>
@@ -593,7 +593,7 @@ export default function SettingsPage() {
                 </div>
               ))}
               <div className="flex items-center justify-between pt-1">
-                <Label className="text-sm">強制兩步驟驗證</Label>
+                <Label className="text-sm">{sExt.forceTwoFA}</Label>
                 <ToggleSwitch
                   checked={configs['require_2fa'] === 'true'}
                   onCheckedChange={(v: boolean) => isAdmin && setCfg('require_2fa', v ? 'true' : 'false')}
@@ -617,7 +617,7 @@ export default function SettingsPage() {
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">稽核日誌</CardTitle>
+                  <CardTitle className="text-base">{sExt.auditLog}</CardTitle>
                   <div className="flex items-center gap-2">
                     <Select value={auditModule || 'all'} onValueChange={(v: string | null) => {
                       const m = (v ?? '') === 'all' ? '' : (v ?? '')
@@ -628,7 +628,7 @@ export default function SettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">全部模組</SelectItem>
+                        <SelectItem value="all">{sExt.allModules}</SelectItem>
                         {['auth','orders','customers','inventory','users','settings'].map(m => (
                           <SelectItem key={m} value={m}>{m}</SelectItem>
                         ))}
@@ -650,17 +650,17 @@ export default function SettingsPage() {
                       <table className="w-full text-xs">
                         <thead className="border-b bg-slate-50">
                           <tr>
-                            {['時間','用戶','角色','模組','動作','對象','IP'].map(h => (
+                            {[sExt.auditTime, sExt.auditUser, sExt.auditRole, sExt.auditModule, sExt.auditAction, sExt.auditTarget, sExt.auditIP].map(h => (
                               <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {auditLogs.length === 0 ? (
-                            <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">暫無記錄</td></tr>
+                            <tr><td colSpan={7} className="px-3 py-8 text-center text-muted-foreground">{sExt.noAuditRecords}</td></tr>
                           ) : auditLogs.map(log => (
                             <tr key={log.id} className="border-b last:border-0 hover:bg-slate-50/50">
-                              <td className="px-3 py-1.5 whitespace-nowrap">{new Date(log.timestamp).toLocaleString('zh-TW', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</td>
+                              <td className="px-3 py-1.5 whitespace-nowrap">{new Date(log.timestamp).toLocaleString(undefined, { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</td>
                               <td className="px-3 py-1.5">{log.userName}</td>
                               <td className="px-3 py-1.5">{ROLE_LABELS[log.userRole] ?? log.userRole}</td>
                               <td className="px-3 py-1.5 font-mono">{log.module}</td>
@@ -673,7 +673,7 @@ export default function SettingsPage() {
                       </table>
                     </div>
                     <div className="px-3 py-2 text-xs text-muted-foreground border-t">
-                      共 {auditTotal} 筆記錄，顯示最新 50 筆
+                      {auditTotal} {dict.common.records}
                     </div>
                   </>
                 )}
@@ -682,11 +682,11 @@ export default function SettingsPage() {
           )}
         </TabsContent>
 
-        {/* ═══════════ 0.6 下載 ═══════════ */}
+        {/* ═══════════ 0.6 Download ═══════════ */}
         <TabsContent value="download" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Excel 匯入範本下載</CardTitle>
+              <CardTitle className="text-base">{sExt.excelTemplates}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-2">
@@ -703,20 +703,20 @@ export default function SettingsPage() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">系統資訊</CardTitle>
+              <CardTitle className="text-base">{sExt.systemInfo}</CardTitle>
             </CardHeader>
             <Separator />
             <CardContent className="pt-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">系統版本</span>
+                <span className="text-muted-foreground">{sExt.systemVersion}</span>
                 <span className="font-medium">V1.0.0</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">框架</span>
+                <span className="text-muted-foreground">{sExt.framework}</span>
                 <span>Next.js 16 + Prisma 7</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">資料庫</span>
+                <span className="text-muted-foreground">{sExt.database}</span>
                 <span>PostgreSQL 16</span>
               </div>
             </CardContent>
@@ -739,10 +739,10 @@ export default function SettingsPage() {
             )}
             <div>
               <Label className="text-sm">{dict.users.name}</Label>
-              <Input value={userForm.name} onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))} placeholder="姓名" className="mt-1" />
+              <Input value={userForm.name} onChange={e => setUserForm(f => ({ ...f, name: e.target.value }))} placeholder={dict.users.name} className="mt-1" />
             </div>
             <div>
-              <Label className="text-sm">{editUser ? '新密碼（留空不修改）' : '密碼'}</Label>
+              <Label className="text-sm">{editUser ? sExt.newPasswordHint : sExt.passwordLabel}</Label>
               <Input type="password" value={userForm.password} onChange={e => setUserForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" className="mt-1" />
             </div>
             <div>

@@ -23,9 +23,6 @@ import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
 // ── Internal Use types ──
-const purposeLabels: Record<string, string> = {
-  SAMPLE: '樣品', STAFF: '員工用', MARKETING: '行銷', TEST: '測試', DISPOSAL: '銷毀', OTHER: '其他',
-}
 const internalUseStatusCls: Record<string, string> = {
   DRAFT:            'bg-slate-100 text-slate-600',
   PENDING_APPROVAL: 'bg-amber-100 text-amber-700',
@@ -35,13 +32,10 @@ const internalUseStatusCls: Record<string, string> = {
 }
 
 // ── Defective Goods types ──
-const sourceLabels: Record<string, string> = {
-  QC_FAIL: 'QC 不良', CUSTOMER_RETURN: '客退', WAREHOUSE_DAMAGE: '倉庫損壞', PRODUCTION: '生產瑕疵',
-}
-const severityConfig: Record<string, { label: string; className: string }> = {
-  MINOR:    { label: '輕微', className: 'bg-yellow-100 text-yellow-700' },
-  MAJOR:    { label: '嚴重', className: 'bg-orange-100 text-orange-700' },
-  CRITICAL: { label: '重大', className: 'bg-red-100 text-red-700' },
+const severityCls: Record<string, string> = {
+  MINOR:    'bg-yellow-100 text-yellow-700',
+  MAJOR:    'bg-orange-100 text-orange-700',
+  CRITICAL: 'bg-red-100 text-red-700',
 }
 const defectStatusCls: Record<string, string> = {
   PENDING:    'bg-amber-100 text-amber-700',
@@ -49,10 +43,6 @@ const defectStatusCls: Record<string, string> = {
   RESOLVED:   'bg-green-100 text-green-700',
   CANCELLED:  'bg-slate-100 text-slate-600',
 }
-const dispositionLabels: Record<string, string> = {
-  SCRAP: '報廢', REWORK: '重工', RETURN_SUPPLIER: '退供應商', DISCOUNT_SALE: '折價出售', QUARANTINE: '隔離',
-}
-
 interface IUItem { id: string; productId: string; quantity: number; unitCost: string | null; totalCost: string | null; product: { id: string; sku: string; name: string; unit: string } }
 interface InternalUseRecord {
   id: string; useNo: string; purpose: string; status: string; totalCost: string | null; createdAt: string; notes: string | null
@@ -89,6 +79,26 @@ export default function InternalUsePage() {
   const iu = dict.internalUse
   type IUStatus = keyof typeof iu.statuses
   type DGStatus = keyof typeof iu.defectStatuses
+
+  const purposeLabels: Record<string, string> = {
+    SAMPLE: iu.purposes.SAMPLE, STAFF: iu.purposes.STAFF, MARKETING: iu.purposes.MARKETING,
+    TEST: iu.purposes.TEST, DISPOSAL: iu.purposes.DISPOSAL, OTHER: iu.purposes.OTHER,
+  }
+  const sourceLabels: Record<string, string> = {
+    QC_FAIL: iu.sources.QC_FAIL, CUSTOMER_RETURN: iu.sources.CUSTOMER_RETURN,
+    WAREHOUSE_DAMAGE: iu.sources.WAREHOUSE_DAMAGE, PRODUCTION: iu.sources.PRODUCTION,
+  }
+  const severityConfig: Record<string, { label: string; className: string }> = {
+    MINOR:    { label: iu.severities.MINOR,    className: severityCls.MINOR },
+    MAJOR:    { label: iu.severities.MAJOR,    className: severityCls.MAJOR },
+    CRITICAL: { label: iu.severities.CRITICAL, className: severityCls.CRITICAL },
+  }
+  const dispositionLabels: Record<string, string> = {
+    SCRAP: iu.dispositions.SCRAP, REWORK: iu.dispositions.REWORK,
+    RETURN_SUPPLIER: iu.dispositions.RETURN_SUPPLIER,
+    DISCOUNT_SALE: iu.dispositions.DISCOUNT_SALE, QUARANTINE: iu.dispositions.QUARANTINE,
+  }
+
   const [tab, setTab] = useState('internal')
 
   // Internal Use
@@ -238,14 +248,14 @@ export default function InternalUsePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{dict.internalUse.title}管理</h1>
-        <p className="text-sm text-muted-foreground">領用管理 · 不良品追蹤與處置</p>
+        <h1 className="text-2xl font-bold text-slate-900">{iu.title}{iu.titleManagement}</h1>
+        <p className="text-sm text-muted-foreground">{iu.titleSubtitle}</p>
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="internal">內部領用</TabsTrigger>
-          <TabsTrigger value="defective">不良品</TabsTrigger>
+          <TabsTrigger value="internal">{iu.tabInternal}</TabsTrigger>
+          <TabsTrigger value="defective">{iu.tabDefective}</TabsTrigger>
         </TabsList>
 
         {/* ── Internal Use ── */}
@@ -269,9 +279,9 @@ export default function InternalUsePage() {
                   <TableHead className="w-20">{dict.internalUse.purpose}</TableHead>
                   <TableHead>{dict.common.warehouse}</TableHead>
                   <TableHead className="w-20">{dict.common.status}</TableHead>
-                  <TableHead className="text-right w-24">總成本</TableHead>
+                  <TableHead className="text-right w-24">{iu.colTotalCost}</TableHead>
                   <TableHead className="w-20">{dict.internalUse.items}</TableHead>
-                  <TableHead className="w-24">申請人</TableHead>
+                  <TableHead className="w-24">{iu.colRequestedBy}</TableHead>
                   <TableHead className="w-20">{dict.common.date}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -304,18 +314,18 @@ export default function InternalUsePage() {
                           <DropdownMenuContent align="end" className="w-40">
                             {d.status === 'PENDING_APPROVAL' && (
                               <DropdownMenuItem onClick={() => iuAction(d.id, 'APPROVE')}>
-                                <CheckCircle2 className="mr-2 h-4 w-4" />審核通過
+                                <CheckCircle2 className="mr-2 h-4 w-4" />{iu.approveAction}
                               </DropdownMenuItem>
                             )}
                             {d.status === 'APPROVED' && (
                               <DropdownMenuItem onClick={() => iuAction(d.id, 'ISSUE')}>
-                                <PackageX className="mr-2 h-4 w-4" />確認出庫
+                                <PackageX className="mr-2 h-4 w-4" />{iu.issueAction}
                               </DropdownMenuItem>
                             )}
                             {!['ISSUED', 'CANCELLED'].includes(d.status) && (
                               <><DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => iuAction(d.id, 'CANCEL')} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />取消
+                                <XCircle className="mr-2 h-4 w-4" />{iu.cancelAction}
                               </DropdownMenuItem></>
                             )}
                           </DropdownMenuContent>
@@ -343,7 +353,7 @@ export default function InternalUsePage() {
                     <span>{purposeLabels[d.purpose]}</span>
                     <span className="text-muted-foreground">{d.warehouse.name}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">{d.items.length} 品項 · {fmt(d.totalCost)}</div>
+                  <div className="text-xs text-muted-foreground">{d.items.length} {iu.itemsUnit} · {fmt(d.totalCost)}</div>
                 </div>
               )
             })}
@@ -362,7 +372,7 @@ export default function InternalUsePage() {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="搜尋品項或批號..." value={dgSearch}
+              <Input className="pl-9" placeholder={iu.defectSearchPlaceholder} value={dgSearch}
                 onChange={e => { setDgSearch(e.target.value); setDgPage(1) }} />
             </div>
             <div className="flex gap-1.5 flex-wrap">
@@ -374,7 +384,7 @@ export default function InternalUsePage() {
               ))}
             </div>
             <Button onClick={() => setShowDgDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />新增不良品
+              <Plus className="mr-2 h-4 w-4" />{iu.newDefect}
             </Button>
           </div>
 
@@ -382,14 +392,14 @@ export default function InternalUsePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">單號</TableHead>
+                  <TableHead className="w-32">{iu.colDefectNo}</TableHead>
                   <TableHead>{dict.common.product}</TableHead>
-                  <TableHead className="w-20">來源</TableHead>
-                  <TableHead className="w-16">嚴重度</TableHead>
+                  <TableHead className="w-20">{iu.colSource}</TableHead>
+                  <TableHead className="w-16">{iu.colSeverity}</TableHead>
                   <TableHead className="w-20">{dict.common.status}</TableHead>
                   <TableHead className="text-right w-16">{dict.common.quantity}</TableHead>
-                  <TableHead className="text-right w-24">估計損失</TableHead>
-                  <TableHead className="w-24">處置</TableHead>
+                  <TableHead className="text-right w-24">{iu.colEstLoss}</TableHead>
+                  <TableHead className="w-24">{iu.colDisposition}</TableHead>
                   <TableHead className="w-20">{dict.common.date}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -430,7 +440,7 @@ export default function InternalUsePage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-40">
                               <DropdownMenuItem onClick={() => { setResolveTarget(d); setResolveForm({ disposition: '', dispositionNote: '' }) }}>
-                                <Wrench className="mr-2 h-4 w-4" />執行處置
+                                <Wrench className="mr-2 h-4 w-4" />{iu.resolveAction}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -459,15 +469,15 @@ export default function InternalUsePage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">倉庫 *</label>
+                <label className="text-sm font-medium">{iu.warehouseSelectLabel}</label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm" value={iuForm.warehouseId}
                   onChange={e => setIuForm(f => ({ ...f, warehouseId: e.target.value }))}>
-                  <option value="">選擇倉庫...</option>
+                  <option value="">{iu.selectWarehouse}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">用途 *</label>
+                <label className="text-sm font-medium">{iu.purposeSelectLabel}</label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm" value={iuForm.purpose}
                   onChange={e => setIuForm(f => ({ ...f, purpose: e.target.value }))}>
                   {Object.entries(purposeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -481,10 +491,10 @@ export default function InternalUsePage() {
                 <div key={idx} className="grid grid-cols-12 gap-1 items-center">
                   <select className="col-span-7 rounded border px-2 py-1.5 text-sm" value={item.productId}
                     onChange={e => setIuForm(f => ({ ...f, items: f.items.map((it, i) => i === idx ? { ...it, productId: e.target.value } : it) }))}>
-                    <option value="">選品項...</option>
+                    <option value="">{iu.selectProduct}</option>
                     {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
-                  <Input className="col-span-3 text-sm h-8" type="number" placeholder="數量"
+                  <Input className="col-span-3 text-sm h-8" type="number" placeholder={dict.common.quantity}
                     value={item.quantity}
                     onChange={e => setIuForm(f => ({ ...f, items: f.items.map((it, i) => i === idx ? { ...it, quantity: e.target.value } : it) }))} />
                   <button onClick={() => setIuForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }))}
@@ -494,7 +504,7 @@ export default function InternalUsePage() {
                 </div>
               ))}
               <Button variant="outline" size="sm" onClick={() => setIuForm(f => ({ ...f, items: [...f.items, { productId: '', quantity: '', notes: '' }] }))}>
-                <Plus className="mr-1 h-3 w-3" />新增品項
+                <Plus className="mr-1 h-3 w-3" />{iu.addItemBtn}
               </Button>
             </div>
             <div className="space-y-1">
@@ -514,34 +524,34 @@ export default function InternalUsePage() {
       {/* ── Defective Goods Create Dialog ── */}
       <Dialog open={showDgDialog} onOpenChange={setShowDgDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增不良品紀錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{iu.newDefectTitle}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium">品項 *</label>
+              <label className="text-sm font-medium">{iu.defectProductLabel}</label>
               <select className="w-full rounded-md border px-3 py-2 text-sm" value={dgForm.productId}
                 onChange={e => setDgForm(f => ({ ...f, productId: e.target.value }))}>
-                <option value="">選品項...</option>
+                <option value="">{iu.selectProduct}</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">倉庫 *</label>
+                <label className="text-sm font-medium">{iu.warehouseSelectLabel}</label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm" value={dgForm.warehouseId}
                   onChange={e => setDgForm(f => ({ ...f, warehouseId: e.target.value }))}>
-                  <option value="">選倉庫...</option>
+                  <option value="">{iu.selectWarehouse}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">數量 *</label>
+                <label className="text-sm font-medium">{iu.defectQtyLabel}</label>
                 <Input type="number" placeholder="0" value={dgForm.quantity}
                   onChange={e => setDgForm(f => ({ ...f, quantity: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">來源 *</label>
+                <label className="text-sm font-medium">{iu.defectSourceLabel}</label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm" value={dgForm.source}
                   onChange={e => setDgForm(f => ({ ...f, source: e.target.value }))}>
                   {Object.entries(sourceLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

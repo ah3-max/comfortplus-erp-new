@@ -23,21 +23,13 @@ import { useI18n } from '@/lib/i18n/context'
 
 type StockCountStatus = 'DRAFT' | 'COUNTING' | 'REVIEWING' | 'COMPLETED' | 'CANCELLED'
 
-const statusConfig: Record<StockCountStatus, { label: string; className: string }> = {
-  DRAFT:      { label: '草稿',   className: 'bg-slate-100 text-slate-600' },
-  COUNTING:   { label: '盤點中', className: 'bg-amber-100 text-amber-700' },
-  REVIEWING:  { label: '複核中', className: 'bg-blue-100 text-blue-700' },
-  COMPLETED:  { label: '已完成', className: 'bg-green-100 text-green-700' },
-  CANCELLED:  { label: '已取消', className: 'bg-red-100 text-red-700' },
+const STATUS_COLORS: Record<StockCountStatus, string> = {
+  DRAFT:      'bg-slate-100 text-slate-600',
+  COUNTING:   'bg-amber-100 text-amber-700',
+  REVIEWING:  'bg-blue-100 text-blue-700',
+  COMPLETED:  'bg-green-100 text-green-700',
+  CANCELLED:  'bg-red-100 text-red-700',
 }
-
-const statusFilters = [
-  { value: '', label: '全部' },
-  { value: 'DRAFT', label: '草稿' },
-  { value: 'COUNTING', label: '盤點中' },
-  { value: 'REVIEWING', label: '複核中' },
-  { value: 'COMPLETED', label: '已完成' },
-]
 
 interface StockCountBase {
   id: string; countNo: string; status: StockCountStatus; countType: string
@@ -72,6 +64,18 @@ function formatDate(str: string | null) {
 
 export default function StockCountsPage() {
   const { dict } = useI18n()
+  const sc = dict.stockCounts
+  const STATUS_LABELS = sc.statusLabels as Record<string, string>
+  const STATUS_UPDATE_LABELS = sc.statusUpdateLabels as Record<string, string>
+
+  const statusFilters = [
+    { value: '', label: sc.filterAll },
+    { value: 'DRAFT', label: STATUS_LABELS.DRAFT },
+    { value: 'COUNTING', label: STATUS_LABELS.COUNTING },
+    { value: 'REVIEWING', label: STATUS_LABELS.REVIEWING },
+    { value: 'COMPLETED', label: STATUS_LABELS.COMPLETED },
+  ]
+
   const [data, setData] = useState<StockCount[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -132,7 +136,7 @@ export default function StockCountsPage() {
   }, [selectedId])
 
   async function createCount() {
-    if (!createForm.warehouseId) { toast.error(dict.stockCounts.warehouseRequired); return }
+    if (!createForm.warehouseId) { toast.error(sc.warehouseRequired); return }
     setCreating(true)
     try {
       const res = await fetch('/api/stock-counts', {
@@ -141,7 +145,7 @@ export default function StockCountsPage() {
       })
       if (!res.ok) throw new Error()
       const result = await res.json()
-      toast.success(`盤點單 ${result.countNo} 已建立`)
+      toast.success(sc.createdMsg.replace('{no}', result.countNo))
       setShowCreate(false)
       setCreateForm({ warehouseId: '', countType: 'FULL', plannedDate: '', notes: '' })
       fetchData()
@@ -156,8 +160,7 @@ export default function StockCountsPage() {
       body: JSON.stringify({ statusOnly: true, status }),
     })
     if (res.ok) {
-      const labels: Record<string, string> = { COUNTING: '開始盤點', REVIEWING: '送交複核', COMPLETED: '盤點完成', CANCELLED: '已取消' }
-      toast.success(labels[status] ?? dict.common.updateSuccess)
+      toast.success(STATUS_UPDATE_LABELS[status] ?? dict.common.updateSuccess)
       fetchData()
       if (selectedId) setSelectedId(selectedId) // refresh detail
     } else {
@@ -173,7 +176,7 @@ export default function StockCountsPage() {
       countedQty: parseInt(vals.countedQty) || 0,
       varianceReason: vals.varianceReason || undefined,
     }))
-    if (!items.length) { toast.info(dict.stockCounts.noChanges); return }
+    if (!items.length) { toast.info(sc.noChanges); return }
     setSavingItems(true)
     try {
       const res = await fetch(`/api/stock-counts/${countDetail.id}`, {
@@ -181,14 +184,14 @@ export default function StockCountsPage() {
         body: JSON.stringify({ items }),
       })
       if (!res.ok) throw new Error()
-      toast.success(dict.stockCounts.quantitySaved)
+      toast.success(sc.quantitySaved)
       setSelectedId(countDetail.id) // refresh
     } catch { toast.error(dict.common.saveFailed) }
     finally { setSavingItems(false) }
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消盤點單 ${no} 嗎？`)) return
+    if (!confirm(sc.cancelConfirm.replace('{no}', no))) return
     const res = await fetch(`/api/stock-counts/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.common.cancelSuccess); fetchData() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
@@ -209,20 +212,20 @@ export default function StockCountsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.stockCounts.title}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{sc.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination?.total ?? data.length} 筆
+            {sc.totalCountText.replace('{n}', String(pagination?.total ?? data.length))}
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)}>
-          <Plus className="mr-2 h-4 w-4" />{dict.stockCounts.newCount}
+          <Plus className="mr-2 h-4 w-4" />{sc.newCount}
         </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder={dict.stockCounts.searchPlaceholder}
+          <Input className="pl-9" placeholder={sc.searchPlaceholder}
             value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
         </div>
         <div className="flex gap-1.5 flex-wrap">
@@ -239,13 +242,13 @@ export default function StockCountsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-36">{dict.stockCounts.countNo}</TableHead>
+              <TableHead className="w-36">{sc.countNo}</TableHead>
               <TableHead>{dict.common.warehouse}</TableHead>
               <TableHead className="w-20">{dict.common.type}</TableHead>
               <TableHead className="w-20">{dict.common.status}</TableHead>
-              <TableHead className="text-right w-16">品項</TableHead>
-              <TableHead className="text-right w-16">差異數</TableHead>
-              <TableHead className="w-24">計畫日</TableHead>
+              <TableHead className="text-right w-16">{sc.colItems}</TableHead>
+              <TableHead className="text-right w-16">{sc.colVariance}</TableHead>
+              <TableHead className="w-24">{sc.colPlannedDate}</TableHead>
               <TableHead className="w-24">{dict.common.createdAt}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -258,17 +261,20 @@ export default function StockCountsPage() {
             ) : data.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="py-16 text-center">
                 <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
-                <p className="text-muted-foreground">{search || filterStatus ? dict.stockCounts.noResults : dict.stockCounts.noCounts}</p>
+                <p className="text-muted-foreground">{search || filterStatus ? sc.noResults : sc.noCounts}</p>
               </TableCell></TableRow>
             ) : data.map(d => {
-              const sc = statusConfig[d.status]
+              const statusClass = STATUS_COLORS[d.status]
+              const statusLabel = STATUS_LABELS[d.status] ?? d.status
               return (
                 <TableRow key={d.id} className="group cursor-pointer hover:bg-slate-50/80"
                   onClick={() => setSelectedId(d.id)}>
                   <TableCell className="font-mono text-sm font-medium">{d.countNo}</TableCell>
                   <TableCell className="text-sm">{d.warehouse.name}</TableCell>
-                  <TableCell className="text-sm">{d.countType === 'FULL' ? '全盤' : '循環'}</TableCell>
-                  <TableCell><Badge variant="outline" className={sc.className}>{sc.label}</Badge></TableCell>
+                  <TableCell className="text-sm">
+                    {d.countType === 'FULL' ? sc.countTypeFull : sc.countTypeCycle}
+                  </TableCell>
+                  <TableCell><Badge variant="outline" className={statusClass}>{statusLabel}</Badge></TableCell>
                   <TableCell className="text-right text-sm">{d.items.length}</TableCell>
                   <TableCell className={`text-right text-sm ${(d.totalVariance ?? 0) !== 0 ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                     {d.totalVariance != null ? (d.totalVariance > 0 ? `+${d.totalVariance}` : d.totalVariance) : '—'}
@@ -282,32 +288,32 @@ export default function StockCountsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuItem onClick={() => setSelectedId(d.id)}>
-                          <ChevronRight className="mr-2 h-4 w-4" />查看明細
+                          <ChevronRight className="mr-2 h-4 w-4" />{sc.actionViewDetail}
                         </DropdownMenuItem>
                         {d.status === 'DRAFT' && (
                           <DropdownMenuItem onClick={() => updateStatus(d.id, 'COUNTING')}>
-                            <ClipboardList className="mr-2 h-4 w-4" />開始盤點
+                            <ClipboardList className="mr-2 h-4 w-4" />{sc.actionStartCount}
                           </DropdownMenuItem>
                         )}
                         {d.status === 'COUNTING' && (
                           <DropdownMenuItem onClick={() => updateStatus(d.id, 'REVIEWING')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />送交複核
+                            <CheckCircle2 className="mr-2 h-4 w-4" />{sc.actionSubmitReview}
                           </DropdownMenuItem>
                         )}
                         {d.status === 'REVIEWING' && (
                           <>
                             <DropdownMenuItem onClick={() => updateStatus(d.id, 'COMPLETED')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />確認完成
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{sc.actionConfirmComplete}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => updateStatus(d.id, 'COUNTING')}>
-                              <RotateCcw className="mr-2 h-4 w-4" />退回重盤
+                              <RotateCcw className="mr-2 h-4 w-4" />{sc.actionReturnCount}
                             </DropdownMenuItem>
                           </>
                         )}
                         {!['COMPLETED', 'CANCELLED'].includes(d.status) && (
                           <><DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleCancel(d.id, d.countNo)} variant="destructive">
-                            <XCircle className="mr-2 h-4 w-4" />取消
+                            <XCircle className="mr-2 h-4 w-4" />{sc.actionCancel}
                           </DropdownMenuItem></>
                         )}
                       </DropdownMenuContent>
@@ -322,7 +328,12 @@ export default function StockCountsPage() {
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-muted-foreground">共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁</p>
+          <p className="text-sm text-muted-foreground">
+            {sc.paginationText
+              .replace('{total}', String(pagination.total))
+              .replace('{page}', String(pagination.page))
+              .replace('{totalPages}', String(pagination.totalPages))}
+          </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>
@@ -333,29 +344,29 @@ export default function StockCountsPage() {
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{dict.stockCounts.newCount}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{sc.newCount}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium">{dict.stockCounts.warehouseLabel} *</label>
+              <label className="text-sm font-medium">{sc.warehouseLabel} *</label>
               <select className="w-full rounded-md border px-3 py-2 text-sm"
                 value={createForm.warehouseId}
                 onChange={e => setCreateForm(f => ({ ...f, warehouseId: e.target.value }))}>
-                <option value="">選擇倉庫...</option>
+                <option value="">{sc.selectWarehousePlaceholder}</option>
                 {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">盤點類型</label>
+              <label className="text-sm font-medium">{sc.countTypeLabel}</label>
               <select className="w-full rounded-md border px-3 py-2 text-sm"
                 value={createForm.countType}
                 onChange={e => setCreateForm(f => ({ ...f, countType: e.target.value }))}>
-                <option value="FULL">全盤（所有品項）</option>
-                <option value="CYCLE">循環盤點（部分品項）</option>
-                <option value="SPOT">抽盤</option>
+                <option value="FULL">{sc.countTypeFullOption}</option>
+                <option value="CYCLE">{sc.countTypeCycleOption}</option>
+                <option value="SPOT">{sc.countTypeSpotOption}</option>
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">{dict.stockCounts.countDate}</label>
+              <label className="text-sm font-medium">{sc.countDate}</label>
               <Input type="date" value={createForm.plannedDate}
                 onChange={e => setCreateForm(f => ({ ...f, plannedDate: e.target.value }))} />
             </div>
@@ -364,7 +375,7 @@ export default function StockCountsPage() {
               <Input placeholder="..." value={createForm.notes}
                 onChange={e => setCreateForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
-            <p className="text-xs text-muted-foreground">建立時將自動從庫存系統帶入所有品項的帳面數量。</p>
+            <p className="text-xs text-muted-foreground">{sc.autoNoteText}</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreate(false)}>{dict.common.cancel}</Button>
@@ -380,7 +391,7 @@ export default function StockCountsPage() {
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {countDetail?.countNo ?? '...'} — {countDetail ? statusConfig[countDetail.status].label : ''}
+              {countDetail?.countNo ?? '...'} — {countDetail ? (STATUS_LABELS[countDetail.status] ?? countDetail.status) : ''}
             </DialogTitle>
           </DialogHeader>
 
@@ -390,10 +401,10 @@ export default function StockCountsPage() {
             <div className="space-y-4">
               {/* Header info */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                <div><span className="text-muted-foreground">倉庫：</span>{countDetail.warehouse.name}</div>
-                <div><span className="text-muted-foreground">類型：</span>{countDetail.countType}</div>
-                <div><span className="text-muted-foreground">計畫日：</span>{formatDate(countDetail.plannedDate)}</div>
-                <div><span className="text-muted-foreground">建立者：</span>{countDetail.createdBy.name}</div>
+                <div><span className="text-muted-foreground">{sc.detailWarehouse}</span>{countDetail.warehouse.name}</div>
+                <div><span className="text-muted-foreground">{sc.detailType}</span>{countDetail.countType}</div>
+                <div><span className="text-muted-foreground">{sc.detailPlannedDate}</span>{formatDate(countDetail.plannedDate)}</div>
+                <div><span className="text-muted-foreground">{sc.detailCreatedBy}</span>{countDetail.createdBy.name}</div>
               </div>
 
               {/* Variance summary (when reviewing/completed) */}
@@ -401,17 +412,17 @@ export default function StockCountsPage() {
                 <div className="rounded-lg border bg-slate-50 px-4 py-3">
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground">盤點品項</p>
+                      <p className="text-muted-foreground">{sc.summaryItems}</p>
                       <p className="text-lg font-bold">{countDetail.items.length}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">有差異品項</p>
+                      <p className="text-muted-foreground">{sc.summaryVarianceItems}</p>
                       <p className="text-lg font-bold text-amber-600">
                         {countDetail.items.filter(i => i.variance !== 0).length}
                       </p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">總差異數量</p>
+                      <p className="text-muted-foreground">{sc.summaryTotalVariance}</p>
                       <p className="text-lg font-bold text-red-600">
                         {countDetail.items.reduce((s, i) => s + Math.abs(i.variance), 0)}
                       </p>
@@ -423,10 +434,10 @@ export default function StockCountsPage() {
               {/* Action buttons */}
               {canEdit && (
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">輸入實際盤點數量，系統自動計算差異。</p>
+                  <p className="text-sm text-muted-foreground">{sc.editHint}</p>
                   <Button size="sm" onClick={saveItemCounts} disabled={savingItems || !Object.keys(itemEdits).length}>
                     {savingItems ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    儲存 {Object.keys(itemEdits).length > 0 && `(${Object.keys(itemEdits).length})`}
+                    {sc.saveCount} {Object.keys(itemEdits).length > 0 && `(${Object.keys(itemEdits).length})`}
                   </Button>
                 </div>
               )}
@@ -436,11 +447,11 @@ export default function StockCountsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>品項</TableHead>
-                      <TableHead className="text-right w-24">帳面數量</TableHead>
-                      <TableHead className="text-right w-28">實際盤點</TableHead>
-                      <TableHead className="text-right w-20">差異</TableHead>
-                      <TableHead className="w-32">差異原因</TableHead>
+                      <TableHead>{sc.colProductName}</TableHead>
+                      <TableHead className="text-right w-24">{sc.colSystemQty}</TableHead>
+                      <TableHead className="text-right w-28">{sc.colCountedQty}</TableHead>
+                      <TableHead className="text-right w-20">{sc.colVarianceDiff}</TableHead>
+                      <TableHead className="w-32">{sc.colVarianceReason}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -475,7 +486,7 @@ export default function StockCountsPage() {
                             {canEdit && variance !== 0 ? (
                               <Input
                                 className="h-8 text-sm w-full"
-                                placeholder="原因..."
+                                placeholder={sc.varianceReasonPlaceholder}
                                 value={itemEdits[item.id]?.varianceReason ?? item.varianceReason ?? ''}
                                 onChange={e => setItemEdits(prev => ({
                                   ...prev,
@@ -497,21 +508,21 @@ export default function StockCountsPage() {
               <div className="flex justify-end gap-2 pt-2">
                 {countDetail.status === 'DRAFT' && (
                   <Button onClick={() => updateStatus(countDetail.id, 'COUNTING')}>
-                    <ClipboardList className="mr-2 h-4 w-4" />開始盤點
+                    <ClipboardList className="mr-2 h-4 w-4" />{sc.actionStartCount}
                   </Button>
                 )}
                 {countDetail.status === 'COUNTING' && (
                   <Button onClick={() => updateStatus(countDetail.id, 'REVIEWING')}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />送交複核
+                    <CheckCircle2 className="mr-2 h-4 w-4" />{sc.actionSubmitReview}
                   </Button>
                 )}
                 {countDetail.status === 'REVIEWING' && (
                   <>
                     <Button variant="outline" onClick={() => updateStatus(countDetail.id, 'COUNTING')}>
-                      <RotateCcw className="mr-2 h-4 w-4" />退回重盤
+                      <RotateCcw className="mr-2 h-4 w-4" />{sc.actionReturnCount}
                     </Button>
                     <Button onClick={() => updateStatus(countDetail.id, 'COMPLETED')}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />確認完成並調整庫存
+                      <CheckCircle2 className="mr-2 h-4 w-4" />{sc.actionConfirmCompleteAdj}
                     </Button>
                   </>
                 )}

@@ -70,6 +70,7 @@ const emptyItem = (): LineItem => ({
 
 export function QuotationForm({ open, onClose, onSuccess, quotation }: QuotationFormProps) {
   const { dict } = useI18n()
+  const fl = dict.formLabels
   const isEdit = !!quotation
 
   const [customerId, setCustomerId] = useState(quotation?.customerId ?? '')
@@ -99,7 +100,6 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
   )
   const [loading, setLoading] = useState(false)
 
-  // 開關時初始化/清除狀態
   useEffect(() => {
     if (!open) {
       setCustomerId(quotation?.customerId ?? '')
@@ -119,7 +119,6 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
     fetch('/api/customers').then((r) => r.json()).then(setCustomers)
   }, [open])
 
-  // 載入商品列表
   useEffect(() => {
     if (!open) return
     const params = new URLSearchParams()
@@ -132,7 +131,6 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
     return () => clearTimeout(timer)
   }, [open, productSearch])
 
-  // 編輯時載入客戶資訊
   useEffect(() => {
     if (quotation?.customerId && customers.length > 0) {
       const c = customers.find((c) => c.id === quotation.customerId)
@@ -231,13 +229,13 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? '編輯報價單' : '新增報價單'}</DialogTitle>
+          <DialogTitle>{isEdit ? fl.editQuotation : fl.newQuotation}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* 客戶與基本資訊 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>客戶 <span className="text-red-500">*</span></Label>
+              <Label>{fl.customerLabel}</Label>
               <div className="relative">
                 {selectedCustomer ? (
                   <div className="flex items-center justify-between rounded-md border border-input bg-background px-3 py-2">
@@ -250,7 +248,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                       onClick={() => { setSelectedCustomer(null); setCustomerId('') }}
                       className="text-xs text-muted-foreground hover:text-foreground"
                     >
-                      更換
+                      {fl.change}
                     </button>
                   </div>
                 ) : (
@@ -258,7 +256,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       className="pl-9"
-                      placeholder="搜尋客戶名稱或代碼..."
+                      placeholder={fl.searchCustomerCodePlaceholder}
                       value={customerSearch}
                       onChange={(e) => { setCustomerSearch(e.target.value); setShowCustomerList(true) }}
                       onFocus={() => setShowCustomerList(true)}
@@ -283,7 +281,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>報價有效期限</Label>
+              <Label>{fl.quotationValidUntil}</Label>
               <Input
                 type="date"
                 value={validUntil}
@@ -298,21 +296,20 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
           {/* 商品明細 */}
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-medium text-muted-foreground">商品明細</p>
+              <p className="text-sm font-medium text-muted-foreground">{fl.quotationItems}</p>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
                 <Plus className="mr-1 h-3.5 w-3.5" />
-                新增明細
+                {fl.addItem}
               </Button>
             </div>
 
-            {/* 商品選擇器 */}
             {activeItemIndex !== null && (
               <div className="mb-3 rounded-lg border bg-slate-50 p-3">
                 <div className="mb-2 flex items-center gap-2">
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <Input
                     className="h-8 bg-white"
-                    placeholder="搜尋商品名稱或 SKU..."
+                    placeholder={fl.searchProductPlaceholder}
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     autoFocus
@@ -322,7 +319,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                     onClick={() => { setActiveItemIndex(null); setProductSearch('') }}
                     className="text-xs text-muted-foreground hover:text-foreground shrink-0"
                   >
-                    關閉
+                    {fl.close}
                   </button>
                 </div>
                 <div className="max-h-48 overflow-y-auto space-y-1">
@@ -346,7 +343,6 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
               </div>
             )}
 
-            {/* 明細表格 */}
             <div className="rounded-lg border overflow-x-auto">
               <table className="w-full text-sm" style={{ minWidth: '700px' }}>
                 <colgroup>
@@ -361,11 +357,11 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">#</th>
-                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">商品</th>
-                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">數量</th>
-                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">單價（元）</th>
-                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">折扣%</th>
-                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">小計</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{fl.product}</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{fl.quantity}</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{fl.unitPriceHeader}</th>
+                    <th className="px-3 py-2.5 text-left font-medium text-muted-foreground">{fl.discount}</th>
+                    <th className="px-3 py-2.5 text-right font-medium text-muted-foreground">{fl.subtotal}</th>
                     <th className="px-3 py-2.5" />
                   </tr>
                 </thead>
@@ -395,7 +391,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                               onClick={() => setActiveItemIndex(index)}
                               className="text-blue-600 hover:text-blue-700 text-sm"
                             >
-                              + 選擇商品
+                              {fl.selectProduct}
                             </button>
                           )}
                         </td>
@@ -449,7 +445,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                 </tbody>
                 <tfoot className="bg-slate-50">
                   <tr>
-                    <td colSpan={5} className="px-3 py-2.5 text-right font-medium text-sm">合計</td>
+                    <td colSpan={5} className="px-3 py-2.5 text-right font-medium text-sm">{fl.total}</td>
                     <td className="px-3 py-2.5 text-right font-bold text-base tabular-nums">
                       {formatCurrency(totalAmount)}
                     </td>
@@ -464,23 +460,23 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
 
           {/* 備註 */}
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{fl.notes}</Label>
             <textarea
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="報價備註事項..."
+              placeholder={fl.quotationNotesPlaceholder}
             />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
-              取消
+              {fl.cancel}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? '儲存變更' : '建立報價單'}
+              {isEdit ? fl.saveChanges : fl.createQuotation}
             </Button>
           </DialogFooter>
         </form>

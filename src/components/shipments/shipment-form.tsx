@@ -193,7 +193,7 @@ export function ShipmentForm({ open, onClose, onSuccess, preselectedOrderId }: S
                   </button>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {dict.common.pieces.replace ? selectedOrder.items.length + ' ' + fl.productCount : selectedOrder.items.length + ' ' + fl.productCount}
+                  {selectedOrder.items.length} {fl.productCount}
                 </div>
               </div>
             ) : (

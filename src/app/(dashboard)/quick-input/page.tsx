@@ -71,32 +71,6 @@ type IncidentType =
 
 type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 
-const LOG_TYPE_OPTIONS: { value: LogType; label: string }[] = [
-  { value: 'CALL', label: '電話' },
-  { value: 'LINE', label: 'LINE' },
-  { value: 'MEETING', label: '會議' },
-  { value: 'FIRST_VISIT', label: '初訪' },
-  { value: 'SECOND_VISIT', label: '二訪' },
-  { value: 'FOLLOW_UP', label: '追蹤' },
-  { value: 'OTHER', label: '其他' },
-]
-
-const INCIDENT_TYPE_OPTIONS: { value: IncidentType; label: string }[] = [
-  { value: 'COMPLAINT', label: '客訴' },
-  { value: 'SKIN_ISSUE', label: '皮膚問題' },
-  { value: 'PRODUCT_DEFECT', label: '產品瑕疵' },
-  { value: 'DELIVERY_ISSUE', label: '配送問題' },
-  { value: 'SERVICE_ISSUE', label: '服務問題' },
-  { value: 'OTHER', label: '其他' },
-]
-
-const SEVERITY_OPTIONS: { value: Severity; label: string; color: string }[] = [
-  { value: 'LOW', label: '低', color: 'bg-gray-200 text-gray-700' },
-  { value: 'MEDIUM', label: '中', color: 'bg-yellow-200 text-yellow-800' },
-  { value: 'HIGH', label: '高', color: 'bg-orange-200 text-orange-800' },
-  { value: 'CRITICAL', label: '嚴重', color: 'bg-red-200 text-red-800' },
-]
-
 // ---------------------------------------------------------------------------
 // Customer Picker Component — loads all on open, filters as you type
 // ---------------------------------------------------------------------------
@@ -104,12 +78,16 @@ const SEVERITY_OPTIONS: { value: Severity; label: string; color: string }[] = [
 function CustomerPicker({
   value,
   onChange,
-  placeholder = '選擇或搜尋客戶...',
+  placeholder,
+  searchPlaceholder,
+  notFoundText,
   allCustomers,
 }: {
   value: Customer | null
   onChange: (c: Customer | null) => void
-  placeholder?: string
+  placeholder: string
+  searchPlaceholder: string
+  notFoundText: string
   allCustomers: Customer[]
 }) {
   const [open, setOpen] = useState(false)
@@ -183,7 +161,7 @@ function CustomerPicker({
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="搜尋客戶名稱、電話..."
+                  placeholder={searchPlaceholder}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -196,7 +174,7 @@ function CustomerPicker({
               {filtered.length === 0 ? (
                 <div className="py-8 text-center text-sm text-gray-400">
                   <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  找不到客戶
+                  {notFoundText}
                 </div>
               ) : (
                 filtered.slice(0, 50).map((c) => (
@@ -247,6 +225,30 @@ function hasSpeechRecognition(): boolean {
 export default function QuickInputPage() {
   const { dict } = useI18n()
   const qi = dict.quickInput
+  const LOG_TYPE_OPTIONS: { value: LogType; label: string }[] = [
+    { value: 'CALL', label: (qi.logTypes as Record<string, string>).CALL },
+    { value: 'LINE', label: (qi.logTypes as Record<string, string>).LINE },
+    { value: 'MEETING', label: (qi.logTypes as Record<string, string>).MEETING },
+    { value: 'FIRST_VISIT', label: (qi.logTypes as Record<string, string>).FIRST_VISIT },
+    { value: 'SECOND_VISIT', label: (qi.logTypes as Record<string, string>).SECOND_VISIT },
+    { value: 'FOLLOW_UP', label: (qi.logTypes as Record<string, string>).FOLLOW_UP },
+    { value: 'OTHER', label: (qi.logTypes as Record<string, string>).OTHER },
+  ]
+  const INCIDENT_TYPE_OPTIONS: { value: IncidentType; label: string }[] = [
+    { value: 'COMPLAINT', label: (qi.incidentTypes as Record<string, string>).COMPLAINT },
+    { value: 'SKIN_ISSUE', label: (qi.incidentTypes as Record<string, string>).SKIN_ISSUE },
+    { value: 'PRODUCT_DEFECT', label: (qi.incidentTypes as Record<string, string>).PRODUCT_DEFECT },
+    { value: 'DELIVERY_ISSUE', label: (qi.incidentTypes as Record<string, string>).DELIVERY_ISSUE },
+    { value: 'SERVICE_ISSUE', label: (qi.incidentTypes as Record<string, string>).SERVICE_ISSUE },
+    { value: 'OTHER', label: (qi.incidentTypes as Record<string, string>).OTHER },
+  ]
+  const SEVERITY_OPTIONS: { value: Severity; label: string; color: string }[] = [
+    { value: 'LOW', label: (qi.severityLabels as Record<string, string>).LOW, color: 'bg-gray-200 text-gray-700' },
+    { value: 'MEDIUM', label: (qi.severityLabels as Record<string, string>).MEDIUM, color: 'bg-yellow-200 text-yellow-800' },
+    { value: 'HIGH', label: (qi.severityLabels as Record<string, string>).HIGH, color: 'bg-orange-200 text-orange-800' },
+    { value: 'CRITICAL', label: (qi.severityLabels as Record<string, string>).CRITICAL, color: 'bg-red-200 text-red-800' },
+  ]
+
   // --- All customers (loaded once) ---
   const [allCustomers, setAllCustomers] = useState<Customer[]>([])
 
@@ -474,12 +476,12 @@ export default function QuickInputPage() {
                 thumbnail,
               },
             ])
-            toast.success(`照片已上傳`)
+            toast.success(qi.audioUploaded)
           } else {
-            toast.error(`照片上傳失敗: ${file.name}`)
+            toast.error(qi.audioUploadFailed)
           }
         } catch {
-          toast.error(`照片上傳失敗: ${file.name}`)
+          toast.error(qi.audioUploadFailed)
         }
       }
 
@@ -602,8 +604,8 @@ export default function QuickInputPage() {
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white border-b px-4 py-3 shadow-sm">
-        <h1 className="text-xl font-bold text-gray-900">{dict.quickInput.title}</h1>
-        <p className="text-sm text-gray-500">拜訪後快速記錄資料</p>
+        <h1 className="text-xl font-bold text-gray-900">{qi.title}</h1>
+        <p className="text-sm text-gray-500">{qi.subtitle}</p>
       </div>
 
       <div className="p-4 space-y-5 max-w-lg mx-auto">
@@ -612,7 +614,7 @@ export default function QuickInputPage() {
         {/* ============================================================= */}
         <section>
           <div className="grid grid-cols-2 gap-3">
-            {/* 錄音上傳 */}
+            {/* Audio Upload */}
             <Card
               className="cursor-pointer active:scale-95 transition-transform border-0 shadow-md hover:shadow-lg"
               onClick={() => audioInputRef.current?.click()}
@@ -622,7 +624,7 @@ export default function QuickInputPage() {
                   <>
                     <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-2" />
                     <span className="text-sm font-semibold text-blue-700">
-                      上傳中 {audioProgress}%
+                      {qi.uploadingProgress.replace('{n}', String(audioProgress))}
                     </span>
                     <div className="w-full bg-blue-200 rounded-full h-1.5 mt-2">
                       <div
@@ -636,8 +638,8 @@ export default function QuickInputPage() {
                     <div className="w-14 h-14 rounded-2xl bg-blue-500 flex items-center justify-center mb-2 shadow-md">
                       <Mic className="w-7 h-7 text-white" />
                     </div>
-                    <span className="text-sm font-semibold text-blue-800">錄音上傳</span>
-                    <span className="text-[11px] text-blue-500 mt-0.5">支援所有手機</span>
+                    <span className="text-sm font-semibold text-blue-800">{qi.cardAudioUpload}</span>
+                    <span className="text-[11px] text-blue-500 mt-0.5">{qi.cardAudioUploadHint}</span>
                   </>
                 )}
               </CardContent>
@@ -650,7 +652,7 @@ export default function QuickInputPage() {
               onChange={handleAudioUpload}
             />
 
-            {/* 語音輸入 — shows only if supported, else shows fallback */}
+            {/* Voice Input — shows only if supported, else shows fallback */}
             <Card
               className={`cursor-pointer active:scale-95 transition-transform border-0 shadow-md hover:shadow-lg ${
                 isListening ? 'ring-2 ring-green-400 ring-offset-2' : ''
@@ -677,10 +679,10 @@ export default function QuickInputPage() {
                   )}
                 </div>
                 <span className="text-sm font-semibold text-green-800">
-                  {isListening ? '辨識中...' : '語音輸入'}
+                  {isListening ? qi.cardVoiceRecognizing : qi.cardVoiceInput}
                 </span>
                 {!speechSupported && (
-                  <span className="text-[11px] text-gray-500 mt-0.5 text-center">僅限 Android Chrome</span>
+                  <span className="text-[11px] text-gray-500 mt-0.5 text-center">{qi.cardVoiceAndroidOnly}</span>
                 )}
                 {isListening && (
                   <div className="flex gap-1 mt-1">
@@ -692,7 +694,7 @@ export default function QuickInputPage() {
               </CardContent>
             </Card>
 
-            {/* 拍照/上傳照片 */}
+            {/* Photo Upload */}
             <Card
               className="cursor-pointer active:scale-95 transition-transform border-0 shadow-md hover:shadow-lg"
               onClick={() => photoInputRef.current?.click()}
@@ -701,7 +703,7 @@ export default function QuickInputPage() {
                 <div className="w-14 h-14 rounded-2xl bg-orange-500 flex items-center justify-center mb-2 shadow-md">
                   <Camera className="w-7 h-7 text-white" />
                 </div>
-                <span className="text-sm font-semibold text-orange-800">拍照/上傳照片</span>
+                <span className="text-sm font-semibold text-orange-800">{qi.cardPhotoUpload}</span>
               </CardContent>
             </Card>
             <input
@@ -714,7 +716,7 @@ export default function QuickInputPage() {
               onChange={handlePhotoUpload}
             />
 
-            {/* 快速客訴 */}
+            {/* Quick Complaint */}
             <Card
               className="cursor-pointer active:scale-95 transition-transform border-0 shadow-md hover:shadow-lg"
               onClick={() => setComplaintOpen(true)}
@@ -723,7 +725,7 @@ export default function QuickInputPage() {
                 <div className="w-14 h-14 rounded-2xl bg-red-500 flex items-center justify-center mb-2 shadow-md">
                   <AlertOctagon className="w-7 h-7 text-white" />
                 </div>
-                <span className="text-sm font-semibold text-red-800">快速客訴</span>
+                <span className="text-sm font-semibold text-red-800">{qi.cardQuickComplaint}</span>
               </CardContent>
             </Card>
           </div>
@@ -735,21 +737,24 @@ export default function QuickInputPage() {
         <section>
           <Card className="border-0 shadow-md">
             <CardContent className="p-4 space-y-4">
-              <h2 className="font-bold text-gray-900 text-lg">{dict.quickInput.visitRecord}</h2>
+              <h2 className="font-bold text-gray-900 text-lg">{qi.visitRecord}</h2>
 
               {/* Customer picker */}
               <div>
-                <Label className="text-sm text-gray-600 mb-2 block">{dict.quickInput.customer}</Label>
+                <Label className="text-sm text-gray-600 mb-2 block">{qi.customer}</Label>
                 <CustomerPicker
                   value={selectedCustomer}
                   onChange={setSelectedCustomer}
+                  placeholder={qi.customerPickerPlaceholder}
+                  searchPlaceholder={qi.customerSearchPlaceholder}
+                  notFoundText={qi.customerNotFound}
                   allCustomers={allCustomers}
                 />
               </div>
 
               {/* Log type selector */}
               <div>
-                <Label className="text-sm text-gray-600 mb-2 block">紀錄類型</Label>
+                <Label className="text-sm text-gray-600 mb-2 block">{qi.logTypeLabel}</Label>
                 <div className="flex flex-wrap gap-2">
                   {LOG_TYPE_OPTIONS.map((opt) => (
                     <button
@@ -770,11 +775,11 @@ export default function QuickInputPage() {
 
               {/* Notes textarea with voice button */}
               <div className="relative">
-                <Label className="text-sm text-gray-600 mb-1 block">{dict.quickInput.notes}</Label>
+                <Label className="text-sm text-gray-600 mb-1 block">{qi.notes}</Label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="輸入拜訪紀錄、客戶需求、跟進事項..."
+                  placeholder={qi.notesPlaceholder}
                   rows={5}
                   className="w-full rounded-lg border border-gray-200 p-3 pr-12 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -790,7 +795,7 @@ export default function QuickInputPage() {
                         ? 'bg-red-500 text-white animate-pulse'
                         : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                     }`}
-                    title={isListening ? '停止語音' : '語音輸入'}
+                    title={isListening ? qi.stopVoice : qi.cardVoiceInput}
                   >
                     <Mic className="w-4 h-4" />
                   </button>
@@ -808,7 +813,7 @@ export default function QuickInputPage() {
                 ) : (
                   <Send className="w-5 h-5 mr-2" />
                 )}
-                {submitting ? '送出中...' : dict.quickInput.submitSuccess}
+                {submitting ? qi.submitting : qi.submitSuccess}
               </Button>
             </CardContent>
           </Card>
@@ -822,8 +827,10 @@ export default function QuickInputPage() {
             <Card className="border-0 shadow-md">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-bold text-gray-900">本次上傳</h2>
-                  <Badge variant="secondary">{sessionFiles.length} 個檔案</Badge>
+                  <h2 className="font-bold text-gray-900">{qi.sessionUploadsTitle}</h2>
+                  <Badge variant="secondary">
+                    {qi.sessionFilesCount.replace('{n}', String(sessionFiles.length))}
+                  </Badge>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   {sessionFiles.map((file) => (
@@ -877,24 +884,27 @@ export default function QuickInputPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-700">
               <AlertOctagon className="w-5 h-5" />
-              快速客訴
+              {qi.complaintDialogTitle}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             {/* Customer picker */}
             <div>
-              <Label className="text-sm text-gray-600 mb-2 block">客戶 *</Label>
+              <Label className="text-sm text-gray-600 mb-2 block">{qi.complaintCustomerLabel}</Label>
               <CustomerPicker
                 value={complaintCustomer}
                 onChange={setComplaintCustomer}
+                placeholder={qi.customerPickerPlaceholder}
+                searchPlaceholder={qi.customerSearchPlaceholder}
+                notFoundText={qi.customerNotFound}
                 allCustomers={allCustomers}
               />
             </div>
 
             {/* Incident type */}
             <div>
-              <Label className="text-sm text-gray-600 mb-2 block">客訴類型</Label>
+              <Label className="text-sm text-gray-600 mb-2 block">{qi.complaintTypeLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {INCIDENT_TYPE_OPTIONS.map((opt) => (
                   <button
@@ -915,7 +925,7 @@ export default function QuickInputPage() {
 
             {/* Severity */}
             <div>
-              <Label className="text-sm text-gray-600 mb-2 block">嚴重程度</Label>
+              <Label className="text-sm text-gray-600 mb-2 block">{qi.complaintSeverityLabel}</Label>
               <div className="flex gap-2">
                 {SEVERITY_OPTIONS.map((opt) => (
                   <button
@@ -936,7 +946,7 @@ export default function QuickInputPage() {
 
             {/* Photos */}
             <div>
-              <Label className="text-sm text-gray-600 mb-2 block">照片 / LINE 截圖</Label>
+              <Label className="text-sm text-gray-600 mb-2 block">{qi.complaintPhotosLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {complaintPhotos.map((photo, idx) => (
                   <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border">
@@ -962,7 +972,7 @@ export default function QuickInputPage() {
                   className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-gray-400 hover:text-gray-500 transition-colors"
                 >
                   <Camera className="w-5 h-5" />
-                  <span className="text-[10px] mt-0.5">新增</span>
+                  <span className="text-[10px] mt-0.5">{qi.complaintPhotoAdd}</span>
                 </button>
               </div>
               <input
@@ -983,11 +993,11 @@ export default function QuickInputPage() {
 
             {/* Description with voice button (only on supported browsers) */}
             <div className="relative">
-              <Label className="text-sm text-gray-600 mb-1 block">描述 *</Label>
+              <Label className="text-sm text-gray-600 mb-1 block">{qi.complaintDescLabel}</Label>
               <textarea
                 value={complaintDesc}
                 onChange={(e) => setComplaintDesc(e.target.value)}
-                placeholder="描述客訴內容..."
+                placeholder={qi.complaintDescPlaceholder}
                 rows={4}
                 className="w-full rounded-lg border border-gray-200 p-3 pr-12 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
@@ -1030,7 +1040,7 @@ export default function QuickInputPage() {
               ) : (
                 <Upload className="w-4 h-4 mr-2" />
               )}
-              {complaintSubmitting ? '送出中...' : '送出客訴'}
+              {complaintSubmitting ? qi.submitting : qi.submitComplaint}
             </Button>
           </DialogFooter>
         </DialogContent>

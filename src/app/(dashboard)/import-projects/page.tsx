@@ -363,11 +363,11 @@ export default function ImportProjectsPage() {
                       {c.declarationNo && <span className="font-mono text-muted-foreground">{c.declarationNo}</span>}
                     </div>
                     <div className="grid grid-cols-2 gap-1">
-                      {c.declaredAt && <p>申報日：{new Date(c.declaredAt).toLocaleDateString('zh-TW')}</p>}
-                      {c.clearedAt && <p>放行日：{new Date(c.clearedAt).toLocaleDateString('zh-TW')}</p>}
-                      {c.customsValue && <p>完稅價格：{fmt(c.customsValue)}</p>}
-                      {c.dutyAmount && <p>關稅：{fmt(c.dutyAmount)}</p>}
-                      {c.vatAmount && <p>營業稅：{fmt(c.vatAmount)}</p>}
+                      {c.declaredAt && <p>{ip.declarationDateLabel}{new Date(c.declaredAt).toLocaleDateString('zh-TW')}</p>}
+                      {c.clearedAt && <p>{ip.clearanceDateLabel}{new Date(c.clearedAt).toLocaleDateString('zh-TW')}</p>}
+                      {c.customsValue && <p>{ip.customsValueLabel}{fmt(c.customsValue)}</p>}
+                      {c.dutyAmount && <p>{ip.dutyLabel}{fmt(c.dutyAmount)}</p>}
+                      {c.vatAmount && <p>{ip.vatLabel}{fmt(c.vatAmount)}</p>}
                     </div>
                   </div>
                 ))}
@@ -382,10 +382,10 @@ export default function ImportProjectsPage() {
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>{dict.importProjects.newProject}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>專案名稱 *</Label><Input value={newProject.name} onChange={e => setNewProject(p => ({ ...p, name: e.target.value }))} className="mt-1" /></div>
+            <div><Label>{ip.projectNameLabel}</Label><Input value={newProject.name} onChange={e => setNewProject(p => ({ ...p, name: e.target.value }))} className="mt-1" /></div>
             <div><Label>{dict.common.description}</Label><Textarea value={newProject.description} onChange={e => setNewProject(p => ({ ...p, description: e.target.value }))} className="mt-1" rows={2} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>幣別</Label>
+              <div><Label>{ip.currencyLabel}</Label>
                 <Select value={newProject.currency} onValueChange={v => setNewProject(p => ({ ...p, currency: v ?? 'USD' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -393,11 +393,11 @@ export default function ImportProjectsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>匯率</Label><Input type="number" value={newProject.exchangeRate} onChange={e => setNewProject(p => ({ ...p, exchangeRate: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.exchangeRateFieldLabel}</Label><Input type="number" value={newProject.exchangeRate} onChange={e => setNewProject(p => ({ ...p, exchangeRate: e.target.value }))} className="mt-1" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>預計出港 (ETD)</Label><Input type="date" value={newProject.etd} onChange={e => setNewProject(p => ({ ...p, etd: e.target.value }))} className="mt-1" /></div>
-              <div><Label>預計到港 (ETA)</Label><Input type="date" value={newProject.eta} onChange={e => setNewProject(p => ({ ...p, eta: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.etdLabel}</Label><Input type="date" value={newProject.etd} onChange={e => setNewProject(p => ({ ...p, etd: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.etaFieldLabel}</Label><Input type="date" value={newProject.eta} onChange={e => setNewProject(p => ({ ...p, eta: e.target.value }))} className="mt-1" /></div>
             </div>
             <div><Label>{dict.common.notes}</Label><Textarea value={newProject.notes} onChange={e => setNewProject(p => ({ ...p, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
@@ -411,28 +411,28 @@ export default function ImportProjectsPage() {
       {/* ── Add Cost Dialog ── */}
       <Dialog open={costDialog} onOpenChange={setCostDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增費用明細</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{ip.addCostTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>費用類別 *</Label>
+            <div><Label>{ip.costCategoryLabel}</Label>
               <Select value={newCost.category} onValueChange={v => setNewCost(c => ({ ...c, category: v ?? 'GOODS' }))}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(COST_CATEGORIES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>說明 *</Label><Input value={newCost.description} onChange={e => setNewCost(c => ({ ...c, description: e.target.value }))} className="mt-1" /></div>
+            <div><Label>{ip.costDescLabel}</Label><Input value={newCost.description} onChange={e => setNewCost(c => ({ ...c, description: e.target.value }))} className="mt-1" /></div>
             <div className="grid grid-cols-3 gap-2">
-              <div><Label>幣別</Label>
+              <div><Label>{ip.costCurrencyLabel}</Label>
                 <Select value={newCost.currency} onValueChange={v => setNewCost(c => ({ ...c, currency: v ?? 'USD' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>{['USD', 'EUR', 'CNY', 'TWD'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>金額 *</Label><Input type="number" value={newCost.amount} onChange={e => setNewCost(c => ({ ...c, amount: e.target.value }))} className="mt-1" /></div>
-              <div><Label>台幣金額</Label><Input type="number" value={newCost.amountTWD} onChange={e => setNewCost(c => ({ ...c, amountTWD: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.costAmountLabel}</Label><Input type="number" value={newCost.amount} onChange={e => setNewCost(c => ({ ...c, amount: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.costTwdLabel}</Label><Input type="number" value={newCost.amountTWD} onChange={e => setNewCost(c => ({ ...c, amountTWD: e.target.value }))} className="mt-1" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>發票號碼</Label><Input value={newCost.invoiceNo} onChange={e => setNewCost(c => ({ ...c, invoiceNo: e.target.value }))} className="mt-1" /></div>
-              <div><Label>發票日期</Label><Input type="date" value={newCost.invoiceDate} onChange={e => setNewCost(c => ({ ...c, invoiceDate: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.invoiceNoLabel}</Label><Input value={newCost.invoiceNo} onChange={e => setNewCost(c => ({ ...c, invoiceNo: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.invoiceDateLabel}</Label><Input type="date" value={newCost.invoiceDate} onChange={e => setNewCost(c => ({ ...c, invoiceDate: e.target.value }))} className="mt-1" /></div>
             </div>
           </div>
           <DialogFooter>
@@ -445,29 +445,29 @@ export default function ImportProjectsPage() {
       {/* ── Add Payment Dialog ── */}
       <Dialog open={paymentDialog} onOpenChange={setPaymentDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增付款紀錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{ip.addPaymentTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div><Label>付款類型 *</Label>
+            <div><Label>{ip.paymentTypeLabel}</Label>
               <Select value={newPayment.paymentType} onValueChange={v => setNewPayment(p => ({ ...p, paymentType: v ?? 'FULL' }))}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>{Object.entries(PAYMENT_TYPES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              <div><Label>幣別</Label>
+              <div><Label>{ip.paymentCurrencyLabel}</Label>
                 <Select value={newPayment.currency} onValueChange={v => setNewPayment(p => ({ ...p, currency: v ?? 'USD' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>{['USD', 'EUR', 'CNY', 'TWD'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>金額 *</Label><Input type="number" value={newPayment.amount} onChange={e => setNewPayment(p => ({ ...p, amount: e.target.value }))} className="mt-1" /></div>
-              <div><Label>台幣金額</Label><Input type="number" value={newPayment.amountTWD} onChange={e => setNewPayment(p => ({ ...p, amountTWD: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.paymentAmountLabel}</Label><Input type="number" value={newPayment.amount} onChange={e => setNewPayment(p => ({ ...p, amount: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.paymentTwdLabel}</Label><Input type="number" value={newPayment.amountTWD} onChange={e => setNewPayment(p => ({ ...p, amountTWD: e.target.value }))} className="mt-1" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>付款日期 *</Label><Input type="date" value={newPayment.paymentDate} onChange={e => setNewPayment(p => ({ ...p, paymentDate: e.target.value }))} className="mt-1" /></div>
-              <div><Label>匯率</Label><Input type="number" value={newPayment.exchangeRate} onChange={e => setNewPayment(p => ({ ...p, exchangeRate: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.paymentDateLabel}</Label><Input type="date" value={newPayment.paymentDate} onChange={e => setNewPayment(p => ({ ...p, paymentDate: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.paymentRateLabel}</Label><Input type="number" value={newPayment.exchangeRate} onChange={e => setNewPayment(p => ({ ...p, exchangeRate: e.target.value }))} className="mt-1" /></div>
             </div>
-            <div><Label>匯款單號</Label><Input value={newPayment.remittanceRef} onChange={e => setNewPayment(p => ({ ...p, remittanceRef: e.target.value }))} className="mt-1" /></div>
+            <div><Label>{ip.remittanceRefLabel}</Label><Input value={newPayment.remittanceRef} onChange={e => setNewPayment(p => ({ ...p, remittanceRef: e.target.value }))} className="mt-1" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentDialog(false)}>{dict.common.cancel}</Button>
@@ -479,11 +479,11 @@ export default function ImportProjectsPage() {
       {/* ── Customs Dialog ── */}
       <Dialog open={customsDialog} onOpenChange={setCustomsDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>清關資料</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{ip.customsTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>報關單號</Label><Input value={newCustoms.declarationNo} onChange={e => setNewCustoms(c => ({ ...c, declarationNo: e.target.value }))} className="mt-1" /></div>
-              <div><Label>狀態</Label>
+              <div><Label>{ip.declarationNoLabel}</Label><Input value={newCustoms.declarationNo} onChange={e => setNewCustoms(c => ({ ...c, declarationNo: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.customsStatusLabel}</Label>
                 <Select value={newCustoms.status} onValueChange={v => setNewCustoms(c => ({ ...c, status: v ?? 'PENDING' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>{Object.entries(CUSTOMS_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
@@ -491,18 +491,18 @@ export default function ImportProjectsPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>申報日期</Label><Input type="date" value={newCustoms.declaredAt} onChange={e => setNewCustoms(c => ({ ...c, declaredAt: e.target.value }))} className="mt-1" /></div>
-              <div><Label>放行日期</Label><Input type="date" value={newCustoms.clearedAt} onChange={e => setNewCustoms(c => ({ ...c, clearedAt: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.declaredAtLabel}</Label><Input type="date" value={newCustoms.declaredAt} onChange={e => setNewCustoms(c => ({ ...c, declaredAt: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.clearedAtLabel}</Label><Input type="date" value={newCustoms.clearedAt} onChange={e => setNewCustoms(c => ({ ...c, clearedAt: e.target.value }))} className="mt-1" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>完稅價格 (TWD)</Label><Input type="number" value={newCustoms.customsValue} onChange={e => setNewCustoms(c => ({ ...c, customsValue: e.target.value }))} className="mt-1" /></div>
-              <div><Label>稅率 (%)</Label><Input type="number" step="0.01" value={newCustoms.dutyRate} onChange={e => setNewCustoms(c => ({ ...c, dutyRate: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.customsValueFieldLabel}</Label><Input type="number" value={newCustoms.customsValue} onChange={e => setNewCustoms(c => ({ ...c, customsValue: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.dutyRateLabel}</Label><Input type="number" step="0.01" value={newCustoms.dutyRate} onChange={e => setNewCustoms(c => ({ ...c, dutyRate: e.target.value }))} className="mt-1" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>關稅 (TWD)</Label><Input type="number" value={newCustoms.dutyAmount} onChange={e => setNewCustoms(c => ({ ...c, dutyAmount: e.target.value }))} className="mt-1" /></div>
-              <div><Label>營業稅 (TWD)</Label><Input type="number" value={newCustoms.vatAmount} onChange={e => setNewCustoms(c => ({ ...c, vatAmount: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.dutyAmountLabel}</Label><Input type="number" value={newCustoms.dutyAmount} onChange={e => setNewCustoms(c => ({ ...c, dutyAmount: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{ip.vatAmountLabel}</Label><Input type="number" value={newCustoms.vatAmount} onChange={e => setNewCustoms(c => ({ ...c, vatAmount: e.target.value }))} className="mt-1" /></div>
             </div>
-            <div><Label>備註</Label><Textarea value={newCustoms.notes} onChange={e => setNewCustoms(c => ({ ...c, notes: e.target.value }))} className="mt-1" rows={2} /></div>
+            <div><Label>{dict.common.notes}</Label><Textarea value={newCustoms.notes} onChange={e => setNewCustoms(c => ({ ...c, notes: e.target.value }))} className="mt-1" rows={2} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCustomsDialog(false)}>{dict.common.cancel}</Button>

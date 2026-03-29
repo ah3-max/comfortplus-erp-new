@@ -80,34 +80,20 @@ interface Product { id: string; name: string; sku: string; unit: string }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'inbound',   label: '入庫管理' },
-  { key: 'outbound',  label: '出庫管理' },
-  { key: 'inventory', label: '庫存查詢' },
-  { key: 'locations', label: '儲位管理' },
-]
-
 const INBOUND_TYPES  = ['PURCHASE', 'PRODUCTION', 'TRANSFER']
 const OUTBOUND_TYPES = ['SALES', 'TRANSFER', 'INTERNAL']
 
-const INBOUND_TYPE_LABELS: Record<string, string> = {
-  PURCHASE: '採購入庫', PRODUCTION: '生產入庫', TRANSFER: '調撥入庫',
+const INBOUND_STATUS_CLASSES: Record<string, string> = {
+  EXPECTED:  'bg-slate-100 text-slate-600',
+  RECEIVING: 'bg-amber-100 text-amber-700',
+  RECEIVED:  'bg-green-100 text-green-700',
+  CANCELLED: 'bg-red-100 text-red-700',
 }
-const OUTBOUND_TYPE_LABELS: Record<string, string> = {
-  SALES: '銷售出庫', TRANSFER: '調撥出庫', INTERNAL: '內部領料',
-}
-
-const INBOUND_STATUS: Record<string, { label: string; className: string }> = {
-  EXPECTED:  { label: '預計入庫', className: 'bg-slate-100 text-slate-600' },
-  RECEIVING: { label: '收貨中',   className: 'bg-amber-100 text-amber-700' },
-  RECEIVED:  { label: '已入庫',   className: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: '已取消',   className: 'bg-red-100 text-red-700'   },
-}
-const OUTBOUND_STATUS: Record<string, { label: string; className: string }> = {
-  EXPECTED:  { label: '預計出庫', className: 'bg-slate-100 text-slate-600' },
-  PICKING:   { label: '揀貨中',   className: 'bg-amber-100 text-amber-700' },
-  SHIPPED:   { label: '已出庫',   className: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: '已取消',   className: 'bg-red-100 text-red-700'   },
+const OUTBOUND_STATUS_CLASSES: Record<string, string> = {
+  EXPECTED:  'bg-slate-100 text-slate-600',
+  PICKING:   'bg-amber-100 text-amber-700',
+  SHIPPED:   'bg-green-100 text-green-700',
+  CANCELLED: 'bg-red-100 text-red-700',
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -205,7 +191,7 @@ function InboundDialog({
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? dict.common.createFailed); return }
-      toast.success(`入庫單 ${data.inboundNumber} 已建立`)
+      toast.success(`${wm.inboundNo} ${data.inboundNumber} ${dict.common.createSuccess}`)
       reset()
       onCreated()
       onClose()
@@ -220,29 +206,29 @@ function InboundDialog({
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose() }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>新增入庫單</DialogTitle>
+          <DialogTitle>{wm.newInboundTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
           {/* Header fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>入庫類型 <span className="text-red-500">*</span></Label>
+              <Label>{wm.inboundType} <span className="text-red-500">*</span></Label>
               <Select value={inboundType} onValueChange={v => setInboundType(v ?? '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇類型" />
+                  <SelectValue placeholder={wm.selectType} />
                 </SelectTrigger>
                 <SelectContent>
                   {INBOUND_TYPES.map(t => (
-                    <SelectItem key={t} value={t}>{INBOUND_TYPE_LABELS[t]}</SelectItem>
+                    <SelectItem key={t} value={t}>{(wm.inboundTypeLabels as Record<string, string>)[t] ?? t}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>來源單號 / 參考號</Label>
+              <Label>{wm.referenceNo}</Label>
               <Input
-                placeholder="選填，如採購單號"
+                placeholder={wm.inboundReferenceHint}
                 value={referenceNo}
                 onChange={e => setReferenceNo(e.target.value)}
               />
@@ -250,9 +236,9 @@ function InboundDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{dict.common.notes}</Label>
             <Input
-              placeholder="選填"
+              placeholder={dict.common.optional}
               value={notes}
               onChange={e => setNotes(e.target.value)}
             />
@@ -261,9 +247,9 @@ function InboundDialog({
           {/* Items */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">品項明細</Label>
+              <Label className="text-base font-semibold">{wm.itemsDetail}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-1" />新增品項
+                <Plus className="h-4 w-4 mr-1" />{wm.addItem}
               </Button>
             </div>
 
@@ -272,11 +258,11 @@ function InboundDialog({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b">
-                      <th className="text-left px-3 py-2 font-medium">品項 *</th>
-                      <th className="text-left px-3 py-2 font-medium">儲位代碼</th>
-                      <th className="text-left px-3 py-2 font-medium">數量 *</th>
-                      <th className="text-left px-3 py-2 font-medium">批號</th>
-                      <th className="text-left px-3 py-2 font-medium">效期</th>
+                      <th className="text-left px-3 py-2 font-medium">{dict.common.product} *</th>
+                      <th className="text-left px-3 py-2 font-medium">{wm.locationCodeCol}</th>
+                      <th className="text-left px-3 py-2 font-medium">{dict.common.quantity} *</th>
+                      <th className="text-left px-3 py-2 font-medium">{wm.batchNo}</th>
+                      <th className="text-left px-3 py-2 font-medium">{dict.inventoryExt.expiryDate}</th>
                       <th className="px-3 py-2"></th>
                     </tr>
                   </thead>
@@ -286,7 +272,7 @@ function InboundDialog({
                         <td className="px-3 py-2 min-w-[160px]">
                           <Select value={row.productId} onValueChange={v => updateItem(idx, 'productId', v ?? '')}>
                             <SelectTrigger className="h-9">
-                              <SelectValue placeholder="選擇品項" />
+                              <SelectValue placeholder={dict.common.product} />
                             </SelectTrigger>
                             <SelectContent>
                               {products.map(p => (
@@ -300,7 +286,7 @@ function InboundDialog({
                         <td className="px-3 py-2 min-w-[120px]">
                           <Input
                             className="h-9"
-                            placeholder="如 A-01-01"
+                            placeholder="e.g. A-01-01"
                             value={row.locationCode}
                             onChange={e => updateItem(idx, 'locationCode', e.target.value)}
                           />
@@ -310,7 +296,7 @@ function InboundDialog({
                             className="h-9"
                             type="number"
                             min="1"
-                            placeholder="數量"
+                            placeholder={dict.common.quantity}
                             value={row.qty}
                             onChange={e => updateItem(idx, 'qty', e.target.value)}
                           />
@@ -318,7 +304,7 @@ function InboundDialog({
                         <td className="px-3 py-2 min-w-[110px]">
                           <Input
                             className="h-9"
-                            placeholder="批號"
+                            placeholder={wm.batchNo}
                             value={row.batchNo}
                             onChange={e => updateItem(idx, 'batchNo', e.target.value)}
                           />
@@ -353,10 +339,10 @@ function InboundDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={saving}>取消</Button>
+          <Button variant="outline" onClick={handleClose} disabled={saving}>{dict.common.cancel}</Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            建立入庫單
+            {wm.createInbound}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -434,7 +420,7 @@ function OutboundDialog({
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? dict.common.createFailed); return }
-      toast.success(`出庫單 ${data.outboundNumber} 已建立`)
+      toast.success(`${wm.outboundNo} ${data.outboundNumber} ${dict.common.createSuccess}`)
       reset()
       onCreated()
       onClose()
@@ -449,28 +435,28 @@ function OutboundDialog({
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose() }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>新增出庫單</DialogTitle>
+          <DialogTitle>{wm.newOutboundTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>出庫類型 <span className="text-red-500">*</span></Label>
+              <Label>{wm.outboundType} <span className="text-red-500">*</span></Label>
               <Select value={outboundType} onValueChange={v => setOutboundType(v ?? '')}>
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇類型" />
+                  <SelectValue placeholder={wm.selectType} />
                 </SelectTrigger>
                 <SelectContent>
                   {OUTBOUND_TYPES.map(t => (
-                    <SelectItem key={t} value={t}>{OUTBOUND_TYPE_LABELS[t]}</SelectItem>
+                    <SelectItem key={t} value={t}>{(wm.outboundTypeLabels as Record<string, string>)[t] ?? t}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>來源單號 / 參考號</Label>
+              <Label>{wm.referenceNo}</Label>
               <Input
-                placeholder="選填，如銷售單號"
+                placeholder={wm.outboundReferenceHint}
                 value={referenceNo}
                 onChange={e => setReferenceNo(e.target.value)}
               />
@@ -478,9 +464,9 @@ function OutboundDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{dict.common.notes}</Label>
             <Input
-              placeholder="選填"
+              placeholder={dict.common.optional}
               value={notes}
               onChange={e => setNotes(e.target.value)}
             />
@@ -488,9 +474,9 @@ function OutboundDialog({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">品項明細</Label>
+              <Label className="text-base font-semibold">{wm.itemsDetail}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-1" />新增品項
+                <Plus className="h-4 w-4 mr-1" />{wm.addItem}
               </Button>
             </div>
 
@@ -499,9 +485,9 @@ function OutboundDialog({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b">
-                      <th className="text-left px-3 py-2 font-medium">品項 *</th>
-                      <th className="text-left px-3 py-2 font-medium">儲位代碼</th>
-                      <th className="text-left px-3 py-2 font-medium">數量 *</th>
+                      <th className="text-left px-3 py-2 font-medium">{dict.common.product} *</th>
+                      <th className="text-left px-3 py-2 font-medium">{wm.locationCodeCol}</th>
+                      <th className="text-left px-3 py-2 font-medium">{dict.common.quantity} *</th>
                       <th className="px-3 py-2"></th>
                     </tr>
                   </thead>
@@ -511,7 +497,7 @@ function OutboundDialog({
                         <td className="px-3 py-2 min-w-[180px]">
                           <Select value={row.productId} onValueChange={v => updateItem(idx, 'productId', v ?? '')}>
                             <SelectTrigger className="h-9">
-                              <SelectValue placeholder="選擇品項" />
+                              <SelectValue placeholder={dict.common.product} />
                             </SelectTrigger>
                             <SelectContent>
                               {products.map(p => (
@@ -525,7 +511,7 @@ function OutboundDialog({
                         <td className="px-3 py-2 min-w-[120px]">
                           <Input
                             className="h-9"
-                            placeholder="如 A-01-01"
+                            placeholder="e.g. A-01-01"
                             value={row.locationCode}
                             onChange={e => updateItem(idx, 'locationCode', e.target.value)}
                           />
@@ -535,7 +521,7 @@ function OutboundDialog({
                             className="h-9"
                             type="number"
                             min="1"
-                            placeholder="數量"
+                            placeholder={dict.common.quantity}
                             value={row.qty}
                             onChange={e => updateItem(idx, 'qty', e.target.value)}
                           />
@@ -562,10 +548,10 @@ function OutboundDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={saving}>取消</Button>
+          <Button variant="outline" onClick={handleClose} disabled={saving}>{dict.common.cancel}</Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            建立出庫單
+            {wm.createOutbound}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -636,7 +622,7 @@ function LocationDialog({
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? dict.common.createFailed); return }
-      toast.success(`儲位 ${data.code} 已建立`)
+      toast.success(`${wm.locationCodeCol} ${data.code} ${dict.common.createSuccess}`)
       reset()
       onCreated()
       onClose()
@@ -651,15 +637,15 @@ function LocationDialog({
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose() }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>新增儲位</DialogTitle>
+          <DialogTitle>{wm.newLocationTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>倉庫</Label>
+            <Label>{dict.common.warehouse}</Label>
             <Select value={warehouseId} onValueChange={v => handleWarehouseChange(v ?? '')}>
               <SelectTrigger>
-                <SelectValue placeholder="選擇倉庫（可選）" />
+                <SelectValue placeholder={wm.selectWarehouseOptional} />
               </SelectTrigger>
               <SelectContent>
                 {warehouses.map(w => (
@@ -670,15 +656,15 @@ function LocationDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>區域 <span className="text-red-500">*</span></Label>
+            <Label>{wm.zone} <span className="text-red-500">*</span></Label>
             <Select value={zoneId} onValueChange={v => setZoneId(v ?? '')}>
               <SelectTrigger>
-                <SelectValue placeholder="選擇所屬區域" />
+                <SelectValue placeholder={wm.selectZoneRequired} />
               </SelectTrigger>
               <SelectContent>
                 {filteredZones.length === 0 ? (
                   <div className="px-3 py-2 text-sm text-muted-foreground">
-                    {warehouseId ? '此倉庫尚無區域' : '請先選擇倉庫或直接選區域'}
+                    {warehouseId ? wm.zoneNoLocations : wm.selectZoneFirst}
                   </div>
                 ) : filteredZones.map(z => (
                   <SelectItem key={z.id} value={z.id}>
@@ -692,25 +678,25 @@ function LocationDialog({
 
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label>通道 (Aisle)</Label>
+              <Label>{wm.aisle}</Label>
               <Input
-                placeholder="如 A"
+                placeholder="A"
                 value={aisle}
                 onChange={e => setAisle(e.target.value.toUpperCase())}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>貨架 (Shelf)</Label>
+              <Label>{wm.shelf}</Label>
               <Input
-                placeholder="如 01"
+                placeholder="01"
                 value={shelf}
                 onChange={e => setShelf(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>格位 (Bin)</Label>
+              <Label>{wm.bin}</Label>
               <Input
-                placeholder="如 01"
+                placeholder="01"
                 value={bin}
                 onChange={e => setBin(e.target.value)}
               />
@@ -719,14 +705,14 @@ function LocationDialog({
 
           {locationCode && (
             <div className="rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
-              儲位編號：<span className="font-mono font-semibold">{locationCode}</span>
+              {wm.locationCodePreview}<span className="font-mono font-semibold">{locationCode}</span>
             </div>
           )}
 
           <div className="space-y-1.5">
-            <Label>儲位名稱（選填）</Label>
+            <Label>{wm.locationNameOptional}</Label>
             <Input
-              placeholder="如：冷藏區第一格"
+              placeholder={wm.locationNameOptional}
               value={name}
               onChange={e => setName(e.target.value)}
             />
@@ -734,10 +720,10 @@ function LocationDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={saving}>取消</Button>
+          <Button variant="outline" onClick={handleClose} disabled={saving}>{dict.common.cancel}</Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            建立儲位
+            {wm.createLocation}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -749,6 +735,38 @@ function LocationDialog({
 
 export default function WmsPage() {
   const { dict } = useI18n()
+  const wm = dict.wms
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'inbound',   label: wm.tabInbound },
+    { key: 'outbound',  label: wm.tabOutbound },
+    { key: 'inventory', label: wm.tabInventory },
+    { key: 'locations', label: wm.tabLocations },
+  ]
+
+  const INBOUND_TYPE_LABELS: Record<string, string> = {
+    PURCHASE:   wm.inboundTypeLabels.PURCHASE,
+    PRODUCTION: wm.inboundTypeLabels.PRODUCTION,
+    TRANSFER:   wm.inboundTypeLabels.TRANSFER,
+  }
+  const OUTBOUND_TYPE_LABELS: Record<string, string> = {
+    SALES:    wm.outboundTypeLabels.SALES,
+    TRANSFER: wm.outboundTypeLabels.TRANSFER,
+    INTERNAL: wm.outboundTypeLabels.INTERNAL,
+  }
+  const INBOUND_STATUS: Record<string, { label: string; className: string }> = {
+    EXPECTED:  { label: wm.inboundStatusLabels.EXPECTED,  className: INBOUND_STATUS_CLASSES.EXPECTED },
+    RECEIVING: { label: wm.inboundStatusLabels.RECEIVING, className: INBOUND_STATUS_CLASSES.RECEIVING },
+    RECEIVED:  { label: wm.inboundStatusLabels.RECEIVED,  className: INBOUND_STATUS_CLASSES.RECEIVED },
+    CANCELLED: { label: wm.inboundStatusLabels.CANCELLED, className: INBOUND_STATUS_CLASSES.CANCELLED },
+  }
+  const OUTBOUND_STATUS: Record<string, { label: string; className: string }> = {
+    EXPECTED:  { label: wm.outboundStatusLabels.EXPECTED,  className: OUTBOUND_STATUS_CLASSES.EXPECTED },
+    PICKING:   { label: wm.outboundStatusLabels.PICKING,   className: OUTBOUND_STATUS_CLASSES.PICKING },
+    SHIPPED:   { label: wm.outboundStatusLabels.SHIPPED,   className: OUTBOUND_STATUS_CLASSES.SHIPPED },
+    CANCELLED: { label: wm.outboundStatusLabels.CANCELLED, className: OUTBOUND_STATUS_CLASSES.CANCELLED },
+  }
+
   const [activeTab, setActiveTab] = useState<Tab>('inbound')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -824,7 +842,7 @@ export default function WmsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.wms.title}</h1>
-          <p className="text-sm text-muted-foreground">儲位管理、入庫出庫作業</p>
+          <p className="text-sm text-muted-foreground">{wm.subtitle}</p>
         </div>
         <div>
           {activeTab === 'inbound' && (
@@ -887,11 +905,11 @@ export default function WmsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{dict.wms.inbound}單號</TableHead>
+                      <TableHead>{wm.inboundNo}</TableHead>
                       <TableHead>{dict.common.type}</TableHead>
                       <TableHead className="hidden sm:table-cell">{dict.common.product}</TableHead>
                       <TableHead>{dict.common.status}</TableHead>
-                      <TableHead className="hidden md:table-cell">預計日期</TableHead>
+                      <TableHead className="hidden md:table-cell">{wm.expectedDate}</TableHead>
                       <TableHead className="hidden md:table-cell">{dict.common.createdAt}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -947,11 +965,11 @@ export default function WmsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{dict.wms.outbound}單號</TableHead>
+                      <TableHead>{wm.outboundNo}</TableHead>
                       <TableHead>{dict.common.type}</TableHead>
                       <TableHead className="hidden sm:table-cell">{dict.common.product}</TableHead>
                       <TableHead>{dict.common.status}</TableHead>
-                      <TableHead className="hidden md:table-cell">預計日期</TableHead>
+                      <TableHead className="hidden md:table-cell">{wm.expectedDate}</TableHead>
                       <TableHead className="hidden md:table-cell">{dict.common.createdAt}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1007,12 +1025,12 @@ export default function WmsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>庫存號碼</TableHead>
+                      <TableHead>{wm.stockNo}</TableHead>
                       <TableHead>{dict.common.product}</TableHead>
                       <TableHead className="hidden sm:table-cell">{dict.common.warehouse} / {dict.wms.zone} / {dict.wms.bin}</TableHead>
                       <TableHead className="text-right">{dict.common.quantity}</TableHead>
                       <TableHead className="text-right hidden sm:table-cell">{dict.inventoryExt.available}</TableHead>
-                      <TableHead className="text-right hidden sm:table-cell">預留</TableHead>
+                      <TableHead className="text-right hidden sm:table-cell">{wm.reserved}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1076,7 +1094,7 @@ export default function WmsPage() {
                           <span className="font-mono">{loc.code}</span>
                           {loc._count.inventory > 0 && (
                             <Badge variant="outline" className="ml-auto text-xs bg-green-50 text-green-700">
-                              {loc._count.inventory} 品項
+                              {loc._count.inventory} {wm.itemsDetail}
                             </Badge>
                           )}
                         </CardTitle>
