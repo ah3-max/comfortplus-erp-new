@@ -78,19 +78,20 @@ const tripStatusClassName: Record<TripStatus, string> = {
   CANCELLED: 'border-slate-300 text-slate-500',
 }
 
-function fmt(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' })
-}
-function fmtFull(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
-}
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ShipmentsPage() {
-  const { dict } = useI18n()
+  const { dict, locale } = useI18n()
+  const se = dict.shipmentsExt
   const [tab, setTab] = useState<'shipments' | 'trips' | 'picking' | 'logistics'>('shipments')
+
+  function fmt(d: string | null) {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString(locale, { month: '2-digit', day: '2-digit' })
+  }
+  function fmtFull(d: string | null) {
+    if (!d) return '—'
+    return new Date(d).toLocaleDateString(locale, { year: 'numeric', month: '2-digit', day: '2-digit' })
+  }
 
   // Shipment list state
   const [shipments, setShipments]   = useState<Shipment[]>([])
@@ -302,12 +303,16 @@ export default function ShipmentsPage() {
     SELF_PICKUP: dict.shipments.methods.SELF_PICKUP,
   }
   const signLabel: Record<SignStatus, string> = {
-    PENDING:  dict.shipmentsExt.signStatuses.PENDING,
-    SIGNED:   dict.shipmentsExt.signStatuses.SIGNED,
-    REJECTED: '拒收',
+    PENDING:  se.signStatuses.PENDING,
+    SIGNED:   se.signStatuses.SIGNED,
+    REJECTED: se.signStatuses.REJECTED,
   }
   const anomalyLabel: Record<AnomalyStatus, string> = {
-    NORMAL: '正常', DELAY: '延誤', LOST: '遺失', DAMAGE: '損毀', PARTIAL: '部分短缺',
+    NORMAL:  se.anomalyLabels.NORMAL,
+    DELAY:   se.anomalyLabels.DELAY,
+    LOST:    se.anomalyLabels.LOST,
+    DAMAGE:  se.anomalyLabels.DAMAGE,
+    PARTIAL: se.anomalyLabels.PARTIAL,
   }
   const tripStatusLabel: Record<TripStatus, { label: string; className: string }> = {
     PLANNED:   { label: dict.shipmentsExt.tripStatuses.PLANNED,   className: tripStatusClassName.PLANNED },
@@ -325,10 +330,10 @@ export default function ShipmentsPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   const tabs = [
-    { key: 'shipments', label: '出貨單',   icon: Package },
-    { key: 'trips',     label: '配送行程', icon: Car },
-    { key: 'picking',   label: '撿貨/裝箱單', icon: ClipboardList },
-    { key: 'logistics', label: dict.shipments.carrier,   icon: Truck },
+    { key: 'shipments', label: se.tabShipments,   icon: Package },
+    { key: 'trips',     label: se.tabTrips,        icon: Car },
+    { key: 'picking',   label: se.tabPicking,      icon: ClipboardList },
+    { key: 'logistics', label: dict.shipments.carrier, icon: Truck },
   ] as const
 
   return (
@@ -336,18 +341,18 @@ export default function ShipmentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.shipments.title}與物流管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.shipments.title}{se.titleSuffix}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {shipments.length} 筆出貨
+            {dict.common.totalCount} {shipments.length} {se.tripsCount}
             {preparingCount > 0 && <span className="ml-2 text-amber-600">{preparingCount} {dict.shipments.statuses.PREPARING}</span>}
             {shippedCount   > 0 && <span className="ml-2 text-blue-600">{shippedCount} {dict.shipments.statuses.SHIPPED}</span>}
-            {anomalyCount   > 0 && <span className="ml-2 text-red-600">{anomalyCount} 異常</span>}
+            {anomalyCount   > 0 && <span className="ml-2 text-red-600">{anomalyCount} {dict.shipmentsExt.anomalies}</span>}
           </p>
         </div>
         <div className="flex gap-2">
           {tab === 'trips' && (
             <Button variant="outline" onClick={() => { setTripForm({ vehicleNo:'', driverName:'', driverPhone:'', region:'', tripDate:'', notes:'' }); setTripNewOpen(true) }}>
-              <Plus className="mr-2 h-4 w-4" />新增車次
+              <Plus className="mr-2 h-4 w-4" />{se.newTrip}
             </Button>
           )}
           {tab === 'shipments' && (
@@ -398,7 +403,7 @@ export default function ShipmentsPage() {
             </select>
             <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer">
               <input type="checkbox" checked={anomalyOnly} onChange={e => { setAnomalyOnly(e.target.checked); setPage(1) }} />
-              僅顯示異常
+              {se.anomalyOnly}
             </label>
           </div>
 
@@ -407,16 +412,16 @@ export default function ShipmentsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-36">{dict.shipments.shipmentNo}</TableHead>
-                  <TableHead>訂單 / 客戶</TableHead>
+                  <TableHead>{se.colOrderCustomer}</TableHead>
                   <TableHead className="w-24">{dict.common.status}</TableHead>
                   <TableHead className="w-24">{dict.shipments.deliveryMethod}</TableHead>
                   <TableHead>{dict.shipments.carrier}</TableHead>
                   <TableHead className="w-32">{dict.shipments.trackingNo}</TableHead>
-                  <TableHead className="w-20">棧板/箱</TableHead>
-                  <TableHead className="w-24">出貨日</TableHead>
+                  <TableHead className="w-20">{se.colPalletBox}</TableHead>
+                  <TableHead className="w-24">{se.colShipDate}</TableHead>
                   <TableHead className="w-24">{dict.shipmentsExt.deliveryDate}</TableHead>
                   <TableHead className="w-24">{dict.shipments.signStatus}</TableHead>
-                  <TableHead className="w-24">異常</TableHead>
+                  <TableHead className="w-24">{se.colAnomaly}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -471,7 +476,7 @@ export default function ShipmentsPage() {
                           <span className="text-xs text-amber-600 flex items-center gap-0.5">
                             <AlertTriangle className="h-3 w-3" />{anomalyLabel[s.anomalyStatus]}
                           </span>
-                        ) : <span className="text-xs text-muted-foreground">正常</span>}
+                        ) : <span className="text-xs text-muted-foreground">{se.anomalyNormal}</span>}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -480,37 +485,37 @@ export default function ShipmentsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">
                             <DropdownMenuItem onClick={() => openUpdate(s)}>
-                              <Truck className="mr-2 h-4 w-4" />編輯物流資訊
+                              <Truck className="mr-2 h-4 w-4" />{se.editLogistics}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {s.status === 'PREPARING' && (
                               <DropdownMenuItem onClick={() => updateStatus(s.id, 'PACKED')}>
-                                <Package className="mr-2 h-4 w-4" />標記{dict.shipments.statuses.PACKED}
+                                <Package className="mr-2 h-4 w-4" />{dict.common.markAs}{dict.shipments.statuses.PACKED}
                               </DropdownMenuItem>
                             )}
                             {(s.status === 'PREPARING' || s.status === 'PACKED') && (
                               <DropdownMenuItem onClick={() => updateStatus(s.id, 'SHIPPED')}>
-                                <Truck className="mr-2 h-4 w-4" />標記{dict.shipments.statuses.SHIPPED}
+                                <Truck className="mr-2 h-4 w-4" />{dict.common.markAs}{dict.shipments.statuses.SHIPPED}
                               </DropdownMenuItem>
                             )}
                             {s.status === 'SHIPPED' && (
                               <>
                                 <DropdownMenuItem onClick={() => window.location.href = `/shipments/${s.id}/deliver`}>
-                                  <Camera className="mr-2 h-4 w-4" />送達拍照確認
+                                  <Camera className="mr-2 h-4 w-4" />{dict.delivery.deliveryPhotos}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => updateStatus(s.id, 'DELIVERED')}>
-                                  <CheckCircle2 className="mr-2 h-4 w-4" />直接標記{dict.shipments.statuses.DELIVERED}
+                                  <CheckCircle2 className="mr-2 h-4 w-4" />{dict.common.markAs}{dict.shipments.statuses.DELIVERED}
                                 </DropdownMenuItem>
                               </>
                             )}
                             {s.status === 'SHIPPED' && (
                               <DropdownMenuItem onClick={() => updateStatus(s.id, 'FAILED')} className="text-red-600">
-                                <AlertTriangle className="mr-2 h-4 w-4" />標記{dict.shipments.statuses.FAILED}
+                                <AlertTriangle className="mr-2 h-4 w-4" />{dict.common.markAs}{dict.shipments.statuses.FAILED}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => { setPickShipmentId(s.shipmentNo); setPickData(s); setTab('picking') }}>
-                              <Printer className="mr-2 h-4 w-4" />撿貨/裝箱單
+                              <Printer className="mr-2 h-4 w-4" />{se.tabPicking}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -525,7 +530,10 @@ export default function ShipmentsPage() {
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between pt-4">
               <p className="text-sm text-muted-foreground">
-                共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+                {se.paginationInfo
+                  .replace('{total}', String(pagination.total))
+                  .replace('{page}', String(pagination.page))
+                  .replace('{totalPages}', String(pagination.totalPages))}
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -545,7 +553,7 @@ export default function ShipmentsPage() {
             <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : trips.length === 0 ? (
             <div className="rounded-lg border-2 border-dashed p-16 text-center text-muted-foreground">
-              尚無配送行程，點擊右上角新增
+              {se.noTrips}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -570,7 +578,7 @@ export default function ShipmentsPage() {
                             {t.region && <div className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.region}</div>}
                           </div>
                         </div>
-                        <div className="text-sm text-muted-foreground">{t._count.shipments} 筆出貨</div>
+                        <div className="text-sm text-muted-foreground">{t._count.shipments} {se.tripsCount}</div>
                       </div>
 
                       {t.shipments.length > 0 && (
@@ -583,7 +591,7 @@ export default function ShipmentsPage() {
                               </div>
                               {t.status === 'PLANNED' && (
                                 <button onClick={() => removeShipmentFromTrip(t.id, s.id)}
-                                  className="text-red-500 hover:text-red-700">移除</button>
+                                  className="text-red-500 hover:text-red-700">{se.remove}</button>
                               )}
                             </div>
                           ))}
@@ -595,21 +603,21 @@ export default function ShipmentsPage() {
                           <>
                             <Button size="sm" variant="outline"
                               onClick={() => { setTripTarget(t); setTripDetailOpen(true) }}>
-                              指派出貨單
+                              {se.assignShipment}
                             </Button>
                             <Button size="sm" onClick={() => tripAction(t.id, 'depart')}>
-                              <Car className="mr-1 h-3 w-3" />出發
+                              <Car className="mr-1 h-3 w-3" />{se.depart}
                             </Button>
                           </>
                         )}
                         {t.status === 'DEPARTED' && (
                           <Button size="sm" onClick={() => tripAction(t.id, 'complete')}>
-                            <CheckCircle2 className="mr-1 h-3 w-3" />完成配送
+                            <CheckCircle2 className="mr-1 h-3 w-3" />{se.completeDelivery}
                           </Button>
                         )}
                         {(t.status === 'PLANNED' || t.status === 'DEPARTED') && (
                           <Button size="sm" variant="outline" className="text-red-600"
-                            onClick={() => tripAction(t.id, 'cancel')}>取消</Button>
+                            onClick={() => tripAction(t.id, 'cancel')}>{se.cancel}</Button>
                         )}
                       </div>
                     </CardContent>
@@ -626,21 +634,21 @@ export default function ShipmentsPage() {
         <div className="space-y-4">
           <div className="flex gap-3 items-end">
             <div className="space-y-1.5">
-              <Label>出貨單號</Label>
+              <Label>{se.pickingLabel}</Label>
               <div className="flex gap-2">
-                <Input className="w-60" placeholder="輸入出貨單號..."
+                <Input className="w-60" placeholder={se.pickingInputPlaceholder}
                   value={pickShipmentId}
                   onChange={e => setPickShipmentId(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && loadPickingList()} />
                 <Button onClick={loadPickingList} disabled={pickLoading}>
                   {pickLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  查詢
+                  {se.query}
                 </Button>
               </div>
             </div>
             {pickData && (
               <Button variant="outline" onClick={handlePrint}>
-                <Printer className="mr-2 h-4 w-4" />列印
+                <Printer className="mr-2 h-4 w-4" />{se.print}
               </Button>
             )}
           </div>
@@ -651,31 +659,31 @@ export default function ShipmentsPage() {
               <div>
                 <div className="flex items-center justify-between border-b pb-3">
                   <div>
-                    <h2 className="text-xl font-bold">撿貨單</h2>
+                    <h2 className="text-xl font-bold">{se.pickingListTitle}</h2>
                     <p className="text-sm text-muted-foreground">Picking List</p>
                   </div>
                   <div className="text-right text-sm">
                     <div className="font-mono font-bold text-lg">{pickData.shipmentNo}</div>
-                    <div className="text-muted-foreground">建立：{fmtFull(pickData.createdAt)}</div>
+                    <div className="text-muted-foreground">{se.labelCreated}{fmtFull(pickData.createdAt)}</div>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                  <div><span className="text-muted-foreground">客戶：</span>{pickData.order.customer.name}</div>
-                  <div><span className="text-muted-foreground">訂單號：</span><span className="font-mono">{pickData.order.orderNo}</span></div>
-                  <div><span className="text-muted-foreground">配送方式：</span>{methodLabel[pickData.deliveryMethod]}</div>
-                  <div><span className="text-muted-foreground">出貨倉庫：</span>{pickData.warehouse}</div>
+                  <div><span className="text-muted-foreground">{se.labelCustomer}</span>{pickData.order.customer.name}</div>
+                  <div><span className="text-muted-foreground">{se.labelOrderNo}</span><span className="font-mono">{pickData.order.orderNo}</span></div>
+                  <div><span className="text-muted-foreground">{se.labelDeliveryMethod}</span>{methodLabel[pickData.deliveryMethod]}</div>
+                  <div><span className="text-muted-foreground">{se.labelWarehouse}</span>{pickData.warehouse}</div>
                   {pickData.order.customer.address && (
-                    <div className="col-span-2"><span className="text-muted-foreground">送貨地址：</span>{pickData.order.customer.address}</div>
+                    <div className="col-span-2"><span className="text-muted-foreground">{se.labelAddress}</span>{pickData.order.customer.address}</div>
                   )}
                 </div>
                 <Table className="mt-4">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>品項</TableHead>
+                      <TableHead>{se.colItem}</TableHead>
                       <TableHead>SKU</TableHead>
-                      <TableHead className="text-right">應揀數量</TableHead>
-                      <TableHead className="text-right">實揀數量</TableHead>
-                      <TableHead className="w-40">備註</TableHead>
+                      <TableHead className="text-right">{se.colPickQty}</TableHead>
+                      <TableHead className="text-right">{se.colActualQty}</TableHead>
+                      <TableHead className="w-40">{dict.common.notes}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -693,7 +701,7 @@ export default function ShipmentsPage() {
                   </TableBody>
                 </Table>
                 <div className="mt-4 flex justify-end text-sm text-muted-foreground">
-                  揀貨人員：___________________　　日期：___________________
+                  {se.pickerSignature}
                 </div>
               </div>
 
@@ -703,26 +711,26 @@ export default function ShipmentsPage() {
               <div>
                 <div className="flex items-center justify-between border-b pb-3">
                   <div>
-                    <h2 className="text-xl font-bold">裝箱單</h2>
+                    <h2 className="text-xl font-bold">{se.packingListTitle}</h2>
                     <p className="text-sm text-muted-foreground">Packing List</p>
                   </div>
                   <div className="text-right text-sm font-mono font-bold">{pickData.shipmentNo}</div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">棧板數：</span>{pickData.palletCount ?? '—'}</div>
-                  <div><span className="text-muted-foreground">總箱數：</span>{pickData.boxCount ?? '—'}</div>
-                  <div><span className="text-muted-foreground">總重量：</span>{pickData.weight ? `${pickData.weight} kg` : '—'}</div>
-                  <div><span className="text-muted-foreground">材積：</span>{pickData.volume ?? '—'}</div>
-                  <div><span className="text-muted-foreground">物流商：</span>{pickData.logisticsProvider?.name ?? pickData.carrier ?? '—'}</div>
-                  <div><span className="text-muted-foreground">追蹤號：</span><span className="font-mono">{pickData.trackingNo ?? '—'}</span></div>
+                  <div><span className="text-muted-foreground">{se.labelPallets}</span>{pickData.palletCount ?? '—'}</div>
+                  <div><span className="text-muted-foreground">{se.labelBoxes}</span>{pickData.boxCount ?? '—'}</div>
+                  <div><span className="text-muted-foreground">{se.labelWeight}</span>{pickData.weight ? `${pickData.weight} kg` : '—'}</div>
+                  <div><span className="text-muted-foreground">{se.labelVolume}</span>{pickData.volume ?? '—'}</div>
+                  <div><span className="text-muted-foreground">{se.labelCarrier}</span>{pickData.logisticsProvider?.name ?? pickData.carrier ?? '—'}</div>
+                  <div><span className="text-muted-foreground">{se.labelTracking}</span><span className="font-mono">{pickData.trackingNo ?? '—'}</span></div>
                 </div>
                 <Table className="mt-4">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>品項</TableHead>
+                      <TableHead>{se.colItem}</TableHead>
                       <TableHead>SKU</TableHead>
-                      <TableHead className="text-right">數量</TableHead>
-                      <TableHead className="text-right">箱數</TableHead>
+                      <TableHead className="text-right">{se.colQty}</TableHead>
+                      <TableHead className="text-right">{se.colBoxCount}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -737,10 +745,10 @@ export default function ShipmentsPage() {
                   </TableBody>
                 </Table>
                 {pickData.notes && (
-                  <div className="mt-3 text-sm text-muted-foreground border-t pt-2">備註：{pickData.notes}</div>
+                  <div className="mt-3 text-sm text-muted-foreground border-t pt-2">{se.labelNotes}{pickData.notes}</div>
                 )}
                 <div className="mt-4 flex justify-end text-sm text-muted-foreground">
-                  裝箱確認：___________________　　日期：___________________
+                  {se.packerSignature}
                 </div>
               </div>
 
@@ -750,22 +758,22 @@ export default function ShipmentsPage() {
               <div>
                 <div className="flex items-center justify-between border-b pb-3">
                   <div>
-                    <h2 className="text-xl font-bold">配送單</h2>
+                    <h2 className="text-xl font-bold">{se.deliveryNoteTitle}</h2>
                     <p className="text-sm text-muted-foreground">Delivery Note</p>
                   </div>
                   <div className="text-right text-sm font-mono font-bold">{pickData.shipmentNo}</div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                  <div><span className="text-muted-foreground">收貨方：</span>{pickData.order.customer.name}</div>
-                  <div><span className="text-muted-foreground">聯絡方式：</span>—</div>
-                  <div className="col-span-2"><span className="text-muted-foreground">送貨地址：</span>{pickData.order.customer.address ?? pickData.order.customer.name}</div>
-                  <div><span className="text-muted-foreground">預計到貨：</span>{fmtFull(pickData.expectedDeliveryDate)}</div>
-                  <div><span className="text-muted-foreground">物流商：</span>{pickData.logisticsProvider?.name ?? pickData.carrier ?? '—'}</div>
-                  <div><span className="text-muted-foreground">追蹤號：</span><span className="font-mono">{pickData.trackingNo ?? '—'}</span></div>
+                  <div><span className="text-muted-foreground">{se.labelRecipient}</span>{pickData.order.customer.name}</div>
+                  <div><span className="text-muted-foreground">{se.labelContact}</span>—</div>
+                  <div className="col-span-2"><span className="text-muted-foreground">{se.labelAddress}</span>{pickData.order.customer.address ?? pickData.order.customer.name}</div>
+                  <div><span className="text-muted-foreground">{se.labelExpectedDate}</span>{fmtFull(pickData.expectedDeliveryDate)}</div>
+                  <div><span className="text-muted-foreground">{se.labelCarrier}</span>{pickData.logisticsProvider?.name ?? pickData.carrier ?? '—'}</div>
+                  <div><span className="text-muted-foreground">{se.labelTracking}</span><span className="font-mono">{pickData.trackingNo ?? '—'}</span></div>
                 </div>
                 <div className="mt-6 grid grid-cols-2 gap-x-12 text-sm text-muted-foreground">
-                  <div>簽收人：___________________</div>
-                  <div>簽收日期：___________________</div>
+                  <div>{se.recipientSignature}</div>
+                  <div>{se.signDateLabel}</div>
                 </div>
               </div>
             </div>
@@ -777,29 +785,29 @@ export default function ShipmentsPage() {
       {tab === 'logistics' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{providers.length} 間物流商</p>
+            <p className="text-sm text-muted-foreground">{providers.length} {se.logisticsCount}</p>
             <Button variant="outline" onClick={() => window.open('/logistics', '_blank')}>
-              開啟物流商管理頁面
+              {se.openLogisticsPage}
             </Button>
           </div>
           <div className="rounded-lg border bg-white">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>代碼</TableHead>
-                  <TableHead>名稱</TableHead>
-                  <TableHead>配送區域</TableHead>
-                  <TableHead>時效（天）</TableHead>
-                  <TableHead>付款條件</TableHead>
-                  <TableHead>聯絡窗口</TableHead>
-                  <TableHead className="w-20">狀態</TableHead>
+                  <TableHead>{se.colCode}</TableHead>
+                  <TableHead>{se.colName}</TableHead>
+                  <TableHead>{se.colRegion}</TableHead>
+                  <TableHead>{se.colLeadDays}</TableHead>
+                  <TableHead>{se.colPayTerms}</TableHead>
+                  <TableHead>{se.colContact}</TableHead>
+                  <TableHead className="w-20">{se.colStatusHead}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {providers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                      尚無物流商資料
+                      {se.noLogistics}
                     </TableCell>
                   </TableRow>
                 ) : providers.map(p => (
@@ -825,7 +833,7 @@ export default function ShipmentsPage() {
       <Dialog open={updOpen} onOpenChange={o => !o && setUpdOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>編輯物流資訊 — {updTarget?.shipmentNo}</DialogTitle>
+            <DialogTitle>{se.editLogistics} — {updTarget?.shipmentNo}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             <div className="grid grid-cols-2 gap-3">
@@ -833,9 +841,9 @@ export default function ShipmentsPage() {
                 <Label>{dict.shipments.carrier}</Label>
                 <Select value={updForm.logisticsProviderId}
                   onValueChange={(v) => setUpdForm(f => ({ ...f, logisticsProviderId: v ?? '' }))}>
-                  <SelectTrigger><SelectValue placeholder="選擇物流商" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={se.selectCarrier} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">— 未指定 —</SelectItem>
+                    <SelectItem value="">— {se.unspecified} —</SelectItem>
                     {providers.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -843,29 +851,29 @@ export default function ShipmentsPage() {
               <div className="space-y-1.5">
                 <Label>{dict.shipments.trackingNo}</Label>
                 <Input value={updForm.trackingNo} onChange={e => setUpdForm(f => ({ ...f, trackingNo: e.target.value }))}
-                  placeholder="宅配追蹤號" />
+                  placeholder={se.trackingPlaceholder} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>棧板數</Label>
+                <Label>{se.labelPalletCount}</Label>
                 <Input type="number" min={0} value={updForm.palletCount}
                   onChange={e => setUpdForm(f => ({ ...f, palletCount: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
-                <Label>箱數</Label>
+                <Label>{se.labelBoxCount}</Label>
                 <Input type="number" min={0} value={updForm.boxCount}
                   onChange={e => setUpdForm(f => ({ ...f, boxCount: e.target.value }))} />
               </div>
               <div className="space-y-1.5">
-                <Label>重量 (kg)</Label>
+                <Label>{se.labelWeightKg}</Label>
                 <Input type="number" min={0} step="0.001" value={updForm.weight}
                   onChange={e => setUpdForm(f => ({ ...f, weight: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>材積</Label>
+                <Label>{se.labelVolumeShort}</Label>
                 <Input value={updForm.volume} onChange={e => setUpdForm(f => ({ ...f, volume: e.target.value }))}
                   placeholder="30x20x15 cm" />
               </div>
@@ -889,7 +897,7 @@ export default function ShipmentsPage() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>異常狀態</Label>
+                <Label>{se.anomalyStatus}</Label>
                 <Select value={updForm.anomalyStatus} onValueChange={(v) => setUpdForm(f => ({ ...f, anomalyStatus: v ?? 'NORMAL' }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -902,10 +910,10 @@ export default function ShipmentsPage() {
             </div>
             {updForm.anomalyStatus !== 'NORMAL' && (
               <div className="space-y-1.5">
-                <Label>異常說明</Label>
+                <Label>{se.anomalyNote}</Label>
                 <Textarea value={updForm.anomalyNote}
                   onChange={e => setUpdForm(f => ({ ...f, anomalyNote: e.target.value }))}
-                  rows={2} placeholder="說明異常情況..." />
+                  rows={2} placeholder={se.anomalyNotePlaceholder} />
               </div>
             )}
           </div>
@@ -921,39 +929,39 @@ export default function ShipmentsPage() {
       {/* ── New Trip Dialog ──────────────────────────────────────────────────── */}
       <Dialog open={tripNewOpen} onOpenChange={o => !o && setTripNewOpen(false)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>新增配送行程</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{se.newTripTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
-              <Label>出車日期 <span className="text-red-500">*</span></Label>
+              <Label>{se.labelTripDate} <span className="text-red-500">*</span></Label>
               <Input type="date" value={tripForm.tripDate}
                 onChange={e => setTripForm(f => ({ ...f, tripDate: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>車牌號碼</Label>
+                <Label>{se.labelVehicleNo}</Label>
                 <Input value={tripForm.vehicleNo} onChange={e => setTripForm(f => ({ ...f, vehicleNo: e.target.value }))}
-                  placeholder="ABC-1234" />
+                  placeholder={se.vehiclePlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>司機姓名</Label>
+                <Label>{se.labelDriverName}</Label>
                 <Input value={tripForm.driverName} onChange={e => setTripForm(f => ({ ...f, driverName: e.target.value }))}
-                  placeholder="王大明" />
+                  placeholder={se.driverPlaceholder} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>司機電話</Label>
+                <Label>{se.labelDriverPhone}</Label>
                 <Input value={tripForm.driverPhone} onChange={e => setTripForm(f => ({ ...f, driverPhone: e.target.value }))}
-                  placeholder="0912-345-678" />
+                  placeholder={se.phonePlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>配送區域</Label>
+                <Label>{se.labelRegion}</Label>
                 <Input value={tripForm.region} onChange={e => setTripForm(f => ({ ...f, region: e.target.value }))}
-                  placeholder="台北市 / 新北市" />
+                  placeholder={se.regionPlaceholder} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{se.labelNoteShort}</Label>
               <Input value={tripForm.notes} onChange={e => setTripForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
           </div>
@@ -970,12 +978,12 @@ export default function ShipmentsPage() {
       <Dialog open={tripDetailOpen} onOpenChange={o => !o && setTripDetailOpen(false)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>指派出貨單 — {tripTarget?.tripNo}</DialogTitle>
+            <DialogTitle>{se.assignShipmentTitle} — {tripTarget?.tripNo}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[60vh] overflow-y-auto">
-            <p className="text-sm text-muted-foreground">選擇狀態為「備貨中」或「已打包」的出貨單加入此行程</p>
+            <p className="text-sm text-muted-foreground">{se.assignShipmentDesc}</p>
             {shipments.filter(s => s.status === 'PREPARING' || s.status === 'PACKED').length === 0 ? (
-              <div className="py-6 text-center text-muted-foreground text-sm">目前沒有待出貨的出貨單</div>
+              <div className="py-6 text-center text-muted-foreground text-sm">{se.noReadyShipments}</div>
             ) : (
               <div className="space-y-2">
                 {shipments.filter(s => s.status === 'PREPARING' || s.status === 'PACKED').map(s => (
@@ -985,11 +993,11 @@ export default function ShipmentsPage() {
                       <div className="text-xs text-muted-foreground">{s.order.customer.name}</div>
                     </div>
                     {s.trip ? (
-                      <span className="text-xs text-muted-foreground">已在行程 {s.trip.tripNo}</span>
+                      <span className="text-xs text-muted-foreground">{se.inTrip} {s.trip.tripNo}</span>
                     ) : (
                       <Button size="sm" variant="outline"
                         onClick={() => tripTarget && assignShipmentToTrip(tripTarget.id, s.id)}>
-                        加入
+                        {se.addToTrip}
                       </Button>
                     )}
                   </div>

@@ -55,51 +55,53 @@ function formatFull(val: number) {
   return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val)
 }
 
-const statusLabels: Record<string, string> = {
-  PENDING: '待確認', CONFIRMED: '已確認', PROCESSING: '處理中',
-  SHIPPED: '已出貨', DELIVERED: '已送達', COMPLETED: '已完成', CANCELLED: '已取消',
-}
 const statusColors: Record<string, string> = {
   PENDING: '#94a3b8', CONFIRMED: '#60a5fa', PROCESSING: '#f59e0b',
   SHIPPED: '#3b82f6', DELIVERED: '#14b8a6', COMPLETED: '#22c55e', CANCELLED: '#ef4444',
 }
-const typeLabels: Record<string, string> = {
-  NURSING_HOME: '護理之家', ELDERLY_HOME: '安養中心', HOSPITAL: '醫院',
-  DISTRIBUTOR: '經銷商', OTHER: '其他',
-}
 const CHANNEL_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
 const REP_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444']
-
-const monthRanges = [
-  { label: '近 3 個月', value: 3 },
-  { label: '近 6 個月', value: 6 },
-  { label: '近 12 個月', value: 12 },
-]
-
-const poTypeLabels: Record<string, string> = {
-  FINISHED_GOODS:     '成品採購',
-  OEM:                'OEM代工',
-  PACKAGING:          '包材',
-  RAW_MATERIAL:       '原物料',
-  GIFT_PROMO:         '贈品/活動',
-  LOGISTICS_SUPPLIES: '物流耗材',
-}
 const PO_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#64748b']
-
-const tabs = [
-  { id: 'overview',  label: '總覽',     icon: <TrendingUp className="h-4 w-4" /> },
-  { id: 'salesrep',  label: '業務報表', icon: <Award className="h-4 w-4" /> },
-  { id: 'channel',   label: '通路分析', icon: <PieChart className="h-4 w-4" /> },
-  { id: 'margin',    label: '毛利分析', icon: <BarChart2 className="h-4 w-4" /> },
-  { id: 'purchase',  label: '採購報表', icon: <ShoppingBag className="h-4 w-4" /> },
-]
 
 export default function ReportsPage() {
   const { dict } = useI18n()
+  const rp = dict.reportsPage
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [months, setMonths] = useState(6)
   const [activeTab, setActiveTab] = useState('overview')
+
+  const statusLabels: Record<string, string> = {
+    PENDING: dict.orders.statuses.PENDING,
+    CONFIRMED: dict.orders.statuses.CONFIRMED,
+    PROCESSING: dict.orders.statuses.PROCESSING,
+    SHIPPED: dict.orders.statuses.SHIPPED,
+    DELIVERED: dict.orders.statuses.DELIVERED,
+    COMPLETED: dict.orders.statuses.COMPLETED,
+    CANCELLED: dict.orders.statuses.CANCELLED,
+  }
+  const typeLabels: Record<string, string> = {
+    NURSING_HOME: dict.customers.types.NURSING_HOME,
+    ELDERLY_HOME: dict.customers.types.ELDERLY_HOME,
+    HOSPITAL: dict.customers.types.HOSPITAL,
+    DISTRIBUTOR: dict.customers.types.DISTRIBUTOR,
+    OTHER: dict.common.other,
+  }
+  const poTypeLabels: Record<string, string> = { ...rp.poTypeLabels }
+
+  const monthRanges = [
+    { label: rp.range3m, value: 3 },
+    { label: rp.range6m, value: 6 },
+    { label: rp.range12m, value: 12 },
+  ]
+
+  const tabs = [
+    { id: 'overview',  label: rp.tabOverview,  icon: <TrendingUp className="h-4 w-4" /> },
+    { id: 'salesrep',  label: rp.tabSalesRep,  icon: <Award className="h-4 w-4" /> },
+    { id: 'channel',   label: rp.tabChannel,   icon: <PieChart className="h-4 w-4" /> },
+    { id: 'margin',    label: rp.tabMargin,    icon: <BarChart2 className="h-4 w-4" /> },
+    { id: 'purchase',  label: rp.tabPurchase,  icon: <ShoppingBag className="h-4 w-4" /> },
+  ]
 
   useEffect(() => {
     setLoading(true)
@@ -128,7 +130,7 @@ export default function ReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.reports.title}</h1>
-          <p className="text-sm text-muted-foreground">業務概況與趨勢分析</p>
+          <p className="text-sm text-muted-foreground">{rp.subtitle}</p>
         </div>
         <div className="flex gap-1.5">
           {monthRanges.map((r) => (
@@ -161,10 +163,10 @@ export default function ReportsPage() {
       {/* KPI Cards — always visible */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: `${months} 個月營收`, value: formatFull(totalRevenue), icon: <TrendingUp className="h-5 w-5 text-blue-600" />, bg: 'bg-blue-50' },
-          { label: `${months} 個月訂單`, value: `${totalOrders} 筆`, icon: <Package className="h-5 w-5 text-violet-600" />, bg: 'bg-violet-50' },
-          { label: '應收帳款', value: formatFull(data.totalReceivable), icon: <DollarSign className="h-5 w-5 text-amber-600" />, bg: 'bg-amber-50' },
-          { label: '參與業務數', value: `${data.salesRepPerf.length} 人`, icon: <Users className="h-5 w-5 text-green-600" />, bg: 'bg-green-50' },
+          { label: `${months} ${rp.kpiRevenue}`, value: formatFull(totalRevenue), icon: <TrendingUp className="h-5 w-5 text-blue-600" />, bg: 'bg-blue-50' },
+          { label: `${months} ${rp.kpiOrders}`, value: `${totalOrders} ${rp.kpiOrdersUnit}`, icon: <Package className="h-5 w-5 text-violet-600" />, bg: 'bg-violet-50' },
+          { label: rp.kpiReceivable, value: formatFull(data.totalReceivable), icon: <DollarSign className="h-5 w-5 text-amber-600" />, bg: 'bg-amber-50' },
+          { label: rp.kpiSalesCount, value: `${data.salesRepPerf.length} ${rp.kpiSalesUnit}`, icon: <Users className="h-5 w-5 text-green-600" />, bg: 'bg-green-50' },
         ].map((kpi) => (
           <Card key={kpi.label}>
             <CardContent className="p-5">
@@ -185,15 +187,15 @@ export default function ReportsPage() {
         <div className="space-y-6">
           {/* 月度趨勢圖 */}
           <Card>
-            <CardHeader><CardTitle className="text-base">月度營收趨勢</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{rp.monthlyRevenueTrend}</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={data.monthlyRevenue} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} />
                   <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12, fill: '#94a3b8' }} />
-                  <Tooltip formatter={(value, name) => [formatFull(Number(value ?? 0)), name === 'revenue' ? '訂單金額' : '已收款']} labelStyle={{ fontWeight: 600 }} />
-                  <Legend formatter={(val) => val === 'revenue' ? '訂單金額' : '已收款'} />
+                  <Tooltip formatter={(value, name) => [formatFull(Number(value ?? 0)), name === 'revenue' ? rp.orderAmountLabel : rp.paidLabel]} labelStyle={{ fontWeight: 600 }} />
+                  <Legend formatter={(val) => val === 'revenue' ? rp.orderAmountLabel : rp.paidLabel} />
                   <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} name="revenue" />
                   <Bar dataKey="paid" fill="#22c55e" radius={[4, 4, 0, 0]} name="paid" />
                 </BarChart>
@@ -203,14 +205,14 @@ export default function ReportsPage() {
 
           {/* 訂單數趨勢 */}
           <Card>
-            <CardHeader><CardTitle className="text-base">月度訂單數量</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{rp.monthlyOrderCount}</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={data.monthlyRevenue} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} />
                   <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} allowDecimals={false} />
-                  <Tooltip formatter={(val) => [Number(val ?? 0), '訂單數']} />
+                  <Tooltip formatter={(val) => [Number(val ?? 0), rp.orderCountLabel]} />
                   <Line type="monotone" dataKey="orders" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: '#8b5cf6', r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -220,10 +222,10 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* 客戶排行 */}
             <Card>
-              <CardHeader><CardTitle className="text-base">客戶營收排行（本年度）</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.customerRanking}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {data.topCustomers.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-4">尚無資料</p>
+                  <p className="text-center text-sm text-muted-foreground py-4">{rp.noData}</p>
                 ) : data.topCustomers.map((item, index) => {
                   const max = data.topCustomers[0]?.revenue ?? 1
                   return (
@@ -235,7 +237,7 @@ export default function ReportsPage() {
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-bold">{formatFull(item.revenue)}</div>
-                          <div className="text-xs text-muted-foreground">{item.orders} 筆</div>
+                          <div className="text-xs text-muted-foreground">{item.orders} {rp.ordersUnit}</div>
                         </div>
                       </div>
                       <div className="h-1.5 rounded-full bg-slate-100">
@@ -249,10 +251,10 @@ export default function ReportsPage() {
 
             {/* 商品銷售排行 */}
             <Card>
-              <CardHeader><CardTitle className="text-base">商品銷售排行（本年度）</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.productRanking}</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 {data.topProducts.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-4">尚無資料</p>
+                  <p className="text-center text-sm text-muted-foreground py-4">{rp.noData}</p>
                 ) : data.topProducts.map((item, index) => {
                   const max = data.topProducts[0]?.revenue ?? 1
                   return (
@@ -282,7 +284,7 @@ export default function ReportsPage() {
 
           {/* 訂單狀態分佈 */}
           <Card>
-            <CardHeader><CardTitle className="text-base">訂單狀態分佈</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{rp.orderStatusDist}</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
                 {data.orderStatusDist.map((item) => (
@@ -303,10 +305,10 @@ export default function ReportsPage() {
         <div className="space-y-6">
           {/* 業務業績排行 */}
           <Card>
-            <CardHeader><CardTitle className="text-base">業務業績排行（本年度）</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">{rp.salesRepRanking}</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {data.salesRepPerf.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-4">尚無資料</p>
+                <p className="text-center text-sm text-muted-foreground py-4">{rp.noData}</p>
               ) : data.salesRepPerf.map((rep, index) => {
                 const max = data.salesRepPerf[0]?.revenue ?? 1
                 return (
@@ -320,7 +322,7 @@ export default function ReportsPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-bold">{formatFull(rep.revenue)}</div>
-                        <div className="text-xs text-muted-foreground">{rep.orders} 筆訂單</div>
+                        <div className="text-xs text-muted-foreground">{rep.orders} {rp.ordersUnit}</div>
                       </div>
                     </div>
                     <div className="h-1.5 rounded-full bg-slate-100">
@@ -335,7 +337,7 @@ export default function ReportsPage() {
           {/* 業務月度趨勢 */}
           {data.salesRepNames.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">業務月度業績趨勢（Top 5）</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.salesRepTrend}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={data.salesRepMonthly} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -363,10 +365,10 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* 通路營收圓餅圖 */}
             <Card>
-              <CardHeader><CardTitle className="text-base">各通路營收佔比（本年度）</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.channelPieTitle}</CardTitle></CardHeader>
               <CardContent>
                 {data.channelRevenue.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-8">尚無資料</p>
+                  <p className="text-center text-sm text-muted-foreground py-8">{rp.noData}</p>
                 ) : (
                   <>
                     <ResponsiveContainer width="100%" height={240}>
@@ -400,17 +402,17 @@ export default function ReportsPage() {
 
             {/* 通路排行 bar */}
             <Card>
-              <CardHeader><CardTitle className="text-base">各通路銷售金額（本年度）</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.channelBarTitle}</CardTitle></CardHeader>
               <CardContent>
                 {data.channelRevenue.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-8">尚無資料</p>
+                  <p className="text-center text-sm text-muted-foreground py-8">{rp.noData}</p>
                 ) : (
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={data.channelRevenue} layout="vertical" margin={{ top: 4, right: 60, left: 60, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                       <XAxis type="number" tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#94a3b8' }} />
                       <YAxis type="category" dataKey="type" tickFormatter={(v) => typeLabels[v] ?? v} tick={{ fontSize: 12, fill: '#64748b' }} width={60} />
-                      <Tooltip formatter={(val) => [formatFull(Number(val ?? 0)), '營收']} labelFormatter={(v) => typeLabels[v] ?? v} />
+                      <Tooltip formatter={(val) => [formatFull(Number(val ?? 0)), rp.revenueLabel]} labelFormatter={(v) => typeLabels[v] ?? v} />
                       <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
                         {data.channelRevenue.map((_, i) => (
                           <Cell key={i} fill={CHANNEL_COLORS[i % CHANNEL_COLORS.length]} />
@@ -426,7 +428,7 @@ export default function ReportsPage() {
           {/* 通路月度趨勢 */}
           {data.channelTypes.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">各通路月度趨勢</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.channelTrendTitle}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={data.channelMonthly} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
@@ -452,7 +454,7 @@ export default function ReportsPage() {
       {activeTab === 'purchase' && (
         !data.canSeeCost ? (
           <div className="rounded-lg border-2 border-dashed p-16 text-center text-muted-foreground">
-            採購報表僅限財務、採購、總經理與超級管理員查看
+            {rp.purchaseRestricted}
           </div>
         ) : !data.purchaseData ? (
           <div className="py-16 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -465,7 +467,7 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-blue-50 p-2.5"><ShoppingBag className="h-5 w-5 text-blue-600" /></div>
                     <div>
-                      <p className="text-xs text-muted-foreground">應付帳款</p>
+                      <p className="text-xs text-muted-foreground">{rp.payableLabel}</p>
                       <p className="text-xl font-bold">{formatCurrency(data.purchaseData.totalPayable)}</p>
                     </div>
                   </div>
@@ -476,8 +478,8 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-purple-50 p-2.5"><Clock className="h-5 w-5 text-purple-600" /></div>
                     <div>
-                      <p className="text-xs text-muted-foreground">平均交期</p>
-                      <p className="text-xl font-bold">{data.purchaseData.avgLeadDays != null ? `${data.purchaseData.avgLeadDays} 天` : '—'}</p>
+                      <p className="text-xs text-muted-foreground">{rp.avgLeadDays}</p>
+                      <p className="text-xl font-bold">{data.purchaseData.avgLeadDays != null ? `${data.purchaseData.avgLeadDays} ${rp.avgLeadDaysUnit}` : '—'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -487,7 +489,7 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-green-50 p-2.5"><CheckCircle2 className="h-5 w-5 text-green-600" /></div>
                     <div>
-                      <p className="text-xs text-muted-foreground">準時到貨率</p>
+                      <p className="text-xs text-muted-foreground">{rp.onTimeArrival}</p>
                       <p className="text-xl font-bold">{data.purchaseData.onTimeRate != null ? `${data.purchaseData.onTimeRate}%` : '—'}</p>
                     </div>
                   </div>
@@ -498,7 +500,7 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-3">
                     <div className="rounded-lg bg-amber-50 p-2.5"><Package className="h-5 w-5 text-amber-600" /></div>
                     <div>
-                      <p className="text-xs text-muted-foreground">供應商數</p>
+                      <p className="text-xs text-muted-foreground">{rp.supplierCount}</p>
                       <p className="text-xl font-bold">{data.purchaseData.bySupplier.length}</p>
                     </div>
                   </div>
@@ -508,18 +510,18 @@ export default function ReportsPage() {
 
             {/* 月度採購趨勢 */}
             <Card>
-              <CardHeader><CardTitle className="text-base">月度採購金額趨勢</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.monthlyPurchaseTrend}</CardTitle></CardHeader>
               <CardContent>
                 {data.purchaseData.monthlyPurchase.every(m => m.amount === 0) ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">所選期間尚無採購資料</p>
+                  <p className="py-8 text-center text-sm text-muted-foreground">{rp.noPurchaseData}</p>
                 ) : (
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={data.purchaseData.monthlyPurchase} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} />
                       <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                      <Tooltip formatter={(val, name) => [name === 'amount' ? formatFull(Number(val)) : val, name === 'amount' ? '採購金額' : '訂單數']} />
-                      <Legend formatter={v => v === 'amount' ? '採購金額' : '訂單數'} />
+                      <Tooltip formatter={(val, name) => [name === 'amount' ? formatFull(Number(val)) : val, name === 'amount' ? rp.purchaseAmountLabel : rp.orderCountLabel]} />
+                      <Legend formatter={v => v === 'amount' ? rp.purchaseAmountLabel : rp.orderCountLabel} />
                       <Bar dataKey="amount" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="amount" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -530,10 +532,10 @@ export default function ReportsPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {/* 供應商佔比 */}
               <Card>
-                <CardHeader><CardTitle className="text-base">供應商採購佔比（Top 8，本期間）</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{rp.supplierShareTitle}</CardTitle></CardHeader>
                 <CardContent>
                   {data.purchaseData.bySupplier.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">尚無資料</p>
+                    <p className="py-8 text-center text-sm text-muted-foreground">{rp.noData}</p>
                   ) : (
                     <div className="space-y-3">
                       {(() => {
@@ -542,7 +544,7 @@ export default function ReportsPage() {
                           <div key={i}>
                             <div className="mb-1 flex justify-between text-sm">
                               <span className="font-medium truncate max-w-[160px]">{s.supplierName}</span>
-                              <span className="text-muted-foreground">{formatFull(s.amount)} · {s.orders} 筆</span>
+                              <span className="text-muted-foreground">{formatFull(s.amount)} · {s.orders} {rp.ordersUnit}</span>
                             </div>
                             <div className="h-2 rounded-full bg-slate-100">
                               <div className="h-full rounded-full" style={{ width: `${total > 0 ? (s.amount / total) * 100 : 0}%`, backgroundColor: PO_COLORS[i % PO_COLORS.length] }} />
@@ -557,10 +559,10 @@ export default function ReportsPage() {
 
               {/* 採購類型分佈 */}
               <Card>
-                <CardHeader><CardTitle className="text-base">採購類型分佈</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">{rp.purchaseTypeDist}</CardTitle></CardHeader>
                 <CardContent>
                   {data.purchaseData.byType.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-muted-foreground">尚無資料</p>
+                    <p className="py-8 text-center text-sm text-muted-foreground">{rp.noData}</p>
                   ) : (
                     <div className="flex gap-6 items-center">
                       <ResponsiveContainer width={180} height={180}>
@@ -601,11 +603,11 @@ export default function ReportsPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">商品毛利分析（本年度，Top 12）</CardTitle>
+              <CardTitle className="text-base">{rp.marginTitle}</CardTitle>
             </CardHeader>
             <CardContent>
               {data.productMargin.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-8">尚無資料</p>
+                <p className="text-center text-sm text-muted-foreground py-8">{rp.noData}</p>
               ) : (
                 <div className="space-y-3">
                   {data.productMargin.map((item, i) => (
@@ -620,15 +622,15 @@ export default function ReportsPage() {
                         </div>
                         <div className="text-right">
                           <div className={`text-sm font-bold ${item.margin >= 30 ? 'text-green-600' : item.margin >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
-                            毛利率 {item.margin}%
+                            {rp.marginRateLabel} {item.margin}%
                           </div>
-                          <div className="text-xs text-muted-foreground">{formatFull(item.revenue - item.cost)} 毛利</div>
+                          <div className="text-xs text-muted-foreground">{formatFull(item.revenue - item.cost)} {rp.grossProfitLabel}</div>
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-xs text-muted-foreground mb-2">
-                        <div><span>營收：</span><span className="font-medium text-slate-700">{formatFull(item.revenue)}</span></div>
-                        <div><span>成本：</span><span className="font-medium text-slate-700">{formatFull(item.cost)}</span></div>
-                        <div><span>銷量：</span><span className="font-medium text-slate-700">{item.quantity} {item.product?.unit}</span></div>
+                        <div><span>{rp.revenueShort}：</span><span className="font-medium text-slate-700">{formatFull(item.revenue)}</span></div>
+                        <div><span>{rp.costLabel}：</span><span className="font-medium text-slate-700">{formatFull(item.cost)}</span></div>
+                        <div><span>{rp.quantityLabel}：</span><span className="font-medium text-slate-700">{item.quantity} {item.product?.unit}</span></div>
                       </div>
                       <div className="h-2 rounded-full bg-slate-100">
                         <div className={`h-full rounded-full transition-all ${item.margin >= 30 ? 'bg-green-500' : item.margin >= 15 ? 'bg-amber-400' : 'bg-red-400'}`}
@@ -644,7 +646,7 @@ export default function ReportsPage() {
           {/* 毛利率 bar chart */}
           {data.productMargin.length > 0 && (
             <Card>
-              <CardHeader><CardTitle className="text-base">商品毛利率比較</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-base">{rp.marginChartTitle}</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={350}>
                   <BarChart
@@ -656,7 +658,7 @@ export default function ReportsPage() {
                     <Tooltip
                       formatter={(val, name) => [
                         name === 'margin' ? `${val}%` : formatFull(Number(val ?? 0)),
-                        name === 'margin' ? '毛利率' : '營收',
+                        name === 'margin' ? rp.marginRateLabel : rp.revenueShort,
                       ]}
                     />
                     <Bar dataKey="margin" radius={[0, 4, 4, 0]} name="margin">
@@ -667,9 +669,9 @@ export default function ReportsPage() {
                   </BarChart>
                 </ResponsiveContainer>
                 <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-green-500" />毛利率 ≥ 30%</div>
-                  <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-amber-400" />15% – 30%</div>
-                  <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-red-400" />{'< 15%'}</div>
+                  <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-green-500" />{rp.marginGte30}</div>
+                  <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-amber-400" />{rp.margin15to30}</div>
+                  <div className="flex items-center gap-1.5"><div className="h-2.5 w-2.5 rounded-sm bg-red-400" />{rp.marginLt15}</div>
                 </div>
               </CardContent>
             </Card>
@@ -681,7 +683,7 @@ export default function ReportsPage() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <TrendingDown className="h-4 w-4 text-amber-500" />
-                  營收 vs 成本比較
+                  {rp.revenueVsCostTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -697,8 +699,8 @@ export default function ReportsPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#94a3b8' }} />
                     <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 11, fill: '#94a3b8' }} />
-                    <Tooltip formatter={(val, name) => [formatFull(Number(val ?? 0)), name === 'revenue' ? '營收' : name === 'cost' ? '成本' : '毛利']} />
-                    <Legend formatter={(v) => v === 'revenue' ? '營收' : v === 'cost' ? '成本' : '毛利'} />
+                    <Tooltip formatter={(val, name) => [formatFull(Number(val ?? 0)), name === 'revenue' ? rp.revenueShort : name === 'cost' ? rp.costLabel : rp.grossProfitLabel]} />
+                    <Legend formatter={(v) => v === 'revenue' ? rp.revenueShort : v === 'cost' ? rp.costLabel : rp.grossProfitLabel} />
                     <Bar dataKey="cost" fill="#fca5a5" radius={[4, 4, 0, 0]} name="cost" stackId="a" />
                     <Bar dataKey="profit" fill="#4ade80" radius={[4, 4, 0, 0]} name="profit" stackId="a" />
                   </BarChart>

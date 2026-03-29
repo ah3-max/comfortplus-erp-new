@@ -558,37 +558,37 @@ export default function InternalUsePage() {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">嚴重度</label>
+                <label className="text-sm font-medium">{iu.defectSeverityLabel}</label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm" value={dgForm.severity}
                   onChange={e => setDgForm(f => ({ ...f, severity: e.target.value }))}>
-                  <option value="MINOR">輕微</option>
-                  <option value="MAJOR">嚴重</option>
-                  <option value="CRITICAL">重大</option>
+                  <option value="MINOR">{iu.severities.MINOR}</option>
+                  <option value="MAJOR">{iu.severities.MAJOR}</option>
+                  <option value="CRITICAL">{iu.severities.CRITICAL}</option>
                 </select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">缺陷類型</label>
+                <label className="text-sm font-medium">{iu.defectTypeLabel}</label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm" value={dgForm.defectType}
                   onChange={e => setDgForm(f => ({ ...f, defectType: e.target.value }))}>
-                  <option value="">選擇...</option>
-                  <option value="ABSORPTION">吸收力不足</option>
-                  <option value="LEAK">滲漏</option>
-                  <option value="PACKAGING">包裝破損</option>
-                  <option value="SURFACE">表面瑕疵</option>
-                  <option value="OTHER">其他</option>
+                  <option value="">{iu.defectTypeSelect}</option>
+                  <option value="ABSORPTION">{iu.defectTypes.ABSORPTION}</option>
+                  <option value="LEAK">{iu.defectTypes.LEAK}</option>
+                  <option value="PACKAGING">{iu.defectTypes.PACKAGING}</option>
+                  <option value="SURFACE">{iu.defectTypes.SURFACE}</option>
+                  <option value="OTHER">{iu.defectTypes.OTHER}</option>
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">批號</label>
-                <Input placeholder="批號..." value={dgForm.batchNo}
+                <label className="text-sm font-medium">{iu.defectBatchNoLabel}</label>
+                <Input placeholder={iu.defectBatchNoPH} value={dgForm.batchNo}
                   onChange={e => setDgForm(f => ({ ...f, batchNo: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">描述</label>
-              <Input placeholder="說明不良情況..." value={dgForm.description}
+              <label className="text-sm font-medium">{iu.defectDescLabel}</label>
+              <Input placeholder={iu.defectDescPH} value={dgForm.description}
                 onChange={e => setDgForm(f => ({ ...f, description: e.target.value }))} />
             </div>
           </div>
@@ -605,35 +605,31 @@ export default function InternalUsePage() {
       <Dialog open={!!resolveTarget} onOpenChange={open => { if (!open) setResolveTarget(null) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>處置不良品 — {resolveTarget?.defectNo}</DialogTitle>
+            <DialogTitle>{iu.resolveTitle} — {resolveTarget?.defectNo}</DialogTitle>
           </DialogHeader>
           {resolveTarget && (
             <div className="space-y-4">
               <div className="rounded-lg bg-slate-50 p-3 text-sm space-y-1">
-                <div><span className="text-muted-foreground">品項：</span>{resolveTarget.product.name}</div>
-                <div><span className="text-muted-foreground">數量：</span>{resolveTarget.quantity} {resolveTarget.product.unit}</div>
-                <div><span className="text-muted-foreground">估計損失：</span><span className="text-red-600 font-medium">{fmt(resolveTarget.totalLoss)}</span></div>
+                <div><span className="text-muted-foreground">{iu.resolveItem}</span>{resolveTarget.product.name}</div>
+                <div><span className="text-muted-foreground">{iu.resolveQty}</span>{resolveTarget.quantity} {resolveTarget.product.unit}</div>
+                <div><span className="text-muted-foreground">{iu.resolveLoss}</span><span className="text-red-600 font-medium">{fmt(resolveTarget.totalLoss)}</span></div>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">處置方式 *</label>
+                <label className="text-sm font-medium">{iu.resolveDispositionLabel}</label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm" value={resolveForm.disposition}
                   onChange={e => setResolveForm(f => ({ ...f, disposition: e.target.value }))}>
-                  <option value="">選擇處置方式...</option>
+                  <option value="">{iu.resolveDispositionSelect}</option>
                   {Object.entries(dispositionLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">處置說明</label>
-                <Input placeholder="說明處置細節..." value={resolveForm.dispositionNote}
+                <label className="text-sm font-medium">{iu.resolveNoteLabel}</label>
+                <Input placeholder={iu.resolveNotePH} value={resolveForm.dispositionNote}
                   onChange={e => setResolveForm(f => ({ ...f, dispositionNote: e.target.value }))} />
               </div>
               {resolveForm.disposition && (
                 <div className={`text-xs rounded p-2 ${['SCRAP', 'RETURN_SUPPLIER'].includes(resolveForm.disposition) ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'}`}>
-                  {resolveForm.disposition === 'SCRAP' && '⚠️ 報廢將從庫存中扣除該數量'}
-                  {resolveForm.disposition === 'REWORK' && '✓ 重工後數量將回到可用庫存'}
-                  {resolveForm.disposition === 'RETURN_SUPPLIER' && '⚠️ 退供應商將從庫存中扣除該數量'}
-                  {resolveForm.disposition === 'DISCOUNT_SALE' && '✓ 庫存數量維持，另行開銷貨單'}
-                  {resolveForm.disposition === 'QUARANTINE' && '✓ 庫存數量維持，需另行追蹤'}
+                  {iu.disposeNotes[resolveForm.disposition as keyof typeof iu.disposeNotes]}
                 </div>
               )}
             </div>
@@ -641,7 +637,7 @@ export default function InternalUsePage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setResolveTarget(null)}>{dict.common.cancel}</Button>
             <Button onClick={resolveDefect} disabled={submitting || !resolveForm.disposition}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認處置
+              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{iu.confirmResolve}
             </Button>
           </DialogFooter>
         </DialogContent>

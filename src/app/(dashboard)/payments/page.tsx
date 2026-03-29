@@ -67,17 +67,7 @@ const TYPE_COLOR: Record<PaymentType, string> = {
   ADJUSTMENT: 'bg-slate-100 text-slate-600',
 }
 
-const PAYMENT_METHODS = [
-  { value: 'BANK_TRANSFER', label: '銀行轉帳' },
-  { value: 'CHECK', label: '支票' },
-  { value: 'CASH', label: '現金' },
-  { value: 'CREDIT_CARD', label: '信用卡' },
-  { value: 'OTHER', label: '其他' },
-]
-
-const METHOD_LABELS: Record<string, string> = Object.fromEntries(
-  PAYMENT_METHODS.map(m => [m.value, m.label]),
-)
+const PAYMENT_METHOD_KEYS = ['BANK_TRANSFER', 'CHECK', 'CASH', 'CREDIT_CARD', 'OTHER'] as const
 
 function formatCurrency(val: string | number) {
   return new Intl.NumberFormat('zh-TW', {
@@ -108,6 +98,17 @@ const emptyForm = {
 /* ─── Component ──────────────────────────────────────────── */
 export default function PaymentsPage() {
   const { dict } = useI18n()
+  const pp = dict.paymentsPage
+
+  /* Build payment method arrays inside component from dict */
+  const PAYMENT_METHODS = PAYMENT_METHOD_KEYS.map(k => ({
+    value: k,
+    label: pp.methodLabels[k as keyof typeof pp.methodLabels] ?? k,
+  }))
+  const METHOD_LABELS: Record<string, string> = Object.fromEntries(
+    PAYMENT_METHODS.map(m => [m.value, m.label]),
+  )
+
   const [payments, setPayments]       = useState<Payment[]>([])
   const [customers, setCustomers]     = useState<Customer[]>([])
   const [suppliers, setSuppliers]     = useState<Supplier[]>([])
@@ -174,14 +175,9 @@ export default function PaymentsPage() {
   const now = new Date()
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-  // We compute KPIs from all payments (regardless of tab filter).
-  // For a production app this would come from a dedicated API, but
-  // we'll filter client-side from what we have.
   const allIncoming = payments.filter(p => p.direction === 'INCOMING')
   const allOutgoing = payments.filter(p => p.direction === 'OUTGOING')
 
-  // Since we fetch by tab, we need separate KPI fetch or calculate from current data
-  // For now we show tab-relevant totals + use a simple approach
   const monthPayments = payments.filter(p => p.paymentDate.substring(0, 7) === thisMonth)
   const monthIncoming = monthPayments.filter(p => p.direction === 'INCOMING')
     .reduce((sum, p) => sum + Number(p.amount), 0)
@@ -205,13 +201,13 @@ export default function PaymentsPage() {
       toast.error(dict.paymentsPage.validAmount); return
     }
     if (!createForm.paymentDate) {
-      toast.error(`請選擇${dict.payments.paymentDate}`); return
+      toast.error(`${pp.dateRequired}${dict.payments.paymentDate}`); return
     }
     if (createForm.direction === 'INCOMING' && !createForm.customerId) {
-      toast.error(`收款必須選擇${dict.common.customer}`); return
+      toast.error(`${pp.incomingRequired}${dict.common.customer}`); return
     }
     if (createForm.direction === 'OUTGOING' && !createForm.supplierId) {
-      toast.error(`付款必須選擇${dict.common.supplier}`); return
+      toast.error(`${pp.outgoingRequired}${dict.common.supplier}`); return
     }
     setSaving(true)
     const body = {
@@ -286,7 +282,7 @@ export default function PaymentsPage() {
 
   /* ─── Delete ────────────────────────────────────────────── */
   async function handleDelete(p: Payment) {
-    if (!confirm(`確定要刪除 ${p.paymentNo} 嗎？刪除後將重新計算關聯訂單已付金額。`)) return
+    if (!confirm(pp.deleteConfirm.replace('{no}', p.paymentNo))) return
     const res = await fetch(`/api/payments/${p.id}`, { method: 'DELETE' })
     if (res.ok) {
       toast.success(dict.common.deleteSuccess)
@@ -300,7 +296,7 @@ export default function PaymentsPage() {
   /* ─── Write-off ─────────────────────────────────────────── */
   function openWriteOff(p: Payment) {
     setWriteOffTarget(p)
-    setWriteOffForm({ amount: p.amount, notes: '壞帳核銷' })
+    setWriteOffForm({ amount: p.amount, notes: pp.defaultWriteOffNote })
   }
 
   async function handleWriteOff() {
@@ -318,7 +314,7 @@ export default function PaymentsPage() {
       supplierId:  writeOffTarget.supplier?.id ?? null,
       salesOrderId:    writeOffTarget.salesOrder?.id ?? null,
       purchaseOrderId: writeOffTarget.purchaseOrder?.id ?? null,
-      notes: writeOffForm.notes || `核銷 ${writeOffTarget.paymentNo}`,
+      notes: writeOffForm.notes || pp.writeOffNoteTemplate.replace('{no}', writeOffTarget.paymentNo),
     }
     const res = await fetch('/api/payments', {
       method: 'POST',
@@ -368,7 +364,7 @@ export default function PaymentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.payments.title}</h1>
           <p className="text-sm text-muted-foreground">
-            管理銷售收款與採購付款紀錄
+            {pp.subtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -396,7 +392,7 @@ export default function PaymentsPage() {
               <ArrowDownLeft className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">本月{dict.payments.directions.INCOMING}總額</p>
+              <p className="text-sm text-slate-500">{pp.cardMonthIncoming}</p>
               <p className="text-xl font-bold text-green-600">{formatCurrency(monthIncoming)}</p>
             </div>
           </CardContent>
@@ -407,7 +403,7 @@ export default function PaymentsPage() {
               <ArrowUpRight className="h-5 w-5 text-red-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">本月{dict.payments.directions.OUTGOING}總額</p>
+              <p className="text-sm text-slate-500">{pp.cardMonthOutgoing}</p>
               <p className="text-xl font-bold text-red-600">{formatCurrency(monthOutgoing)}</p>
             </div>
           </CardContent>
@@ -453,7 +449,7 @@ export default function PaymentsPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-2">
-          <Label className="text-sm whitespace-nowrap">日期範圍</Label>
+          <Label className="text-sm whitespace-nowrap">{pp.filterDateRange}</Label>
           <Input type="date" className="w-40" value={filterDateFrom}
             onChange={e => setFilterDateFrom(e.target.value)} />
           <span className="text-muted-foreground">~</span>
@@ -463,7 +459,7 @@ export default function PaymentsPage() {
         {(filterDateFrom || filterDateTo) && (
           <Button variant="ghost" size="sm"
             onClick={() => { setFilterDateFrom(''); setFilterDateTo('') }}>
-            清除篩選
+            {pp.clearFilter}
           </Button>
         )}
       </div>
@@ -474,12 +470,12 @@ export default function PaymentsPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-36">{dict.payments.paymentNo}</TableHead>
-              <TableHead className="w-16">方向</TableHead>
+              <TableHead className="w-16">{pp.colDirection}</TableHead>
               <TableHead className="w-16">{dict.common.type}</TableHead>
               <TableHead className="text-right w-28">{dict.common.amount}</TableHead>
               <TableHead className="w-28">{dict.payments.paymentDate}</TableHead>
               <TableHead>{tab === 'INCOMING' ? dict.common.customer : dict.common.supplier}</TableHead>
-              <TableHead>關聯單號</TableHead>
+              <TableHead>{pp.colLinkedNo}</TableHead>
               <TableHead className="w-24">{dict.payments.paymentMethod}</TableHead>
               <TableHead className="w-32">{dict.payments.invoiceNo}</TableHead>
               <TableHead className="w-10" />
@@ -543,7 +539,7 @@ export default function PaymentsPage() {
                             <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openWriteOff(p)}>
-                            <MinusCircle className="mr-2 h-4 w-4" />核銷
+                            <MinusCircle className="mr-2 h-4 w-4" />{pp.writeOff}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDelete(p)} variant="destructive">
                             <Trash2 className="mr-2 h-4 w-4" />{dict.common.delete}
@@ -568,7 +564,7 @@ export default function PaymentsPage() {
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
             {/* Direction */}
             <div className="space-y-1.5">
-              <Label>方向 <span className="text-red-500">*</span></Label>
+              <Label>{pp.fieldDirection} <span className="text-red-500">*</span></Label>
               <Select
                 value={createForm.direction}
                 onValueChange={v => {
@@ -632,9 +628,9 @@ export default function PaymentsPage() {
                 value={createForm.method || '_none'}
                 onValueChange={v => cf('method', v === '_none' ? '' : (v ?? ''))}
               >
-                <SelectTrigger><SelectValue placeholder="選擇付款方式" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={pp.selectMethod} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— 選擇付款方式 —</SelectItem>
+                  <SelectItem value="_none">— {pp.selectMethod} —</SelectItem>
                   {PAYMENT_METHODS.map(m => (
                     <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                   ))}
@@ -651,9 +647,9 @@ export default function PaymentsPage() {
                     value={createForm.customerId || '_none'}
                     onValueChange={v => cf('customerId', v === '_none' ? '' : (v ?? ''))}
                   >
-                    <SelectTrigger><SelectValue placeholder="選擇客戶" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={pp.selectCustomer} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— 選擇客戶 —</SelectItem>
+                      <SelectItem value="_none">— {pp.selectCustomer} —</SelectItem>
                       {customers.map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>
                       ))}
@@ -661,14 +657,14 @@ export default function PaymentsPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>關聯銷售訂單</Label>
+                  <Label>{pp.linkSalesOrder}</Label>
                   <Select
                     value={createForm.salesOrderId || '_none'}
                     onValueChange={v => cf('salesOrderId', v === '_none' ? '' : (v ?? ''))}
                   >
-                    <SelectTrigger><SelectValue placeholder="選擇訂單（選填）" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={pp.selectOrder} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— 不關聯 —</SelectItem>
+                      <SelectItem value="_none">— {pp.noLink} —</SelectItem>
                       {salesOrders
                         .filter(o => !createForm.customerId || o.customer.id === createForm.customerId)
                         .map(o => (
@@ -688,9 +684,9 @@ export default function PaymentsPage() {
                     value={createForm.supplierId || '_none'}
                     onValueChange={v => cf('supplierId', v === '_none' ? '' : (v ?? ''))}
                   >
-                    <SelectTrigger><SelectValue placeholder="選擇供應商" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={pp.selectSupplier} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— 選擇供應商 —</SelectItem>
+                      <SelectItem value="_none">— {pp.selectSupplier} —</SelectItem>
                       {suppliers.map(s => (
                         <SelectItem key={s.id} value={s.id}>{s.code} - {s.name}</SelectItem>
                       ))}
@@ -698,14 +694,14 @@ export default function PaymentsPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>關聯採購單</Label>
+                  <Label>{pp.linkPurchaseOrder}</Label>
                   <Select
                     value={createForm.purchaseOrderId || '_none'}
                     onValueChange={v => cf('purchaseOrderId', v === '_none' ? '' : (v ?? ''))}
                   >
-                    <SelectTrigger><SelectValue placeholder="選擇採購單（選填）" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder={pp.selectPurchase} /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— 不關聯 —</SelectItem>
+                      <SelectItem value="_none">— {pp.noLink} —</SelectItem>
                       {purchaseOrders
                         .filter(po => !createForm.supplierId || po.supplier.id === createForm.supplierId)
                         .map(po => (
@@ -724,7 +720,7 @@ export default function PaymentsPage() {
               <Label>{dict.paymentsExt.bankAccount}</Label>
               <Input value={createForm.bankAccount}
                 onChange={e => cf('bankAccount', e.target.value)}
-                placeholder="銀行名稱 / 帳號末四碼" />
+                placeholder={pp.bankPlaceholder} />
             </div>
 
             {/* Reference No + Invoice No */}
@@ -733,7 +729,7 @@ export default function PaymentsPage() {
                 <Label>{dict.payments.referenceNo}</Label>
                 <Input value={createForm.referenceNo}
                   onChange={e => cf('referenceNo', e.target.value)}
-                  placeholder="匯款單號 / 支票號碼" />
+                  placeholder={pp.refPlaceholder} />
               </div>
               <div className="space-y-1.5">
                 <Label>{dict.payments.invoiceNo}</Label>
@@ -748,7 +744,7 @@ export default function PaymentsPage() {
               <Label>{dict.common.notes}</Label>
               <Textarea value={createForm.notes}
                 onChange={e => cf('notes', e.target.value)}
-                rows={2} placeholder="特殊說明..." />
+                rows={2} placeholder={pp.notesPlaceholder} />
             </div>
           </div>
           <DialogFooter>
@@ -765,14 +761,14 @@ export default function PaymentsPage() {
       <Dialog open={!!writeOffTarget} onOpenChange={o => !o && setWriteOffTarget(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>核銷帳款 — {writeOffTarget?.paymentNo}</DialogTitle>
+            <DialogTitle>{pp.writeOffTitle} — {writeOffTarget?.paymentNo}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
-              核銷將建立一筆「調整」類型的收付款紀錄，用於沖銷壞帳或已確認無法收回的帳款。
+              {pp.writeOffDesc}
             </div>
             <div className="space-y-1.5">
-              <Label>核銷金額 *</Label>
+              <Label>{pp.writeOffAmount}</Label>
               <Input
                 type="number" min={0}
                 value={writeOffForm.amount}
@@ -780,12 +776,12 @@ export default function PaymentsPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>核銷說明</Label>
+              <Label>{pp.writeOffNotes}</Label>
               <Textarea
                 value={writeOffForm.notes}
                 onChange={e => setWriteOffForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2}
-                placeholder="說明核銷原因…"
+                placeholder={pp.writeOffReasonPlaceholder}
               />
             </div>
           </div>
@@ -793,7 +789,7 @@ export default function PaymentsPage() {
             <Button variant="outline" onClick={() => setWriteOffTarget(null)} disabled={writingOff}>{dict.common.cancel}</Button>
             <Button onClick={handleWriteOff} disabled={writingOff}>
               {writingOff && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              確認核銷
+              {pp.confirmWriteOff}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -812,9 +808,9 @@ export default function PaymentsPage() {
                 value={editForm.method || '_none'}
                 onValueChange={v => setEditForm(prev => ({ ...prev, method: v === '_none' ? '' : (v ?? '') }))}
               >
-                <SelectTrigger><SelectValue placeholder="選擇付款方式" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={pp.selectMethod} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— 選擇付款方式 —</SelectItem>
+                  <SelectItem value="_none">— {pp.selectMethod} —</SelectItem>
                   {PAYMENT_METHODS.map(m => (
                     <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                   ))}
@@ -825,13 +821,13 @@ export default function PaymentsPage() {
               <Label>{dict.paymentsExt.bankAccount}</Label>
               <Input value={editForm.bankAccount}
                 onChange={e => setEditForm(prev => ({ ...prev, bankAccount: e.target.value }))}
-                placeholder="銀行名稱 / 帳號末四碼" />
+                placeholder={pp.bankPlaceholder} />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.payments.referenceNo}</Label>
               <Input value={editForm.referenceNo}
                 onChange={e => setEditForm(prev => ({ ...prev, referenceNo: e.target.value }))}
-                placeholder="匯款單號 / 支票號碼" />
+                placeholder={pp.refPlaceholder} />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.payments.invoiceNo}</Label>
@@ -843,7 +839,7 @@ export default function PaymentsPage() {
               <Label>{dict.common.notes}</Label>
               <Textarea value={editForm.notes}
                 onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                rows={2} placeholder="特殊說明..." />
+                rows={2} placeholder={pp.notesPlaceholder} />
             </div>
           </div>
           <DialogFooter>

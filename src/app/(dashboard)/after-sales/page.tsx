@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useI18n } from '@/lib/i18n/context'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -256,9 +256,6 @@ export default function AfterSalesPage() {
   }
 
   const canEdit = (status: string) => ['OPEN', 'IN_PROGRESS'].includes(status)
-
-  // Suppress unused import warning
-  void CardHeader; void CardTitle; void CardContent
 
   return (
     <div className="space-y-4 p-4 md:p-6">

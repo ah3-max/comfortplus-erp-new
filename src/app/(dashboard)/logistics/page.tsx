@@ -104,20 +104,7 @@ const emptyMaintenanceForm = {
   notes: '',
 }
 
-const VEHICLE_TYPES = ['3.5噸貨車', '廂型車', '小貨車', '大貨車', '冷凍車', '其他']
-const FUEL_TYPES: { value: string; label: string }[] = [
-  { value: 'DIESEL', label: '柴油' },
-  { value: 'GASOLINE', label: '汽油' },
-  { value: 'ELECTRIC', label: '電動' },
-]
-const MAINTENANCE_TYPES: { value: string; label: string }[] = [
-  { value: 'REGULAR_SERVICE', label: '定期保養' },
-  { value: 'REPAIR', label: '維修' },
-  { value: 'TIRE', label: '輪胎' },
-  { value: 'INSPECTION', label: '驗車' },
-  { value: 'INSURANCE', label: '保險' },
-  { value: 'OTHER', label: '其他' },
-]
+// Module-level type declarations only; label arrays are built from dict inside components
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return '—'
@@ -149,7 +136,7 @@ export default function LogisticsPage() {
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{dict.logistics.title}</h1>
-        <p className="text-sm text-muted-foreground">管理物流商與自有車隊</p>
+        <p className="text-sm text-muted-foreground">{dict.logistics.subtitle}</p>
       </div>
 
       {/* Tab switcher */}
@@ -269,7 +256,7 @@ function ProvidersTab() {
     <>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">共 {activeCount} 間{dict.logistics.providerName}</p>
+          <p className="text-sm text-muted-foreground">{activeCount} {dict.logistics.activeCount}</p>
         </div>
         <div className="flex gap-2">
           <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer">
@@ -312,7 +299,7 @@ function ProvidersTab() {
               <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                 {p.deliveryDays != null && (
                   <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />{p.deliveryDays} 天時效
+                    <Clock className="h-3 w-3" />{p.deliveryDays} {dict.logistics.deliveryDaysLabel}
                   </div>
                 )}
                 {p.contactPerson && (
@@ -323,14 +310,14 @@ function ProvidersTab() {
                 )}
                 {p.paymentTerms && (
                   <div className="flex items-center gap-1 col-span-2">
-                    付款：{p.paymentTerms}
+                    {dict.logistics.paymentLabel}{p.paymentTerms}
                   </div>
                 )}
               </div>
 
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Package className="h-3 w-3" />{p._count.shipments} 筆出貨
+                  <Package className="h-3 w-3" />{p._count.shipments} {dict.logistics.shipmentsCount}
                 </div>
                 <div className="flex items-center gap-2">
                   {p.isActive
@@ -346,8 +333,8 @@ function ProvidersTab() {
 
               {(p.rateCard || p.claimRules) && (
                 <div className="mt-2 border-t pt-2 space-y-1">
-                  {p.rateCard   && <p className="text-xs text-muted-foreground">運價：{p.rateCard}</p>}
-                  {p.claimRules && <p className="text-xs text-muted-foreground">理賠：{p.claimRules}</p>}
+                  {p.rateCard   && <p className="text-xs text-muted-foreground">{dict.logistics.rateCardLabel}{p.rateCard}</p>}
+                  {p.claimRules && <p className="text-xs text-muted-foreground">{dict.logistics.claimLabel}{p.claimRules}</p>}
                 </div>
               )}
             </CardContent>
@@ -372,61 +359,61 @@ function ProvidersTab() {
                 <Label>{dict.logistics.code} <span className="text-red-500">*</span></Label>
                 <Input value={form.code} onChange={e => f('code', e.target.value.toUpperCase())}
                   placeholder="HSINCHU / KERRY" maxLength={20} />
-                <p className="text-xs text-muted-foreground">英數大寫，建立後不可更改</p>
+                <p className="text-xs text-muted-foreground">{dict.logistics.codeNote}</p>
               </div>
             )}
             <div className="space-y-1.5">
               <Label>{dict.logistics.providerName} <span className="text-red-500">*</span></Label>
-              <Input value={form.name} onChange={e => f('name', e.target.value)} placeholder="新竹物流" />
+              <Input value={form.name} onChange={e => f('name', e.target.value)} placeholder={dict.logistics.providerNamePlaceholder} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>配送時效（天）</Label>
+                <Label>{dict.logistics.deliveryDays}</Label>
                 <Input type="number" min={1} value={form.deliveryDays}
                   onChange={e => f('deliveryDays', e.target.value)} placeholder="2" />
               </div>
               <div className="space-y-1.5">
-                <Label>付款條件</Label>
+                <Label>{dict.logistics.paymentTerms}</Label>
                 <Input value={form.paymentTerms} onChange={e => f('paymentTerms', e.target.value)}
-                  placeholder="月結30天" />
+                  placeholder={dict.logistics.paymentTermsPlaceholder} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>配送區域</Label>
+              <Label>{dict.logistics.deliveryRegions}</Label>
               <Input value={form.regions} onChange={e => f('regions', e.target.value)}
-                placeholder="全台灣 / 北部 / 中部 / 南部" />
+                placeholder={dict.logistics.deliveryRegionsPlaceholder} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{dict.logistics.contact}</Label>
                 <Input value={form.contactPerson} onChange={e => f('contactPerson', e.target.value)}
-                  placeholder="業務聯絡人" />
+                  placeholder={dict.logistics.contactPersonPlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>聯絡電話</Label>
+                <Label>{dict.logistics.contactPhone}</Label>
                 <Input value={form.contactPhone} onChange={e => f('contactPhone', e.target.value)}
                   placeholder="02-1234-5678" />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>聯絡信箱</Label>
+              <Label>{dict.logistics.contactEmail}</Label>
               <Input value={form.contactEmail} onChange={e => f('contactEmail', e.target.value)}
                 placeholder="logistics@example.com" />
             </div>
             <div className="space-y-1.5">
-              <Label>運價表</Label>
+              <Label>{dict.logistics.rateCard}</Label>
               <Textarea value={form.rateCard} onChange={e => f('rateCard', e.target.value)}
-                rows={2} placeholder="重量/材積計費說明..." />
+                rows={2} placeholder={dict.logistics.rateCardPlaceholder} />
             </div>
             <div className="space-y-1.5">
-              <Label>異常理賠規則</Label>
+              <Label>{dict.logistics.claimRules}</Label>
               <Textarea value={form.claimRules} onChange={e => f('claimRules', e.target.value)}
-                rows={2} placeholder="損毀賠償條件..." />
+                rows={2} placeholder={dict.logistics.claimRulesPlaceholder} />
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
+              <Label>{dict.common.notes}</Label>
               <Textarea value={form.notes} onChange={e => f('notes', e.target.value)}
-                rows={2} placeholder="特殊說明..." />
+                rows={2} placeholder={dict.logistics.notesPlaceholder} />
             </div>
           </div>
           <DialogFooter>
@@ -448,6 +435,11 @@ function ProvidersTab() {
 
 function VehiclesTab() {
   const { dict } = useI18n()
+  const lg = dict.logistics
+  const VEHICLE_TYPES = lg.vehicleTypes
+  const FUEL_TYPES = Object.entries(lg.fuelTypes).map(([value, label]) => ({ value, label }))
+  const MAINTENANCE_TYPES = Object.entries(lg.maintTypes).map(([value, label]) => ({ value, label }))
+
   const [vehicles, setVehicles]         = useState<Vehicle[]>([])
   const [loading, setLoading]           = useState(true)
   const [vehicleOpen, setVehicleOpen]   = useState(false)
@@ -609,7 +601,7 @@ function VehiclesTab() {
     <>
       {/* Vehicles toolbar */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">共 {vehicles.length} 輛車</p>
+        <p className="text-sm text-muted-foreground">{vehicles.length} {lg.vehicleCount}</p>
         <Button onClick={openCreateVehicle}>
           <Plus className="mr-2 h-4 w-4" />{dict.common.add}
         </Button>
@@ -641,8 +633,8 @@ function VehiclesTab() {
                         {v.plateNo}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {[v.vehicleType, v.brand, v.year ? `${v.year}年` : null]
-                          .filter(Boolean).join(' · ') || '未設定車型'}
+                        {[v.vehicleType, v.brand, v.year ? `${v.year}${lg.yearUnit}` : null]
+                          .filter(Boolean).join(' · ') || lg.noVehicleType}
                       </div>
                     </div>
                   </div>
@@ -651,7 +643,7 @@ function VehiclesTab() {
                   <div className="flex-1 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3">
                     {/* Driver */}
                     <div>
-                      <span className="text-slate-500 font-medium">司機</span>
+                      <span className="text-slate-500 font-medium">{lg.driver}</span>
                       <div className="mt-0.5">
                         {v.drivers.length > 0
                           ? v.drivers.map(d => (
@@ -669,7 +661,7 @@ function VehiclesTab() {
 
                     {/* Odometer */}
                     <div>
-                      <span className="text-slate-500 font-medium">目前里程</span>
+                      <span className="text-slate-500 font-medium">{lg.odometer}</span>
                       <div className="mt-0.5">
                         {v.currentOdometer != null
                           ? `${v.currentOdometer.toLocaleString()} km`
@@ -680,7 +672,7 @@ function VehiclesTab() {
 
                     {/* Fuel type + max weight */}
                     <div>
-                      <span className="text-slate-500 font-medium">燃料 / 載重</span>
+                      <span className="text-slate-500 font-medium">{lg.fuelWeight}</span>
                       <div className="mt-0.5">
                         {[
                           FUEL_TYPES.find(f => f.value === v.fuelType)?.label,
@@ -691,12 +683,12 @@ function VehiclesTab() {
 
                     {/* Expiry dates */}
                     <div className="col-span-2 sm:col-span-3">
-                      <span className="text-slate-500 font-medium">到期日</span>
+                      <span className="text-slate-500 font-medium">{lg.expiryDates}</span>
                       <div className="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5">
-                        <span>保險：{fmtDate(v.insuranceExpiry)}</span>
-                        <span>驗車：{fmtDate(v.inspectionExpiry)}</span>
-                        <span>牌照稅：{fmtDate(v.licenseTaxExpiry)}</span>
-                        <span>燃料稅：{fmtDate(v.fuelTaxExpiry)}</span>
+                        <span>{lg.insurance}{fmtDate(v.insuranceExpiry)}</span>
+                        <span>{lg.inspection}{fmtDate(v.inspectionExpiry)}</span>
+                        <span>{lg.licenseTax}{fmtDate(v.licenseTaxExpiry)}</span>
+                        <span>{lg.fuelTax}{fmtDate(v.fuelTaxExpiry)}</span>
                       </div>
                     </div>
                   </div>
@@ -723,12 +715,12 @@ function VehiclesTab() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Wrench className="h-3 w-3" />
-                        {v._count.maintenances} 筆保養
+                        {v._count.maintenances} {lg.maintenanceCount}
                       </span>
                       <button
                         onClick={() => openEditVehicle(v)}
                         className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground"
-                        title="編輯車輛"
+                        title={dict.common.edit}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -740,8 +732,8 @@ function VehiclesTab() {
                       className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800"
                     >
                       {expandedId === v.id
-                        ? <><ChevronDown className="h-3.5 w-3.5" />收起保養紀錄</>
-                        : <><ChevronRight className="h-3.5 w-3.5" />查看保養紀錄</>
+                        ? <><ChevronDown className="h-3.5 w-3.5" />{lg.collapseMaintenance}</>
+                        : <><ChevronRight className="h-3.5 w-3.5" />{lg.viewMaintenance}</>
                       }
                     </button>
                   </div>
@@ -751,9 +743,9 @@ function VehiclesTab() {
                 {expandedId === v.id && (
                   <div className="border-t bg-slate-50 px-4 py-3">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-slate-700">保養紀錄</span>
+                      <span className="text-sm font-medium text-slate-700">{lg.maintenanceRecords}</span>
                       <Button size="sm" variant="outline" onClick={() => openAddMaintenance(v.id)}>
-                        <Plus className="mr-1.5 h-3.5 w-3.5" />新增保養
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />{lg.addMaintenance}
                       </Button>
                     </div>
 
@@ -762,7 +754,7 @@ function VehiclesTab() {
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
                     ) : !maintRecords[v.id] || maintRecords[v.id].length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-4 text-center">尚無保養紀錄</p>
+                      <p className="text-xs text-muted-foreground py-4 text-center">{lg.noMaintenance}</p>
                     ) : (
                       <div className="space-y-2">
                         {maintRecords[v.id].map(rec => (
@@ -786,14 +778,14 @@ function VehiclesTab() {
                             </div>
                             <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
                               {rec.odometerAtService != null && (
-                                <span>里程：{rec.odometerAtService.toLocaleString()} km</span>
+                                <span>{lg.odometerLabel}{rec.odometerAtService.toLocaleString()} km</span>
                               )}
-                              {rec.vendor && <span>保養廠：{rec.vendor}</span>}
+                              {rec.vendor && <span>{lg.vendorLabel}{rec.vendor}</span>}
                               {rec.nextServiceDate && (
-                                <span>下次保養日：{fmtDate(rec.nextServiceDate)}</span>
+                                <span>{lg.nextMaintDateLabel}{fmtDate(rec.nextServiceDate)}</span>
                               )}
                               {rec.nextServiceKm != null && (
-                                <span>下次保養里程：{rec.nextServiceKm.toLocaleString()} km</span>
+                                <span>{lg.nextMaintKmLabel}{rec.nextServiceKm.toLocaleString()} km</span>
                               )}
                             </div>
                             {rec.notes && (
@@ -818,9 +810,8 @@ function VehiclesTab() {
             <DialogTitle>{editingVehicle ? dict.common.edit : dict.common.add}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
-            {/* 車牌 */}
             <div className="space-y-1.5">
-              <Label>車牌號碼 <span className="text-red-500">*</span></Label>
+              <Label>{lg.plateNo} <span className="text-red-500">*</span></Label>
               <Input
                 value={vForm.plateNo}
                 onChange={e => vf('plateNo', e.target.value.toUpperCase())}
@@ -829,23 +820,22 @@ function VehiclesTab() {
               />
             </div>
 
-            {/* 車型 + 品牌 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>車型</Label>
+                <Label>{lg.vehicleType}</Label>
                 <select
                   value={vForm.vehicleType}
                   onChange={e => vf('vehicleType', e.target.value)}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 >
-                  <option value="">— 選擇車型 —</option>
+                  <option value="">{lg.selectVehicleType}</option>
                   {VEHICLE_TYPES.map(t => (
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>品牌</Label>
+                <Label>{lg.brand}</Label>
                 <Input
                   value={vForm.brand}
                   onChange={e => vf('brand', e.target.value)}
@@ -854,10 +844,9 @@ function VehiclesTab() {
               </div>
             </div>
 
-            {/* 出廠年份 + 載重 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>出廠年份</Label>
+                <Label>{lg.year}</Label>
                 <Input
                   type="number"
                   min={1980}
@@ -868,7 +857,7 @@ function VehiclesTab() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>載重（kg）</Label>
+                <Label>{lg.maxWeight}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -879,10 +868,9 @@ function VehiclesTab() {
               </div>
             </div>
 
-            {/* 燃料 + 目前里程 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>燃料種類</Label>
+                <Label>{lg.fuelKind}</Label>
                 <select
                   value={vForm.fuelType}
                   onChange={e => vf('fuelType', e.target.value)}
@@ -894,7 +882,7 @@ function VehiclesTab() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>目前里程（km）</Label>
+                <Label>{lg.currentOdometer}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -905,10 +893,9 @@ function VehiclesTab() {
               </div>
             </div>
 
-            {/* 保險 + 驗車到期 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>保險到期日</Label>
+                <Label>{lg.insuranceExpiry}</Label>
                 <Input
                   type="date"
                   value={vForm.insuranceExpiry}
@@ -916,7 +903,7 @@ function VehiclesTab() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>驗車到期日</Label>
+                <Label>{lg.inspectionExpiry}</Label>
                 <Input
                   type="date"
                   value={vForm.inspectionExpiry}
@@ -925,10 +912,9 @@ function VehiclesTab() {
               </div>
             </div>
 
-            {/* 牌照稅 + 燃料稅到期 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>牌照稅到期日</Label>
+                <Label>{lg.licenseTaxExpiry}</Label>
                 <Input
                   type="date"
                   value={vForm.licenseTaxExpiry}
@@ -936,7 +922,7 @@ function VehiclesTab() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>燃料稅到期日</Label>
+                <Label>{lg.fuelTaxExpiry}</Label>
                 <Input
                   type="date"
                   value={vForm.fuelTaxExpiry}
@@ -945,14 +931,13 @@ function VehiclesTab() {
               </div>
             </div>
 
-            {/* 備註 */}
             <div className="space-y-1.5">
               <Label>{dict.common.notes}</Label>
               <Textarea
                 value={vForm.notes}
                 onChange={e => vf('notes', e.target.value)}
                 rows={2}
-                placeholder="其他說明..."
+                placeholder={lg.vehicleNotesPlaceholder}
               />
             </div>
           </div>
@@ -973,10 +958,9 @@ function VehiclesTab() {
             <DialogTitle>{dict.common.add}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1 max-h-[70vh] overflow-y-auto pr-1">
-            {/* Type + Title */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>保養類型</Label>
+                <Label>{lg.maintType}</Label>
                 <select
                   value={mForm.type}
                   onChange={e => mf('type', e.target.value)}
@@ -988,19 +972,18 @@ function VehiclesTab() {
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>保養項目 <span className="text-red-500">*</span></Label>
+                <Label>{lg.maintTitle} <span className="text-red-500">*</span></Label>
                 <Input
                   value={mForm.title}
                   onChange={e => mf('title', e.target.value)}
-                  placeholder="更換機油濾芯"
+                  placeholder={lg.maintTitlePlaceholder}
                 />
               </div>
             </div>
 
-            {/* Service date + next service date */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>保養日期 <span className="text-red-500">*</span></Label>
+                <Label>{lg.maintDate} <span className="text-red-500">*</span></Label>
                 <Input
                   type="date"
                   value={mForm.serviceDate}
@@ -1008,7 +991,7 @@ function VehiclesTab() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>下次保養日</Label>
+                <Label>{lg.nextMaintDate}</Label>
                 <Input
                   type="date"
                   value={mForm.nextServiceDate}
@@ -1017,10 +1000,9 @@ function VehiclesTab() {
               </div>
             </div>
 
-            {/* Odometer at service + next service km */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>保養時里程（km）</Label>
+                <Label>{lg.odometerAtService}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -1030,7 +1012,7 @@ function VehiclesTab() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>下次保養里程（km）</Label>
+                <Label>{lg.nextMaintKm}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -1041,10 +1023,9 @@ function VehiclesTab() {
               </div>
             </div>
 
-            {/* Cost + Vendor */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>費用（NT$）</Label>
+                <Label>{lg.cost}</Label>
                 <Input
                   type="number"
                   min={0}
@@ -1054,23 +1035,22 @@ function VehiclesTab() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>保養廠</Label>
+                <Label>{lg.vendor}</Label>
                 <Input
                   value={mForm.vendor}
                   onChange={e => mf('vendor', e.target.value)}
-                  placeholder="台灣大保修廠"
+                  placeholder={lg.vendorPlaceholder}
                 />
               </div>
             </div>
 
-            {/* Notes */}
             <div className="space-y-1.5">
               <Label>{dict.common.notes}</Label>
               <Textarea
                 value={mForm.notes}
                 onChange={e => mf('notes', e.target.value)}
                 rows={2}
-                placeholder="異常狀況或特殊說明..."
+                placeholder={lg.maintNotesPlaceholder}
               />
             </div>
           </div>

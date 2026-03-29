@@ -47,29 +47,25 @@ interface PayrollRow {
   netPay: number; status: string; user: { name: string; email: string }
 }
 
-const ROLES: Record<string, string> = {
-  SUPER_ADMIN:'超級管理員', GM:'總經理', SALES_MANAGER:'業務主管',
-  SALES:'業務', CARE_SUPERVISOR:'護理主管', ECOMMERCE:'電商',
-  CS:'客服', WAREHOUSE_MANAGER:'倉管主管', WAREHOUSE:'倉庫',
-  PROCUREMENT:'採購', FINANCE:'財務',
-}
-
-const APPT_TYPES: Record<string, string> = {
-  HIRE: '到職', PROMOTE: '晉升', TRANSFER: '調動', RESIGN: '離職', TERMINATE: '解聘',
-}
-
-const ATT_STATUS: Record<string, { label: string; color: string }> = {
-  PRESENT: { label: '出勤', color: 'bg-green-100 text-green-700' },
-  ABSENT: { label: '缺勤', color: 'bg-red-100 text-red-700' },
-  LATE: { label: '遲到', color: 'bg-amber-100 text-amber-700' },
-  LEAVE: { label: '請假', color: 'bg-blue-100 text-blue-700' },
-  HOLIDAY: { label: '假日', color: 'bg-slate-100 text-slate-600' },
+const ATT_STATUS_COLORS: Record<string, string> = {
+  PRESENT: 'bg-green-100 text-green-700',
+  ABSENT:  'bg-red-100 text-red-700',
+  LATE:    'bg-amber-100 text-amber-700',
+  LEAVE:   'bg-blue-100 text-blue-700',
+  HOLIDAY: 'bg-slate-100 text-slate-600',
 }
 
 function fmt(n: number) { return n.toLocaleString('zh-TW') }
 
 export default function HRPage() {
   const { dict } = useI18n()
+  const hr = dict.hr
+  const ROLES = hr.roleLabels as Record<string, string>
+  const APPT_TYPES = hr.appointmentTypes as Record<string, string>
+  const ATT_STATUSES = hr.attendanceStatuses as Record<string, string>
+  const PROFILE_FIELDS = hr.profileFields as Record<string, string>
+  const PAYROLL_FIELDS = hr.payrollFields as Record<string, string>
+
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const isAdmin = ['SUPER_ADMIN', 'GM'].includes(role)
@@ -141,7 +137,7 @@ export default function HRPage() {
       body: JSON.stringify({ userId: empDetail.id, ...profileForm }),
     })
     setSavingProfile(false)
-    if (res.ok) { toast.success(dict.hr.employeeSaved); setEmpDetail(null); loadEmployees() }
+    if (res.ok) { toast.success(hr.employeeSaved); setEmpDetail(null); loadEmployees() }
     else toast.error(dict.common.saveFailed)
   }
 
@@ -151,7 +147,7 @@ export default function HRPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(apptForm),
     })
-    if (res.ok) { toast.success(dict.hr.appointmentCreated); setApptDialog(false); loadAppointments() }
+    if (res.ok) { toast.success(hr.appointmentCreated); setApptDialog(false); loadAppointments() }
     else toast.error(dict.common.createFailed)
   }
 
@@ -169,7 +165,7 @@ export default function HRPage() {
         overtime: attForm.overtime ? Number(attForm.overtime) : undefined,
       }),
     })
-    if (res.ok) { toast.success(dict.hr.attendanceCreated); setAttDialog(false); loadAttendance() }
+    if (res.ok) { toast.success(hr.attendanceCreated); setAttDialog(false); loadAttendance() }
     else toast.error(dict.common.createFailed)
   }
 
@@ -187,37 +183,37 @@ export default function HRPage() {
       body: JSON.stringify({ userId: payForm.userId, periodYear: payYear, periodMonth: payMonth, baseSalary: base, allowances: allow, overtimePay: ot, bonus, deductions: ded, laborInsurance: labor, healthInsurance: health, tax, netPay }),
     })
     setSavingPay(false)
-    if (res.ok) { toast.success(dict.hr.payrollCreated); setPayDialog(false); loadPayroll() }
+    if (res.ok) { toast.success(hr.payrollCreated); setPayDialog(false); loadPayroll() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.createFailed) }
   }
 
   if (!canView) {
-    return <div className="flex h-full items-center justify-center text-muted-foreground">需要管理員或財務權限</div>
+    return <div className="flex h-full items-center justify-center text-muted-foreground">{hr.noAccessHint}</div>
   }
 
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{dict.hr.title}</h1>
-        <p className="text-sm text-muted-foreground">員工資料、任命、出勤與薪資管理</p>
+        <h1 className="text-2xl font-bold text-slate-900">{hr.title}</h1>
+        <p className="text-sm text-muted-foreground">{hr.subtitle}</p>
       </div>
 
       <Tabs defaultValue="employees">
         <TabsList>
-          <TabsTrigger value="employees" onClick={loadEmployees} className="gap-1.5"><Users className="h-3.5 w-3.5" />{dict.hr.employee}</TabsTrigger>
-          <TabsTrigger value="appointments" onClick={loadAppointments} className="gap-1.5"><CalendarDays className="h-3.5 w-3.5" />任命</TabsTrigger>
-          <TabsTrigger value="attendance" onClick={loadAttendance} className="gap-1.5"><Clock className="h-3.5 w-3.5" />{dict.hr.attendance}</TabsTrigger>
-          <TabsTrigger value="payroll" onClick={loadPayroll} className="gap-1.5"><DollarSign className="h-3.5 w-3.5" />{dict.hr.payroll}</TabsTrigger>
+          <TabsTrigger value="employees" onClick={loadEmployees} className="gap-1.5"><Users className="h-3.5 w-3.5" />{hr.employee}</TabsTrigger>
+          <TabsTrigger value="appointments" onClick={loadAppointments} className="gap-1.5"><CalendarDays className="h-3.5 w-3.5" />{hr.tabAppointments}</TabsTrigger>
+          <TabsTrigger value="attendance" onClick={loadAttendance} className="gap-1.5"><Clock className="h-3.5 w-3.5" />{hr.attendance}</TabsTrigger>
+          <TabsTrigger value="payroll" onClick={loadPayroll} className="gap-1.5"><DollarSign className="h-3.5 w-3.5" />{hr.payroll}</TabsTrigger>
         </TabsList>
 
-        {/* ═══ 員工 ═══ */}
+        {/* ═══ Employees ═══ */}
         <TabsContent value="employees" className="mt-4">
           {loadingEmp ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : (
             <div className="rounded-md border overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b bg-slate-50">
                   <tr>
-                    {[dict.common.name, 'Email', dict.users.role, dict.hr.position, dict.common.phone, dict.hr.joinDate, dict.common.status].map(h => (
+                    {[dict.common.name, 'Email', dict.users.role, hr.position, dict.common.phone, hr.joinDate, dict.common.status].map(h => (
                       <th key={h} className="px-4 py-2 text-left font-medium text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -243,8 +239,8 @@ export default function HRPage() {
                       <td className="px-4 py-2">{e.mobile ?? '-'}</td>
                       <td className="px-4 py-2">{e.hireDate?.slice(0, 10) ?? '-'}</td>
                       <td className="px-4 py-2">{e.isActive
-                        ? <span className="text-green-600 text-xs">{dict.hr.statuses.ACTIVE}</span>
-                        : <span className="text-slate-400 text-xs">{dict.hr.statuses.RESIGNED}</span>}</td>
+                        ? <span className="text-green-600 text-xs">{hr.statuses.ACTIVE}</span>
+                        : <span className="text-slate-400 text-xs">{hr.statuses.RESIGNED}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -253,11 +249,11 @@ export default function HRPage() {
           )}
         </TabsContent>
 
-        {/* ═══ 任命 ═══ */}
+        {/* ═══ Appointments ═══ */}
         <TabsContent value="appointments" className="mt-4 space-y-3">
           {isAdmin && (
             <div className="flex justify-end">
-              <Button size="sm" onClick={() => setApptDialog(true)}><Plus className="h-4 w-4 mr-1" />新增任命</Button>
+              <Button size="sm" onClick={() => setApptDialog(true)}><Plus className="h-4 w-4 mr-1" />{hr.addAppointment}</Button>
             </div>
           )}
           {loadingAppt ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : (
@@ -275,38 +271,39 @@ export default function HRPage() {
                   </CardContent>
                 </Card>
               ))}
-              {appointments.length === 0 && <div className="text-center py-8 text-muted-foreground">{dict.hr.noResults}</div>}
+              {appointments.length === 0 && <div className="text-center py-8 text-muted-foreground">{hr.noResults}</div>}
             </div>
           )}
         </TabsContent>
 
-        {/* ═══ 出勤 ═══ */}
+        {/* ═══ Attendance ═══ */}
         <TabsContent value="attendance" className="mt-4 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <Input type="month" value={attMonth} onChange={e => setAttMonth(e.target.value)} className="w-40" />
             <Button variant="outline" size="sm" onClick={loadAttendance}>{dict.common.search}</Button>
-            {isAdmin && <Button size="sm" onClick={() => { setAttForm(f => ({ ...f, userId: employees[0]?.id ?? '' })); setAttDialog(true) }}><Plus className="h-4 w-4 mr-1" />新增出勤</Button>}
+            {isAdmin && <Button size="sm" onClick={() => { setAttForm(f => ({ ...f, userId: employees[0]?.id ?? '' })); setAttDialog(true) }}><Plus className="h-4 w-4 mr-1" />{hr.addAttendance}</Button>}
           </div>
           {loadingAtt ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : (
             <div className="rounded-md border overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="border-b bg-slate-50">
                   <tr>
-                    {[dict.common.date, dict.common.name, '上班', '下班', dict.common.status, '假別', '加班'].map(h => (
+                    {[dict.common.date, dict.common.name, hr.colClockIn, hr.colClockOut, dict.common.status, hr.colLeaveType, hr.colOvertime].map(h => (
                       <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {attendance.map(a => {
-                    const st = ATT_STATUS[a.status] ?? { label: a.status, color: '' }
+                    const statusLabel = ATT_STATUSES[a.status] ?? a.status
+                    const statusColor = ATT_STATUS_COLORS[a.status] ?? ''
                     return (
                       <tr key={a.id} className="border-b last:border-0">
                         <td className="px-3 py-2">{a.date?.slice(0, 10)}</td>
                         <td className="px-3 py-2 font-medium">{a.user.name}</td>
                         <td className="px-3 py-2">{a.clockIn ? new Date(a.clockIn).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                         <td className="px-3 py-2">{a.clockOut ? new Date(a.clockOut).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                        <td className="px-3 py-2"><Badge variant="outline" className={st.color}>{st.label}</Badge></td>
+                        <td className="px-3 py-2"><Badge variant="outline" className={statusColor}>{statusLabel}</Badge></td>
                         <td className="px-3 py-2">{a.leaveType ?? '-'}</td>
                         <td className="px-3 py-2">{a.overtime ? `${a.overtime}h` : '-'}</td>
                       </tr>
@@ -321,22 +318,22 @@ export default function HRPage() {
           )}
         </TabsContent>
 
-        {/* ═══ 薪資 ═══ */}
+        {/* ═══ Payroll ═══ */}
         <TabsContent value="payroll" className="mt-4 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <Input type="number" value={payYear} onChange={e => setPayYear(Number(e.target.value))} className="w-24" min={2020} max={2030} />
-            <span>年</span>
+            <span>{hr.yearUnit}</span>
             <Input type="number" value={payMonth} onChange={e => setPayMonth(Number(e.target.value))} className="w-20" min={1} max={12} />
-            <span>月</span>
+            <span>{hr.monthUnit}</span>
             <Button variant="outline" size="sm" onClick={loadPayroll}>{dict.common.search}</Button>
-            {isAdmin && <Button size="sm" onClick={() => { setPayForm(f => ({ ...f, userId: employees[0]?.id ?? '' })); setPayDialog(true) }}><Plus className="h-4 w-4 mr-1" />{dict.hr.payroll}</Button>}
+            {isAdmin && <Button size="sm" onClick={() => { setPayForm(f => ({ ...f, userId: employees[0]?.id ?? '' })); setPayDialog(true) }}><Plus className="h-4 w-4 mr-1" />{hr.payroll}</Button>}
           </div>
           {loadingPay ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : (
             <div className="rounded-md border overflow-x-auto">
               <table className="w-full text-xs">
                 <thead className="border-b bg-slate-50">
                   <tr>
-                    {[dict.common.name, '底薪', '津貼', '加班', '獎金', '扣款', '勞保', '健保', '稅', '實發', dict.common.status].map(h => (
+                    {[dict.common.name, hr.colBaseSalary, hr.colAllowances, hr.colOvertimePay, hr.colBonus, hr.colDeductions, hr.colLaborInsurance, hr.colHealthInsurance, hr.colTax, hr.colNetPay, dict.common.status].map(h => (
                       <th key={h} className="px-2 py-2 text-right font-medium text-muted-foreground first:text-left">{h}</th>
                     ))}
                   </tr>
@@ -373,24 +370,16 @@ export default function HRPage() {
           {empDetail && (
             <>
               <DialogHeader>
-                <DialogTitle>{empDetail.name} — {dict.hr.title}</DialogTitle>
+                <DialogTitle>{empDetail.name} — {hr.title}</DialogTitle>
               </DialogHeader>
               <div className="space-y-3 py-2">
-                {[
-                  { key: 'gender', label: '性別' },
-                  { key: 'birthday', label: '生日', type: 'date' },
-                  { key: 'emergencyContact', label: '緊急聯絡人' },
-                  { key: 'emergencyPhone', label: '緊急聯絡電話' },
-                  { key: 'bankName', label: '銀行名稱' },
-                  { key: 'bankAccount', label: '銀行帳號' },
-                  { key: 'education', label: '學歷' },
-                ].map(f => (
-                  <div key={f.key}>
-                    <Label className="text-sm">{f.label}</Label>
+                {Object.entries(PROFILE_FIELDS).map(([key, label]) => (
+                  <div key={key}>
+                    <Label className="text-sm">{label}</Label>
                     <Input
-                      type={f.type ?? 'text'}
-                      value={profileForm[f.key] ?? ''}
-                      onChange={e => setProfileForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      type={key === 'birthday' ? 'date' : 'text'}
+                      value={profileForm[key] ?? ''}
+                      onChange={e => setProfileForm(prev => ({ ...prev, [key]: e.target.value }))}
                       className="mt-1"
                       disabled={!isAdmin}
                     />
@@ -412,20 +401,20 @@ export default function HRPage() {
       {/* Appointment Dialog */}
       <Dialog open={apptDialog} onOpenChange={setApptDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增人事任命</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{hr.apptDialogTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>{dict.hr.employee}</Label>
+              <Label>{hr.employee}</Label>
               <Select value={apptForm.userId || 'none'} onValueChange={(v: string | null) => setApptForm(f => ({ ...f, userId: (v ?? '') === 'none' ? '' : (v ?? '') }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="選擇員工" /></SelectTrigger>
+                <SelectTrigger className="mt-1"><SelectValue placeholder={hr.apptSelectPlaceholder} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">選擇員工</SelectItem>
+                  <SelectItem value="none">{hr.apptSelectPlaceholder}</SelectItem>
                   {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>類型</Label>
+              <Label>{hr.apptFieldType}</Label>
               <Select value={apptForm.type} onValueChange={(v: string | null) => setApptForm(f => ({ ...f, type: v ?? 'HIRE' }))}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -434,15 +423,15 @@ export default function HRPage() {
               </Select>
             </div>
             <div>
-              <Label>生效日</Label>
+              <Label>{hr.apptFieldEffectiveDate}</Label>
               <Input type="date" value={apptForm.effectiveDate} onChange={e => setApptForm(f => ({ ...f, effectiveDate: e.target.value }))} className="mt-1" />
             </div>
             <div>
-              <Label>新職稱</Label>
+              <Label>{hr.apptFieldNewTitle}</Label>
               <Input value={apptForm.toTitle} onChange={e => setApptForm(f => ({ ...f, toTitle: e.target.value }))} className="mt-1" />
             </div>
             <div>
-              <Label>原因</Label>
+              <Label>{hr.apptFieldReason}</Label>
               <Input value={apptForm.reason} onChange={e => setApptForm(f => ({ ...f, reason: e.target.value }))} className="mt-1" />
             </div>
           </div>
@@ -456,28 +445,28 @@ export default function HRPage() {
       {/* Attendance Dialog */}
       <Dialog open={attDialog} onOpenChange={setAttDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增出勤記錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{hr.attDialogTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>{dict.hr.employee}</Label>
+              <Label>{hr.employee}</Label>
               <Select value={attForm.userId || 'none'} onValueChange={v => setAttForm(f => ({ ...f, userId: v === 'none' ? '' : (v ?? '') }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="選擇員工" /></SelectTrigger>
+                <SelectTrigger className="mt-1"><SelectValue placeholder={hr.apptSelectPlaceholder} /></SelectTrigger>
                 <SelectContent>{employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>日期</Label><Input type="date" value={attForm.date} onChange={e => setAttForm(f => ({ ...f, date: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{hr.attFieldDate}</Label><Input type="date" value={attForm.date} onChange={e => setAttForm(f => ({ ...f, date: e.target.value }))} className="mt-1" /></div>
               <div>
-                <Label>狀態</Label>
+                <Label>{hr.attFieldStatus}</Label>
                 <Select value={attForm.status} onValueChange={v => setAttForm(f => ({ ...f, status: v ?? 'PRESENT' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{Object.entries(ATT_STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{Object.entries(ATT_STATUSES).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>上班時間</Label><Input type="time" value={attForm.clockIn} onChange={e => setAttForm(f => ({ ...f, clockIn: e.target.value }))} className="mt-1" /></div>
-              <div><Label>下班時間</Label><Input type="time" value={attForm.clockOut} onChange={e => setAttForm(f => ({ ...f, clockOut: e.target.value }))} className="mt-1" /></div>
-              <div><Label>加班(時)</Label><Input type="number" min={0} value={attForm.overtime} onChange={e => setAttForm(f => ({ ...f, overtime: e.target.value }))} className="mt-1" /></div>
-              <div><Label>假別</Label><Input value={attForm.leaveType} onChange={e => setAttForm(f => ({ ...f, leaveType: e.target.value }))} className="mt-1" placeholder="特休/事假..." /></div>
+              <div><Label>{hr.attFieldClockIn}</Label><Input type="time" value={attForm.clockIn} onChange={e => setAttForm(f => ({ ...f, clockIn: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{hr.attFieldClockOut}</Label><Input type="time" value={attForm.clockOut} onChange={e => setAttForm(f => ({ ...f, clockOut: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{hr.attFieldOvertime}</Label><Input type="number" min={0} value={attForm.overtime} onChange={e => setAttForm(f => ({ ...f, overtime: e.target.value }))} className="mt-1" /></div>
+              <div><Label>{hr.attFieldLeaveType}</Label><Input value={attForm.leaveType} onChange={e => setAttForm(f => ({ ...f, leaveType: e.target.value }))} className="mt-1" placeholder={hr.attFieldLeaveTypePlaceholder} /></div>
             </div>
           </div>
           <DialogFooter>
@@ -490,35 +479,26 @@ export default function HRPage() {
       {/* Payroll Dialog */}
       <Dialog open={payDialog} onOpenChange={setPayDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增薪資記錄 ({payYear}/{String(payMonth).padStart(2,'0')})</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{hr.addPayrollTitle} ({payYear}/{String(payMonth).padStart(2,'0')})</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
-              <Label>{dict.hr.employee}</Label>
+              <Label>{hr.employee}</Label>
               <Select value={payForm.userId || 'none'} onValueChange={v => setPayForm(f => ({ ...f, userId: v === 'none' ? '' : (v ?? '') }))}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="選擇員工" /></SelectTrigger>
+                <SelectTrigger className="mt-1"><SelectValue placeholder={hr.apptSelectPlaceholder} /></SelectTrigger>
                 <SelectContent>{employees.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: 'baseSalary', label: '底薪 *' },
-                { key: 'allowances', label: '津貼' },
-                { key: 'overtimePay', label: '加班費' },
-                { key: 'bonus', label: '獎金' },
-                { key: 'deductions', label: '扣款' },
-                { key: 'laborInsurance', label: '勞保' },
-                { key: 'healthInsurance', label: '健保' },
-                { key: 'tax', label: '所得稅' },
-              ].map(f => (
-                <div key={f.key}>
-                  <Label>{f.label}</Label>
-                  <Input type="number" min={0} value={payForm[f.key as keyof typeof payForm]} onChange={e => setPayForm(prev => ({ ...prev, [f.key]: e.target.value }))} className="mt-1" />
+              {(Object.entries(PAYROLL_FIELDS) as [keyof typeof payForm, string][]).map(([key, label]) => (
+                <div key={key}>
+                  <Label>{label}</Label>
+                  <Input type="number" min={0} value={payForm[key]} onChange={e => setPayForm(prev => ({ ...prev, [key]: e.target.value }))} className="mt-1" />
                 </div>
               ))}
             </div>
             {payForm.baseSalary && (
               <div className="rounded bg-slate-50 px-3 py-2 text-sm">
-                {dict.hr.salary}：<strong className="text-green-700">${fmt(
+                {hr.salary}：<strong className="text-green-700">${fmt(
                   [payForm.baseSalary, payForm.allowances, payForm.overtimePay, payForm.bonus].reduce((s, v) => s + (Number(v)||0), 0) -
                   [payForm.deductions, payForm.laborInsurance, payForm.healthInsurance, payForm.tax].reduce((s, v) => s + (Number(v)||0), 0)
                 )}</strong>

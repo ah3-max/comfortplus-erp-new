@@ -372,7 +372,7 @@ export default function InventoryPage() {
       body: JSON.stringify({ action }),
     })
     if (res.ok) {
-      toast.success(action === 'complete' ? '調撥已完成，庫存已更新' : action === 'confirm' ? '調撥已確認出庫' : dict.inventoryExt.transferStatuses.CANCELLED)
+      toast.success(action === 'complete' ? dict.inventoryPage.completeAction : action === 'confirm' ? dict.inventoryPage.transferAction : dict.inventoryExt.transferStatuses.CANCELLED)
       fetchTransfers()
       fetchInventory()
     } else {
@@ -439,7 +439,7 @@ export default function InventoryPage() {
       body: JSON.stringify({ status }),
     })
     if (res.ok) {
-      toast.success(status === 'COMPLETED' ? '盤點已完成，庫存已調整' : dict.common.updateSuccess)
+      toast.success(status === 'COMPLETED' ? dict.inventoryPage.countCompleted : dict.common.updateSuccess)
       fetchCounts()
       if (ctDetail?.id === id) {
         const r2 = await fetch(`/api/inventory/count/${id}`)
@@ -531,7 +531,7 @@ export default function InventoryPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.inventory.title}</h1>
-          <p className="text-sm text-muted-foreground">WMS 全模組</p>
+          <p className="text-sm text-muted-foreground">{dict.inventoryPage.wmsSubtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => {
@@ -551,10 +551,10 @@ export default function InventoryPage() {
       {/* KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { label: '商品種類',               value: inventory.length,   icon: <Package className="h-4 w-4 text-blue-600" />,    cls: 'bg-blue-50' },
-          { label: dict.dashboard.stockAlert, value: lowStockCount,       icon: <AlertTriangle className="h-4 w-4 text-red-600" />,cls: 'bg-red-50',   highlight: lowStockCount > 0 },
-          { label: '近效期批號',             value: expirySoonCount,     icon: <CalendarDays className="h-4 w-4 text-amber-600" />,cls: 'bg-amber-50',highlight: expirySoonCount > 0 },
-          { label: '庫存總值',               value: fmt(totalValue),    icon: <BarChart3 className="h-4 w-4 text-green-600" />,  cls: 'bg-green-50' },
+          { label: dict.inventoryPage.stockKinds,          value: inventory.length,   icon: <Package className="h-4 w-4 text-blue-600" />,    cls: 'bg-blue-50' },
+          { label: dict.dashboard.stockAlert,              value: lowStockCount,       icon: <AlertTriangle className="h-4 w-4 text-red-600" />,cls: 'bg-red-50',   highlight: lowStockCount > 0 },
+          { label: dict.inventoryPage.expiryLotsNear,      value: expirySoonCount,     icon: <CalendarDays className="h-4 w-4 text-amber-600" />,cls: 'bg-amber-50',highlight: expirySoonCount > 0 },
+          { label: dict.inventoryPage.totalValue,          value: fmt(totalValue),    icon: <BarChart3 className="h-4 w-4 text-green-600" />,  cls: 'bg-green-50' },
         ].map(({ label, value, icon, cls, highlight }) => (
           <Card key={label} className={highlight ? 'border-red-200' : ''}>
             <CardContent className="p-4">
@@ -625,7 +625,7 @@ export default function InventoryPage() {
                   <TableHead className="text-center w-20">{dict.inventoryExt.available}</TableHead>
                   <TableHead className="text-center w-20">{dict.inventory.safetyStock}</TableHead>
                   <TableHead className="text-center w-24">{dict.common.status}</TableHead>
-                  <TableHead className="text-right w-28">庫存值</TableHead>
+                  <TableHead className="text-right w-28">{dict.inventoryPage.stockValue}</TableHead>
                   <TableHead className="w-16 text-center">{dict.common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -707,7 +707,7 @@ export default function InventoryPage() {
             <button onClick={() => setLotsExpiry(!lotsExpiry)}
               className={cn('rounded-full border px-3 py-1 text-xs font-medium flex items-center gap-1 transition-colors',
                 lotsExpiry ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}>
-              <CalendarDays className="h-3 w-3" />近{dict.inventoryExt.expiryDate}
+              <CalendarDays className="h-3 w-3" />{dict.inventoryPage.nearExpiry}
             </button>
           </div>
 
@@ -769,8 +769,8 @@ export default function InventoryPage() {
                           <span className={cn('text-sm font-medium',
                             expired ? 'text-red-600' : expiring ? 'text-amber-600' : 'text-muted-foreground')}>
                             {fmtDate(lot.expiryDate)}
-                            {expired && ' 已過期'}
-                            {expiring && ' 即將到期'}
+                            {expired && dict.inventoryPage.expired}
+                            {expiring && dict.inventoryPage.expiringSoon}
                           </span>
                         ) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
@@ -804,7 +804,7 @@ export default function InventoryPage() {
               ))}
             </div>
             <Button onClick={() => setTrNewOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />{dict.common.create}{dict.inventory.transfer}單
+              <Plus className="mr-2 h-4 w-4" />{dict.common.create}{dict.inventory.transfer}{dict.inventoryPage.transferUnit}
             </Button>
           </div>
 
@@ -812,12 +812,12 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">調撥單號</TableHead>
-                  <TableHead>出庫倉庫</TableHead>
-                  <TableHead>入庫倉庫</TableHead>
+                  <TableHead className="w-32">{dict.inventoryPage.transferNoHeader}</TableHead>
+                  <TableHead>{dict.inventoryPage.fromWarehouseHeader}</TableHead>
+                  <TableHead>{dict.inventoryPage.toWarehouseHeader}</TableHead>
                   <TableHead className="w-20">{dict.common.status}</TableHead>
-                  <TableHead>品項</TableHead>
-                  <TableHead className="w-32">申請人</TableHead>
+                  <TableHead>{dict.inventoryPage.itemsHeader}</TableHead>
+                  <TableHead className="w-32">{dict.inventoryPage.requestedByHeader}</TableHead>
                   <TableHead className="w-28">{dict.common.createdAt}</TableHead>
                   <TableHead className="w-28">{dict.common.actions}</TableHead>
                 </TableRow>
@@ -853,7 +853,7 @@ export default function InventoryPage() {
                           {tr.status === 'PENDING' && (
                             <button onClick={() => transferAction(tr.id, 'confirm')}
                               className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100">
-                              <CheckCircle2 className="h-3 w-3" />{dict.common.confirm}出庫
+                              <CheckCircle2 className="h-3 w-3" />{dict.inventoryPage.confirmOutbound}
                             </button>
                           )}
                           {(tr.status === 'IN_TRANSIT' || tr.status === 'PENDING') && (
@@ -893,7 +893,7 @@ export default function InventoryPage() {
               ))}
             </div>
             <Button onClick={() => setCtNewOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />{dict.inventory.count}單
+              <Plus className="mr-2 h-4 w-4" />{dict.inventory.count}{dict.inventoryPage.transferUnit}
             </Button>
           </div>
 
@@ -901,11 +901,11 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">{dict.inventory.count}單號</TableHead>
+                  <TableHead className="w-32">{dict.inventoryPage.countNoHeader}</TableHead>
                   <TableHead className="w-24">{dict.common.warehouse}</TableHead>
                   <TableHead className="w-20">{dict.common.status}</TableHead>
                   <TableHead className="w-28">{dict.inventory.count}{dict.common.date}</TableHead>
-                  <TableHead className="w-20">品項數</TableHead>
+                  <TableHead className="w-20">{dict.inventoryPage.itemsCount}</TableHead>
                   <TableHead>{dict.common.notes}</TableHead>
                   <TableHead className="w-32">{dict.common.createdBy}</TableHead>
                   <TableHead className="w-32">{dict.common.actions}</TableHead>
@@ -937,19 +937,19 @@ export default function InventoryPage() {
                           {ct.status === 'DRAFT' && (
                             <button onClick={() => countStatusUpdate(ct.id, 'COUNTING')}
                               className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100">
-                              開始{dict.inventory.count}
+                              {dict.inventoryPage.startCount}
                             </button>
                           )}
                           {ct.status === 'COUNTING' && (
                             <button onClick={() => countStatusUpdate(ct.id, 'REVIEWING')}
                               className="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-700 hover:bg-amber-100">
-                              送複核
+                              {dict.inventoryPage.submitReview}
                             </button>
                           )}
                           {ct.status === 'REVIEWING' && (
                             <button onClick={() => countStatusUpdate(ct.id, 'COMPLETED')}
                               className="inline-flex items-center gap-1 rounded bg-green-50 px-2 py-1 text-xs text-green-700 hover:bg-green-100">
-                              完成{dict.inventory.count}
+                              {dict.inventoryPage.finishCount}
                             </button>
                           )}
                         </div>
@@ -973,7 +973,7 @@ export default function InventoryPage() {
                 value={scSearch} onChange={e => setScSearch(e.target.value)} />
             </div>
             <Button variant="destructive" onClick={() => setScNewOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />登錄{dict.inventory.scrap}
+              <Trash2 className="mr-2 h-4 w-4" />{dict.inventoryPage.registerScrap}{dict.inventory.scrap}
             </Button>
           </div>
 
@@ -981,14 +981,14 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32">{dict.inventory.scrap}單號</TableHead>
+                  <TableHead className="w-32">{dict.inventoryPage.scrapNoHeader}</TableHead>
                   <TableHead>{dict.common.product}</TableHead>
                   <TableHead className="w-20">{dict.common.warehouse}</TableHead>
                   <TableHead className="w-20">{dict.inventoryExt.lotNo}</TableHead>
                   <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
                   <TableHead>{dict.inventoryExt.scrapReason}</TableHead>
                   <TableHead className="w-28">{dict.inventory.scrap}{dict.common.date}</TableHead>
-                  <TableHead className="w-24">登錄人</TableHead>
+                  <TableHead className="w-24">{dict.inventoryPage.registeredBy}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1032,12 +1032,12 @@ export default function InventoryPage() {
             {/* Summary cards */}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Card><CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">庫存總值</p>
+                <p className="text-xs text-muted-foreground">{dict.inventoryPage.reportTotalValue}</p>
                 <p className="text-xl font-bold">{fmt(reports.totalValue)}</p>
               </CardContent></Card>
               <Card className={reports.lowStock.length > 0 ? 'border-red-200' : ''}>
                 <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">低庫存品項</p>
+                  <p className="text-xs text-muted-foreground">{dict.inventoryPage.reportLowStock}</p>
                   <p className={cn('text-xl font-bold', reports.lowStock.length > 0 && 'text-red-600')}>
                     {reports.lowStock.length}
                   </p>
@@ -1045,7 +1045,7 @@ export default function InventoryPage() {
               </Card>
               <Card className={reports.expiryLots.length > 0 ? 'border-amber-200' : ''}>
                 <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">近效期批號(30天)</p>
+                  <p className="text-xs text-muted-foreground">{dict.inventoryPage.reportExpiryLots}</p>
                   <p className={cn('text-xl font-bold', reports.expiryLots.length > 0 && 'text-amber-600')}>
                     {reports.expiryLots.length}
                   </p>
@@ -1053,7 +1053,7 @@ export default function InventoryPage() {
               </Card>
               <Card className={reports.dormantItems.length > 0 ? 'border-slate-200' : ''}>
                 <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">呆滯庫存(90天)</p>
+                  <p className="text-xs text-muted-foreground">{dict.inventoryPage.reportDormant}</p>
                   <p className="text-xl font-bold text-slate-600">{reports.dormantItems.length}</p>
                 </CardContent>
               </Card>
@@ -1064,16 +1064,16 @@ export default function InventoryPage() {
               {reports.lowStock.length > 0 && (
                 <Card className="col-span-2 lg:col-span-1">
                   <CardHeader><CardTitle className="text-sm flex items-center gap-2 text-red-600">
-                    <AlertTriangle className="h-4 w-4" />低庫存清單
+                    <AlertTriangle className="h-4 w-4" />{dict.inventoryPage.lowStockList}
                   </CardTitle></CardHeader>
                   <CardContent className="p-0">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>商品</TableHead>
-                          <TableHead className="text-center">庫存</TableHead>
-                          <TableHead className="text-center">安全庫存</TableHead>
-                          <TableHead className="text-center">缺口</TableHead>
+                          <TableHead>{dict.inventoryPage.productHeader}</TableHead>
+                          <TableHead className="text-center">{dict.inventoryPage.stockHeader}</TableHead>
+                          <TableHead className="text-center">{dict.inventoryPage.safetyHeader}</TableHead>
+                          <TableHead className="text-center">{dict.inventoryPage.gapHeader}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1100,16 +1100,16 @@ export default function InventoryPage() {
               {reports.expiryLots.length > 0 && (
                 <Card className="col-span-2 lg:col-span-1">
                   <CardHeader><CardTitle className="text-sm flex items-center gap-2 text-amber-600">
-                    <CalendarDays className="h-4 w-4" />近效期批號
+                    <CalendarDays className="h-4 w-4" />{dict.inventoryPage.expiryLotsList}
                   </CardTitle></CardHeader>
                   <CardContent className="p-0">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>批號</TableHead>
-                          <TableHead>商品</TableHead>
-                          <TableHead className="text-center">數量</TableHead>
-                          <TableHead>效期</TableHead>
+                          <TableHead>{dict.inventoryPage.lotNoHeader}</TableHead>
+                          <TableHead>{dict.inventoryPage.productHeader}</TableHead>
+                          <TableHead className="text-center">{dict.inventoryPage.quantityHeader}</TableHead>
+                          <TableHead>{dict.inventoryPage.expiryHeader}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1122,7 +1122,7 @@ export default function InventoryPage() {
                               <TableCell className="text-center">{l.quantity} {l.product.unit}</TableCell>
                               <TableCell className={cn('text-sm font-medium', expired ? 'text-red-600' : 'text-amber-600')}>
                                 {fmtDate(l.expiryDate)}
-                                {expired && ' ⚠已過期'}
+                                {expired && dict.inventoryPage.expiredWarning}
                               </TableCell>
                             </TableRow>
                           )
@@ -1136,16 +1136,16 @@ export default function InventoryPage() {
               {/* 呆滯庫存 */}
               {reports.dormantItems.length > 0 && (
                 <Card className="col-span-2">
-                  <CardHeader><CardTitle className="text-sm text-slate-600">呆滯庫存清單（90天無異動）</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-sm text-slate-600">{dict.inventoryPage.dormantList}</CardTitle></CardHeader>
                   <CardContent className="p-0">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>商品</TableHead>
-                          <TableHead className="w-20">倉庫</TableHead>
-                          <TableHead className="text-center">數量</TableHead>
-                          <TableHead>最後異動</TableHead>
-                          <TableHead className="text-right">庫存值</TableHead>
+                          <TableHead>{dict.inventoryPage.productHeader}</TableHead>
+                          <TableHead className="w-20">{dict.common.warehouse}</TableHead>
+                          <TableHead className="text-center">{dict.inventoryPage.quantityHeader}</TableHead>
+                          <TableHead>{dict.inventoryPage.lastMovement}</TableHead>
+                          <TableHead className="text-right">{dict.inventoryPage.stockValue}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1158,7 +1158,7 @@ export default function InventoryPage() {
                             <TableCell className="text-xs font-mono">{i.warehouse}</TableCell>
                             <TableCell className="text-center">{i.quantity} {i.product.unit}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">
-                              {i.lastMovement ? fmtDate(i.lastMovement) : '從未異動'}
+                              {i.lastMovement ? fmtDate(i.lastMovement) : dict.inventoryPage.neverMoved}
                             </TableCell>
                             <TableCell className="text-right text-sm">
                               {fmt(i.quantity * Number(i.product.costPrice))}
@@ -1173,7 +1173,7 @@ export default function InventoryPage() {
 
               {/* 分類分布 */}
               <Card>
-                <CardHeader><CardTitle className="text-sm">庫存分類分布</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm">{dict.inventoryPage.categoryDist}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {reports.byCategory.map(bc => (
                     <div key={bc.category} className="flex items-center justify-between text-sm">
@@ -1183,7 +1183,7 @@ export default function InventoryPage() {
                           {INV_CATEGORY_LABELS[bc.category] ?? bc.category}
                         </span>
                       </div>
-                      <span className="font-medium">{bc._sum.quantity ?? 0} 件</span>
+                      <span className="font-medium">{bc._sum.quantity ?? 0} {dict.inventoryPage.pieceUnit}</span>
                     </div>
                   ))}
                 </CardContent>
@@ -1191,12 +1191,12 @@ export default function InventoryPage() {
 
               {/* 倉庫分布 */}
               <Card>
-                <CardHeader><CardTitle className="text-sm">倉庫庫存分布</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-sm">{dict.inventoryPage.warehouseDist}</CardTitle></CardHeader>
                 <CardContent className="space-y-2">
                   {reports.byWarehouse.map(bw => (
                     <div key={bw.warehouse} className="flex items-center justify-between text-sm">
                       <span className="font-mono text-muted-foreground">{bw.warehouse}</span>
-                      <span className="font-medium">{bw._sum.quantity ?? 0} 件</span>
+                      <span className="font-medium">{bw._sum.quantity ?? 0} {dict.inventoryPage.pieceUnit}</span>
                     </div>
                   ))}
                 </CardContent>
@@ -1212,14 +1212,14 @@ export default function InventoryPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-36">時間</TableHead>
+                <TableHead className="w-36">{dict.inventoryPage.historyTime}</TableHead>
                 <TableHead>{dict.common.product}</TableHead>
                 <TableHead className="w-20">{dict.common.type}</TableHead>
                 <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
-                <TableHead className="text-center w-20">前庫存</TableHead>
-                <TableHead className="text-center w-20">後庫存</TableHead>
+                <TableHead className="text-center w-20">{dict.inventoryPage.historyBeforeQty}</TableHead>
+                <TableHead className="text-center w-20">{dict.inventoryPage.historyAfterQty}</TableHead>
                 <TableHead className="w-16">{dict.common.warehouse}</TableHead>
-                <TableHead className="w-24">來源</TableHead>
+                <TableHead className="w-24">{dict.inventoryPage.historySource}</TableHead>
                 <TableHead>{dict.common.notes}</TableHead>
               </TableRow>
             </TableHeader>
@@ -1251,13 +1251,7 @@ export default function InventoryPage() {
                     <TableCell className="text-center text-sm text-muted-foreground">{tx.afterQty ?? '—'}</TableCell>
                     <TableCell className="text-xs font-mono">{tx.warehouse}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {tx.referenceType === 'PURCHASE_RECEIPT' ? '進貨驗收'
-                        : tx.referenceType === 'SHIPMENT' ? '出貨單'
-                        : tx.referenceType === 'MANUAL' ? '手動調整'
-                        : tx.referenceType === 'TRANSFER' ? '調撥'
-                        : tx.referenceType === 'STOCK_COUNT' ? '盤點'
-                        : tx.referenceType === 'SCRAP' ? '報廢'
-                        : tx.referenceType ?? '—'}
+                      {tx.referenceType ? (dict.inventoryPage.txTypes[tx.referenceType as keyof typeof dict.inventoryPage.txTypes] ?? tx.referenceType) : '—'}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{tx.notes ?? '—'}</TableCell>
                   </TableRow>
@@ -1302,7 +1296,7 @@ export default function InventoryPage() {
                 <Label>{dict.inventoryExt.sourceFactory}</Label>
                 <Input value={lotForm.sourceFactory}
                   onChange={e => setLotForm(f => ({ ...f, sourceFactory: e.target.value }))}
-                  placeholder="工廠名稱" />
+                  placeholder={dict.inventoryPage.sourceFactoryPlaceholder} />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -1323,7 +1317,7 @@ export default function InventoryPage() {
       {/* New Transfer Dialog */}
       <Dialog open={trNewOpen} onOpenChange={o => !o && setTrNewOpen(false)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{dict.common.create}{dict.inventory.transfer}單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.create}{dict.inventory.transfer}{dict.inventoryPage.transferUnit}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -1349,9 +1343,9 @@ export default function InventoryPage() {
             <Separator />
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>{dict.inventoryExt.transferQty}品項</Label>
+                <Label>{dict.inventoryExt.transferQty}{dict.inventoryPage.itemsUnit}</Label>
                 <button onClick={() => setTrForm(f => ({ ...f, items: [...f.items, { productId: '', productName: '', quantity: 1 }] }))}
-                  className="text-xs text-blue-600 hover:underline">+ {dict.common.add}品項</button>
+                  className="text-xs text-blue-600 hover:underline">+ {dict.common.add}{dict.inventoryPage.itemsUnit}</button>
               </div>
               {trForm.items.map((item, idx) => (
                 <div key={idx} className="flex gap-2">
@@ -1378,13 +1372,13 @@ export default function InventoryPage() {
             <div className="space-y-1.5">
               <Label>{dict.common.notes}</Label>
               <Input value={trForm.notes} onChange={e => setTrForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="調撥原因..." />
+                placeholder={dict.inventoryPage.transferNotesPlaceholder} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTrNewOpen(false)} disabled={trSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleNewTransfer} disabled={trSaving}>
-              {trSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}{dict.inventory.transfer}單
+              {trSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}{dict.inventory.transfer}{dict.inventoryPage.transferUnit}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1393,7 +1387,7 @@ export default function InventoryPage() {
       {/* New Count Dialog */}
       <Dialog open={ctNewOpen} onOpenChange={o => !o && setCtNewOpen(false)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>{dict.inventory.count}單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.inventory.count}{dict.inventoryPage.transferUnit}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
               <Label>{dict.common.warehouse} <span className="text-red-500">*</span></Label>
@@ -1402,7 +1396,7 @@ export default function InventoryPage() {
                 <option value="">{dict.common.select}</option>
                 {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
               </select>
-              <p className="text-xs text-muted-foreground">系統將自動快照該倉庫目前所有庫存作為基準數量</p>
+              <p className="text-xs text-muted-foreground">{dict.inventoryPage.countSnapshotHint}</p>
             </div>
             <div className="space-y-1.5">
               <Label>{dict.inventory.count}{dict.common.date}</Label>
@@ -1412,13 +1406,13 @@ export default function InventoryPage() {
             <div className="space-y-1.5">
               <Label>{dict.common.notes}</Label>
               <Input value={ctForm.notes} onChange={e => setCtForm(f => ({ ...f, notes: e.target.value }))}
-                placeholder="盤點說明..." />
+                placeholder={dict.inventoryPage.countNotesPlaceholder} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCtNewOpen(false)} disabled={ctSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleNewCount} disabled={ctSaving}>
-              {ctSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.inventory.count}單
+              {ctSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.inventory.count}{dict.inventoryPage.transferUnit}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1498,7 +1492,7 @@ export default function InventoryPage() {
               {ctDetail.status === 'COUNTING' && (
                 <div className="flex justify-between items-center">
                   <p className="text-xs text-muted-foreground">
-                    {dict.inventoryExt.difference}品項：{ctDetail.items.filter(i => i.variance !== 0).length} 項
+                    {dict.inventoryExt.difference}{dict.inventoryPage.itemsUnit}：{dict.inventoryPage.varianceItems.replace('{n}', String(ctDetail.items.filter(i => i.variance !== 0).length))}
                   </p>
                   <Button size="sm" onClick={saveCountItems}>{dict.common.save}{dict.inventory.count}{dict.common.quantity}</Button>
                 </div>
@@ -1506,10 +1500,10 @@ export default function InventoryPage() {
               {ctDetail.status === 'REVIEWING' && (
                 <div className="flex justify-between items-center">
                   <p className="text-xs text-muted-foreground">
-                    {dict.inventoryExt.difference}品項：{ctDetail.items.filter(i => i.variance !== 0).length} 項，完成後將自動調整庫存
+                    {dict.inventoryExt.difference}{dict.inventoryPage.itemsUnit}：{dict.inventoryPage.varianceItemsWithAdjust.replace('{n}', String(ctDetail.items.filter(i => i.variance !== 0).length))}
                   </p>
                   <Button size="sm" onClick={() => countStatusUpdate(ctDetail.id, 'COMPLETED')}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />{dict.common.confirm}{dict.common.complete}，調整庫存
+                    <CheckCircle2 className="mr-2 h-4 w-4" />{dict.inventoryPage.confirmAdjustStock}
                   </Button>
                 </div>
               )}
@@ -1521,7 +1515,7 @@ export default function InventoryPage() {
       {/* New Scrap Dialog */}
       <Dialog open={scNewOpen} onOpenChange={o => !o && setScNewOpen(false)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>登錄{dict.inventory.scrap}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.inventoryPage.registerScrap}{dict.inventory.scrap}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
               <Label>{dict.common.product} <span className="text-red-500">*</span></Label>
@@ -1561,7 +1555,7 @@ export default function InventoryPage() {
               <Label>{dict.inventoryExt.scrapReason}</Label>
               <Input value={scForm.reason}
                 onChange={e => setScForm(f => ({ ...f, reason: e.target.value }))}
-                placeholder="過期 / 損壞 / 品管不合格..." />
+                placeholder={dict.inventoryPage.scrapReasonPlaceholder} />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.common.notes}</Label>
