@@ -73,6 +73,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const body = await req.json()
 
+  // IDOR check: verify user can access this customer
+  const existing = await prisma.customer.findUnique({ where: { id }, select: { salesRepId: true } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const ctx = buildScopeContext(session as { user: { id: string; role: string } })
+  if (!canAccessCustomer(ctx, existing)) {
+    return NextResponse.json({ error: '無權限修改此客戶' }, { status: 403 })
+  }
+
   const customer = await prisma.customer.update({
     where: { id },
     data: {
@@ -118,6 +126,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const role = (session.user as { role?: string }).role ?? ''
+  const canDelete = ['SUPER_ADMIN', 'GM', 'SALES_MANAGER'].includes(role)
+  if (!canDelete) return NextResponse.json({ error: '無權限執行此操作' }, { status: 403 })
 
   const { id } = await params
   await prisma.customer.update({ where: { id }, data: { isActive: false } })

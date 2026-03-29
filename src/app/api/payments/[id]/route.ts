@@ -6,6 +6,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const role = (session.user as { role?: string }).role ?? ''
+  if (!['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)) {
+    return NextResponse.json({ error: '無權限修改付款記錄' }, { status: 403 })
+  }
+
   const { id } = await params
   const body = await req.json()
 
@@ -33,6 +38,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const role = (session.user as { role?: string }).role ?? ''
+  if (!['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)) {
+    return NextResponse.json({ error: '無權限刪除付款記錄' }, { status: 403 })
+  }
 
   const { id } = await params
   const record = await prisma.paymentRecord.findUnique({ where: { id } })

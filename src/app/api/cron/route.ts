@@ -13,16 +13,15 @@ import { refreshExpiryStatus } from '@/app/api/inventory/lots/refresh-expiry/rou
  * Each task is independent — one failure won't stop others
  */
 export async function GET(req: NextRequest) {
-  // ── Auth: CRON_SECRET via Bearer token ──
+  // ── Auth: CRON_SECRET via Bearer token (required) ──
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret) {
-    const authHeader = req.headers.get('authorization') ?? ''
-    const token = authHeader.replace('Bearer ', '')
-    // Also support ?key= for backward compat
-    const queryKey = new URL(req.url).searchParams.get('key')
-    if (token !== cronSecret && queryKey !== cronSecret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!cronSecret || cronSecret.length < 32) {
+    return NextResponse.json({ error: 'Server misconfiguration: CRON_SECRET must be ≥32 chars' }, { status: 500 })
+  }
+  const authHeader = req.headers.get('authorization') ?? ''
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  if (token !== cronSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const results: Record<string, { status: 'ok' | 'error'; data?: unknown; error?: string }> = {}

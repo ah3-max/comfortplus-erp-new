@@ -9,6 +9,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const body = await req.json()
 
+  // IDOR check: only creator, assignee, or manager can update a task
+  const existing = await prisma.salesTask.findUnique({ where: { id }, select: { createdById: true, assignedToId: true } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const role = (session.user as { role?: string }).role ?? ''
+  const isManager = ['SUPER_ADMIN', 'GM', 'SALES_MANAGER'].includes(role)
+  const isOwner = existing.createdById === session.user.id || existing.assignedToId === session.user.id
+  if (!isManager && !isOwner) {
+    return NextResponse.json({ error: '無權限修改此任務' }, { status: 403 })
+  }
+
   const completedAt = body.status === 'DONE' ? new Date() : (body.status === 'CANCELLED' ? undefined : null)
 
   const task = await prisma.salesTask.update({
@@ -39,6 +49,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
+  const existing = await prisma.salesTask.findUnique({ where: { id }, select: { createdById: true } })
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const role = (session.user as { role?: string }).role ?? ''
+  const isManager = ['SUPER_ADMIN', 'GM', 'SALES_MANAGER'].includes(role)
+  if (!isManager && existing.createdById !== session.user.id) {
+    return NextResponse.json({ error: '無權限刪除此任務' }, { status: 403 })
+  }
   await prisma.salesTask.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }
