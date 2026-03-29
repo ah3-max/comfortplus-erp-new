@@ -17,20 +17,14 @@ import { toast } from 'sonner'
 
 type PurchaseStatus = 'DRAFT' | 'PENDING_APPROVAL' | 'SOURCING' | 'CONFIRMED' | 'PARTIAL' | 'RECEIVED' | 'CANCELLED'
 
-const statusConfig: Record<PurchaseStatus, { label: string; cls: string }> = {
-  DRAFT:            { label: '草稿',   cls: 'border-slate-300 text-slate-600' },
-  PENDING_APPROVAL: { label: '審核中', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
-  SOURCING:         { label: '詢價中', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
-  CONFIRMED:        { label: '已確認', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-  PARTIAL:          { label: '部分到貨', cls: 'bg-amber-100 text-amber-700 border-amber-200' },
-  RECEIVED:         { label: '已到貨', cls: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED:        { label: '已取消', cls: 'bg-red-100 text-red-700 border-red-200' },
-}
-
-const purchaseTypeLabels: Record<string, string> = {
-  FINISHED_GOODS:     '成品採購', OEM: 'OEM代工採購',
-  PACKAGING:          '包材採購', RAW_MATERIAL: '原物料採購',
-  GIFT_PROMO:         '贈品/活動物料', LOGISTICS_SUPPLIES: '物流耗材採購',
+const STATUS_CLS: Record<PurchaseStatus, string> = {
+  DRAFT:            'border-slate-300 text-slate-600',
+  PENDING_APPROVAL: 'bg-orange-100 text-orange-700 border-orange-200',
+  SOURCING:         'bg-purple-100 text-purple-700 border-purple-200',
+  CONFIRMED:        'bg-blue-100 text-blue-700 border-blue-200',
+  PARTIAL:          'bg-amber-100 text-amber-700 border-amber-200',
+  RECEIVED:         'bg-green-100 text-green-700 border-green-200',
+  CANCELLED:        'bg-red-100 text-red-700 border-red-200',
 }
 
 interface PurchaseItem {
@@ -169,7 +163,7 @@ export default function PurchaseDetailPage() {
     setReceiving(false)
     if (res.ok) {
       const data = await res.json()
-      toast.success(`驗收完成，已建立 ${data.receiptNo}，庫存已入帳`)
+      toast.success(`${dict.purchaseDetail.confirmReceive}，${data.receiptNo}`)
       setReceiveOpen(false)
       fetchOrder()
     } else {
@@ -183,7 +177,7 @@ export default function PurchaseDetailPage() {
     const amount = Number(payAmount)
     const unpaid = Number(order.totalAmount) - Number(order.paidAmount)
     if (isNaN(amount) || amount <= 0) { toast.error(dict.purchasesPage.validAmount); return }
-    if (amount > unpaid) { toast.error(`付款金額不可超過欠款 ${fmt(unpaid)}`); return }
+    if (amount > unpaid) { toast.error(`${dict.purchaseDetail.paymentExceedsUnpaid}${fmt(unpaid)}`); return }
     const newPaid = Number(order.paidAmount) + amount
     setPaying(true)
     const res = await fetch(`/api/purchases/${id}`, {
@@ -205,11 +199,38 @@ export default function PurchaseDetailPage() {
     <div className="flex h-full items-center justify-center text-muted-foreground">{dict.purchasesExt.noOrders}</div>
   )
 
+  const purchaseTypeLabels: Record<string, string> = {
+    FINISHED_GOODS:     dict.purchaseDetail.ptFinishedGoods,
+    OEM:                dict.purchaseDetail.ptOem,
+    PACKAGING:          dict.purchaseDetail.ptPackaging,
+    RAW_MATERIAL:       dict.purchaseDetail.ptRawMaterial,
+    GIFT_PROMO:         dict.purchaseDetail.ptGiftPromo,
+    LOGISTICS_SUPPLIES: dict.purchaseDetail.ptLogisticsSupplies,
+  }
+  const statusConfig: Record<string, { label: string; cls: string }> = {
+    DRAFT:            { label: dict.purchaseDetail.stDraft,           cls: STATUS_CLS.DRAFT },
+    PENDING_APPROVAL: { label: dict.purchaseDetail.stPendingApproval, cls: STATUS_CLS.PENDING_APPROVAL },
+    SOURCING:         { label: dict.purchaseDetail.stSourcing,        cls: STATUS_CLS.SOURCING },
+    CONFIRMED:        { label: dict.purchaseDetail.stConfirmed,       cls: STATUS_CLS.CONFIRMED },
+    PARTIAL:          { label: dict.purchaseDetail.stPartial,         cls: STATUS_CLS.PARTIAL },
+    RECEIVED:         { label: dict.purchaseDetail.stReceived,        cls: STATUS_CLS.RECEIVED },
+    CANCELLED:        { label: dict.purchaseDetail.stCancelled,       cls: STATUS_CLS.CANCELLED },
+  }
+
   const sc = statusConfig[order.status] ?? { label: order.status, cls: '' }
   const unpaid = Number(order.totalAmount) - Number(order.paidAmount)
   const canReceive = ['CONFIRMED', 'PARTIAL'].includes(order.status)
   const canPay = !['CANCELLED'].includes(order.status) && unpaid > 0
   const isOEM = order.orderType === 'OEM'
+
+  const scheduleItems = [
+    { key: 'plannedStartDate',       label: dict.purchaseDetail.plannedStartDate,       value: order.plannedStartDate },
+    { key: 'plannedEndDate',         label: dict.purchaseDetail.plannedEndDate,         value: order.plannedEndDate },
+    { key: 'packagingReadyDate',     label: dict.purchaseDetail.packagingReadyDate,     value: order.packagingReadyDate },
+    { key: 'productionConfirmedDate',label: dict.purchaseDetail.productionConfirmedDate,value: order.productionConfirmedDate },
+    { key: 'factoryShipDate',        label: dict.purchaseDetail.factoryShipDate,        value: order.factoryShipDate },
+    { key: 'inspectionDate',         label: dict.purchaseDetail.inspectionDate,         value: order.inspectionDate },
+  ]
 
   return (
     <div className="space-y-5 max-w-4xl">
@@ -227,18 +248,18 @@ export default function PurchaseDetailPage() {
               {purchaseTypeLabels[order.orderType] ?? order.orderType}
             </Badge>
             {order.projectNo && (
-              <span className="text-xs font-mono text-muted-foreground">專案：{order.projectNo}</span>
+              <span className="text-xs font-mono text-muted-foreground">{dict.purchaseDetail.projectPrefix}{order.projectNo}</span>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            建立於 {fmtDate(order.createdAt)} · {order.createdBy.name}
-            {order.warehouse && ` · 收貨：${order.warehouse}`}
+            {dict.purchaseDetail.createdPrefix}{fmtDate(order.createdAt)} · {order.createdBy.name}
+            {order.warehouse && `${dict.purchaseDetail.warehousePrefix}${order.warehouse}`}
           </p>
         </div>
         <div className="flex gap-2">
           {isOEM && (
             <Button variant="outline" onClick={openOemUpdate}>
-              <Factory className="mr-2 h-4 w-4" />{dict.common.edit}OEM進度
+              <Factory className="mr-2 h-4 w-4" />{dict.common.edit}{dict.purchaseDetail.editOemProgress}
             </Button>
           )}
           {canPay && (
@@ -262,7 +283,7 @@ export default function PurchaseDetailPage() {
             <p className="font-semibold">{order.supplier.name}</p>
             <p className="text-sm text-muted-foreground">{order.supplier.code}</p>
             {order.supplier.phone && <p className="text-sm">{order.supplier.phone}</p>}
-            {order.supplier.paymentTerms && <p className="text-xs text-muted-foreground">付款：{order.supplier.paymentTerms}</p>}
+            {order.supplier.paymentTerms && <p className="text-xs text-muted-foreground">{dict.supplierDetail.paymentPrefix}{order.supplier.paymentTerms}</p>}
           </CardContent>
         </Card>
         <Card>
@@ -278,22 +299,22 @@ export default function PurchaseDetailPage() {
             </div>
             {unpaid > 0 && (
               <div className="flex justify-between text-sm border-t pt-1.5">
-                <span className="text-muted-foreground">應付未付</span>
+                <span className="text-muted-foreground">{dict.purchaseDetail.unpaidLabel}</span>
                 <span className="font-bold text-red-600">{fmt(unpaid)}</span>
               </div>
             )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">到貨資訊</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{dict.purchaseDetail.arrivalInfo}</CardTitle></CardHeader>
           <CardContent className="space-y-1.5 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">{dict.purchasesExt.expectedDate}</span>
               <span>{order.expectedDate ? fmtDate(order.expectedDate) : '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">驗收單數</span>
-              <span className="font-medium">{order.receipts.length} 筆</span>
+              <span className="text-muted-foreground">{dict.purchaseDetail.receiptCount}</span>
+              <span className="font-medium">{order.receipts.length}{dict.purchaseDetail.receiptUnit}</span>
             </div>
           </CardContent>
         </Card>
@@ -308,9 +329,9 @@ export default function PurchaseDetailPage() {
               <TableRow>
                 <TableHead>{dict.common.product}</TableHead>
                 <TableHead className="text-center w-20">{dict.common.quantity}</TableHead>
-                <TableHead className="text-center w-20">已到貨</TableHead>
-                <TableHead className="text-right w-28">採購單價</TableHead>
-                <TableHead className="text-right w-28">小計</TableHead>
+                <TableHead className="text-center w-20">{dict.purchaseDetail.receivedHeader}</TableHead>
+                <TableHead className="text-right w-28">{dict.purchaseDetail.unitCostHeader}</TableHead>
+                <TableHead className="text-right w-28">{dict.purchaseDetail.subtotalHeader}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -347,12 +368,12 @@ export default function PurchaseDetailPage() {
       {/* 驗收記錄 */}
       {order.receipts.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">驗收記錄</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{dict.purchaseDetail.receiptCard}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>驗收單號</TableHead>
+                  <TableHead>{dict.purchaseDetail.receiptNoHeader}</TableHead>
                   <TableHead>{dict.common.product}</TableHead>
                   <TableHead className="w-28">{dict.purchasesExt.receivedDate}</TableHead>
                 </TableRow>
@@ -376,17 +397,17 @@ export default function PurchaseDetailPage() {
       {/* 附加資訊（規格版本、驗收標準）*/}
       {(order.specVersion || order.inspectionCriteria) && (
         <Card>
-          <CardHeader><CardTitle className="text-base">附加資訊</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{dict.purchaseDetail.additionalInfoCard}</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             {order.specVersion && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">規格版本</span>
+                <span className="text-muted-foreground">{dict.purchaseDetail.specVersionLabel}</span>
                 <span className="font-medium font-mono">{order.specVersion}</span>
               </div>
             )}
             {order.inspectionCriteria && (
               <div>
-                <p className="text-muted-foreground mb-1">驗收標準</p>
+                <p className="text-muted-foreground mb-1">{dict.purchaseDetail.inspectionCriteriaLabel}</p>
                 <p className="text-slate-700 whitespace-pre-wrap">{order.inspectionCriteria}</p>
               </div>
             )}
@@ -398,7 +419,7 @@ export default function PurchaseDetailPage() {
       {isOEM && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">OEM 生產資訊</CardTitle>
+            <CardTitle className="text-base">{dict.purchaseDetail.oemInfoCard}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             {/* OEM 基本 */}
@@ -406,31 +427,31 @@ export default function PurchaseDetailPage() {
               <div className="grid grid-cols-2 gap-x-8 gap-y-2.5 text-sm">
                 {order.oemProjectNo && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">OEM專案編號</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.oemProjectNoDisplay}</span>
                     <span className="font-mono font-medium">{order.oemProjectNo}</span>
                   </div>
                 )}
                 {order.factory && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">工廠/代工廠</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.factoryDisplay}</span>
                     <span className="font-medium">{order.factory}</span>
                   </div>
                 )}
                 {order.sampleVersion && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">樣品版本</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.sampleVersionDisplay}</span>
                     <span className="font-mono text-xs font-medium">{order.sampleVersion}</span>
                   </div>
                 )}
                 {order.packagingVersion && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">包裝版本</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.packagingVersionDisplay}</span>
                     <span className="font-mono text-xs font-medium">{order.packagingVersion}</span>
                   </div>
                 )}
                 {order.productionBatch && (
                   <div className="flex justify-between col-span-2">
-                    <span className="text-muted-foreground">生產批號</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.productionBatchDisplay}</span>
                     <span className="font-mono font-medium">{order.productionBatch}</span>
                   </div>
                 )}
@@ -442,19 +463,19 @@ export default function PurchaseDetailPage() {
               <div className="space-y-2.5 text-sm border-t pt-4">
                 {order.inspectionRequirements && (
                   <div>
-                    <p className="text-muted-foreground mb-1">驗貨要求</p>
+                    <p className="text-muted-foreground mb-1">{dict.purchaseDetail.inspectionRequirementsDisplay}</p>
                     <p className="text-slate-700 whitespace-pre-wrap bg-slate-50 rounded p-2">{order.inspectionRequirements}</p>
                   </div>
                 )}
                 {order.shippingLabelRequirements && (
                   <div>
-                    <p className="text-muted-foreground mb-1">出貨標籤要求</p>
+                    <p className="text-muted-foreground mb-1">{dict.purchaseDetail.shippingLabelRequirementsDisplay}</p>
                     <p className="text-slate-700 whitespace-pre-wrap bg-slate-50 rounded p-2">{order.shippingLabelRequirements}</p>
                   </div>
                 )}
                 {order.customNotes && (
                   <div>
-                    <p className="text-muted-foreground mb-1">客製化備註</p>
+                    <p className="text-muted-foreground mb-1">{dict.purchaseDetail.customNotesDisplay}</p>
                     <p className="text-slate-700 whitespace-pre-wrap bg-slate-50 rounded p-2">{order.customNotes}</p>
                   </div>
                 )}
@@ -463,16 +484,9 @@ export default function PurchaseDetailPage() {
 
             {/* 排程里程碑 */}
             <div className={`grid grid-cols-2 gap-x-8 gap-y-3 text-sm ${(order.oemProjectNo || order.factory || order.inspectionRequirements || order.shippingLabelRequirements || order.customNotes) ? 'border-t pt-4' : ''}`}>
-              <p className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">生產排程</p>
-              {[
-                { label: '預計開工日',      value: order.plannedStartDate },
-                { label: '預計完工日',      value: order.plannedEndDate },
-                { label: '包材到位日',      value: order.packagingReadyDate },
-                { label: '生產排程確認日',  value: order.productionConfirmedDate },
-                { label: '出廠日',          value: order.factoryShipDate },
-                { label: '驗貨日',          value: order.inspectionDate },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between border-b border-slate-50 pb-2">
+              <p className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{dict.purchaseDetail.productionSchedule}</p>
+              {scheduleItems.map(({ key, label, value }) => (
+                <div key={key} className="flex justify-between border-b border-slate-50 pb-2">
                   <span className="text-muted-foreground">{label}</span>
                   <span className={value ? 'font-medium' : 'text-muted-foreground'}>
                     {value ? fmtDate(value) : '—'}
@@ -484,10 +498,10 @@ export default function PurchaseDetailPage() {
             {/* 品質結算 */}
             {(order.defectRate || order.lossRate || order.defectResponsibility || order.finalUnitCost) && (
               <div className="mt-1 pt-4 border-t grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                <p className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">品質結算</p>
+                <p className="col-span-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">{dict.purchaseDetail.qualitySettlement}</p>
                 {order.defectRate && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">不良率</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.defectRateDisplay}</span>
                     <span className={`font-medium ${Number(order.defectRate) > 5 ? 'text-red-600' : 'text-green-600'}`}>
                       {order.defectRate}%
                     </span>
@@ -495,19 +509,19 @@ export default function PurchaseDetailPage() {
                 )}
                 {order.lossRate && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">損耗率</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.lossRateDisplay}</span>
                     <span className="font-medium">{order.lossRate}%</span>
                   </div>
                 )}
                 {order.defectResponsibility && (
                   <div className="col-span-2 flex justify-between">
-                    <span className="text-muted-foreground">補貨責任歸屬</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.defectResponsibilityDisplay}</span>
                     <span className="font-medium">{order.defectResponsibility}</span>
                   </div>
                 )}
                 {order.finalUnitCost && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">最終結算單價</span>
+                    <span className="text-muted-foreground">{dict.purchaseDetail.finalUnitCostDisplay}</span>
                     <span className="font-bold text-blue-600">{fmt(order.finalUnitCost)}</span>
                   </div>
                 )}
@@ -533,9 +547,9 @@ export default function PurchaseDetailPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">商品</th>
-                    <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">待到貨</th>
-                    <th className="px-3 py-2 text-center font-medium text-muted-foreground w-28">本次到貨</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">{dict.purchaseDetail.receiveDialogProduct}</th>
+                    <th className="px-3 py-2 text-center font-medium text-muted-foreground w-20">{dict.purchaseDetail.receiveDialogPending}</th>
+                    <th className="px-3 py-2 text-center font-medium text-muted-foreground w-28">{dict.purchaseDetail.receiveDialogThisTime}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -565,15 +579,15 @@ export default function PurchaseDetailPage() {
               </table>
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
-              <Input value={receiveNotes} onChange={(e) => setReceiveNotes(e.target.value)} placeholder="驗收備註..." />
+              <Label>{dict.purchaseDetail.receiveNotesLabel}</Label>
+              <Input value={receiveNotes} onChange={(e) => setReceiveNotes(e.target.value)} placeholder={dict.purchaseDetail.receiveNotesPlaceholder} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReceiveOpen(false)} disabled={receiving}>{dict.common.cancel}</Button>
             <Button onClick={handleReceive} disabled={receiving}>
               {receiving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              確認驗收入庫
+              {dict.purchaseDetail.confirmReceive}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -594,15 +608,15 @@ export default function PurchaseDetailPage() {
                 <span className="font-medium text-green-600">{fmt(order.paidAmount)}</span>
               </div>
               <div className="flex justify-between border-t pt-1">
-                <span className="text-muted-foreground">尚欠</span>
+                <span className="text-muted-foreground">{dict.purchaseDetail.unpaidPrefix}</span>
                 <span className="font-bold text-red-600">{fmt(unpaid)}</span>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>本次付款金額 <span className="text-red-500">*</span></Label>
+              <Label>{dict.purchaseDetail.payAmountLabel}</Label>
               <Input type="number" min={1} max={unpaid} value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)} placeholder="輸入金額" />
-              <p className="text-xs text-muted-foreground">最多 {fmt(unpaid)}，可部分付款</p>
+                onChange={(e) => setPayAmount(e.target.value)} placeholder={dict.purchaseDetail.payAmountPlaceholder} />
+              <p className="text-xs text-muted-foreground">{dict.purchaseDetail.payMaxHint.replace('{max}', fmt(unpaid))}</p>
             </div>
           </div>
           <DialogFooter>
@@ -618,41 +632,41 @@ export default function PurchaseDetailPage() {
       {/* OEM 進度更新 Dialog */}
       <Dialog open={oemOpen} onOpenChange={(o) => !o && setOemOpen(false)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>編輯 OEM 進度</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.purchaseDetail.editOemDialog}</DialogTitle></DialogHeader>
           <div className="space-y-5 py-1">
             {/* OEM 基本資訊 */}
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">基本資訊</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{dict.purchaseDetail.oemBasicInfo}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>OEM 專案編號</Label>
+                  <Label>{dict.purchaseDetail.oemProjectNoLabel}</Label>
                   <Input value={oemForm.oemProjectNo}
                     onChange={e => setOemForm(f => ({ ...f, oemProjectNo: e.target.value }))}
-                    placeholder="OEM-2024-001" />
+                    placeholder={dict.purchaseDetail.oemProjectNoPlaceholder} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>工廠 / 代工廠</Label>
+                  <Label>{dict.purchaseDetail.oemFactoryLabel}</Label>
                   <Input value={oemForm.factory}
                     onChange={e => setOemForm(f => ({ ...f, factory: e.target.value }))}
-                    placeholder="廠商名稱" />
+                    placeholder={dict.purchaseDetail.oemFactoryPlaceholder} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>樣品版本</Label>
+                  <Label>{dict.purchaseDetail.oemSampleVersionLabel}</Label>
                   <Input value={oemForm.sampleVersion}
                     onChange={e => setOemForm(f => ({ ...f, sampleVersion: e.target.value }))}
-                    placeholder="v1.0" />
+                    placeholder={dict.purchaseDetail.oemSampleVersionPlaceholder} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>包裝版本</Label>
+                  <Label>{dict.purchaseDetail.oemPackagingVersionLabel}</Label>
                   <Input value={oemForm.packagingVersion}
                     onChange={e => setOemForm(f => ({ ...f, packagingVersion: e.target.value }))}
-                    placeholder="PKG-v2" />
+                    placeholder={dict.purchaseDetail.oemPackagingVersionPlaceholder} />
                 </div>
                 <div className="space-y-1.5 col-span-2">
-                  <Label>生產批號</Label>
+                  <Label>{dict.purchaseDetail.oemProductionBatchLabel}</Label>
                   <Input value={oemForm.productionBatch}
                     onChange={e => setOemForm(f => ({ ...f, productionBatch: e.target.value }))}
-                    placeholder="BATCH-20240301" />
+                    placeholder={dict.purchaseDetail.oemProductionBatchPlaceholder} />
                 </div>
               </div>
             </div>
@@ -661,15 +675,15 @@ export default function PurchaseDetailPage() {
 
             {/* 排程 */}
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">生產排程</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{dict.purchaseDetail.oemScheduleSection}</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { key: 'plannedStartDate',        label: '預計開工日' },
-                  { key: 'plannedEndDate',           label: '預計完工日' },
-                  { key: 'packagingReadyDate',       label: '包材到位日' },
-                  { key: 'productionConfirmedDate',  label: '生產排程確認日' },
-                  { key: 'factoryShipDate',          label: '出廠日' },
-                  { key: 'inspectionDate',           label: '驗貨日' },
+                  { key: 'plannedStartDate',        label: dict.purchaseDetail.plannedStartDate },
+                  { key: 'plannedEndDate',           label: dict.purchaseDetail.plannedEndDate },
+                  { key: 'packagingReadyDate',       label: dict.purchaseDetail.packagingReadyDate },
+                  { key: 'productionConfirmedDate',  label: dict.purchaseDetail.productionConfirmedDate },
+                  { key: 'factoryShipDate',          label: dict.purchaseDetail.factoryShipDate },
+                  { key: 'inspectionDate',           label: dict.purchaseDetail.inspectionDate },
                 ].map(({ key, label }) => (
                   <div key={key} className="space-y-1.5">
                     <Label>{label}</Label>
@@ -685,30 +699,30 @@ export default function PurchaseDetailPage() {
 
             {/* 品質結算 */}
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">品質結算</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{dict.purchaseDetail.oemQualitySection}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>不良率 (%)</Label>
+                  <Label>{dict.purchaseDetail.oemDefectRateLabel}</Label>
                   <Input type="number" step="0.01" min={0} max={100}
                     value={oemForm.defectRate}
                     onChange={e => setOemForm(f => ({ ...f, defectRate: e.target.value }))}
                     placeholder="0.00" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>損耗率 (%)</Label>
+                  <Label>{dict.purchaseDetail.oemLossRateLabel}</Label>
                   <Input type="number" step="0.01" min={0} max={100}
                     value={oemForm.lossRate}
                     onChange={e => setOemForm(f => ({ ...f, lossRate: e.target.value }))}
                     placeholder="0.00" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>補貨責任歸屬</Label>
+                  <Label>{dict.purchaseDetail.oemDefectResponsibilityLabel}</Label>
                   <Input value={oemForm.defectResponsibility}
                     onChange={e => setOemForm(f => ({ ...f, defectResponsibility: e.target.value }))}
-                    placeholder="工廠負責 / 買方負責" />
+                    placeholder={dict.purchaseDetail.oemDefectResponsibilityPlaceholder} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>最終結算單價 (TWD)</Label>
+                  <Label>{dict.purchaseDetail.oemFinalUnitCostLabel}</Label>
                   <Input type="number" step="0.01" min={0}
                     value={oemForm.finalUnitCost}
                     onChange={e => setOemForm(f => ({ ...f, finalUnitCost: e.target.value }))}
@@ -721,34 +735,34 @@ export default function PurchaseDetailPage() {
 
             {/* 驗貨/標籤/備註 */}
             <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">驗貨要求與備註</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">{dict.purchaseDetail.oemInspectionSection}</p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>驗貨要求</Label>
+                  <Label>{dict.purchaseDetail.oemInspectionLabel}</Label>
                   <Textarea rows={2} value={oemForm.inspectionRequirements}
                     onChange={e => setOemForm(f => ({ ...f, inspectionRequirements: e.target.value }))}
-                    placeholder="驗貨標準、抽樣比例..." />
+                    placeholder={dict.purchaseDetail.oemInspectionPlaceholder} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>出貨標籤要求</Label>
+                  <Label>{dict.purchaseDetail.oemShippingLabelLabel}</Label>
                   <Textarea rows={2} value={oemForm.shippingLabelRequirements}
                     onChange={e => setOemForm(f => ({ ...f, shippingLabelRequirements: e.target.value }))}
-                    placeholder="條碼規格、貼標位置..." />
+                    placeholder={dict.purchaseDetail.oemShippingLabelPlaceholder} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>客製化備註</Label>
+                  <Label>{dict.purchaseDetail.oemCustomNotesLabel}</Label>
                   <Textarea rows={2} value={oemForm.customNotes}
                     onChange={e => setOemForm(f => ({ ...f, customNotes: e.target.value }))}
-                    placeholder="其他特殊要求..." />
+                    placeholder={dict.purchaseDetail.oemCustomNotesPlaceholder} />
                 </div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOemOpen(false)} disabled={oemSaving}>取消</Button>
+            <Button variant="outline" onClick={() => setOemOpen(false)} disabled={oemSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleOemSave} disabled={oemSaving}>
               {oemSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              儲存 OEM 進度
+              {dict.purchaseDetail.oemSaveBtn}
             </Button>
           </DialogFooter>
         </DialogContent>

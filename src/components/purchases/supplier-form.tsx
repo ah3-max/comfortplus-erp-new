@@ -10,8 +10,9 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
-// Static payment term options — these are system/financial codes, kept as-is
-const paymentTermOptions = ['Net 30', 'Net 60', 'Net 90', '月結30天', '月結60天', '貨到付款', '預付']
+// Static payment term values — stored in DB as-is; display labels come from i18n
+const PAYMENT_TERM_VALUES = ['Net 30', 'Net 60', 'Net 90', '月結30天', '月結60天', '貨到付款', '預付'] as const
+type PaymentTermValue = typeof PAYMENT_TERM_VALUES[number]
 
 // Static export for backward compat with other pages
 export const purchaseTypeOptions = [
@@ -65,6 +66,16 @@ export function SupplierForm({ open, onClose, onSuccess, supplier }: Props) {
     { value: 'GIFT_PROMO',         label: fl.ptGiftPromo },
     { value: 'LOGISTICS_SUPPLIES', label: fl.ptLogisticsSupplies },
   ]
+
+  const paymentTermLabelMap: Record<PaymentTermValue, string> = {
+    'Net 30':   fl.paymentTermNet30,
+    'Net 60':   fl.paymentTermNet60,
+    'Net 90':   fl.paymentTermNet90,
+    '月結30天': fl.paymentTermMonthly30,
+    '月結60天': fl.paymentTermMonthly60,
+    '貨到付款': fl.paymentTermCOD,
+    '預付':     fl.paymentTermPrepaid,
+  }
 
   useEffect(() => {
     if (open && supplier) {
@@ -177,7 +188,7 @@ export function SupplierForm({ open, onClose, onSuccess, supplier }: Props) {
                   <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     value={form.paymentTerms} onChange={(e) => set('paymentTerms', e.target.value)}>
                     <option value="">{fl.selectPaymentTerms}</option>
-                    {paymentTermOptions.map(t => <option key={t} value={t}>{t}</option>)}
+                    {PAYMENT_TERM_VALUES.map(t => <option key={t} value={t}>{paymentTermLabelMap[t]}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">

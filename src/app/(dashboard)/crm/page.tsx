@@ -97,24 +97,11 @@ type Tab = 'alerts' | 'performance' | 'pipeline' | 'samples' | 'quotes' | 'sched
 //  Constants
 // ═══════════════════════════════════════════════════════════════════════════
 
-const DEV_STATUS_LABEL: Record<string, string> = {
-  POTENTIAL: '潛在', CONTACTED: '已接觸', VISITED: '已拜訪',
-  NEGOTIATING: '議價中', TRIAL: '試用中', CLOSED: '成交',
-  STABLE_REPURCHASE: '穩定回購', DORMANT: '休眠', CHURNED: '流失', REJECTED: '拒絕',
-}
 const DEV_STATUS_COLOR: Record<string, string> = {
   POTENTIAL: 'bg-slate-100 text-slate-600', CONTACTED: 'bg-blue-100 text-blue-700',
   VISITED: 'bg-indigo-100 text-indigo-700', NEGOTIATING: 'bg-amber-100 text-amber-700',
   TRIAL: 'bg-violet-100 text-violet-700', CLOSED: 'bg-green-100 text-green-700',
   STABLE_REPURCHASE: 'bg-teal-100 text-teal-700', DORMANT: 'bg-slate-200 text-slate-500',
-}
-const SCHEDULE_LABEL: Record<string, string> = {
-  FIRST_VISIT: '初訪', SECOND_VISIT: '二訪', THIRD_VISIT: '三訪',
-  PAYMENT_COLLECT: '收款', DELIVERY: '送貨', EXPO: '擺攤',
-  SPRING_PARTY: '春酒', RECONCILE: '對帳', OTHER: '行程',
-}
-const SAMPLE_PURPOSE_LABEL: Record<string, string> = {
-  TRIAL: '試用', COMPARISON: '比較競品', EDUCATION: '衛教', NEGOTIATION: '議價',
 }
 
 function daysSince(d: string | null) {
@@ -131,7 +118,15 @@ function fmtDate(d: string | null) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function CustomerRow({ c, suffix }: { c: AlertCustomer; suffix?: React.ReactNode }) {
+  const { dict } = useI18n()
   const days = daysSince(c.lastContactDate)
+  const devStatusLabel: Record<string, string> = {
+    POTENTIAL: dict.crmPage.devStatusPotential, CONTACTED: dict.crmPage.devStatusContacted,
+    VISITED: dict.crmPage.devStatusVisited, NEGOTIATING: dict.crmPage.devStatusNegotiating,
+    TRIAL: dict.crmPage.devStatusTrial, CLOSED: dict.crmPage.devStatusClosed,
+    STABLE_REPURCHASE: dict.crmPage.devStatusStableRepurchase, DORMANT: dict.crmPage.devStatusDormant,
+    CHURNED: dict.crmPage.devStatusChurned, REJECTED: dict.crmPage.devStatusRejected,
+  }
   return (
     <Link href={`/customers/${c.id}`}
       className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 transition-colors group">
@@ -139,14 +134,14 @@ function CustomerRow({ c, suffix }: { c: AlertCustomer; suffix?: React.ReactNode
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-sm">{c.name}</span>
           <Badge variant="outline" className={`text-xs shrink-0 ${DEV_STATUS_COLOR[c.devStatus] ?? ''}`}>
-            {DEV_STATUS_LABEL[c.devStatus] ?? c.devStatus}
+            {devStatusLabel[c.devStatus] ?? c.devStatus}
           </Badge>
         </div>
         <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
           <span className="font-mono">{c.code}</span>
           {c.salesRep && <span>{c.salesRep.name}</span>}
           {c.phone && <span className="flex items-center gap-0.5"><Phone className="h-3 w-3" />{c.phone}</span>}
-          {days !== null && <span className="text-amber-600">{days} 天未聯繫</span>}
+          {days !== null && <span className="text-amber-600">{dict.crmPage.daysNoContact.replace('{days}', String(days))}</span>}
           {suffix}
         </div>
       </div>
@@ -159,6 +154,7 @@ function AlertSection({ title, icon, count, color, children, emptyMsg }: {
   title: string; icon: React.ReactNode; count: number; color: string
   children: React.ReactNode; emptyMsg: string
 }) {
+  const { dict } = useI18n()
   const [open, setOpen] = useState(count > 0)
   return (
     <Card className={`border-l-4 ${color}`}>
@@ -169,7 +165,7 @@ function AlertSection({ title, icon, count, color, children, emptyMsg }: {
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
               count > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
           </CardTitle>
-          <span className="text-xs text-muted-foreground">{open ? '收合' : '展開'}</span>
+          <span className="text-xs text-muted-foreground">{open ? dict.crmPage.collapse : dict.crmPage.expand}</span>
         </button>
       </CardHeader>
       {open && (
@@ -214,11 +210,16 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
     } catch { toast.error(dict.common.saveFailed) } finally { setSaving(false) }
   }
 
+  const samplePurposeLabel: Record<string, string> = {
+    TRIAL: dict.crmPage.sampleTrial, COMPARISON: dict.crmPage.sampleComparison,
+    EDUCATION: dict.crmPage.sampleEducation, NEGOTIATION: dict.crmPage.sampleNegotiation,
+  }
+
   if (samples.length === 0) {
     return (
       <Card><CardContent className="py-10 text-center">
         <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-green-500" />
-        <p className="text-sm font-medium text-slate-600">所有樣品都已有回饋</p>
+        <p className="text-sm font-medium text-slate-600">{dict.crmPage.allFeedbackDone}</p>
       </CardContent></Card>
     )
   }
@@ -228,7 +229,7 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Package className="h-4 w-4 text-violet-600" />
-          樣品追蹤清單（{samples.length} 件待回饋）
+          {dict.crmPage.sampleListTitle.replace('{count}', String(samples.length))}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0 divide-y">
@@ -244,16 +245,16 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
                   <span className="text-xs font-mono text-slate-400">{s.customer.code}</span>
                   {s.purpose && (
                     <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700">
-                      {SAMPLE_PURPOSE_LABEL[s.purpose] ?? s.purpose}
+                      {samplePurposeLabel[s.purpose] ?? s.purpose}
                     </Badge>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {days !== null && <span className="text-xs text-violet-600 font-medium">{days} 天</span>}
+                  {days !== null && <span className="text-xs text-violet-600 font-medium">{dict.crmPage.daysAgo.replace('{days}', String(days))}</span>}
                   {feedbackId !== s.id && (
                     <Button size="sm" variant="outline" className="text-xs h-7 px-2"
                       onClick={() => { setFeedbackId(s.id); setFeedbackText('') }}>
-                      記錄回饋
+                      {dict.crmPage.recordFeedback}
                     </Button>
                   )}
                 </div>
@@ -261,19 +262,19 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
               <div className="text-xs text-muted-foreground mt-1">
                 <span>{s.items}</span>
                 {s.quantity && <span> × {s.quantity}</span>}
-                <span className="ml-2">送樣：{fmtDate(s.sentDate)}</span>
-                <span className="ml-2">業務：{s.sentBy.name}</span>
+                <span className="ml-2">{dict.crmPage.sampleSentDate}{fmtDate(s.sentDate)}</span>
+                <span className="ml-2">{dict.crmPage.sampleSales}{s.sentBy.name}</span>
               </div>
               {feedbackId === s.id && (
                 <div className="mt-2 flex gap-2">
-                  <Input placeholder="客戶回饋結果…" value={feedbackText}
+                  <Input placeholder={dict.crmPage.feedbackPlaceholder} value={feedbackText}
                     onChange={e => setFeedbackText(e.target.value)} className="text-sm h-8 flex-1" autoFocus />
                   <Button size="sm" className="h-8 text-xs" disabled={saving || !feedbackText.trim()}
                     onClick={() => submitFeedback(s.id)}>
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : '儲存'}
+                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : dict.crmPage.save}
                   </Button>
                   <Button size="sm" variant="ghost" className="h-8 text-xs"
-                    onClick={() => setFeedbackId(null)}>取消</Button>
+                    onClick={() => setFeedbackId(null)}>{dict.crmPage.cancel}</Button>
                 </div>
               )}
             </div>
@@ -319,13 +320,21 @@ function ScheduleManagementTab() {
     load()
   }
 
+  const scheduleLabel: Record<string, string> = {
+    FIRST_VISIT: dict.crmPage.scheduleFirstVisit, SECOND_VISIT: dict.crmPage.scheduleSecondVisit,
+    THIRD_VISIT: dict.crmPage.scheduleThirdVisit, PAYMENT_COLLECT: dict.crmPage.schedulePaymentCollect,
+    DELIVERY: dict.crmPage.scheduleDelivery, EXPO: dict.crmPage.scheduleExpo,
+    SPRING_PARTY: dict.crmPage.scheduleSpringParty, RECONCILE: dict.crmPage.scheduleReconcile,
+    OTHER: dict.crmPage.scheduleOther,
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
         <Button size="sm" variant={filter === 'upcoming' ? 'default' : 'outline'} className="text-xs h-7"
-          onClick={() => setFilter('upcoming')}>未來行程</Button>
+          onClick={() => setFilter('upcoming')}>{dict.crmPage.upcomingFilter}</Button>
         <Button size="sm" variant={filter === 'all' ? 'default' : 'outline'} className="text-xs h-7"
-          onClick={() => setFilter('all')}>全部</Button>
+          onClick={() => setFilter('all')}>{dict.crmPage.allFilter}</Button>
       </div>
 
       {loading ? (
@@ -333,7 +342,7 @@ function ScheduleManagementTab() {
       ) : schedules.length === 0 ? (
         <Card><CardContent className="py-10 text-center">
           <CalendarDays className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-          <p className="text-sm text-muted-foreground">沒有行程</p>
+          <p className="text-sm text-muted-foreground">{dict.crmPage.noSchedules}</p>
         </CardContent></Card>
       ) : (
         <Card>
@@ -343,7 +352,7 @@ function ScheduleManagementTab() {
                 <div>
                   <div className="flex items-center gap-2">
                     <Badge className="text-xs bg-amber-100 text-amber-700 border-0">
-                      {SCHEDULE_LABEL[s.scheduleType] ?? s.scheduleType}
+                      {scheduleLabel[s.scheduleType] ?? s.scheduleType}
                     </Badge>
                     <span className="text-sm font-medium">{(s.customer as { name: string }).name}</span>
                     <span className="text-xs text-muted-foreground">{fmtDate(s.scheduleDate)}</span>
@@ -359,7 +368,7 @@ function ScheduleManagementTab() {
                 </div>
                 <Button size="sm" variant="outline" className="text-xs h-7 shrink-0"
                   onClick={() => markComplete(s.id)}>
-                  <CheckCircle2 className="h-3 w-3 mr-1" />完成
+                  <CheckCircle2 className="h-3 w-3 mr-1" />{dict.crmPage.markDone}
                 </Button>
               </div>
             ))}
@@ -407,16 +416,23 @@ export default function CRMPage() {
     : 0
 
   const isManager = analytics?.isManager ?? false
+  const scheduleLabel: Record<string, string> = {
+    FIRST_VISIT: dict.crmPage.scheduleFirstVisit, SECOND_VISIT: dict.crmPage.scheduleSecondVisit,
+    THIRD_VISIT: dict.crmPage.scheduleThirdVisit, PAYMENT_COLLECT: dict.crmPage.schedulePaymentCollect,
+    DELIVERY: dict.crmPage.scheduleDelivery, EXPO: dict.crmPage.scheduleExpo,
+    SPRING_PARTY: dict.crmPage.scheduleSpringParty, RECONCILE: dict.crmPage.scheduleReconcile,
+    OTHER: dict.crmPage.scheduleOther,
+  }
   const TABS: { key: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
-    { key: 'alerts',      label: '警示總覽',  icon: <Crosshair className="h-4 w-4" />,          count: totalAlerts },
-    { key: 'performance', label: '績效看板',  icon: <BarChart3 className="h-4 w-4" /> },
-    { key: 'pipeline',    label: '客戶地圖',  icon: <Target className="h-4 w-4" /> },
-    { key: 'samples',     label: '樣品追蹤',  icon: <Package className="h-4 w-4" />,             count: alerts?.samplesPending.length },
-    { key: 'quotes',      label: '報價追蹤',  icon: <FileText className="h-4 w-4" />,            count: alerts?.quotesStale.length },
-    { key: 'schedules',   label: '行程管理',  icon: <Calendar className="h-4 w-4" /> },
+    { key: 'alerts',      label: dict.crmPage.tabAlerts,      icon: <Crosshair className="h-4 w-4" />,       count: totalAlerts },
+    { key: 'performance', label: dict.crmPage.tabPerformance, icon: <BarChart3 className="h-4 w-4" /> },
+    { key: 'pipeline',    label: dict.crmPage.tabPipeline,    icon: <Target className="h-4 w-4" /> },
+    { key: 'samples',     label: dict.crmPage.tabSamples,     icon: <Package className="h-4 w-4" />,         count: alerts?.samplesPending.length },
+    { key: 'quotes',      label: dict.crmPage.tabQuotes,      icon: <FileText className="h-4 w-4" />,        count: alerts?.quotesStale.length },
+    { key: 'schedules',   label: dict.crmPage.tabSchedules,   icon: <Calendar className="h-4 w-4" /> },
     ...(isManager ? [
-      { key: 'manager' as Tab, label: '主管看板', icon: <LayoutDashboard className="h-4 w-4" /> },
-      { key: 'demand'  as Tab, label: '需求看板', icon: <BarChart3 className="h-4 w-4" /> },
+      { key: 'manager' as Tab, label: dict.crmPage.tabManager, icon: <LayoutDashboard className="h-4 w-4" /> },
+      { key: 'demand'  as Tab, label: dict.crmPage.tabDemand,  icon: <BarChart3 className="h-4 w-4" /> },
     ] : []),
   ]
 
@@ -426,7 +442,7 @@ export default function CRMPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900">{dict.crm.title}</h1>
-          <p className="text-xs text-muted-foreground">系統自動整理 · 追蹤提醒</p>
+          <p className="text-xs text-muted-foreground">{dict.crmPage.subtitle}</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
@@ -465,29 +481,29 @@ export default function CRMPage() {
             <div className="space-y-3">
               {/* Summary chips */}
               <div className="grid grid-cols-4 gap-2">
-                <SummaryChip label="今日待追" value={alerts.todayFollowups.length} color="blue" icon={<Clock className="h-4 w-4" />} />
-                <SummaryChip label="逾期追蹤" value={alerts.overdueFollowups.length} color="red" icon={<AlertTriangle className="h-4 w-4" />} />
-                <SummaryChip label="樣品待回饋" value={alerts.samplesPending.length} color="violet" icon={<Package className="h-4 w-4" />} />
-                <SummaryChip label="報價待結果" value={alerts.quotesStale.length} color="amber" icon={<FileText className="h-4 w-4" />} />
+                <SummaryChip label={dict.crmPage.todayFollowup} value={alerts.todayFollowups.length} color="blue" icon={<Clock className="h-4 w-4" />} />
+                <SummaryChip label={dict.crmPage.overdueFollowup} value={alerts.overdueFollowups.length} color="red" icon={<AlertTriangle className="h-4 w-4" />} />
+                <SummaryChip label={dict.crmPage.samplePending} value={alerts.samplesPending.length} color="violet" icon={<Package className="h-4 w-4" />} />
+                <SummaryChip label={dict.crmPage.quotePending} value={alerts.quotesStale.length} color="amber" icon={<FileText className="h-4 w-4" />} />
               </div>
 
               {totalAlerts === 0 && alerts.todayFollowups.length === 0 && alerts.todaySchedules.length === 0 && (
                 <Card><CardContent className="py-8 text-center">
                   <CheckCircle2 className="h-10 w-10 text-green-500 mx-auto mb-2" />
-                  <p className="font-semibold text-slate-700">目前無待處理事項</p>
+                  <p className="font-semibold text-slate-700">{dict.crmPage.noPendingItems}</p>
                 </CardContent></Card>
               )}
 
               {/* Today schedules */}
               {alerts.todaySchedules.length > 0 && (
-                <AlertSection title="今日行程" icon={<CalendarCheck className="h-4 w-4 text-amber-600" />}
+                <AlertSection title={dict.crmPage.todayScheduleTitle} icon={<CalendarCheck className="h-4 w-4 text-amber-600" />}
                   count={alerts.todaySchedules.length} color="border-l-amber-400" emptyMsg="">
                   {alerts.todaySchedules.map(s => (
                     <Link key={s.id} href={`/customers/${s.customer.id}`}
                       className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 group">
                       <div>
                         <div className="flex items-center gap-2">
-                          <Badge className="text-xs bg-amber-100 text-amber-700 border-0">{SCHEDULE_LABEL[s.scheduleType] ?? s.scheduleType}</Badge>
+                          <Badge className="text-xs bg-amber-100 text-amber-700 border-0">{scheduleLabel[s.scheduleType] ?? s.scheduleType}</Badge>
                           <span className="font-medium text-sm">{s.customer.name}</span>
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5 flex gap-2">
@@ -503,40 +519,40 @@ export default function CRMPage() {
               )}
 
               {/* Today follow-ups */}
-              <AlertSection title="今日待追蹤" icon={<Clock className="h-4 w-4 text-blue-600" />}
-                count={alerts.todayFollowups.length} color="border-l-blue-400" emptyMsg="今天沒有排定的追蹤客戶">
-                {alerts.todayFollowups.map(c => <CustomerRow key={c.id} c={c} suffix={<span className="text-blue-600 font-medium">📅 今日追蹤</span>} />)}
+              <AlertSection title={dict.crmPage.todayFollowupTitle} icon={<Clock className="h-4 w-4 text-blue-600" />}
+                count={alerts.todayFollowups.length} color="border-l-blue-400" emptyMsg={dict.crmPage.todayFollowupEmpty}>
+                {alerts.todayFollowups.map(c => <CustomerRow key={c.id} c={c} suffix={<span className="text-blue-600 font-medium">{dict.crmPage.todayFollowupLabel}</span>} />)}
               </AlertSection>
 
               {/* Overdue */}
-              <AlertSection title="逾期追蹤" icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
-                count={alerts.overdueFollowups.length} color="border-l-red-400" emptyMsg="沒有逾期追蹤">
+              <AlertSection title={dict.crmPage.overdueTitle} icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
+                count={alerts.overdueFollowups.length} color="border-l-red-400" emptyMsg={dict.crmPage.overdueEmpty}>
                 {alerts.overdueFollowups.map(c => {
                   const d = daysSince(c.nextFollowUpDate)
-                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-red-600 font-medium">逾期 {d} 天</span> : undefined} />
+                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-red-600 font-medium">{dict.crmPage.overdueDays.replace('{d}', String(d))}</span> : undefined} />
                 })}
               </AlertSection>
 
               {/* Uncontacted */}
-              <AlertSection title="超過 7 天未聯繫" icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
-                count={alerts.uncontacted.length} color="border-l-orange-400" emptyMsg="所有客戶都在 7 天內有聯繫">
+              <AlertSection title={dict.crmPage.uncontactedTitle} icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
+                count={alerts.uncontacted.length} color="border-l-orange-400" emptyMsg={dict.crmPage.uncontactedEmpty}>
                 {alerts.uncontacted.map(c => <CustomerRow key={c.id} c={c} />)}
               </AlertSection>
 
               {/* Repurchase warning */}
-              <AlertSection title="回購預警（30 天無新單）" icon={<TrendingDown className="h-4 w-4 text-rose-600" />}
-                count={alerts.repurchaseWarning.length} color="border-l-rose-400" emptyMsg="所有成交客戶都有近期訂單">
+              <AlertSection title={dict.crmPage.repurchaseTitle} icon={<TrendingDown className="h-4 w-4 text-rose-600" />}
+                count={alerts.repurchaseWarning.length} color="border-l-rose-400" emptyMsg={dict.crmPage.repurchaseEmpty}>
                 {alerts.repurchaseWarning.map(c => {
                   const lastOrder = c.salesOrders[0]
                   const d = daysSince(lastOrder?.orderDate ?? null)
-                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-rose-600">最後下單 {d} 天前</span> : undefined} />
+                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-rose-600">{dict.crmPage.repurchaseDays.replace('{d}', String(d))}</span> : undefined} />
                 })}
               </AlertSection>
 
               {/* Footer */}
               <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
                 <CalendarDays className="h-3.5 w-3.5" />
-                更新於 {new Date(alerts.generatedAt).toLocaleTimeString('zh-TW')}
+                {dict.crmPage.updatedAt} {new Date(alerts.generatedAt).toLocaleTimeString('zh-TW')}
               </p>
             </div>
           )}
@@ -556,14 +572,14 @@ export default function CRMPage() {
               {alerts.quotesStale.length === 0 ? (
                 <Card><CardContent className="py-10 text-center">
                   <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-green-500" />
-                  <p className="text-sm font-medium text-slate-600">沒有待追蹤的報價</p>
+                  <p className="text-sm font-medium text-slate-600">{dict.crmPage.noStaleQuotes}</p>
                 </CardContent></Card>
               ) : (
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
                       <FileText className="h-4 w-4 text-amber-600" />
-                      報價追蹤清單（送出超過 7 天未結果）
+                      {dict.crmPage.quoteListTitle}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0 divide-y">
@@ -583,10 +599,10 @@ export default function CRMPage() {
                             </div>
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5 flex gap-3">
-                            <span>業務：{q.createdBy.name}</span>
-                            <span>送出：{fmtDate(q.updatedAt)}</span>
-                            {q.validUntil && <span>有效至：{fmtDate(q.validUntil)}</span>}
-                            {days !== null && <span className="text-amber-600 font-medium">{days} 天無結果</span>}
+                            <span>{dict.crmPage.quoteSales}{q.createdBy.name}</span>
+                            <span>{dict.crmPage.quoteSent}{fmtDate(q.updatedAt)}</span>
+                            {q.validUntil && <span>{dict.crmPage.quoteValidUntil}{fmtDate(q.validUntil)}</span>}
+                            {days !== null && <span className="text-amber-600 font-medium">{dict.crmPage.quoteDaysNoResult.replace('{days}', String(days))}</span>}
                           </div>
                         </Link>
                       )
@@ -627,43 +643,46 @@ const LOG_TYPE_ICON: Record<string, React.ReactNode> = {
   SPRING_PARTY: <PartyPopper className="h-3.5 w-3.5" />, EXPO: <Store className="h-3.5 w-3.5" />,
   OTHER: <ClipboardList className="h-3.5 w-3.5" />,
 }
-const LOG_TYPE_LABEL: Record<string, string> = {
-  CALL: '電訪', LINE: 'LINE', EMAIL: '信件', MEETING: '會議',
-  FIRST_VISIT: '初訪', SECOND_VISIT: '二訪', THIRD_VISIT: '三訪',
-  DELIVERY: '送貨', SPRING_PARTY: '春酒', EXPO: '擺攤', OTHER: '其他',
-}
 
 function PerformanceTab({ analytics }: { analytics: Analytics }) {
+  const { dict } = useI18n()
   const { myMetrics, activityBreakdown, teamRanking, isManager } = analytics
   const maxAct = Math.max(...activityBreakdown.map(a => a.count), 1)
+  const logTypeLabel: Record<string, string> = {
+    CALL: dict.crmPage.logCall, LINE: dict.crmPage.logLine, EMAIL: dict.crmPage.logEmail,
+    MEETING: dict.crmPage.logMeeting, FIRST_VISIT: dict.crmPage.logFirstVisit,
+    SECOND_VISIT: dict.crmPage.logSecondVisit, THIRD_VISIT: dict.crmPage.logThirdVisit,
+    DELIVERY: dict.crmPage.logDelivery, SPRING_PARTY: dict.crmPage.logSpringParty,
+    EXPO: dict.crmPage.logExpo, OTHER: dict.crmPage.logOther,
+  }
 
   return (
     <div className="space-y-4">
       {/* My metrics */}
       <div className="grid grid-cols-3 gap-2 lg:grid-cols-6">
-        <MetricChip label="本週聯繫" value={myMetrics.weekLogs} icon={<Phone className="h-4 w-4" />} color="blue" />
-        <MetricChip label="本週拜訪" value={myMetrics.weekVisits} icon={<MapPin className="h-4 w-4" />} color="green" />
-        <MetricChip label="本週送樣" value={myMetrics.weekSamples} icon={<Package className="h-4 w-4" />} color="violet" />
-        <MetricChip label="本週報價" value={myMetrics.weekQuotes} icon={<FileText className="h-4 w-4" />} color="amber" />
-        <MetricChip label="本月聯繫" value={myMetrics.monthLogs} icon={<Zap className="h-4 w-4" />} color="indigo" />
-        <MetricChip label="本月訂單" value={myMetrics.monthOrders} icon={<Award className="h-4 w-4" />} color="teal" />
+        <MetricChip label={dict.crmPage.weekContacts} value={myMetrics.weekLogs} icon={<Phone className="h-4 w-4" />} color="blue" />
+        <MetricChip label={dict.crmPage.weekVisits} value={myMetrics.weekVisits} icon={<MapPin className="h-4 w-4" />} color="green" />
+        <MetricChip label={dict.crmPage.weekSamples} value={myMetrics.weekSamples} icon={<Package className="h-4 w-4" />} color="violet" />
+        <MetricChip label={dict.crmPage.weekQuotes} value={myMetrics.weekQuotes} icon={<FileText className="h-4 w-4" />} color="amber" />
+        <MetricChip label={dict.crmPage.monthContacts} value={myMetrics.monthLogs} icon={<Zap className="h-4 w-4" />} color="indigo" />
+        <MetricChip label={dict.crmPage.monthOrders} value={myMetrics.monthOrders} icon={<Award className="h-4 w-4" />} color="teal" />
       </div>
 
       {/* Activity breakdown this week */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">本週活動分佈</CardTitle>
+          <CardTitle className="text-sm">{dict.crmPage.weekActivityTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           {activityBreakdown.length === 0 ? (
-            <p className="py-6 text-center text-xs text-muted-foreground">本週尚無活動</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">{dict.crmPage.noActivity}</p>
           ) : (
             <div className="space-y-2">
               {activityBreakdown.sort((a, b) => b.count - a.count).map(a => (
                 <div key={a.logType} className="flex items-center gap-3">
                   <div className="w-16 flex items-center gap-1.5 text-xs text-slate-600 shrink-0">
                     {LOG_TYPE_ICON[a.logType]}
-                    <span>{LOG_TYPE_LABEL[a.logType] ?? a.logType}</span>
+                    <span>{logTypeLabel[a.logType] ?? a.logType}</span>
                   </div>
                   <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-5 bg-blue-500 rounded-full flex items-center justify-end pr-2 text-[10px] text-white font-bold min-w-[24px]"
@@ -684,7 +703,7 @@ function PerformanceTab({ analytics }: { analytics: Analytics }) {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <Users className="h-4 w-4 text-blue-600" />
-              團隊本週聯繫排行
+              {dict.crmPage.teamRankingTitle}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 divide-y">
@@ -698,7 +717,7 @@ function PerformanceTab({ analytics }: { analytics: Analytics }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{m.name}</span>
-                      <span className="text-xs font-bold">{m.weekLogs} 次</span>
+                      <span className="text-xs font-bold">{m.weekLogs} {dict.crmPage.timesUnit}</span>
                     </div>
                     <div className="mt-0.5 h-1.5 rounded-full bg-slate-100">
                       <div className="h-1.5 rounded-full bg-blue-500"
@@ -739,11 +758,6 @@ function MetricChip({ label, value, icon, color }: {
 //  Pipeline / Customer Map Tab
 // ═══════════════════════════════════════════════════════════════════════════
 
-const STAGE_LABEL: Record<string, string> = {
-  POTENTIAL: '潛在名單', CONTACTED: '已接觸', VISITED: '已拜訪',
-  NEGOTIATING: '議價/洽談', TRIAL: '試用中', CLOSED: '已成交',
-  STABLE_REPURCHASE: '穩定回購', DORMANT: '休眠', CHURNED: '流失', REJECTED: '拒絕',
-}
 const STAGE_COLOR: Record<string, string> = {
   POTENTIAL: 'bg-slate-400', CONTACTED: 'bg-blue-500', VISITED: 'bg-indigo-500',
   NEGOTIATING: 'bg-amber-500', TRIAL: 'bg-violet-500', CLOSED: 'bg-green-500',
@@ -756,20 +770,34 @@ const STAGE_BG: Record<string, string> = {
 }
 
 function PipelineTab({ analytics }: { analytics: Analytics }) {
+  const { dict } = useI18n()
   const { funnel, myFunnel, aging } = analytics
   const [showMine, setShowMine] = useState(false)
   const [expandedStage, setExpandedStage] = useState<string | null>(null)
   const activeFunnel = showMine ? myFunnel : funnel
   const maxCount = Math.max(...activeFunnel.map(f => f.count), 1)
+  const cp = dict.crmPage
+  const stageLabel: Record<string, string> = {
+    POTENTIAL: cp.stagePotential,
+    CONTACTED: cp.stageContacted,
+    VISITED: cp.stageVisited,
+    NEGOTIATING: cp.stageNegotiating,
+    TRIAL: cp.stageTrial,
+    CLOSED: cp.stageClosed,
+    STABLE_REPURCHASE: cp.stageStableRepurchase,
+    DORMANT: cp.stageDormant,
+    CHURNED: cp.stageChurned,
+    REJECTED: cp.stageRejected,
+  }
 
   return (
     <div className="space-y-4">
       {/* Toggle all vs mine */}
       <div className="flex gap-2">
         <Button size="sm" variant={!showMine ? 'default' : 'outline'} className="text-xs h-7"
-          onClick={() => setShowMine(false)}>全公司</Button>
+          onClick={() => setShowMine(false)}>{cp.allCompany}</Button>
         <Button size="sm" variant={showMine ? 'default' : 'outline'} className="text-xs h-7"
-          onClick={() => setShowMine(true)}>我的客戶</Button>
+          onClick={() => setShowMine(true)}>{cp.myCustomers}</Button>
       </div>
 
       {/* Funnel visualization */}
@@ -777,7 +805,7 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
             <Target className="h-4 w-4 text-blue-600" />
-            銷售漏斗 — 客戶開發階段分佈
+            {cp.funnelTitle}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -795,11 +823,11 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
                     <div className="flex items-center gap-2">
                       <div className={`w-2.5 h-2.5 rounded-full ${STAGE_COLOR[f.stage] ?? 'bg-slate-400'}`} />
                       <span className="text-sm font-medium text-slate-800">
-                        {STAGE_LABEL[f.stage] ?? f.stage}
+                        {stageLabel[f.stage] ?? f.stage}
                       </span>
                       {agingData && agingData.avgDays > 0 && (
                         <span className="text-[10px] text-muted-foreground">
-                          平均 {agingData.avgDays} 天
+                          {cp.avgDays.replace('{n}', String(agingData.avgDays))}
                         </span>
                       )}
                     </div>
@@ -834,7 +862,7 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`${days > 14 ? 'text-red-600 font-medium' : days > 7 ? 'text-amber-600' : 'text-slate-500'}`}>
-                              {days} 天
+                              {cp.daysAgo.replace('{days}', String(days))}
                             </span>
                             <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
                           </div>
@@ -843,7 +871,7 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
                     })}
                     {agingData.customers.length > 15 && (
                       <p className="text-[10px] text-muted-foreground px-2 py-1">
-                        還有 {agingData.customers.length - 15} 位客戶…
+                        {cp.moreCustomers.replace('{n}', String(agingData.customers.length - 15))}
                       </p>
                     )}
                   </div>
@@ -857,7 +885,7 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
       {/* Conversion hints */}
       <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="pt-4 pb-3">
-          <p className="text-xs font-semibold text-blue-700 mb-1.5">轉換提示</p>
+          <p className="text-xs font-semibold text-blue-700 mb-1.5">{cp.conversionHints}</p>
           <div className="text-xs text-blue-600 space-y-1">
             {(() => {
               const pot = activeFunnel.find(f => f.stage === 'POTENTIAL')?.count ?? 0
@@ -869,10 +897,10 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
               const closedRate = total > 0 ? Math.round(((closed + stable) / total) * 100) : 0
               return (
                 <>
-                  {pot > 5 && <p>• {pot} 位潛在客戶待接觸，建議安排初訪</p>}
-                  {contacted > 3 && <p>• {contacted} 位已接觸但未拜訪，建議排程拜訪</p>}
-                  {visited > 3 && <p>• {visited} 位已拜訪但未進入議價，可考慮送樣或報價</p>}
-                  <p>• 整體成交率 {closedRate}%（成交+穩定回購 {closed + stable} / 總客戶 {total}）</p>
+                  {pot > 5 && <p>{cp.hintPotential.replace('{n}', String(pot))}</p>}
+                  {contacted > 3 && <p>{cp.hintContacted.replace('{n}', String(contacted))}</p>}
+                  {visited > 3 && <p>{cp.hintVisited.replace('{n}', String(visited))}</p>}
+                  <p>{cp.hintClosedRate.replace('{rate}', String(closedRate)).replace('{closed}', String(closed + stable)).replace('{total}', String(total))}</p>
                 </>
               )
             })()}
@@ -937,6 +965,7 @@ function DailyStatCard({ label, value, icon, color, sub }: {
 function LeakSection({ title, icon, count, color, children }: {
   title: string; icon: React.ReactNode; count: number; color: string; children: React.ReactNode
 }) {
+  const { dict } = useI18n()
   const [open, setOpen] = useState(count > 0)
   return (
     <Card className={`border-l-4 ${color}`}>
@@ -946,7 +975,7 @@ function LeakSection({ title, icon, count, color, children }: {
             {icon}{title}
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${count > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>{count}</span>
           </CardTitle>
-          <span className="text-xs text-muted-foreground">{open ? '收合' : '展開'}</span>
+          <span className="text-xs text-muted-foreground">{open ? dict.crmPage.collapse : dict.crmPage.expand}</span>
         </button>
       </CardHeader>
       {open && count > 0 && (
@@ -956,7 +985,7 @@ function LeakSection({ title, icon, count, color, children }: {
       )}
       {open && count === 0 && (
         <CardContent className="pt-2 pb-3">
-          <p className="text-xs text-muted-foreground text-center">✓ 目前無異常</p>
+          <p className="text-xs text-muted-foreground text-center">{dict.crmPage.noAnomalies}</p>
         </CardContent>
       )}
     </Card>
@@ -965,16 +994,32 @@ function LeakSection({ title, icon, count, color, children }: {
 
 function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
   const { daily, leaks, repPerformance } = data
+  const { dict } = useI18n()
+  const DEV_STATUS_LABEL: Record<string, string> = {
+    POTENTIAL: dict.crmPage.devStatusPotential, CONTACTED: dict.crmPage.devStatusContacted,
+    VISITED: dict.crmPage.devStatusVisited, NEGOTIATING: dict.crmPage.devStatusNegotiating,
+    TRIAL: dict.crmPage.devStatusTrial, CLOSED: dict.crmPage.devStatusClosed,
+    STABLE_REPURCHASE: dict.crmPage.devStatusStableRepurchase, DORMANT: dict.crmPage.devStatusDormant,
+    CHURNED: dict.crmPage.devStatusChurned, REJECTED: dict.crmPage.devStatusRejected,
+  }
+  const SCHEDULE_LABEL: Record<string, string> = {
+    FIRST_VISIT: dict.crmPage.scheduleFirstVisit, SECOND_VISIT: dict.crmPage.scheduleSecondVisit,
+    THIRD_VISIT: dict.crmPage.scheduleThirdVisit, PAYMENT_COLLECT: dict.crmPage.schedulePaymentCollect,
+    DELIVERY: dict.crmPage.scheduleDelivery, EXPO: dict.crmPage.scheduleExpo,
+    SPRING_PARTY: dict.crmPage.scheduleSpringParty, RECONCILE: dict.crmPage.scheduleReconcile,
+    OTHER: dict.crmPage.scheduleOther,
+  }
 
+  const cp = dict.crmPage
   const dailyItems = [
-    { label: '今日新增追蹤客戶', value: daily.todayNewCustomers, icon: <UserPlus className="h-4 w-4" />, color: 'blue',   sub: '新建立的客戶' },
-    { label: '今日初訪',         value: daily.todayFirstVisit,   icon: <MapPin className="h-4 w-4" />,    color: 'indigo', sub: '首次上門拜訪' },
-    { label: '今日二訪/再追蹤',  value: daily.todayRevisit,      icon: <RefreshCcw className="h-4 w-4" />, color: 'teal',  sub: '電話、LINE、再訪等' },
-    { label: '今日送樣',         value: daily.todaySamples,      icon: <Package className="h-4 w-4" />,   color: 'violet', sub: '今日新送樣品數' },
-    { label: '今日報價',         value: daily.todayQuotes,       icon: <FileText className="h-4 w-4" />,  color: 'amber',  sub: '今日新建報價單' },
-    { label: '今日下單',         value: daily.todayOrders,       icon: <ShoppingCart className="h-4 w-4" />, color: 'green', sub: '今日訂單數' },
-    { label: '今日收款追蹤',     value: daily.todayPayments,     icon: <CreditCard className="h-4 w-4" />, color: 'rose',  sub: '今日收款事件' },
-    { label: '今日未完成待辦',   value: daily.todayPendingTasks, icon: <ListTodo className="h-4 w-4" />,  color: 'slate',  sub: '今日到期尚未完成' },
+    { label: cp.daily0Label, value: daily.todayNewCustomers, icon: <UserPlus className="h-4 w-4" />, color: 'blue',   sub: cp.daily0Sub },
+    { label: cp.daily1Label, value: daily.todayFirstVisit,   icon: <MapPin className="h-4 w-4" />,    color: 'indigo', sub: cp.daily1Sub },
+    { label: cp.daily2Label, value: daily.todayRevisit,      icon: <RefreshCcw className="h-4 w-4" />, color: 'teal',  sub: cp.daily2Sub },
+    { label: cp.daily3Label, value: daily.todaySamples,      icon: <Package className="h-4 w-4" />,   color: 'violet', sub: cp.daily3Sub },
+    { label: cp.daily4Label, value: daily.todayQuotes,       icon: <FileText className="h-4 w-4" />,  color: 'amber',  sub: cp.daily4Sub },
+    { label: cp.daily5Label, value: daily.todayOrders,       icon: <ShoppingCart className="h-4 w-4" />, color: 'green', sub: cp.daily5Sub },
+    { label: cp.daily6Label, value: daily.todayPayments,     icon: <CreditCard className="h-4 w-4" />, color: 'rose',  sub: cp.daily6Sub },
+    { label: cp.daily7Label, value: daily.todayPendingTasks, icon: <ListTodo className="h-4 w-4" />,  color: 'slate',  sub: cp.daily7Sub },
   ]
 
   return (
@@ -984,7 +1029,7 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
       <div>
         <h2 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-blue-600" />
-          每日業務追蹤
+          {cp.dailyMetricsTitle}
         </h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {dailyItems.map(item => (
@@ -997,11 +1042,11 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
       <div>
         <h2 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-red-500" />
-          業務漏追警示
+          {cp.leakAlertsTitle}
         </h2>
         <div className="space-y-3">
           <LeakSection
-            title="超過 7 天未追蹤"
+            title={cp.leakNoContact}
             icon={<Clock className="h-4 w-4 text-orange-500" />}
             count={leaks.noContact.length}
             color="border-l-orange-400"
@@ -1022,9 +1067,9 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {c.salesRep?.name ?? '未指派'}
-                      {d !== null && <span className="text-orange-600 ml-2 font-medium">{d} 天未聯繫</span>}
-                      {d === null && <span className="text-red-600 ml-2 font-medium">從未聯繫</span>}
+                      {c.salesRep?.name ?? cp.unassigned}
+                      {d !== null && <span className="text-orange-600 ml-2 font-medium">{cp.daysNoContactManager.replace('{d}', String(d))}</span>}
+                      {d === null && <span className="text-red-600 ml-2 font-medium">{cp.neverContacted}</span>}
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1034,7 +1079,7 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
           </LeakSection>
 
           <LeakSection
-            title="送樣未回覆"
+            title={cp.leakSampleNoFeedback}
             icon={<Package className="h-4 w-4 text-violet-500" />}
             count={leaks.sampleNoFeedback.length}
             color="border-l-violet-400"
@@ -1049,7 +1094,7 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
                       <span className="font-mono text-xs text-slate-400 ml-2">{s.customer.code}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {s.items} · 業務：{s.sentBy.name} · 送樣 {d} 天前
+                      {s.items} · {cp.salesRepLabel}{s.sentBy.name} · {cp.sampleDaysAgo.replace('{d}', String(d))}
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1059,7 +1104,7 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
           </LeakSection>
 
           <LeakSection
-            title="報價未成交（超過 14 天）"
+            title={cp.leakQuoteNotClosed}
             icon={<FileText className="h-4 w-4 text-amber-500" />}
             count={leaks.quoteNotClosed.length}
             color="border-l-amber-400"
@@ -1074,7 +1119,7 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
                       <span className="font-mono text-xs text-slate-400 ml-2">{q.quotationNo}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      業務：{q.createdBy.name} · {d} 天前發出
+                      {cp.salesRepLabel}{q.createdBy.name} · {cp.quoteDaysSent.replace('{d}', String(d))}
                       {q.totalAmount && <span className="ml-2 font-semibold text-slate-700">NT$ {Number(q.totalAmount).toLocaleString()}</span>}
                     </div>
                   </div>
@@ -1085,7 +1130,7 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
           </LeakSection>
 
           <LeakSection
-            title="已成交 30 天未回購"
+            title={cp.leakNoRepurchase}
             icon={<TrendingDown className="h-4 w-4 text-rose-500" />}
             count={leaks.noRepurchase.length}
             color="border-l-rose-400"
@@ -1103,9 +1148,9 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
                       <span className="font-mono text-xs text-slate-400">{c.code}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {c.salesRep?.name ?? '未指派'}
-                      {d !== null ? <span className="text-rose-600 ml-2 font-medium">最後下單 {d} 天前</span>
-                        : <span className="text-rose-600 ml-2 font-medium">尚無訂單</span>}
+                      {c.salesRep?.name ?? cp.unassigned}
+                      {d !== null ? <span className="text-rose-600 ml-2 font-medium">{cp.lastOrderDays.replace('{d}', String(d))}</span>
+                        : <span className="text-rose-600 ml-2 font-medium">{cp.noOrders}</span>}
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1115,7 +1160,7 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
           </LeakSection>
 
           <LeakSection
-            title="已安排拜訪未回填結果"
+            title={cp.leakScheduleNotFilled}
             icon={<CalendarCheck className="h-4 w-4 text-blue-500" />}
             count={leaks.scheduleNotFilled.length}
             color="border-l-blue-400"
@@ -1133,8 +1178,8 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
                       <span className="font-medium">{s.customer.name}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      業務：{s.salesRep.name}
-                      <span className="text-blue-600 ml-2 font-medium">{d} 天前未回填</span>
+                      {cp.salesRepLabel}{s.salesRep.name}
+                      <span className="text-blue-600 ml-2 font-medium">{cp.notFilledDays.replace('{d}', String(d))}</span>
                       {s.location && <span className="ml-2">{s.location}</span>}
                     </div>
                   </div>
@@ -1150,10 +1195,10 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
       <div>
         <h2 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
           <Users className="h-4 w-4 text-green-600" />
-          業務個人績效（本月）
+          {cp.repPerfTitle}
         </h2>
         {repPerformance.length === 0 ? (
-          <Card><CardContent className="py-6 text-center text-xs text-muted-foreground">尚無業務人員</CardContent></Card>
+          <Card><CardContent className="py-6 text-center text-xs text-muted-foreground">{cp.noReps}</CardContent></Card>
         ) : (
           <Card>
             <CardContent className="p-0">
@@ -1161,13 +1206,13 @@ function ManagerDashboardTab({ data }: { data: ManagerDashboard }) {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-slate-50 text-xs text-slate-500">
-                      <th className="text-left px-4 py-2.5 font-medium">業務</th>
-                      <th className="text-center px-3 py-2.5 font-medium">拜訪</th>
-                      <th className="text-center px-3 py-2.5 font-medium">追蹤</th>
-                      <th className="text-center px-3 py-2.5 font-medium">送樣</th>
-                      <th className="text-center px-3 py-2.5 font-medium">報價</th>
-                      <th className="text-center px-3 py-2.5 font-medium">成交</th>
-                      <th className="text-center px-3 py-2.5 font-medium">回購</th>
+                      <th className="text-left px-4 py-2.5 font-medium">{cp.colSales}</th>
+                      <th className="text-center px-3 py-2.5 font-medium">{cp.colVisits}</th>
+                      <th className="text-center px-3 py-2.5 font-medium">{cp.colTracking}</th>
+                      <th className="text-center px-3 py-2.5 font-medium">{cp.colSamples}</th>
+                      <th className="text-center px-3 py-2.5 font-medium">{cp.colQuotes}</th>
+                      <th className="text-center px-3 py-2.5 font-medium">{cp.colDeals}</th>
+                      <th className="text-center px-3 py-2.5 font-medium">{cp.colRepurchases}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -1240,6 +1285,7 @@ const COVERAGE_COLOR = (r: number | null) =>
   r === null ? 'text-slate-400' : r >= 100 ? 'text-green-600' : r >= 70 ? 'text-amber-600' : 'text-red-600'
 
 function DemandBoardTab() {
+  const { dict } = useI18n()
   const [data, setData]       = useState<DemandProjection | null>(null)
   const [loading, setLoading] = useState(true)
   const [month, setMonth]     = useState(() => {
@@ -1256,7 +1302,11 @@ function DemandBoardTab() {
 
   useEffect(() => { load(month) }, [month])
 
+  const cp = dict.crmPage
   const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' }) : '—'
+  const confidenceLabel: Record<string, string> = {
+    HIGH: cp.confidenceHigh, MEDIUM: cp.confidenceMedium, LOW: cp.confidenceLow,
+  }
 
   return (
     <div className="space-y-5">
@@ -1264,11 +1314,11 @@ function DemandBoardTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold">需求看板</h2>
+          <h2 className="text-base font-semibold">{cp.demandTitle}</h2>
           {data && (
             <span className="text-xs text-muted-foreground">
-              {data.forecastingCustomers} 位客戶已填預估 · {data.needsForecast > 0 && (
-                <span className="text-amber-600">{data.needsForecast} 位待填</span>
+              {cp.forecastingCount.replace('{n}', String(data.forecastingCustomers))} · {data.needsForecast > 0 && (
+                <span className="text-amber-600">{cp.needsForecastCount.replace('{n}', String(data.needsForecast))}</span>
               )}
             </span>
           )}
@@ -1285,18 +1335,18 @@ function DemandBoardTab() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : !data ? (
-        <p className="text-center py-16 text-muted-foreground">無法載入需求資料</p>
+        <p className="text-center py-16 text-muted-foreground">{cp.loadFailed}</p>
       ) : (
         <>
           {/* ── SKU 需求 vs 庫存 ── */}
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">各品類需求 vs 庫存</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm">{cp.demandVsInventoryTitle}</CardTitle></CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="border-b bg-slate-50">
                     <tr>
-                      {['品類', '月需求預估（片）', '確認訂單（片）', '現有庫存（片）', '庫存覆蓋率', '預估缺口', '建議補貨量'].map(h => (
+                      {(cp.demandHeaders as unknown as string[]).map(h => (
                         <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">{h}</th>
                       ))}
                     </tr>
@@ -1312,7 +1362,7 @@ function DemandBoardTab() {
                           {row.coverageRatio !== null ? `${row.coverageRatio}%` : '—'}
                         </td>
                         <td className={`px-4 py-3 ${SHORTAGE_COLOR(row.projectedShortageQty)}`}>
-                          {row.projectedShortageQty > 0 ? `-${row.projectedShortageQty.toLocaleString()}` : '充足'}
+                          {row.projectedShortageQty > 0 ? `-${row.projectedShortageQty.toLocaleString()}` : cp.stockSufficient}
                         </td>
                         <td className="px-4 py-3 text-amber-700 font-medium">
                           {row.suggestedReplenishmentQty > 0 ? row.suggestedReplenishmentQty.toLocaleString() : '—'}
@@ -1329,18 +1379,18 @@ function DemandBoardTab() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-500" />近 30 天預估下單客戶（{data.upcomingOrders.length} 家）
+                <Clock className="h-4 w-4 text-amber-500" />{cp.upcomingOrdersTitle.replace('{n}', String(data.upcomingOrders.length))}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {data.upcomingOrders.length === 0 ? (
-                <p className="px-4 py-8 text-center text-muted-foreground text-sm">無近期預估下單</p>
+                <p className="px-4 py-8 text-center text-muted-foreground text-sm">{cp.noUpcomingOrders}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="border-b bg-slate-50">
                       <tr>
-                        {['客戶', '區域', '負責業務', '手動預估日', '系統預測日', '月總用量（片）', '可信度'].map(h => (
+                        {(cp.upcomingHeaders as unknown as string[]).map(h => (
                           <th key={h} className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">{h}</th>
                         ))}
                       </tr>
@@ -1366,7 +1416,7 @@ function DemandBoardTab() {
                                 o.confidence === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
                                 'bg-slate-100 text-slate-500'
                               }`}>
-                                {{ HIGH: '高', MEDIUM: '中', LOW: '低' }[o.confidence] ?? o.confidence}
+                                {confidenceLabel[o.confidence] ?? o.confidence}
                               </span>
                             ) : '—'}
                           </td>

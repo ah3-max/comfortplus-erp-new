@@ -185,16 +185,16 @@ function BrandForm({ initial, onSaved, onCancel }: {
   }
 
   const tabs = [
-    { key: 'basic', label: '基本資訊' },
-    { key: 'buyer', label: '採購窗口' },
-    { key: 'terms', label: '採購條件' },
+    { key: 'basic', label: rt.tabBasic },
+    { key: 'buyer', label: rt.tabBuyer },
+    { key: 'terms', label: rt.tabTerms },
   ] as const
 
   return (
     <Card className="border-blue-200 bg-blue-50/40">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-          <Building2 className="h-4 w-4" />{isEdit ? `編輯通路：${initial?.name}` : '新增通路品牌'}
+          <Building2 className="h-4 w-4" />{isEdit ? `${rt.editBrand}${initial?.name}` : rt.newBrand}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -213,16 +213,16 @@ function BrandForm({ initial, onSaved, onCancel }: {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">代碼 * (英文大寫)</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.codeLabel}</Label>
                 <Input value={f.code} onChange={e => set('code', e.target.value.toUpperCase())} className="h-9 text-sm" placeholder="QUANSHENG" disabled={isEdit} />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">通路品牌名稱 *</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.brandNameLabel}</Label>
                 <Input value={f.name} onChange={e => set('name', e.target.value)} className="h-9 text-sm" placeholder="全聯福利中心" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-2 block">通路類型</Label>
+              <Label className="text-xs text-slate-600 mb-2 block">{rt.brandTypeLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(rt.brandTypes).map(([k, v]) => (
                   <button key={k} onClick={() => set('brandType', k)}
@@ -234,20 +234,20 @@ function BrandForm({ initial, onSaved, onCancel }: {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">官網</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.websiteLabel}</Label>
                 <Input value={f.website} onChange={e => set('website', e.target.value)} className="h-9 text-sm" placeholder="https://..." />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">總部行政聯絡人</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.hqContactLabel}</Label>
                 <Input value={f.hqContact} onChange={e => set('hqContact', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">總部電話</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.hqPhoneLabel}</Label>
                 <Input value={f.hqPhone} onChange={e => set('hqPhone', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">備注</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.notesLabel}</Label>
               <Input value={f.notes} onChange={e => set('notes', e.target.value)} className="h-9 text-sm" />
             </div>
           </div>
@@ -256,22 +256,22 @@ function BrandForm({ initial, onSaved, onCancel }: {
         {/* ── 採購窗口 ── */}
         {tab === 'buyer' && (
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">填寫通路採購部門的主要對口人資訊</p>
+            <p className="text-xs text-muted-foreground">{rt.buyerInfoHint}</p>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">採購負責人姓名</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.buyerNameLabel}</Label>
                 <Input value={f.buyerName} onChange={e => set('buyerName', e.target.value)} className="h-9 text-sm" placeholder="王小明" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">職稱</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.buyerTitleLabel}</Label>
                 <Input value={f.buyerTitle} onChange={e => set('buyerTitle', e.target.value)} className="h-9 text-sm" placeholder="採購專員" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">部門</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.buyerDeptLabel}</Label>
                 <Input value={f.buyerDept} onChange={e => set('buyerDept', e.target.value)} className="h-9 text-sm" placeholder="採購部 / 商品部" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">直撥電話 / 手機</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.buyerPhoneLabel}</Label>
                 <Input value={f.buyerPhone} onChange={e => set('buyerPhone', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
@@ -290,7 +290,7 @@ function BrandForm({ initial, onSaved, onCancel }: {
         {tab === 'terms' && (
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-slate-600 mb-2 block">採購模式</Label>
+              <Label className="text-xs text-slate-600 mb-2 block">{rt.purchaseModeLabel}</Label>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(rt.purchaseModes).map(([k, v]) => (
                   <button key={k} onClick={() => set('purchaseMode', f.purchaseMode === k ? '' : k)}
@@ -302,46 +302,46 @@ function BrandForm({ initial, onSaved, onCancel }: {
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">付款條件</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.paymentTermsLabel}</Label>
                 <Input value={f.paymentTerms} onChange={e => set('paymentTerms', e.target.value)} className="h-9 text-sm" placeholder="月結60天 / 貨到付款" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">帳期天數</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.creditDaysLabel}</Label>
                 <Input type="number" value={String(f.creditDays)} onChange={e => set('creditDays', e.target.value)} className="h-9 text-sm" placeholder="60" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">交期天數（下單→到貨）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.deliveryLeadDaysLabel}</Label>
                 <Input type="number" value={String(f.deliveryLeadDays)} onChange={e => set('deliveryLeadDays', e.target.value)} className="h-9 text-sm" placeholder="7" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">最低訂購量（件/箱）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.minOrderQtyLabel}</Label>
                 <Input type="number" value={String(f.minOrderQty)} onChange={e => set('minOrderQty', e.target.value)} className="h-9 text-sm" placeholder="100" />
               </div>
               <div className="col-span-2">
-                <Label className="text-xs text-slate-600 mb-1.5 block">最低訂購說明</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.minOrderNoteLabel}</Label>
                 <Input value={f.minOrderNote} onChange={e => set('minOrderNote', e.target.value)} className="h-9 text-sm" placeholder="每次最少下100件，可分批出貨" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">折讓 / 扣款條件</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.discountNoteLabel}</Label>
               <Input value={f.discountNote} onChange={e => set('discountNote', e.target.value)} className="h-9 text-sm" placeholder="年度達標返還2%，退貨扣款5%..." />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">上架費（元）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.listingFeeLabel}</Label>
                 <Input type="number" value={String(f.listingFee)} onChange={e => set('listingFee', e.target.value)} className="h-9 text-sm" placeholder="0" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">年費 / 管理費（元）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.annualFeeLabel}</Label>
                 <Input type="number" value={String(f.annualFee)} onChange={e => set('annualFee', e.target.value)} className="h-9 text-sm" placeholder="0" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">合約到期日</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.contractExpiryLabel}</Label>
                 <Input type="date" value={f.contractExpiry} onChange={e => set('contractExpiry', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">合約備注</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.contractNoteLabel}</Label>
               <Input value={f.contractNote} onChange={e => set('contractNote', e.target.value)} className="h-9 text-sm" placeholder="年度採購合約、獨家陳列協議..." />
             </div>
           </div>
@@ -350,9 +350,9 @@ function BrandForm({ initial, onSaved, onCancel }: {
         <div className="flex gap-2 pt-1">
           <Button size="sm" onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-            {isEdit ? '儲存變更' : '新增品牌'}
+            {isEdit ? rt.saveChanges : rt.addBrand}
           </Button>
-          <Button size="sm" variant="outline" onClick={onCancel}>取消</Button>
+          <Button size="sm" variant="outline" onClick={onCancel}>{dict.common.cancel}</Button>
         </div>
       </CardContent>
     </Card>
@@ -412,17 +412,17 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
   }
 
   const tabs = [
-    { key: 'basic',     label: '基本資訊' },
-    { key: 'display',   label: '展示/容量' },
-    { key: 'logistics', label: '物流/停車' },
-    { key: 'finance',   label: '財務條件' },
+    { key: 'basic',     label: rt.tabBasic },
+    { key: 'display',   label: rt.tabDisplay },
+    { key: 'logistics', label: rt.tabLogistics },
+    { key: 'finance',   label: rt.tabFinance },
   ] as const
 
   return (
     <Card className="border-blue-200 bg-blue-50/40">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-          <Store className="h-4 w-4" />{isEdit ? `編輯門市：${initial?.outletName}` : '新增門市'}
+          <Store className="h-4 w-4" />{isEdit ? `${rt.editOutlet}${initial?.outletName}` : rt.newOutletTitle}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -441,74 +441,74 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">通路品牌 *</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.outletBrandLabel}</Label>
                 <select className="w-full border rounded-md h-9 px-2 text-sm" value={f.brandId} onChange={e => set('brandId', e.target.value)}>
-                  <option value="">選擇品牌…</option>
+                  <option value="">{rt.selectBrand}</option>
                   {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">門市代碼</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.outletCodeLabel}</Label>
                 <Input value={String(f.outletCode)} onChange={e => set('outletCode', e.target.value)} className="h-9 text-sm" placeholder="QS-001" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">門市名稱 *</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.outletNameLabel}</Label>
               <Input value={f.outletName} onChange={e => set('outletName', e.target.value)} className="h-9 text-sm" placeholder="全聯忠孝店" />
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-2">
-                <Label className="text-xs text-slate-600 mb-1.5 block">地址</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.addressLabel}</Label>
                 <Input value={f.address} onChange={e => set('address', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">縣市</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.cityLabel}</Label>
                 <Input value={f.city} onChange={e => set('city', e.target.value)} className="h-9 text-sm" placeholder="台北市" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">門市電話</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.outletPhoneLabel}</Label>
                 <Input value={f.phone} onChange={e => set('phone', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">營業時間</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.openHoursLabel}</Label>
                 <Input value={f.openHours} onChange={e => set('openHours', e.target.value)} className="h-9 text-sm" placeholder="09:00-22:00" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">公休日</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.closedDaysLabel}</Label>
                 <Input value={f.closedDays} onChange={e => set('closedDays', e.target.value)} className="h-9 text-sm" placeholder="每週三" />
               </div>
             </div>
-            <p className="text-xs font-medium text-slate-700 mt-2">人員資訊</p>
+            <p className="text-xs font-medium text-slate-700 mt-2">{rt.staffSection}</p>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">店長姓名</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.storeManagerNameLabel}</Label>
                 <Input value={f.storeManagerName} onChange={e => set('storeManagerName', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">店長電話</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.storeManagerPhoneLabel}</Label>
                 <Input value={f.storeManagerPhone} onChange={e => set('storeManagerPhone', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">店長 LINE</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.storeManagerLineLabel}</Label>
                 <Input value={f.storeManagerLine} onChange={e => set('storeManagerLine', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">主責業務</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.salesRepNameLabel}</Label>
                 <Input value={f.salesRepName} onChange={e => set('salesRepName', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">備用聯絡人</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.backupContactLabel}</Label>
                 <Input value={f.backupContactName} onChange={e => set('backupContactName', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">備用電話</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.backupPhoneLabel}</Label>
                 <Input value={f.backupContactPhone} onChange={e => set('backupContactPhone', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">備注</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.notesLabel}</Label>
               <Input value={f.notes} onChange={e => set('notes', e.target.value)} className="h-9 text-sm" />
             </div>
           </div>
@@ -517,78 +517,78 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
         {/* ── 展示/容量 ── */}
         {section === 'display' && (
           <div className="space-y-3">
-            <p className="text-xs font-medium text-slate-700">展示架</p>
+            <p className="text-xs font-medium text-slate-700">{rt.displaySection}</p>
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">展示架數量（座）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.displayShelfCountLabel}</Label>
                 <Input type="number" value={String(f.displayShelfCount)} onChange={e => set('displayShelfCount', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">面排數</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.facingCountLabel}</Label>
                 <Input type="number" value={String(f.facingCount)} onChange={e => set('facingCount', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">展示類型</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.displayTypeLabel}</Label>
                 <Input value={f.displayType} onChange={e => set('displayType', e.target.value)} className="h-9 text-sm" placeholder="端架/中島/壁架" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">展示架規格要求</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.displayShelfSpecLabel}</Label>
               <Input value={f.displayShelfSpec} onChange={e => set('displayShelfSpec', e.target.value)} className="h-9 text-sm" placeholder="高180cm×寬60cm，4層" />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">陳列要求</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.displayRequirementsLabel}</Label>
               <Input value={f.displayRequirements} onChange={e => set('displayRequirements', e.target.value)} className="h-9 text-sm" placeholder="需貼價格牌，正面朝外…" />
             </div>
 
-            <p className="text-xs font-medium text-slate-700 mt-2">置放位置</p>
+            <p className="text-xs font-medium text-slate-700 mt-2">{rt.placementSection}</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">置放區域</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.placementZoneLabel}</Label>
                 <Input value={f.placementZone} onChange={e => set('placementZone', e.target.value)} className="h-9 text-sm" placeholder="照護用品區/保健品區" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">架位詳細</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.shelfLocationLabel}</Label>
                 <Input value={f.shelfLocation} onChange={e => set('shelfLocation', e.target.value)} className="h-9 text-sm" placeholder="B區第3排" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">置放位置說明</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.placementDetailLabel}</Label>
               <Input value={f.placementDetail} onChange={e => set('placementDetail', e.target.value)} className="h-9 text-sm" />
             </div>
 
-            <p className="text-xs font-medium text-slate-700 mt-2">容量限制</p>
+            <p className="text-xs font-medium text-slate-700 mt-2">{rt.capacitySection}</p>
             <div className="grid grid-cols-4 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">最多 SKU 數</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.maxSkuCountLabel}</Label>
                 <Input type="number" value={String(f.maxSkuCount)} onChange={e => set('maxSkuCount', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">每 SKU 最多件</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.maxUnitsPerSkuLabel}</Label>
                 <Input type="number" value={String(f.maxUnitsPerSku)} onChange={e => set('maxUnitsPerSku', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">總包數上限</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.maxPacksTotalLabel}</Label>
                 <Input type="number" value={String(f.maxPacksTotal)} onChange={e => set('maxPacksTotal', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">目前在架 SKU</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.currentSkuCountLabel}</Label>
                 <Input type="number" value={String(f.currentSkuCount)} onChange={e => set('currentSkuCount', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
 
-            <p className="text-xs font-medium text-slate-700 mt-2">活動要求</p>
+            <p className="text-xs font-medium text-slate-700 mt-2">{rt.activitySection}</p>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">通路活動要求</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.eventRequirementsLabel}</Label>
               <Input value={f.eventRequirements} onChange={e => set('eventRequirements', e.target.value)} className="h-9 text-sm" placeholder="最低買量/搭配品…" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">促銷檔期說明</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.promoCalendarNoteLabel}</Label>
                 <Input value={f.promoCalendarNote} onChange={e => set('promoCalendarNote', e.target.value)} className="h-9 text-sm" placeholder="每季4檔" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">每次活動最低訂購量</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.minOrderQtyPerEventLabel}</Label>
                 <Input type="number" value={String(f.minOrderQtyPerEvent)} onChange={e => set('minOrderQtyPerEvent', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
@@ -600,24 +600,24 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">收貨時間窗</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.deliveryTimeWindowLabel}</Label>
                 <Input value={f.deliveryTimeWindow} onChange={e => set('deliveryTimeWindow', e.target.value)} className="h-9 text-sm" placeholder="週二 09:00-12:00" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">固定補貨星期</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.deliveryDayOfWeekLabel}</Label>
                 <Input value={f.deliveryDayOfWeek} onChange={e => set('deliveryDayOfWeek', e.target.value)} className="h-9 text-sm" placeholder="二/四" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">物流備注</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.logisticsNoteLabel}</Label>
               <Input value={f.logisticsNote} onChange={e => set('logisticsNote', e.target.value)} className="h-9 text-sm" placeholder="需預約收貨/附送貨單…" />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">停車資訊</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.parkingInfoLabel}</Label>
               <Input value={f.parkingInfo} onChange={e => set('parkingInfo', e.target.value)} className="h-9 text-sm" placeholder="地下停車場B2，搬運車免費1小時" />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">卸貨月台說明</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.loadingDockNoteLabel}</Label>
               <Input value={f.loadingDockNote} onChange={e => set('loadingDockNote', e.target.value)} className="h-9 text-sm" placeholder="後門卸貨，需聯繫倉管" />
             </div>
           </div>
@@ -628,23 +628,23 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">佣金率 %</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.commissionRateLabel}</Label>
                 <Input type="number" value={String(f.commissionRate)} onChange={e => set('commissionRate', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">付款條件</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.outletPaymentTermsLabel}</Label>
                 <Input value={f.paymentTerms} onChange={e => set('paymentTerms', e.target.value)} className="h-9 text-sm" placeholder="月結30天" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">結帳日</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.settlementDayLabel}</Label>
                 <Input type="number" value={String(f.settlementDay)} onChange={e => set('settlementDay', e.target.value)} className="h-9 text-sm" placeholder="每月25日" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">上架費（元）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.shelfRentLabel}</Label>
                 <Input type="number" value={String(f.shelfRent)} onChange={e => set('shelfRent', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">陳列費（元）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.displayFeeLabel}</Label>
                 <Input type="number" value={String(f.displayFee)} onChange={e => set('displayFee', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
@@ -654,9 +654,9 @@ function OutletForm({ brands, initial, onSaved, onCancel }: {
         <div className="flex gap-2 pt-1">
           <Button size="sm" onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-            {isEdit ? '儲存變更' : '新增門市'}
+            {isEdit ? rt.saveOutlet : rt.addOutlet}
           </Button>
-          <Button size="sm" variant="outline" onClick={onCancel}>取消</Button>
+          <Button size="sm" variant="outline" onClick={onCancel}>{dict.common.cancel}</Button>
         </div>
       </CardContent>
     </Card>
@@ -740,12 +740,12 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
     <Card className="border-green-200 bg-green-50/40">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-green-900 flex items-center gap-2">
-          <PartyPopper className="h-4 w-4" />{isEdit ? `編輯活動：${initial?.eventName}` : '新增活動'}
+          <PartyPopper className="h-4 w-4" />{isEdit ? `${rt.editEvent}${initial?.eventName}` : rt.newEventTitle}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex gap-1 border-b">
-          {[{ key: 'basic', label: '活動設定' }, { key: 'result', label: '活動成效' }].map(t => (
+          {[{ key: 'basic', label: rt.tabEventBasic }, { key: 'result', label: rt.tabEventResult }].map(t => (
             <button key={t.key} onClick={() => setTab(t.key as 'basic' | 'result')}
               className={`px-3 py-1.5 text-xs font-medium border-b-2 transition-colors ${tab === t.key ? 'border-green-600 text-green-700' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
               {t.label}
@@ -756,7 +756,7 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
         {tab === 'basic' && (
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-slate-600 mb-2 block">活動類型 *</Label>
+              <Label className="text-xs text-slate-600 mb-2 block">{rt.eventTypeLabel}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(rt.eventTypes).map(([k, v]) => (
                   <button key={k} onClick={() => set('eventType', k)}
@@ -768,90 +768,90 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">活動名稱 *</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.eventNameLabel}</Label>
                 <Input value={f.eventName} onChange={e => set('eventName', e.target.value)} className="h-9 text-sm" placeholder="Q2 保健品節特賣" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">門市</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.outletSelectLabel}</Label>
                 <select className="w-full border rounded-md h-9 px-2 text-sm" value={f.outletId} onChange={e => set('outletId', e.target.value)}>
-                  <option value="">（全通路/不指定）</option>
+                  <option value="">{rt.allOutlets}</option>
                   {outlets.map(o => <option key={o.id} value={o.id}>{o.brand.name} · {o.outletName}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">開始日期 *</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.eventStartDateLabel}</Label>
                 <Input type="date" value={f.eventDate} onChange={e => set('eventDate', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">結束日期</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.eventEndDateLabel}</Label>
                 <Input type="date" value={f.endDate} onChange={e => set('endDate', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">狀態</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.eventStatusLabel}</Label>
                 <select className="w-full border rounded-md h-9 px-2 text-sm" value={f.eventStatus} onChange={e => set('eventStatus', e.target.value)}>
                   {Object.entries(rt.eventStatuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">地點</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.eventLocationLabel}</Label>
                 <Input value={f.location} onChange={e => set('location', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">預算（元）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.budgetLabel}</Label>
                 <Input type="number" value={String(f.budget)} onChange={e => set('budget', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">實際花費（元）</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.actualCostLabel}</Label>
                 <Input type="number" value={String(f.actualCost)} onChange={e => set('actualCost', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">活動佈置要求</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.setupRequirementsLabel}</Label>
               <Input value={f.setupRequirements} onChange={e => set('setupRequirements', e.target.value)} className="h-9 text-sm" />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">活動商品要求</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.productRequirementsLabel}</Label>
               <Input value={f.productRequirements} onChange={e => set('productRequirements', e.target.value)} className="h-9 text-sm" />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">對通路溝通事項</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.communicationNoteLabel}</Label>
               <Input value={f.communicationNote} onChange={e => set('communicationNote', e.target.value)} className="h-9 text-sm" />
             </div>
             {/* 團購專屬 */}
             {f.eventType === 'GROUP_BUY' && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-3">
-                <p className="text-xs font-medium text-amber-800 flex items-center gap-1.5"><ShoppingBag className="h-3.5 w-3.5" />團購設定</p>
+                <p className="text-xs font-medium text-amber-800 flex items-center gap-1.5"><ShoppingBag className="h-3.5 w-3.5" />{rt.groupBuySection}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">團購名稱</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyTitleLabel}</Label>
                     <Input value={f.groupBuyTitle} onChange={e => set('groupBuyTitle', e.target.value)} className="h-9 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">揪團平台</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyPlatformLabel}</Label>
                     <Input value={f.groupBuyPlatform} onChange={e => set('groupBuyPlatform', e.target.value)} className="h-9 text-sm" placeholder="LINE/FB/門市公告" />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">團主姓名</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyOrganizerLabel}</Label>
                     <Input value={f.groupBuyOrganizer} onChange={e => set('groupBuyOrganizer', e.target.value)} className="h-9 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">團主電話</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyPhoneLabel}</Label>
                     <Input value={f.groupBuyPhone} onChange={e => set('groupBuyPhone', e.target.value)} className="h-9 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">最低成團量</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyMinQtyLabel}</Label>
                     <Input type="number" value={String(f.groupBuyMinQty)} onChange={e => set('groupBuyMinQty', Number(e.target.value))} className="h-9 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">團購價（元）</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyPriceLabel}</Label>
                     <Input type="number" value={String(f.groupBuyPrice)} onChange={e => set('groupBuyPrice', e.target.value)} className="h-9 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">開團日</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyOpenDateLabel}</Label>
                     <Input type="date" value={f.groupBuyOpenDate} onChange={e => set('groupBuyOpenDate', e.target.value)} className="h-9 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-600 mb-1.5 block">截團日</Label>
+                    <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyCloseDateLabel}</Label>
                     <Input type="date" value={f.groupBuyCloseDate} onChange={e => set('groupBuyCloseDate', e.target.value)} className="h-9 text-sm" />
                   </div>
                 </div>

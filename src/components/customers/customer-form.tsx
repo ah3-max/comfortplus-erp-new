@@ -10,56 +10,57 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
-// Static exports kept for backward-compat (pages that can't call hooks)
+// Static exports kept for backward-compat (pages that can't call hooks).
+// Labels here are English fallbacks; components with useI18n() use dict.formLabels variants below.
 export const customerTypes = [
-  { value: 'NURSING_HOME',     label: '護理之家' },
-  { value: 'CARE_HOME',        label: '養老院' },
-  { value: 'ELDERLY_HOME',     label: '老福法養老院' },
-  { value: 'SOCIAL_WELFARE',   label: '社團法人長照機構' },
-  { value: 'DAY_CARE',         label: '日照中心' },
-  { value: 'HOME_CARE',        label: '居家服務單位' },
-  { value: 'HOSPITAL',         label: '醫院/診所' },
-  { value: 'DISTRIBUTOR',      label: '經銷商' },
-  { value: 'MEDICAL_CHANNEL',  label: '醫材通路' },
-  { value: 'PHARMACY_CHANNEL', label: '藥局通路' },
-  { value: 'OTHER',            label: '其他' },
+  { value: 'NURSING_HOME',     label: 'Nursing Home' },
+  { value: 'CARE_HOME',        label: 'Care Home' },
+  { value: 'ELDERLY_HOME',     label: 'Elderly Home' },
+  { value: 'SOCIAL_WELFARE',   label: 'Social Welfare LTC' },
+  { value: 'DAY_CARE',         label: 'Day Care Center' },
+  { value: 'HOME_CARE',        label: 'Home Care' },
+  { value: 'HOSPITAL',         label: 'Hospital/Clinic' },
+  { value: 'DISTRIBUTOR',      label: 'Distributor' },
+  { value: 'MEDICAL_CHANNEL',  label: 'Medical Channel' },
+  { value: 'PHARMACY_CHANNEL', label: 'Pharmacy Channel' },
+  { value: 'OTHER',            label: 'Other' },
 ]
 
 export const orgLevelOptions = [
-  { value: 'HEADQUARTERS', label: '總部' },
-  { value: 'BRANCH',       label: '分院/分館' },
-  { value: 'STANDALONE',   label: '單一機構' },
+  { value: 'HEADQUARTERS', label: 'Headquarters' },
+  { value: 'BRANCH',       label: 'Branch' },
+  { value: 'STANDALONE',   label: 'Standalone' },
 ]
 
 export const devStatusOptions = [
-  { value: 'POTENTIAL',         label: '潛在客戶' },
-  { value: 'CONTACTED',         label: '已接觸' },
-  { value: 'VISITED',           label: '已拜訪' },
-  { value: 'NEGOTIATING',       label: '洽談中' },
-  { value: 'TRIAL',             label: '試用中' },
-  { value: 'CLOSED',            label: '已成交' },
-  { value: 'STABLE_REPURCHASE', label: '穩定回購' },
-  { value: 'DORMANT',           label: '休眠' },
-  { value: 'CHURNED',           label: '流失' },
-  { value: 'REJECTED',          label: '確定拒絕' },
-  { value: 'OTHER',             label: '其他' },
+  { value: 'POTENTIAL',         label: 'Potential' },
+  { value: 'CONTACTED',         label: 'Contacted' },
+  { value: 'VISITED',           label: 'Visited' },
+  { value: 'NEGOTIATING',       label: 'Negotiating' },
+  { value: 'TRIAL',             label: 'Trial' },
+  { value: 'CLOSED',            label: 'Closed' },
+  { value: 'STABLE_REPURCHASE', label: 'Stable Repurchase' },
+  { value: 'DORMANT',           label: 'Dormant' },
+  { value: 'CHURNED',           label: 'Churned' },
+  { value: 'REJECTED',          label: 'Rejected' },
+  { value: 'OTHER',             label: 'Other' },
 ]
 export const sourceOptions = [
-  { value: 'COLD_CALL',   label: '陌生開發' },
-  { value: 'REFERRAL',    label: '介紹' },
-  { value: 'EXHIBITION',  label: '展會' },
-  { value: 'ADVERTISING', label: '廣告' },
-  { value: 'WEBSITE',     label: '官網' },
+  { value: 'COLD_CALL',   label: 'Cold Call' },
+  { value: 'REFERRAL',    label: 'Referral' },
+  { value: 'EXHIBITION',  label: 'Exhibition' },
+  { value: 'ADVERTISING', label: 'Advertising' },
+  { value: 'WEBSITE',     label: 'Website' },
 ]
 export const regionOptions = [
-  { value: 'NORTH_METRO',       label: '北北桃（台北市・新北市・桃園市）' },
-  { value: 'KEELUNG_YILAN',     label: '基隆宜蘭（基隆市・宜蘭縣）' },
-  { value: 'HSINCHU_MIAOLI',    label: '新竹苗栗（新竹縣市・苗栗縣）' },
-  { value: 'TAICHUNG_AREA',     label: '台中彰化南投' },
-  { value: 'YUNLIN_CHIAYI',     label: '雲林嘉義（雲林縣・嘉義縣市）' },
-  { value: 'TAINAN_KAOHSIUNG',  label: '台南高屏（台南市・高雄市・屏東縣）' },
-  { value: 'HUALIEN_TAITUNG',   label: '花東（花蓮縣・台東縣）' },
-  { value: 'OFFSHORE',          label: '離島（澎湖・金門・馬祖）' },
+  { value: 'NORTH_METRO',       label: 'North Metro (Taipei/New Taipei/Taoyuan)' },
+  { value: 'KEELUNG_YILAN',     label: 'Keelung/Yilan' },
+  { value: 'HSINCHU_MIAOLI',    label: 'Hsinchu/Miaoli' },
+  { value: 'TAICHUNG_AREA',     label: 'Taichung/Changhua/Nantou' },
+  { value: 'YUNLIN_CHIAYI',     label: 'Yunlin/Chiayi' },
+  { value: 'TAINAN_KAOHSIUNG',  label: 'Tainan/Kaohsiung/Pingtung' },
+  { value: 'HUALIEN_TAITUNG',   label: 'Hualien/Taitung' },
+  { value: 'OFFSHORE',          label: 'Offshore Islands' },
 ]
 
 // 縣市 → SalesRegion 自動對應表

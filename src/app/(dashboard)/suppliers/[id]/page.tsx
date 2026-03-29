@@ -11,22 +11,17 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SupplierForm } from '@/components/purchases/supplier-form'
-import { ArrowLeft, Pencil, Plus, Trash2, Loader2, Building2, Package, History, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Pencil, Plus, Trash2, Loader2, Building2, Package, History } from 'lucide-react'
 import { toast } from 'sonner'
 
-const purchaseTypeLabels: Record<string, string> = {
-  FINISHED_GOODS:     '成品採購', OEM: 'OEM代工',
-  PACKAGING:          '包材採購', RAW_MATERIAL: '原物料採購',
-  GIFT_PROMO:         '贈品/活動', LOGISTICS_SUPPLIES: '物流耗材',
-}
-const statusConfig: Record<string, { label: string; cls: string }> = {
-  DRAFT:            { label: '草稿',   cls: 'border-slate-300 text-slate-600' },
-  PENDING_APPROVAL: { label: '審核中', cls: 'bg-orange-100 text-orange-700 border-orange-200' },
-  SOURCING:         { label: '詢價中', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
-  CONFIRMED:        { label: '已確認', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-  PARTIAL:          { label: '部分到貨', cls: 'bg-amber-100 text-amber-700 border-amber-200' },
-  RECEIVED:         { label: '已到貨', cls: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED:        { label: '已取消', cls: 'bg-red-100 text-red-700 border-red-200' },
+const STATUS_CLS: Record<string, string> = {
+  DRAFT:            'border-slate-300 text-slate-600',
+  PENDING_APPROVAL: 'bg-orange-100 text-orange-700 border-orange-200',
+  SOURCING:         'bg-purple-100 text-purple-700 border-purple-200',
+  CONFIRMED:        'bg-blue-100 text-blue-700 border-blue-200',
+  PARTIAL:          'bg-amber-100 text-amber-700 border-amber-200',
+  RECEIVED:         'bg-green-100 text-green-700 border-green-200',
+  CANCELLED:        'bg-red-100 text-red-700 border-red-200',
 }
 
 interface PriceHistory {
@@ -104,7 +99,7 @@ export default function SupplierDetailPage() {
   }
 
   async function handleDeletePrice(recordId: string) {
-    if (!confirm('確定刪除此價格紀錄？')) return
+    if (!confirm(dict.supplierDetail.confirmDeletePrice)) return
     const res = await fetch(`/api/suppliers/${id}/price-history?recordId=${recordId}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.common.deleteSuccess); fetchSupplier() }
     else toast.error(dict.common.deleteFailed)
@@ -118,6 +113,24 @@ export default function SupplierDetailPage() {
   if (!supplier) return (
     <div className="flex h-full items-center justify-center text-muted-foreground">{dict.suppliers.noSuppliers}</div>
   )
+
+  const purchaseTypeLabels: Record<string, string> = {
+    FINISHED_GOODS:     dict.supplierDetail.ptFinishedGoods,
+    OEM:                dict.supplierDetail.ptOem,
+    PACKAGING:          dict.supplierDetail.ptPackaging,
+    RAW_MATERIAL:       dict.supplierDetail.ptRawMaterial,
+    GIFT_PROMO:         dict.supplierDetail.ptGiftPromo,
+    LOGISTICS_SUPPLIES: dict.supplierDetail.ptLogisticsSupplies,
+  }
+  const statusConfig: Record<string, { label: string; cls: string }> = {
+    DRAFT:            { label: dict.supplierDetail.stDraft,           cls: STATUS_CLS.DRAFT },
+    PENDING_APPROVAL: { label: dict.supplierDetail.stPendingApproval, cls: STATUS_CLS.PENDING_APPROVAL },
+    SOURCING:         { label: dict.supplierDetail.stSourcing,        cls: STATUS_CLS.SOURCING },
+    CONFIRMED:        { label: dict.supplierDetail.stConfirmed,       cls: STATUS_CLS.CONFIRMED },
+    PARTIAL:          { label: dict.supplierDetail.stPartial,         cls: STATUS_CLS.PARTIAL },
+    RECEIVED:         { label: dict.supplierDetail.stReceived,        cls: STATUS_CLS.RECEIVED },
+    CANCELLED:        { label: dict.supplierDetail.stCancelled,       cls: STATUS_CLS.CANCELLED },
+  }
 
   const categories = supplier.supplyCategories ? JSON.parse(supplier.supplyCategories) as string[] : []
   const totalPurchased = supplier.purchaseOrders
@@ -139,7 +152,7 @@ export default function SupplierDetailPage() {
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold">{supplier.name}</h1>
             <span className="text-sm font-mono text-muted-foreground">{supplier.code}</span>
-            {!supplier.isActive && <Badge variant="outline" className="text-xs bg-slate-50 text-slate-500">停用</Badge>}
+            {!supplier.isActive && <Badge variant="outline" className="text-xs bg-slate-50 text-slate-500">{dict.supplierDetail.inactive}</Badge>}
           </div>
           {categories.length > 0 && (
             <div className="flex gap-1 mt-1">
@@ -162,23 +175,23 @@ export default function SupplierDetailPage() {
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground mb-1">{dict.purchasesExt.totalAmount}</div>
             <div className="text-xl font-bold text-slate-900">{fmt(totalPurchased)}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{supplier._count.purchaseOrders} 筆採購單</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{supplier._count.purchaseOrders} {dict.supplierDetail.purchaseOrdersCount}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">交期</div>
+            <div className="text-xs text-muted-foreground mb-1">{dict.supplierDetail.leadTimeCard}</div>
             <div className="text-xl font-bold text-slate-900">
-              {supplier.leadTimeDays != null ? `${supplier.leadTimeDays} 天` : '—'}
+              {supplier.leadTimeDays != null ? `${supplier.leadTimeDays}${dict.supplierDetail.leadTimeUnit}` : '—'}
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">付款：{supplier.paymentTerms ?? '—'}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{dict.supplierDetail.paymentPrefix}{supplier.paymentTerms ?? '—'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">歷史報價筆數</div>
+            <div className="text-xs text-muted-foreground mb-1">{dict.supplierDetail.priceHistoryCount}</div>
             <div className="text-xl font-bold text-slate-900">{supplier.priceHistory.length}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">歷史採購價格紀錄</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{dict.supplierDetail.priceHistoryDesc}</div>
           </CardContent>
         </Card>
       </div>
@@ -186,9 +199,9 @@ export default function SupplierDetailPage() {
       {/* Tabs */}
       <div className="flex gap-1 rounded-lg bg-slate-100 p-1">
         {[
-          { id: 'info',   label: '基本資料',   icon: <Building2 className="h-4 w-4" /> },
-          { id: 'orders', label: dict.nav.purchases,   icon: <Package className="h-4 w-4" /> },
-          { id: 'price',  label: '歷史採購價格', icon: <History className="h-4 w-4" /> },
+          { id: 'info',   label: dict.supplierDetail.tabInfo,  icon: <Building2 className="h-4 w-4" /> },
+          { id: 'orders', label: dict.nav.purchases,           icon: <Package className="h-4 w-4" /> },
+          { id: 'price',  label: dict.supplierDetail.tabPrice, icon: <History className="h-4 w-4" /> },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id as typeof tab)}
             className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -203,7 +216,7 @@ export default function SupplierDetailPage() {
       {tab === 'info' && (
         <div className="grid grid-cols-2 gap-5">
           <Card>
-            <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">聯絡資訊</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">{dict.supplierDetail.contactCard}</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               {[
                 { label: dict.suppliers.contact, value: supplier.contactPerson },
@@ -220,18 +233,18 @@ export default function SupplierDetailPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">合作條件</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">{dict.supplierDetail.coopCard}</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{dict.suppliers.paymentTerms}</span>
                 <span className="font-medium">{supplier.paymentTerms ?? '—'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">交期天數</span>
-                <span className="font-medium">{supplier.leadTimeDays != null ? `${supplier.leadTimeDays} 天` : '—'}</span>
+                <span className="text-muted-foreground">{dict.supplierDetail.leadTimeDaysLabel}</span>
+                <span className="font-medium">{supplier.leadTimeDays != null ? `${supplier.leadTimeDays}${dict.supplierDetail.leadTimeUnit}` : '—'}</span>
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-muted-foreground">供應分類</span>
+                <span className="text-muted-foreground">{dict.supplierDetail.supplyCategories}</span>
                 <div className="flex flex-wrap gap-1">
                   {categories.length > 0
                     ? categories.map(c => (
@@ -242,7 +255,7 @@ export default function SupplierDetailPage() {
               </div>
               {supplier.supplyItems && (
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground">供應品項</span>
+                  <span className="text-muted-foreground">{dict.supplierDetail.supplyItems}</span>
                   <p className="text-xs text-slate-700 whitespace-pre-wrap">{supplier.supplyItems}</p>
                 </div>
               )}
@@ -250,7 +263,7 @@ export default function SupplierDetailPage() {
           </Card>
           {supplier.notes && (
             <Card className="col-span-2">
-              <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">備註</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">{dict.supplierDetail.notesCard}</CardTitle></CardHeader>
               <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{supplier.notes}</p></CardContent>
             </Card>
           )}
@@ -261,9 +274,9 @@ export default function SupplierDetailPage() {
       {tab === 'orders' && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">採購紀錄（最近 20 筆）</CardTitle>
+            <CardTitle className="text-base">{dict.supplierDetail.ordersCard}</CardTitle>
             <Button size="sm" onClick={() => router.push('/purchases')}>
-              <Package className="mr-2 h-4 w-4" />前往採購管理
+              <Package className="mr-2 h-4 w-4" />{dict.supplierDetail.goToPurchases}
             </Button>
           </CardHeader>
           <CardContent className="p-0">
@@ -282,7 +295,7 @@ export default function SupplierDetailPage() {
               <TableBody>
                 {supplier.purchaseOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">尚無採購紀錄</TableCell>
+                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">{dict.supplierDetail.noOrders}</TableCell>
                   </TableRow>
                 ) : supplier.purchaseOrders.map(o => {
                   const sc = statusConfig[o.status] ?? { label: o.status, cls: '' }
@@ -313,7 +326,7 @@ export default function SupplierDetailPage() {
       {tab === 'price' && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">歷史採購價格</CardTitle>
+            <CardTitle className="text-base">{dict.supplierDetail.priceCard}</CardTitle>
             <Button size="sm" onClick={() => setPriceOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />{dict.common.add}
             </Button>
@@ -322,10 +335,10 @@ export default function SupplierDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>品項名稱</TableHead>
-                  <TableHead className="text-right w-32">採購單價</TableHead>
-                  <TableHead className="w-24">幣別</TableHead>
-                  <TableHead className="w-28">生效日期</TableHead>
+                  <TableHead>{dict.supplierDetail.priceItemName}</TableHead>
+                  <TableHead className="text-right w-32">{dict.supplierDetail.priceUnitCost}</TableHead>
+                  <TableHead className="w-24">{dict.supplierDetail.priceCurrency}</TableHead>
+                  <TableHead className="w-28">{dict.supplierDetail.priceEffectiveDate}</TableHead>
                   <TableHead>{dict.common.notes}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
@@ -334,7 +347,7 @@ export default function SupplierDetailPage() {
                 {supplier.priceHistory.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
-                      尚無歷史採購價格，點擊右上角新增
+                      {dict.supplierDetail.noPrice}
                     </TableCell>
                   </TableRow>
                 ) : supplier.priceHistory.map(p => (
@@ -370,25 +383,25 @@ export default function SupplierDetailPage() {
       {/* Add price dialog */}
       <Dialog open={priceOpen} onOpenChange={(o) => !o && setPriceOpen(false)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>{dict.common.add}歷史採購價格</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.common.add}{dict.supplierDetail.addPriceTitle}</DialogTitle></DialogHeader>
           <form onSubmit={handleAddPrice} className="space-y-4 py-1">
             <div className="space-y-1.5">
-              <Label>品項名稱 <span className="text-red-500">*</span></Label>
-              <Input value={pItemName} onChange={e => setPItemName(e.target.value)} placeholder="商品名稱 or 品項描述" required />
+              <Label>{dict.supplierDetail.priceItemLabel}</Label>
+              <Input value={pItemName} onChange={e => setPItemName(e.target.value)} placeholder={dict.supplierDetail.priceItemPlaceholder} required />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>採購單價 <span className="text-red-500">*</span></Label>
+                <Label>{dict.supplierDetail.priceUnitLabel}</Label>
                 <Input type="number" value={pUnitCost} onChange={e => setPUnitCost(e.target.value)} placeholder="0" min={0} step={0.01} required />
               </div>
               <div className="space-y-1.5">
-                <Label>生效日期</Label>
+                <Label>{dict.supplierDetail.priceEffectiveDateLabel}</Label>
                 <Input type="date" value={pDate} onChange={e => setPDate(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>備註</Label>
-              <Input value={pNotes} onChange={e => setPNotes(e.target.value)} placeholder="備註（選填）" />
+              <Label>{dict.supplierDetail.priceNotesLabel}</Label>
+              <Input value={pNotes} onChange={e => setPNotes(e.target.value)} placeholder={dict.supplierDetail.priceNotesPlaceholder} />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setPriceOpen(false)} disabled={pSaving}>{dict.common.cancel}</Button>

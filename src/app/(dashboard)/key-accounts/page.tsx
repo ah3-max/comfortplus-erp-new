@@ -113,24 +113,6 @@ interface FollowUpForm {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
-  NURSING_HOME: '護理之家',
-  CARE_HOME: '養老院',
-  ELDERLY_HOME: '老福養老院',
-  SOCIAL_WELFARE: '社團法人長照',
-  DAY_CARE: '日照中心',
-  HOME_CARE: '居家服務',
-  HOSPITAL: '醫院/診所',
-  DISTRIBUTOR: '經銷商',
-  MEDICAL_CHANNEL: '醫材通路',
-  PHARMACY_CHANNEL: '藥局通路',
-  B2C_OFFICIAL: '官網會員',
-  B2C_SHOPEE: '蝦皮',
-  B2C_MOMO: 'momo',
-  B2C_OTHER: 'B2C其他',
-  OTHER: '其他',
-}
-
 const GRADE_BADGE: Record<string, string> = {
   A: 'bg-amber-500 text-white hover:bg-amber-500',
   B: 'bg-blue-500 text-white hover:bg-blue-500',
@@ -138,38 +120,6 @@ const GRADE_BADGE: Record<string, string> = {
   D: 'bg-slate-400 text-white hover:bg-slate-400',
   NONE: 'bg-slate-200 text-slate-600 hover:bg-slate-200',
 }
-
-const REGION_LABELS: Record<SalesRegion, string> = {
-  NORTH_METRO: '北北桃',
-  KEELUNG_YILAN: '基隆宜蘭',
-  HSINCHU_MIAOLI: '新竹苗栗',
-  TAICHUNG_AREA: '台中彰化南投',
-  YUNLIN_CHIAYI: '雲林嘉義',
-  TAINAN_KAOHSIUNG: '台南高屏',
-  HUALIEN_TAITUNG: '花東',
-  OFFSHORE: '離島',
-}
-
-const PAYMENT_TERMS_OPTIONS = [
-  { value: 'CASH', label: '現金' },
-  { value: 'NET30', label: 'NET30（月結30天）' },
-  { value: 'NET45', label: 'NET45（月結45天）' },
-  { value: 'NET60', label: 'NET60（月結60天）' },
-]
-
-const GRADE_OPTIONS: { value: CustomerGrade; label: string }[] = [
-  { value: 'A', label: 'A — 頂級重要' },
-  { value: 'B', label: 'B — 重要客戶' },
-  { value: 'C', label: 'C — 一般客戶' },
-  { value: 'D', label: 'D — 觀察中' },
-]
-
-const LOG_TYPE_OPTIONS = [
-  { value: 'VISIT', label: '拜訪' },
-  { value: 'CALL', label: '電話' },
-  { value: 'EMAIL', label: 'Email' },
-  { value: 'LINE', label: 'LINE' },
-]
 
 const ALL_REGIONS: SalesRegion[] = [
   'NORTH_METRO',
@@ -225,9 +175,20 @@ function formatDate(dateStr: string | null): string {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function CustomerTypeBadge({ type }: { type: CustomerType }) {
+  const { dict } = useI18n()
+  const ka = dict.keyAccounts
+  const typeLabels: Record<string, string> = {
+    NURSING_HOME: ka.typeNursingHome, CARE_HOME: ka.typeCareHome,
+    ELDERLY_HOME: ka.typeElderlyHome, SOCIAL_WELFARE: ka.typeSocialWelfare,
+    DAY_CARE: ka.typeDayCare, HOME_CARE: ka.typeHomeCare,
+    HOSPITAL: ka.typeHospital, DISTRIBUTOR: ka.typeDistributor,
+    MEDICAL_CHANNEL: ka.typeMedicalChannel, PHARMACY_CHANNEL: ka.typePharmacyChannel,
+    B2C_OFFICIAL: ka.typeB2cOfficial, B2C_SHOPEE: ka.typeB2cShopee,
+    B2C_MOMO: ka.typeB2cMomo, B2C_OTHER: ka.typeB2cOther, OTHER: ka.typeOther,
+  }
   return (
     <Badge variant="outline" className="text-xs font-normal">
-      {CUSTOMER_TYPE_LABELS[type] ?? type}
+      {typeLabels[type] ?? type}
     </Badge>
   )
 }
@@ -250,6 +211,14 @@ interface CustomerCardProps {
 }
 
 function CustomerCard({ customer, onEdit, onFollowUp }: CustomerCardProps) {
+  const { dict } = useI18n()
+  const ka = dict.keyAccounts
+  const regionLabels: Record<string, string> = {
+    NORTH_METRO: ka.regionNorthMetro, KEELUNG_YILAN: ka.regionKeelungYilan,
+    HSINCHU_MIAOLI: ka.regionHsinchuMiaoli, TAICHUNG_AREA: ka.regionTaichungArea,
+    YUNLIN_CHIAYI: ka.regionYunlinChiayi, TAINAN_KAOHSIUNG: ka.regionTainanKaohsiung,
+    HUALIEN_TAITUNG: ka.regionHualienTaitung, OFFSHORE: ka.regionOffshore,
+  }
   const interactions = customer._count.visitRecords + customer._count.callRecords
   return (
     <Card className="hover:shadow-md transition-shadow border border-border/60">
@@ -274,7 +243,7 @@ function CustomerCard({ customer, onEdit, onFollowUp }: CustomerCardProps) {
           <CustomerTypeBadge type={customer.type} />
           {customer.region && (
             <Badge variant="secondary" className="text-xs">
-              {REGION_LABELS[customer.region] ?? customer.region}
+              {regionLabels[customer.region] ?? customer.region}
             </Badge>
           )}
         </div>
@@ -310,19 +279,19 @@ function CustomerCard({ customer, onEdit, onFollowUp }: CustomerCardProps) {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-2 pt-1 border-t border-border/50">
           <div className="text-center">
-            <p className="text-xs text-muted-foreground">累積訂單</p>
+            <p className="text-xs text-muted-foreground">{ka.totalOrders}</p>
             <p className="text-sm font-semibold text-slate-700">
               {customer._count.salesOrders}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-muted-foreground">總業績</p>
+            <p className="text-xs text-muted-foreground">{ka.totalRevenue}</p>
             <p className="text-sm font-semibold text-blue-600">
               {formatCurrency(customer.lifetimeValue)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-muted-foreground">互動次數</p>
+            <p className="text-xs text-muted-foreground">{ka.interactions}</p>
             <p className="text-sm font-semibold text-slate-700">{interactions}</p>
           </div>
         </div>
@@ -331,7 +300,7 @@ function CustomerCard({ customer, onEdit, onFollowUp }: CustomerCardProps) {
         {customer.lastOrderDate && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Calendar className="h-3.5 w-3.5 shrink-0" />
-            <span>最後訂單：{formatDate(customer.lastOrderDate)}</span>
+            <span>{ka.lastOrder}{formatDate(customer.lastOrderDate)}</span>
           </div>
         )}
 
@@ -351,7 +320,7 @@ function CustomerCard({ customer, onEdit, onFollowUp }: CustomerCardProps) {
             onClick={() => onEdit(customer)}
           >
             <FileText className="h-3.5 w-3.5 mr-1" />
-            查看/編輯
+            {ka.viewEdit}
           </Button>
           <Button
             variant="outline"
@@ -360,7 +329,7 @@ function CustomerCard({ customer, onEdit, onFollowUp }: CustomerCardProps) {
             onClick={() => onFollowUp(customer)}
           >
             <Phone className="h-3.5 w-3.5 mr-1" />
-            跟進記錄
+            {ka.followUp}
           </Button>
         </div>
       </CardContent>
@@ -381,6 +350,18 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
   const ka = dict.keyAccounts
   const [form, setForm] = useState<NewCustomerForm>(EMPTY_NEW_FORM)
   const [saving, setSaving] = useState(false)
+  const paymentOptions = [
+    { value: 'CASH', label: ka.paymentCash },
+    { value: 'NET30', label: ka.paymentNet30 },
+    { value: 'NET45', label: ka.paymentNet45 },
+    { value: 'NET60', label: ka.paymentNet60 },
+  ]
+  const gradeOptions: { value: CustomerGrade; label: string }[] = [
+    { value: 'A', label: ka.gradeALabel },
+    { value: 'B', label: ka.gradeBLabel },
+    { value: 'C', label: ka.gradeCLabel },
+    { value: 'D', label: ka.gradeDLabel },
+  ]
 
   function setField<K extends keyof NewCustomerForm>(key: K, value: NewCustomerForm[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -419,7 +400,7 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
         toast.error(data.error ?? dict.common.createFailed)
         return
       }
-      toast.success(`已新增客戶「${data.name}」`)
+      toast.success(ka.customerCreated.replace('{name}', data.name))
       setForm(EMPTY_NEW_FORM)
       onSuccess()
       onClose()
@@ -436,7 +417,7 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
-            新增重要客戶
+            {ka.addKeyAccount}
           </DialogTitle>
         </DialogHeader>
 
@@ -445,46 +426,46 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label htmlFor="nc-name">
-                客戶名稱 <span className="text-red-500">*</span>
+                {ka.customerName} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="nc-name"
-                placeholder="請輸入客戶全名"
+                placeholder={ka.namePlaceholder}
                 value={form.name}
                 onChange={e => setField('name', e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nc-code">客戶代碼</Label>
+              <Label htmlFor="nc-code">{ka.customerCode}</Label>
               <Input
                 id="nc-code"
-                placeholder="留空自動產生"
+                placeholder={ka.codePlaceholder}
                 value={form.code}
                 onChange={e => setField('code', e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>客戶類型 <span className="text-red-500">*</span></Label>
+              <Label>{ka.customerType} <span className="text-red-500">*</span></Label>
               <Select value={form.type} onValueChange={v => setField('type', v as CustomerType)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇類型" />
+                  <SelectValue placeholder={ka.selectType} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NURSING_HOME">護理之家</SelectItem>
-                  <SelectItem value="CARE_HOME">養老院</SelectItem>
-                  <SelectItem value="ELDERLY_HOME">老福養老院</SelectItem>
-                  <SelectItem value="SOCIAL_WELFARE">社團法人長照</SelectItem>
-                  <SelectItem value="DAY_CARE">日照中心</SelectItem>
-                  <SelectItem value="HOME_CARE">居家服務</SelectItem>
-                  <SelectItem value="HOSPITAL">醫院/診所</SelectItem>
-                  <SelectItem value="DISTRIBUTOR">經銷商</SelectItem>
-                  <SelectItem value="MEDICAL_CHANNEL">醫材通路</SelectItem>
-                  <SelectItem value="PHARMACY_CHANNEL">藥局通路</SelectItem>
-                  <SelectItem value="B2C_OFFICIAL">官網會員</SelectItem>
-                  <SelectItem value="B2C_SHOPEE">蝦皮</SelectItem>
-                  <SelectItem value="B2C_MOMO">momo</SelectItem>
-                  <SelectItem value="B2C_OTHER">B2C其他</SelectItem>
-                  <SelectItem value="OTHER">其他</SelectItem>
+                  <SelectItem value="NURSING_HOME">{ka.typeNursingHome}</SelectItem>
+                  <SelectItem value="CARE_HOME">{ka.typeCareHome}</SelectItem>
+                  <SelectItem value="ELDERLY_HOME">{ka.typeElderlyHome}</SelectItem>
+                  <SelectItem value="SOCIAL_WELFARE">{ka.typeSocialWelfare}</SelectItem>
+                  <SelectItem value="DAY_CARE">{ka.typeDayCare}</SelectItem>
+                  <SelectItem value="HOME_CARE">{ka.typeHomeCare}</SelectItem>
+                  <SelectItem value="HOSPITAL">{ka.typeHospital}</SelectItem>
+                  <SelectItem value="DISTRIBUTOR">{ka.typeDistributor}</SelectItem>
+                  <SelectItem value="MEDICAL_CHANNEL">{ka.typeMedicalChannel}</SelectItem>
+                  <SelectItem value="PHARMACY_CHANNEL">{ka.typePharmacyChannel}</SelectItem>
+                  <SelectItem value="B2C_OFFICIAL">{ka.typeB2cOfficial}</SelectItem>
+                  <SelectItem value="B2C_SHOPEE">{ka.typeB2cShopee}</SelectItem>
+                  <SelectItem value="B2C_MOMO">{ka.typeB2cMomo}</SelectItem>
+                  <SelectItem value="B2C_OTHER">{ka.typeB2cOther}</SelectItem>
+                  <SelectItem value="OTHER">{ka.typeOther}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -493,16 +474,16 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
           {/* Contact */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="nc-contact">聯絡人</Label>
+              <Label htmlFor="nc-contact">{ka.contactPerson}</Label>
               <Input
                 id="nc-contact"
-                placeholder="姓名"
+                placeholder={ka.contactPlaceholder}
                 value={form.contactPerson}
                 onChange={e => setField('contactPerson', e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nc-phone">電話</Label>
+              <Label htmlFor="nc-phone">{ka.phone}</Label>
               <Input
                 id="nc-phone"
                 placeholder="02-xxxx-xxxx"
@@ -511,7 +492,7 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
               />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="nc-email">Email</Label>
+              <Label htmlFor="nc-email">{ka.logEmail}</Label>
               <Input
                 id="nc-email"
                 type="email"
@@ -521,10 +502,10 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
               />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label htmlFor="nc-address">地址</Label>
+              <Label htmlFor="nc-address">{ka.address}</Label>
               <Input
                 id="nc-address"
-                placeholder="公司地址"
+                placeholder={ka.addressPlaceholder}
                 value={form.address}
                 onChange={e => setField('address', e.target.value)}
               />
@@ -534,16 +515,16 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
           {/* Commercial */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>付款條件</Label>
+              <Label>{ka.paymentTerms}</Label>
               <Select
                 value={form.paymentTerms}
                 onValueChange={v => setField('paymentTerms', v ?? '')}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇付款條件" />
+                  <SelectValue placeholder={ka.selectPaymentTerms} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_TERMS_OPTIONS.map(o => (
+                  {paymentOptions.map(o => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
@@ -552,7 +533,7 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="nc-credit">信用額度 (NT$)</Label>
+              <Label htmlFor="nc-credit">{ka.creditLimit}</Label>
               <Input
                 id="nc-credit"
                 type="number"
@@ -563,16 +544,16 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
               />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>客戶等級</Label>
+              <Label>{ka.customerGrade}</Label>
               <Select
                 value={form.grade}
                 onValueChange={v => setField('grade', v as CustomerGrade)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇等級" />
+                  <SelectValue placeholder={ka.selectGrade} />
                 </SelectTrigger>
                 <SelectContent>
-                  {GRADE_OPTIONS.map(o => (
+                  {gradeOptions.map(o => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
@@ -584,12 +565,12 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <Label htmlFor="nc-notes">備註</Label>
+            <Label htmlFor="nc-notes">{ka.notes}</Label>
             <textarea
               id="nc-notes"
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               rows={3}
-              placeholder="客戶特殊需求、背景資訊…"
+              placeholder={ka.notesBg}
               value={form.notes}
               onChange={e => setField('notes', e.target.value)}
             />
@@ -598,11 +579,11 @@ function NewCustomerDialog({ open, onClose, onSuccess }: NewCustomerDialogProps)
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            取消
+            {dict.common.cancel}
           </Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-            新增客戶
+            {ka.addCustomer}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -623,6 +604,18 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
   const ka = dict.keyAccounts
   const [form, setForm] = useState<Partial<NewCustomerForm>>({})
   const [saving, setSaving] = useState(false)
+  const paymentOptions = [
+    { value: 'CASH', label: ka.paymentCash },
+    { value: 'NET30', label: ka.paymentNet30 },
+    { value: 'NET45', label: ka.paymentNet45 },
+    { value: 'NET60', label: ka.paymentNet60 },
+  ]
+  const gradeOptions: { value: CustomerGrade; label: string }[] = [
+    { value: 'A', label: ka.gradeALabel },
+    { value: 'B', label: ka.gradeBLabel },
+    { value: 'C', label: ka.gradeCLabel },
+    { value: 'D', label: ka.gradeDLabel },
+  ]
 
   useEffect(() => {
     if (customer) {
@@ -691,7 +684,7 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-blue-500" />
-            編輯客戶資料
+            {ka.editCustomer}
             {customer && (
               <Badge variant="outline" className="font-mono text-xs ml-1">
                 {customer.code}
@@ -703,51 +696,51 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
-              <Label>客戶名稱 <span className="text-red-500">*</span></Label>
+              <Label>{ka.customerName} <span className="text-red-500">*</span></Label>
               <Input
                 value={form.name ?? ''}
                 onChange={e => setField('name', e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>客戶類型</Label>
+              <Label>{ka.customerType}</Label>
               <Select
                 value={form.type ?? ''}
                 onValueChange={v => setField('type', v as CustomerType)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇類型" />
+                  <SelectValue placeholder={ka.selectType} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NURSING_HOME">護理之家</SelectItem>
-                  <SelectItem value="CARE_HOME">養老院</SelectItem>
-                  <SelectItem value="ELDERLY_HOME">老福養老院</SelectItem>
-                  <SelectItem value="SOCIAL_WELFARE">社團法人長照</SelectItem>
-                  <SelectItem value="DAY_CARE">日照中心</SelectItem>
-                  <SelectItem value="HOME_CARE">居家服務</SelectItem>
-                  <SelectItem value="HOSPITAL">醫院/診所</SelectItem>
-                  <SelectItem value="DISTRIBUTOR">經銷商</SelectItem>
-                  <SelectItem value="MEDICAL_CHANNEL">醫材通路</SelectItem>
-                  <SelectItem value="PHARMACY_CHANNEL">藥局通路</SelectItem>
-                  <SelectItem value="B2C_OFFICIAL">官網會員</SelectItem>
-                  <SelectItem value="B2C_SHOPEE">蝦皮</SelectItem>
-                  <SelectItem value="B2C_MOMO">momo</SelectItem>
-                  <SelectItem value="B2C_OTHER">B2C其他</SelectItem>
-                  <SelectItem value="OTHER">其他</SelectItem>
+                  <SelectItem value="NURSING_HOME">{ka.typeNursingHome}</SelectItem>
+                  <SelectItem value="CARE_HOME">{ka.typeCareHome}</SelectItem>
+                  <SelectItem value="ELDERLY_HOME">{ka.typeElderlyHome}</SelectItem>
+                  <SelectItem value="SOCIAL_WELFARE">{ka.typeSocialWelfare}</SelectItem>
+                  <SelectItem value="DAY_CARE">{ka.typeDayCare}</SelectItem>
+                  <SelectItem value="HOME_CARE">{ka.typeHomeCare}</SelectItem>
+                  <SelectItem value="HOSPITAL">{ka.typeHospital}</SelectItem>
+                  <SelectItem value="DISTRIBUTOR">{ka.typeDistributor}</SelectItem>
+                  <SelectItem value="MEDICAL_CHANNEL">{ka.typeMedicalChannel}</SelectItem>
+                  <SelectItem value="PHARMACY_CHANNEL">{ka.typePharmacyChannel}</SelectItem>
+                  <SelectItem value="B2C_OFFICIAL">{ka.typeB2cOfficial}</SelectItem>
+                  <SelectItem value="B2C_SHOPEE">{ka.typeB2cShopee}</SelectItem>
+                  <SelectItem value="B2C_MOMO">{ka.typeB2cMomo}</SelectItem>
+                  <SelectItem value="B2C_OTHER">{ka.typeB2cOther}</SelectItem>
+                  <SelectItem value="OTHER">{ka.typeOther}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>客戶等級</Label>
+              <Label>{ka.customerGrade}</Label>
               <Select
                 value={form.grade ?? ''}
                 onValueChange={v => setField('grade', v as CustomerGrade)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇等級" />
+                  <SelectValue placeholder={ka.selectGrade} />
                 </SelectTrigger>
                 <SelectContent>
-                  {GRADE_OPTIONS.map(o => (
+                  {gradeOptions.map(o => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
@@ -759,21 +752,21 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>聯絡人</Label>
+              <Label>{ka.contactPerson}</Label>
               <Input
                 value={form.contactPerson ?? ''}
                 onChange={e => setField('contactPerson', e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>電話</Label>
+              <Label>{ka.phone}</Label>
               <Input
                 value={form.phone ?? ''}
                 onChange={e => setField('phone', e.target.value)}
               />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>Email</Label>
+              <Label>{ka.logEmail}</Label>
               <Input
                 type="email"
                 value={form.email ?? ''}
@@ -781,7 +774,7 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
               />
             </div>
             <div className="col-span-2 space-y-1.5">
-              <Label>地址</Label>
+              <Label>{ka.address}</Label>
               <Input
                 value={form.address ?? ''}
                 onChange={e => setField('address', e.target.value)}
@@ -791,16 +784,16 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>付款條件</Label>
+              <Label>{ka.paymentTerms}</Label>
               <Select
                 value={form.paymentTerms ?? ''}
                 onValueChange={v => setField('paymentTerms', v ?? '')}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇付款條件" />
+                  <SelectValue placeholder={ka.selectPaymentTerms} />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_TERMS_OPTIONS.map(o => (
+                  {paymentOptions.map(o => (
                     <SelectItem key={o.value} value={o.value}>
                       {o.label}
                     </SelectItem>
@@ -809,7 +802,7 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>信用額度 (NT$)</Label>
+              <Label>{ka.creditLimit}</Label>
               <Input
                 type="number"
                 min={0}
@@ -820,7 +813,7 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
           </div>
 
           <div className="space-y-1.5">
-            <Label>備註</Label>
+            <Label>{ka.notes}</Label>
             <textarea
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               rows={3}
@@ -832,11 +825,11 @@ function EditCustomerDialog({ customer, onClose, onSuccess }: EditCustomerDialog
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            取消
+            {dict.common.cancel}
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            儲存變更
+            {ka.saveChanges}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -857,6 +850,12 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
   const ka = dict.keyAccounts
   const [form, setForm] = useState<FollowUpForm>(EMPTY_FOLLOW_UP)
   const [saving, setSaving] = useState(false)
+  const logTypeOptions = [
+    { value: 'VISIT', label: ka.logVisit },
+    { value: 'CALL', label: ka.logCall },
+    { value: 'EMAIL', label: ka.logEmail },
+    { value: 'LINE', label: ka.logLine },
+  ]
 
   useEffect(() => {
     if (customer) setForm(EMPTY_FOLLOW_UP)
@@ -889,7 +888,7 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
         toast.error(data.error ?? dict.common.createFailed)
         return
       }
-      toast.success(`已記錄「${customer.name}」的跟進`)
+      toast.success(ka.followupLogged.replace('{name}', customer.name))
       onSuccess()
       onClose()
     } catch {
@@ -905,18 +904,18 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Phone className="h-5 w-5 text-blue-500" />
-            跟進記錄
+            {ka.followupTitle}
           </DialogTitle>
           {customer && (
             <p className="text-sm text-muted-foreground pt-1">
-              客戶：<span className="font-medium text-foreground">{customer.name}</span>
+              {ka.customerLabel}<span className="font-medium text-foreground">{customer.name}</span>
             </p>
           )}
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>跟進方式</Label>
+            <Label>{ka.followupMethod}</Label>
             <Select
               value={form.logType}
               onValueChange={v => setField('logType', v as FollowUpForm['logType'])}
@@ -925,7 +924,7 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {LOG_TYPE_OPTIONS.map(o => (
+                {logTypeOptions.map(o => (
                   <SelectItem key={o.value} value={o.value}>
                     {o.label}
                   </SelectItem>
@@ -936,19 +935,19 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
 
           <div className="space-y-1.5">
             <Label>
-              跟進摘要 <span className="text-red-500">*</span>
+              {ka.followupSummary} <span className="text-red-500">*</span>
             </Label>
             <textarea
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
               rows={4}
-              placeholder="本次聯繫重點、客戶反應、後續事項…"
+              placeholder={ka.followupContentPlaceholder}
               value={form.content}
               onChange={e => setField('content', e.target.value)}
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="fu-next-date">下次追蹤日期</Label>
+            <Label htmlFor="fu-next-date">{ka.nextFollowUpDate}</Label>
             <Input
               id="fu-next-date"
               type="date"
@@ -960,11 +959,11 @@ function FollowUpDialog({ customer, onClose, onSuccess }: FollowUpDialogProps) {
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            取消
+            {dict.common.cancel}
           </Button>
           <Button onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
-            儲存記錄
+            {ka.saveRecord}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1062,7 +1061,7 @@ export default function KeyAccountsPage() {
             {dict.customersExt.keyAccount}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            A / B 級核心客戶 — 共 {customers.length} 位
+            {ka.coreCustomers.replace('{count}', String(customers.length))}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1080,7 +1079,7 @@ export default function KeyAccountsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           {
-            label: 'A 級客戶',
+            label: ka.gradeA,
             value: gradeACount,
             icon: Star,
             color: 'text-amber-500',
@@ -1088,7 +1087,7 @@ export default function KeyAccountsPage() {
             border: 'border-amber-200',
           },
           {
-            label: 'B 級客戶',
+            label: ka.gradeB,
             value: gradeBCount,
             icon: Users,
             color: 'text-blue-600',
@@ -1096,7 +1095,7 @@ export default function KeyAccountsPage() {
             border: 'border-blue-200',
           },
           {
-            label: '累積訂單',
+            label: ka.totalOrders,
             value: totalOrders,
             icon: FileText,
             color: 'text-emerald-600',
@@ -1104,7 +1103,7 @@ export default function KeyAccountsPage() {
             border: 'border-emerald-200',
           },
           {
-            label: '總業績',
+            label: ka.totalRevenue,
             value: formatCurrency(totalRevenue > 0 ? String(totalRevenue) : null),
             icon: TrendingUp,
             color: 'text-violet-600',
@@ -1145,19 +1144,19 @@ export default function KeyAccountsPage() {
             <TabsTrigger value="A">
               <span className="inline-flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                A 級
+                {ka.gradeAShort}
               </span>
             </TabsTrigger>
             <TabsTrigger value="B">
               <span className="inline-flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                B 級
+                {ka.gradeBShort}
               </span>
             </TabsTrigger>
             <TabsTrigger value="C">
               <span className="inline-flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                C 級
+                {ka.gradeCShort}
               </span>
             </TabsTrigger>
           </TabsList>
@@ -1169,15 +1168,23 @@ export default function KeyAccountsPage() {
           onValueChange={v => setRegionFilter(v as RegionFilter)}
         >
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="所有區域" />
+            <SelectValue placeholder={ka.allRegions} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">所有區域</SelectItem>
-            {ALL_REGIONS.map(r => (
-              <SelectItem key={r} value={r}>
-                {REGION_LABELS[r]}
-              </SelectItem>
-            ))}
+            <SelectItem value="ALL">{ka.allRegions}</SelectItem>
+            {ALL_REGIONS.map(r => {
+              const regionLabels: Record<string, string> = {
+                NORTH_METRO: ka.regionNorthMetro, KEELUNG_YILAN: ka.regionKeelungYilan,
+                HSINCHU_MIAOLI: ka.regionHsinchuMiaoli, TAICHUNG_AREA: ka.regionTaichungArea,
+                YUNLIN_CHIAYI: ka.regionYunlinChiayi, TAINAN_KAOHSIUNG: ka.regionTainanKaohsiung,
+                HUALIEN_TAITUNG: ka.regionHualienTaitung, OFFSHORE: ka.regionOffshore,
+              }
+              return (
+                <SelectItem key={r} value={r}>
+                  {regionLabels[r] ?? r}
+                </SelectItem>
+              )
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -1195,20 +1202,20 @@ export default function KeyAccountsPage() {
           </p>
           <p className="text-sm mt-1">
             {customers.length === 0
-              ? '點擊「新增重要客戶」開始建立'
-              : '請調整篩選條件後再試'}
+              ? ka.addFirstHint
+              : ka.adjustFilter}
           </p>
           {customers.length === 0 && (
             <Button className="mt-4" onClick={() => setShowNew(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              新增重要客戶
+              {ka.addKeyAccount}
             </Button>
           )}
         </div>
       ) : (
         <>
           <p className="text-xs text-muted-foreground -mb-2">
-            顯示 {filtered.length} / {customers.length} 位客戶
+            {ka.showingCount.replace('{filtered}', String(filtered.length)).replace('{total}', String(customers.length))}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(c => (

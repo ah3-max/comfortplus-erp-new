@@ -35,26 +35,17 @@ const typeColors: Record<string, string> = {
   NURSING_HOME: 'bg-blue-100 text-blue-700', ELDERLY_HOME: 'bg-purple-100 text-purple-700',
   HOSPITAL: 'bg-red-100 text-red-700', DISTRIBUTOR: 'bg-green-100 text-green-700', OTHER: 'bg-slate-100 text-slate-600',
 }
-const orderStatusLabel: Record<string, string> = {
-  PENDING: '待確認', CONFIRMED: '已確認', PROCESSING: '處理中',
-  SHIPPED: '已出貨', DELIVERED: '已送達', COMPLETED: '已完成', CANCELLED: '已取消',
-}
-const quotationStatusLabel: Record<string, string> = {
-  DRAFT: '草稿', SENT: '已送出', ACCEPTED: '已接受', REJECTED: '已拒絕', EXPIRED: '已過期', CONVERTED: '已轉訂單',
-}
 const quotationStatusColors: Record<string, string> = {
   DRAFT: 'border-slate-200 text-slate-500', SENT: 'bg-blue-50 text-blue-600 border-blue-200',
   ACCEPTED: 'bg-green-50 text-green-600 border-green-200', REJECTED: 'bg-red-50 text-red-500 border-red-200',
   EXPIRED: 'bg-slate-50 text-slate-400 border-slate-200', CONVERTED: 'bg-purple-50 text-purple-600 border-purple-200',
 }
-const complaintTypeLabel: Record<string, string> = {
-  COMPLAINT: '客訴', AFTER_SALES: '售後服務', RETURN: '退貨申請', PRODUCT_ISSUE: '產品異常', OTHER: '其他',
+const complaintStatusIconMap: Record<string, React.ElementType> = {
+  OPEN: AlertCircle, IN_PROGRESS: Clock, RESOLVED: CheckCircle2, CLOSED: XCircle,
 }
-const complaintStatusConfig: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
-  OPEN:        { label: '待處理', cls: 'bg-red-50 text-red-600 border-red-200',     icon: AlertCircle },
-  IN_PROGRESS: { label: '處理中', cls: 'bg-amber-50 text-amber-600 border-amber-200', icon: Clock },
-  RESOLVED:    { label: '已解決', cls: 'bg-green-50 text-green-600 border-green-200', icon: CheckCircle2 },
-  CLOSED:      { label: '已關閉', cls: 'bg-slate-50 text-slate-500 border-slate-200', icon: XCircle },
+const complaintStatusClsMap: Record<string, string> = {
+  OPEN: 'bg-red-50 text-red-600 border-red-200', IN_PROGRESS: 'bg-amber-50 text-amber-600 border-amber-200',
+  RESOLVED: 'bg-green-50 text-green-600 border-green-200', CLOSED: 'bg-slate-50 text-slate-500 border-slate-200',
 }
 
 // ── 互動日誌型別 ──────────────────────────────────────
@@ -74,24 +65,22 @@ interface FollowUpLog {
   createdBy: { id: string; name: string }
 }
 
-const LOG_TYPE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  CALL:         { label: '電話',   color: 'bg-blue-100 text-blue-700',    icon: '📞' },
-  LINE:         { label: 'LINE',   color: 'bg-green-100 text-green-700',  icon: '💬' },
-  EMAIL:        { label: 'Email',  color: 'bg-purple-100 text-purple-700', icon: '✉️' },
-  MEETING:      { label: '會議',   color: 'bg-indigo-100 text-indigo-700', icon: '🤝' },
-  FIRST_VISIT:  { label: '初訪',   color: 'bg-amber-100 text-amber-700',  icon: '🚪' },
-  SECOND_VISIT: { label: '二訪',   color: 'bg-amber-100 text-amber-700',  icon: '🔄' },
-  THIRD_VISIT:  { label: '三訪+',  color: 'bg-orange-100 text-orange-700', icon: '⭐' },
-  DELIVERY:     { label: '送貨',   color: 'bg-teal-100 text-teal-700',    icon: '📦' },
-  EXPO:         { label: '展覽',   color: 'bg-rose-100 text-rose-700',    icon: '🏛️' },
-  OTHER:        { label: '其他',   color: 'bg-slate-100 text-slate-600',  icon: '📝' },
+const LOG_TYPE_COLOR: Record<string, string> = {
+  CALL: 'bg-blue-100 text-blue-700', LINE: 'bg-green-100 text-green-700',
+  EMAIL: 'bg-purple-100 text-purple-700', MEETING: 'bg-indigo-100 text-indigo-700',
+  FIRST_VISIT: 'bg-amber-100 text-amber-700', SECOND_VISIT: 'bg-amber-100 text-amber-700',
+  THIRD_VISIT: 'bg-orange-100 text-orange-700', DELIVERY: 'bg-teal-100 text-teal-700',
+  EXPO: 'bg-rose-100 text-rose-700', OTHER: 'bg-slate-100 text-slate-600',
+}
+const LOG_TYPE_ICON: Record<string, string> = {
+  CALL: '📞', LINE: '💬', EMAIL: '✉️', MEETING: '🤝',
+  FIRST_VISIT: '🚪', SECOND_VISIT: '🔄', THIRD_VISIT: '⭐',
+  DELIVERY: '📦', EXPO: '🏛️', OTHER: '📝',
 }
 
-const REACTION_CONFIG: Record<string, { label: string; color: string }> = {
-  POSITIVE:    { label: '正面',  color: 'text-green-600' },
-  NEUTRAL:     { label: '普通',  color: 'text-slate-500' },
-  NEGATIVE:    { label: '拒絕',  color: 'text-red-500' },
-  NO_RESPONSE: { label: '未接/無回應', color: 'text-slate-400' },
+const REACTION_COLOR: Record<string, string> = {
+  POSITIVE: 'text-green-600', NEUTRAL: 'text-slate-500',
+  NEGATIVE: 'text-red-500', NO_RESPONSE: 'text-slate-400',
 }
 
 // ── 型別定義 ──────────────────────────────────────────
@@ -166,8 +155,6 @@ function fmtDate(s: string) {
   return new Date(s).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
-const visitPurposes   = ['初訪', '複訪', '服務巡訪', '教育訓練', '合約簽訂', '問題處理', '上線輔導']
-const callPurposes    = ['問候電訪', '訂單確認', '產品介紹', '問題處理', '滿意度追蹤', '促銷推廣']
 const complaintTypes  = ['COMPLAINT','AFTER_SALES','RETURN','PRODUCT_ISSUE','OTHER']
 const complaintStatuses = ['OPEN','IN_PROGRESS','RESOLVED','CLOSED']
 
@@ -188,17 +175,12 @@ interface Opportunity {
   _count: { followUpLogs: number }
 }
 
-const OPP_STAGE_CONFIG: Record<string, { label: string; color: string }> = {
-  PROSPECTING:    { label: '潛在開發',  color: 'bg-slate-100 text-slate-600' },
-  CONTACTED:      { label: '已接觸',   color: 'bg-blue-100 text-blue-700' },
-  VISITED:        { label: '已拜訪',   color: 'bg-indigo-100 text-indigo-700' },
-  NEEDS_ANALYSIS: { label: '需求確認', color: 'bg-purple-100 text-purple-700' },
-  SAMPLING:       { label: '樣品試用', color: 'bg-teal-100 text-teal-700' },
-  QUOTED:         { label: '已報價',   color: 'bg-amber-100 text-amber-700' },
-  NEGOTIATING:    { label: '議價中',   color: 'bg-orange-100 text-orange-700' },
-  REGULAR_ORDER:  { label: '穩定成交', color: 'bg-green-100 text-green-700' },
-  LOST:           { label: '已失單',   color: 'bg-red-100 text-red-600' },
-  INACTIVE:       { label: '暫停',     color: 'bg-slate-100 text-slate-400' },
+const OPP_STAGE_COLOR: Record<string, string> = {
+  PROSPECTING: 'bg-slate-100 text-slate-600', CONTACTED: 'bg-blue-100 text-blue-700',
+  VISITED: 'bg-indigo-100 text-indigo-700', NEEDS_ANALYSIS: 'bg-purple-100 text-purple-700',
+  SAMPLING: 'bg-teal-100 text-teal-700', QUOTED: 'bg-amber-100 text-amber-700',
+  NEGOTIATING: 'bg-orange-100 text-orange-700', REGULAR_ORDER: 'bg-green-100 text-green-700',
+  LOST: 'bg-red-100 text-red-600', INACTIVE: 'bg-slate-100 text-slate-400',
 }
 type ContactFormData = { name: string; role: string; title: string; department: string; mobile: string; phone: string; phoneExt: string; email: string; lineId: string; isPrimary: boolean; preferredContactTime: string; notes: string }
 
@@ -213,6 +195,7 @@ export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { dict } = useI18n()
   const cu = dict.customers
+  const cd = dict.customerDetail
   const [customer, setCustomer]   = useState<Customer | null>(null)
   const [loading, setLoading]     = useState(true)
   const [editOpen, setEditOpen]   = useState(false)
@@ -432,20 +415,20 @@ export default function CustomerDetailPage() {
   const openComplaints = customer.complaintRecords.filter(c => c.status === 'OPEN' || c.status === 'IN_PROGRESS').length
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType; badge?: number; badgeRed?: boolean }[] = [
-    { key: 'followup',   label: '互動時間軸', icon: PhoneCall, badge: followUpLogs.length },
-    { key: 'timeline',   label: '追蹤時間軸', icon: Clock },
-    { key: 'info',       label: '基本資料',   icon: User },
-    { key: 'contacts',   label: '聯絡人',     icon: Users,         badge: customer.contacts?.length },
-    { key: 'usage',      label: '使用輪廓',   icon: Activity },
-    { key: 'delivery',   label: '配送條件',   icon: Truck },
-    { key: 'forecast',   label: '銷售預估',   icon: BarChart3 },
-    { key: 'visits',     label: '拜訪紀錄',   icon: ClipboardList, badge: customer._count.visitRecords },
-    { key: 'calls',      label: '電訪紀錄',  icon: PhoneCall,     badge: customer._count.callRecords },
-    { key: 'samples',    label: '樣品寄送',  icon: Package,       badge: customer._count.sampleRecords },
-    { key: 'quotations', label: '報價紀錄',  icon: FileText,      badge: customer._count.quotations },
-    { key: 'orders',     label: '訂單紀錄',  icon: ShoppingCart,  badge: customer._count.salesOrders },
-    { key: 'opportunities' as TabKey, label: '銷售商機', icon: TrendingUp, badge: opportunities.filter(o => o.isActive).length || undefined },
-    { key: 'complaints', label: '客訴售後',  icon: AlertCircle,   badge: customer._count.complaintRecords, badgeRed: openComplaints > 0 },
+    { key: 'followup',   label: cd.tabs.followup,     icon: PhoneCall, badge: followUpLogs.length },
+    { key: 'timeline',   label: cd.tabs.timeline,     icon: Clock },
+    { key: 'info',       label: cd.tabs.info,         icon: User },
+    { key: 'contacts',   label: cd.tabs.contacts,     icon: Users,         badge: customer.contacts?.length },
+    { key: 'usage',      label: cd.tabs.usage,        icon: Activity },
+    { key: 'delivery',   label: cd.tabs.delivery,     icon: Truck },
+    { key: 'forecast',   label: cd.tabs.forecast,     icon: BarChart3 },
+    { key: 'visits',     label: cd.tabs.visits,       icon: ClipboardList, badge: customer._count.visitRecords },
+    { key: 'calls',      label: cd.tabs.calls,        icon: PhoneCall,     badge: customer._count.callRecords },
+    { key: 'samples',    label: cd.tabs.samples,      icon: Package,       badge: customer._count.sampleRecords },
+    { key: 'quotations', label: cd.tabs.quotations,   icon: FileText,      badge: customer._count.quotations },
+    { key: 'orders',     label: cd.tabs.orders,       icon: ShoppingCart,  badge: customer._count.salesOrders },
+    { key: 'opportunities' as TabKey, label: cd.tabs.opportunities, icon: TrendingUp, badge: opportunities.filter(o => o.isActive).length || undefined },
+    { key: 'complaints', label: cd.tabs.complaints,   icon: AlertCircle,   badge: customer._count.complaintRecords, badgeRed: openComplaints > 0 },
   ]
 
   return (
@@ -466,13 +449,13 @@ export default function CustomerDetailPage() {
               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[customer.type] ?? 'bg-slate-100 text-slate-600'}`}>{typeName}</span>
               <Badge variant="outline" className={`text-xs ${devStatusColors[customer.devStatus]}`}>{statusName}</Badge>
               {customer.isKeyAccount && (
-                <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-300">⭐ 心臟客戶</span>
+                <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 border border-amber-300">{cd.header.keyAccount}</span>
               )}
-              {!customer.isActive && <Badge variant="outline" className="text-xs border-red-200 text-red-500">已停用</Badge>}
-              {openComplaints > 0 && <Badge variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200"><AlertCircle className="mr-1 h-3 w-3" />{openComplaints} 件待處理</Badge>}
+              {!customer.isActive && <Badge variant="outline" className="text-xs border-red-200 text-red-500">{cd.header.inactive}</Badge>}
+              {openComplaints > 0 && <Badge variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200"><AlertCircle className="mr-1 h-3 w-3" />{cd.header.pendingComplaints.replace('{n}', String(openComplaints))}</Badge>}
               {customer.lastContactDate && (
                 <span className="text-xs text-muted-foreground">
-                  最後聯繫：{Math.floor((new Date().getTime() - new Date(customer.lastContactDate).getTime()) / 86400000)} 天前
+                  {cd.header.lastContact.replace('{n}', String(Math.floor((new Date().getTime() - new Date(customer.lastContactDate).getTime()) / 86400000)))}
                 </span>
               )}
             </div>
@@ -484,7 +467,7 @@ export default function CustomerDetailPage() {
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-4">
         <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-muted-foreground">成交機率</p>
+          <p className="text-xs text-muted-foreground">{cd.summary.winRate}</p>
           {customer.winRate != null ? (
             <>
               <p className="mt-1 text-xl font-bold" style={{ color: customer.winRate >= 70 ? '#22c55e' : customer.winRate >= 40 ? '#f59e0b' : '#94a3b8' }}>
@@ -495,20 +478,20 @@ export default function CustomerDetailPage() {
                   style={{ width: `${customer.winRate}%`, backgroundColor: customer.winRate >= 70 ? '#22c55e' : customer.winRate >= 40 ? '#f59e0b' : '#94a3b8' }} />
               </div>
             </>
-          ) : <p className="mt-1 text-lg text-muted-foreground">未設定</p>}
+          ) : <p className="mt-1 text-lg text-muted-foreground">{cd.summary.notSet}</p>}
         </div>
         <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />預估月採購</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" />{cd.summary.estimatedMonthly}</p>
           <p className="mt-1 text-xl font-bold text-blue-600">
-            {customer.estimatedMonthlyVolume ? fmt(customer.estimatedMonthlyVolume) : <span className="text-lg text-muted-foreground">未設定</span>}
+            {customer.estimatedMonthlyVolume ? fmt(customer.estimatedMonthlyVolume) : <span className="text-lg text-muted-foreground">{cd.summary.notSet}</span>}
           </p>
         </div>
         <div className="rounded-lg border bg-white p-4">
-          <p className="text-xs text-muted-foreground">互動紀錄</p>
+          <p className="text-xs text-muted-foreground">{cd.summary.interactionRecords}</p>
           <p className="mt-1 text-xl font-bold text-slate-700">
             {customer._count.visitRecords + customer._count.callRecords}
           </p>
-          <p className="text-xs text-muted-foreground">拜訪 {customer._count.visitRecords} / 電訪 {customer._count.callRecords}</p>
+          <p className="text-xs text-muted-foreground">{cd.summary.visitCallCount.replace('{v}', String(customer._count.visitRecords)).replace('{c}', String(customer._count.callRecords))}</p>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <p className="text-xs text-muted-foreground">{dict.customers.salesRep}</p>
@@ -548,75 +531,67 @@ export default function CustomerDetailPage() {
                     ? 'bg-blue-50 border-blue-200 text-blue-700'
                     : 'bg-slate-50 border-slate-200 text-slate-600'
                 }`}>
-                  已聯繫 {followUpLogs.filter(l => l.logType === 'CALL' || l.logType === 'LINE').length} 次
-                  {followUpLogs.filter(l => l.logType === 'CALL' || l.logType === 'LINE').length === 0 && ' — 尚未聯繫，開始第一通電話吧！'}
+                  {cd.followup.contactedCount.replace('{n}', String(followUpLogs.filter(l => l.logType === 'CALL' || l.logType === 'LINE').length))}
+                  {followUpLogs.filter(l => l.logType === 'CALL' || l.logType === 'LINE').length === 0 && cd.followup.notYetContacted}
                 </div>
               )}
 
               {/* Record button */}
               <div className="flex justify-end">
                 <Button onClick={() => setShowLogForm(v => !v)}>
-                  <Plus className="mr-2 h-4 w-4" />記錄互動
+                  <Plus className="mr-2 h-4 w-4" />{cd.followup.recordBtn}
                 </Button>
               </div>
 
               {/* Log form */}
               {showLogForm && (
                 <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
-                  <h3 className="text-sm font-semibold">新增互動記錄</h3>
+                  <h3 className="text-sm font-semibold">{cd.followup.formTitle}</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label>互動類型</Label>
+                      <Label>{cd.followup.logTypeLabel}</Label>
                       <select className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
                         value={logType} onChange={e => setLogType(e.target.value)}>
-                        <option value="CALL">📞 電話</option>
-                        <option value="LINE">💬 LINE</option>
-                        <option value="EMAIL">✉️ Email</option>
-                        <option value="FIRST_VISIT">🚪 初訪</option>
-                        <option value="SECOND_VISIT">🔄 二訪</option>
-                        <option value="THIRD_VISIT">⭐ 三訪+</option>
-                        <option value="MEETING">🤝 會議</option>
-                        <option value="DELIVERY">📦 送貨</option>
-                        <option value="EXPO">🏛️ 展覽</option>
-                        <option value="OTHER">📝 其他</option>
+                        {(Object.keys(cd.followup.logTypes) as Array<keyof typeof cd.followup.logTypes>).map(k => (
+                          <option key={k} value={k}>{cd.followup.logTypes[k]}</option>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>客戶反應</Label>
+                      <Label>{cd.followup.reactionLabel}</Label>
                       <select className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
                         value={logReaction} onChange={e => setLogReaction(e.target.value)}>
-                        <option value="NO_RESPONSE">未接/無回應</option>
-                        <option value="NEGATIVE">拒絕</option>
-                        <option value="NEUTRAL">普通</option>
-                        <option value="POSITIVE">正面</option>
+                        {(Object.keys(cd.followup.reactions) as Array<keyof typeof cd.followup.reactions>).map(k => (
+                          <option key={k} value={k}>{cd.followup.reactions[k]}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label>互動內容 <span className="text-red-500">*</span></Label>
+                    <Label>{cd.followup.contentLabel} <span className="text-red-500">*</span></Label>
                     <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       rows={3} value={logContent} onChange={e => setLogContent(e.target.value)}
-                      placeholder="談話要點、客戶反應..." />
+                      placeholder={cd.followup.contentPlaceholder} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>結果</Label>
+                    <Label>{cd.followup.resultLabel}</Label>
                     <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       rows={2} value={logResult} onChange={e => setLogResult(e.target.value)}
-                      placeholder="結果、決定事項..." />
+                      placeholder={cd.followup.resultPlaceholder} />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label>下次追蹤日</Label>
+                      <Label>{cd.followup.nextDateLabel}</Label>
                       <Input type="date" value={logNextDate} onChange={e => setLogNextDate(e.target.value)} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>下次行動</Label>
-                      <Input value={logNextAction} onChange={e => setLogNextAction(e.target.value)} placeholder="待辦事項..." />
+                      <Label>{cd.followup.nextActionLabel}</Label>
+                      <Input value={logNextAction} onChange={e => setLogNextAction(e.target.value)} placeholder={cd.followup.nextActionPlaceholder} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="checkbox" id="hasSample" checked={logHasSample} onChange={e => setLogHasSample(e.target.checked)} className="rounded" />
-                    <Label htmlFor="hasSample" className="cursor-pointer">已提供樣品</Label>
+                    <Label htmlFor="hasSample" className="cursor-pointer">{cd.followup.hasSampleLabel}</Label>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => setShowLogForm(false)} disabled={submittingLog}>{dict.common.cancel}</Button>
@@ -633,16 +608,16 @@ export default function CustomerDetailPage() {
                 {followUpLogs.map(log => (
                   <div key={log.id} className="relative">
                     <div className="absolute -left-[21px] w-4 h-4 rounded-full bg-white border-2 border-blue-400 flex items-center justify-center text-[10px]">
-                      {LOG_TYPE_CONFIG[log.logType]?.icon ?? '📝'}
+                      {LOG_TYPE_ICON[log.logType] ?? '📝'}
                     </div>
                     <div className="bg-white border rounded-lg p-3 ml-2 text-sm">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${LOG_TYPE_CONFIG[log.logType]?.color ?? 'bg-slate-100 text-slate-600'}`}>
-                          {LOG_TYPE_CONFIG[log.logType]?.label ?? log.logType}
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${LOG_TYPE_COLOR[log.logType] ?? 'bg-slate-100 text-slate-600'}`}>
+                          {(cd.logTypeLabels as Record<string, string>)[log.logType] ?? log.logType}
                         </span>
                         {log.customerReaction && (
-                          <span className={`text-xs font-medium ${REACTION_CONFIG[log.customerReaction]?.color ?? 'text-slate-500'}`}>
-                            {REACTION_CONFIG[log.customerReaction]?.label ?? log.customerReaction}
+                          <span className={`text-xs font-medium ${REACTION_COLOR[log.customerReaction] ?? 'text-slate-500'}`}>
+                            {(cd.reactionLabels as Record<string, string>)[log.customerReaction] ?? log.customerReaction}
                           </span>
                         )}
                         <span className="text-xs text-muted-foreground ml-auto">
@@ -650,23 +625,23 @@ export default function CustomerDetailPage() {
                         </span>
                       </div>
                       <p className="text-slate-700 whitespace-pre-wrap">{log.content}</p>
-                      {log.result && <p className="text-slate-500 text-xs mt-1">結果：{log.result}</p>}
+                      {log.result && <p className="text-slate-500 text-xs mt-1">{cd.followup.resultDisplay}{log.result}</p>}
                       {log.nextFollowUpDate && (
                         <p className="text-blue-600 text-xs mt-1">
-                          下次跟進：{new Date(log.nextFollowUpDate).toLocaleDateString('zh-TW')}
+                          {cd.followup.nextFollowup}{new Date(log.nextFollowUpDate).toLocaleDateString('zh-TW')}
                           {log.nextAction && ` — ${log.nextAction}`}
                         </p>
                       )}
                       <div className="flex gap-2 mt-1">
-                        {log.hasSample && <span className="text-xs text-teal-600 bg-teal-50 px-1.5 rounded">樣品</span>}
-                        {log.hasQuote  && <span className="text-xs text-purple-600 bg-purple-50 px-1.5 rounded">報價</span>}
-                        {log.hasOrder  && <span className="text-xs text-green-600 bg-green-50 px-1.5 rounded">訂單</span>}
+                        {log.hasSample && <span className="text-xs text-teal-600 bg-teal-50 px-1.5 rounded">{cd.followup.badgeSample}</span>}
+                        {log.hasQuote  && <span className="text-xs text-purple-600 bg-purple-50 px-1.5 rounded">{cd.followup.badgeQuote}</span>}
+                        {log.hasOrder  && <span className="text-xs text-green-600 bg-green-50 px-1.5 rounded">{cd.followup.badgeOrder}</span>}
                       </div>
                     </div>
                   </div>
                 ))}
                 {followUpLogs.length === 0 && (
-                  <p className="text-sm text-muted-foreground py-8 text-center">尚無互動記錄，點擊上方按鈕開始記錄</p>
+                  <p className="text-sm text-muted-foreground py-8 text-center">{cd.followup.noLogsMsg}</p>
                 )}
               </div>
             </div>
@@ -676,29 +651,30 @@ export default function CustomerDetailPage() {
           {activeTab === 'timeline' && (
             <div className="space-y-1">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-muted-foreground">完整互動歷程（所有聯繫、拜訪、報價、訂單）</p>
+                <p className="text-sm text-muted-foreground">{cd.timeline.description}</p>
                 <button onClick={loadTimeline} className="text-xs text-blue-600 hover:underline">{dict.common.refresh}</button>
               </div>
               {tlLoading ? (
                 <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
               ) : timeline.length === 0 ? (
-                <p className="py-12 text-center text-muted-foreground">尚無互動紀錄</p>
+                <p className="py-12 text-center text-muted-foreground">{cd.timeline.noRecords}</p>
               ) : (
                 <div className="relative">
                   {/* 時間軸線 */}
                   <div className="absolute left-[17px] top-2 bottom-2 w-0.5 bg-slate-200" />
                   <div className="space-y-4">
                     {timeline.map(ev => {
-                      const cfg: Record<string, { color: string; dot: string; label: string }> = {
-                        followup:  { color: 'border-blue-200 bg-blue-50',    dot: 'bg-blue-500',   label: '追蹤' },
-                        visit:     { color: 'border-green-200 bg-green-50',  dot: 'bg-green-500',  label: '拜訪' },
-                        call:      { color: 'border-indigo-200 bg-indigo-50',dot: 'bg-indigo-500', label: '電訪' },
-                        sample:    { color: 'border-violet-200 bg-violet-50',dot: 'bg-violet-500', label: '樣品' },
-                        quotation: { color: 'border-amber-200 bg-amber-50',  dot: 'bg-amber-500',  label: '報價' },
-                        order:     { color: 'border-teal-200 bg-teal-50',    dot: 'bg-teal-500',   label: '訂單' },
-                        complaint: { color: 'border-red-200 bg-red-50',      dot: 'bg-red-500',    label: '客訴' },
+                      const cfgColor: Record<string, { color: string; dot: string }> = {
+                        followup:  { color: 'border-blue-200 bg-blue-50',    dot: 'bg-blue-500' },
+                        visit:     { color: 'border-green-200 bg-green-50',  dot: 'bg-green-500' },
+                        call:      { color: 'border-indigo-200 bg-indigo-50',dot: 'bg-indigo-500' },
+                        sample:    { color: 'border-violet-200 bg-violet-50',dot: 'bg-violet-500' },
+                        quotation: { color: 'border-amber-200 bg-amber-50',  dot: 'bg-amber-500' },
+                        order:     { color: 'border-teal-200 bg-teal-50',    dot: 'bg-teal-500' },
+                        complaint: { color: 'border-red-200 bg-red-50',      dot: 'bg-red-500' },
                       }
-                      const c = cfg[ev.eventType] ?? { color: 'border-slate-200', dot: 'bg-slate-400', label: '事件' }
+                      const evLabel = (cd.timeline.eventLabels as Record<string, string>)[ev.eventType] ?? cd.timeline.eventLabels.default
+                      const c = { ...(cfgColor[ev.eventType] ?? { color: 'border-slate-200', dot: 'bg-slate-400' }), label: evLabel }
                       return (
                         <div key={`${ev.eventType}-${ev.id}`} className="flex gap-3 relative">
                           <div className={`mt-1.5 h-4 w-4 shrink-0 rounded-full border-2 border-white ring-2 z-10 ${c.dot}`} style={{ boxShadow: '0 0 0 2px white' }} />
@@ -716,10 +692,10 @@ export default function CustomerDetailPage() {
                             {ev.summary && <p className="mt-1.5 text-sm text-slate-700 line-clamp-3">{ev.summary}</p>}
                             {/* Meta badges */}
                             <div className="mt-1.5 flex flex-wrap gap-1">
-                              {ev.meta.result ? <span className="text-xs bg-white/60 px-2 py-0.5 rounded border border-white/80">結果：{String(ev.meta.result)}</span> : null}
-                              {ev.meta.hasQuote ? <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">已報價</span> : null}
-                              {ev.meta.hasSample ? <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">樣品</span> : null}
-                              {ev.meta.hasOrder ? <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded">訂單</span> : null}
+                              {ev.meta.result ? <span className="text-xs bg-white/60 px-2 py-0.5 rounded border border-white/80">{cd.timeline.metaResult}{String(ev.meta.result)}</span> : null}
+                              {ev.meta.hasQuote ? <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded">{cd.timeline.metaQuoted}</span> : null}
+                              {ev.meta.hasSample ? <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">{cd.timeline.metaSample}</span> : null}
+                              {ev.meta.hasOrder ? <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded">{cd.timeline.metaOrder}</span> : null}
                               {ev.meta.status ? <span className="text-xs bg-white/60 px-2 py-0.5 rounded border border-white/80">{String(ev.meta.status)}</span> : null}
                             </div>
                           </div>
@@ -737,15 +713,15 @@ export default function CustomerDetailPage() {
             <div className="space-y-6">
               {/* 機構分類 */}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">機構分類</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{cd.info.sectionOrg}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { label: '客戶類型',   value: customerTypes.find(t => t.value === customer.type)?.label ?? customer.type },
-                    { label: '客戶層級',   value: { HEADQUARTERS: '總部', BRANCH: '分院/分館', STANDALONE: '單一機構' }[customer.orgLevel ?? ''] },
-                    { label: '床數',       value: customer.bedCount != null ? `${customer.bedCount} 床` : null },
+                    { label: cd.info.orgType,   value: customerTypes.find(t => t.value === customer.type)?.label ?? customer.type },
+                    { label: cd.info.orgLevel,  value: (cd.info.orgLevels as Record<string, string>)[customer.orgLevel ?? ''] },
+                    { label: cd.info.bedCount,  value: customer.bedCount != null ? `${customer.bedCount}${cd.info.bedUnit}` : null },
                     { label: dict.customers.region,   value: regionName },
-                    { label: '分院/館別', value: customer.branchName },
-                    { label: '社團法人',   value: customer.isCorporateFoundation ? (customer.corporateFoundationName ?? '是') : null },
+                    { label: cd.info.branchName, value: customer.branchName },
+                    { label: cd.info.corporateFoundation, value: customer.isCorporateFoundation ? (customer.corporateFoundationName ?? dict.common.yes) : null },
                     { label: dict.customersExt.taxId,   value: customer.taxId },
                   ].filter(r => r.value).map(row => (
                     <div key={row.label} className="rounded-lg bg-slate-50 p-3">
@@ -759,7 +735,7 @@ export default function CustomerDetailPage() {
               <div className="grid grid-cols-2 gap-6">
                 {/* 聯絡資訊 */}
                 <div className="space-y-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">聯絡資訊</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{cd.info.sectionContact}</h3>
                   {[
                     { icon: User,           label: dict.customersExt.contactPerson, value: customer.contactPerson },
                     { icon: Phone,          label: dict.common.phone,       value: customer.phone },
@@ -776,7 +752,7 @@ export default function CustomerDetailPage() {
                 </div>
                 {/* 業務與財務 */}
                 <div className="space-y-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">業務與財務資訊</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{cd.info.sectionBusiness}</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: dict.customers.devStatus, value: statusName },
@@ -801,7 +777,7 @@ export default function CustomerDetailPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-base">⭐</span>
-                    <h3 className="font-semibold text-sm text-amber-900">心臟客戶設定</h3>
+                    <h3 className="font-semibold text-sm text-amber-900">{cd.info.keyAccountSection}</h3>
                   </div>
                   {/* Toggle isKeyAccount */}
                   <button
@@ -816,49 +792,49 @@ export default function CustomerDetailPage() {
                   <div className="grid grid-cols-2 gap-3">
                     {/* visitFrequencyDays */}
                     <div className="space-y-1">
-                      <Label className="text-xs">拜訪頻率（天）</Label>
+                      <Label className="text-xs">{cd.info.visitFreqLabel}</Label>
                       <Input
                         type="number"
                         className="h-8 text-sm"
                         value={editVisitFreq}
                         onChange={e => setEditVisitFreq(e.target.value)}
-                        placeholder="例：30"
+                        placeholder={cd.info.visitFreqPlaceholder}
                         min={1}
                       />
                     </div>
                     {/* relationshipScore */}
                     <div className="space-y-1">
-                      <Label className="text-xs">關係深度（1-10）</Label>
+                      <Label className="text-xs">{cd.info.relScoreLabel}</Label>
                       <Input
                         type="number"
                         className="h-8 text-sm"
                         value={editRelScore}
                         onChange={e => setEditRelScore(e.target.value)}
-                        placeholder="1-10"
+                        placeholder={cd.info.relScorePlaceholder}
                         min={1} max={10}
                       />
                     </div>
                     {/* keyAccountMgrId */}
                     <div className="space-y-1 col-span-2">
-                      <Label className="text-xs">心臟客戶負責人</Label>
+                      <Label className="text-xs">{cd.info.kaMgrLabel}</Label>
                       <select
                         className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm"
                         value={editKaMgrId}
                         onChange={e => setEditKaMgrId(e.target.value)}
                       >
-                        <option value="">-- 不指定 --</option>
+                        <option value="">{cd.info.kaMgrEmpty}</option>
                         {usersForKa.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
                     </div>
                     {/* keyAccountNote */}
                     <div className="space-y-1 col-span-2">
-                      <Label className="text-xs">戰略備注</Label>
+                      <Label className="text-xs">{cd.info.kaNote}</Label>
                       <textarea
                         className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm resize-none"
                         rows={2}
                         value={editKaNote}
                         onChange={e => setEditKaNote(e.target.value)}
-                        placeholder="此客戶的戰略重要性、特殊需求..."
+                        placeholder={cd.info.kaNoteplaceholder}
                       />
                     </div>
                     {/* Save button */}
@@ -919,7 +895,7 @@ export default function CustomerDetailPage() {
                     <button onClick={() => del('visits', v.id)} className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                   {v.content    && <p className="text-sm text-slate-700">{v.content}</p>}
-                  {v.result     && <p className="text-sm"><span className="text-muted-foreground">結果：</span>{v.result}</p>}
+                  {v.result     && <p className="text-sm"><span className="text-muted-foreground">{cd.visits.resultLabel}</span>{v.result}</p>}
                   {v.nextAction && <p className="text-sm text-blue-600">➤ {v.nextAction}{v.nextVisitDate && <span className="ml-2 text-muted-foreground">({fmtDate(v.nextVisitDate)})</span>}</p>}
                 </div>
               ))}
@@ -939,13 +915,13 @@ export default function CustomerDetailPage() {
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{fmtDate(c.callDate)}</span>
                       {c.purpose  && <Badge variant="outline" className="text-xs">{c.purpose}</Badge>}
-                      {c.duration && <span className="text-xs text-muted-foreground">{c.duration} 分鐘</span>}
+                      {c.duration && <span className="text-xs text-muted-foreground">{c.duration}{cd.calls.durationUnit}</span>}
                       <span className="text-xs text-muted-foreground">by {c.calledBy.name}</span>
                     </div>
                     <button onClick={() => del('calls', c.id)} className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                   {c.content && <p className="text-sm text-slate-700">{c.content}</p>}
-                  {c.result  && <p className="text-sm"><span className="text-muted-foreground">結果：</span>{c.result}</p>}
+                  {c.result  && <p className="text-sm"><span className="text-muted-foreground">{cd.calls.resultLabel}</span>{c.result}</p>}
                 </div>
               ))}
             </div>
@@ -955,7 +931,7 @@ export default function CustomerDetailPage() {
           {activeTab === 'samples' && (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button onClick={() => setSampleOpen(true)}><Plus className="mr-2 h-4 w-4" />新增樣品紀錄</Button>
+                <Button onClick={() => setSampleOpen(true)}><Plus className="mr-2 h-4 w-4" />{cd.samples.addBtn}</Button>
               </div>
               {customer.sampleRecords.length === 0 ? <p className="py-10 text-center text-muted-foreground">{dict.common.noRecords}</p>
                 : customer.sampleRecords.map(s => (
@@ -969,9 +945,9 @@ export default function CustomerDetailPage() {
                     <button onClick={() => del('samples', s.id)} className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                   <p className="text-sm font-medium">{s.items}</p>
-                  {s.recipient      && <p className="text-sm text-muted-foreground">收件人：{s.recipient}</p>}
-                  {s.followUpDate   && <p className="text-sm text-amber-600">追蹤日：{fmtDate(s.followUpDate)}</p>}
-                  {s.followUpResult && <p className="text-sm"><span className="text-muted-foreground">追蹤結果：</span>{s.followUpResult}</p>}
+                  {s.recipient      && <p className="text-sm text-muted-foreground">{cd.samples.recipientLabel}{s.recipient}</p>}
+                  {s.followUpDate   && <p className="text-sm text-amber-600">{cd.samples.followUpDateLabel}{fmtDate(s.followUpDate)}</p>}
+                  {s.followUpResult && <p className="text-sm"><span className="text-muted-foreground">{cd.samples.followUpResultLabel}</span>{s.followUpResult}</p>}
                   {s.notes          && <p className="text-sm text-muted-foreground">{s.notes}</p>}
                 </div>
               ))}
@@ -986,12 +962,12 @@ export default function CustomerDetailPage() {
                 <div key={q.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/quotations/${q.id}`)}>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-sm font-medium">{q.quotationNo}</span>
-                    <Badge variant="outline" className={`text-xs ${quotationStatusColors[q.status] ?? ''}`}>{quotationStatusLabel[q.status] ?? q.status}</Badge>
+                    <Badge variant="outline" className={`text-xs ${quotationStatusColors[q.status] ?? ''}`}>{(cd.quotations.statusLabels as Record<string, string>)[q.status] ?? q.status}</Badge>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-medium">{fmt(q.totalAmount)}</span>
                     <span className="text-xs text-muted-foreground">{fmtDate(q.createdAt)}</span>
-                    {q.validUntil && <span className="text-xs text-muted-foreground">效期至 {fmtDate(q.validUntil)}</span>}
+                    {q.validUntil && <span className="text-xs text-muted-foreground">{cd.quotations.validUntil}{fmtDate(q.validUntil)}</span>}
                   </div>
                 </div>
               ))}
@@ -1006,7 +982,7 @@ export default function CustomerDetailPage() {
                 <div key={o.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/orders/${o.id}`)}>
                   <div className="flex items-center gap-3">
                     <span className="font-mono text-sm font-medium">{o.orderNo}</span>
-                    <Badge variant="outline" className="text-xs">{orderStatusLabel[o.status] ?? o.status}</Badge>
+                    <Badge variant="outline" className="text-xs">{(cd.quotations.orderStatusLabels as Record<string, string>)[o.status] ?? o.status}</Badge>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm font-medium">{fmt(o.totalAmount)}</span>
@@ -1023,11 +999,11 @@ export default function CustomerDetailPage() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {opportunities.filter(o => o.isActive).length} 個進行中商機
+                  {cd.opportunities.activeCount.replace('{n}', String(opportunities.filter(o => o.isActive).length))}
                 </p>
                 <Button size="sm" onClick={() => setShowOppForm(true)}>
                   <Plus className="mr-1.5 h-3.5 w-3.5" />
-                  新增商機
+                  {cd.opportunities.addBtn}
                 </Button>
               </div>
 
@@ -1035,51 +1011,51 @@ export default function CustomerDetailPage() {
               {showOppForm && (
                 <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium">新增商機</p>
+                    <p className="text-sm font-medium">{cd.opportunities.formTitle}</p>
                     <button onClick={() => setShowOppForm(false)} className="text-muted-foreground hover:text-foreground">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">商機標題 *</Label>
-                      <Input className="h-8 text-sm" value={oppTitle} onChange={e => setOppTitle(e.target.value)} placeholder="例：尿布月供合約" />
+                      <Label className="text-xs">{cd.opportunities.titleLabel}</Label>
+                      <Input className="h-8 text-sm" value={oppTitle} onChange={e => setOppTitle(e.target.value)} placeholder={cd.opportunities.titlePlaceholder} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">階段</Label>
+                      <Label className="text-xs">{cd.opportunities.stageLabel}</Label>
                       <select className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm"
                         value={oppStage} onChange={e => setOppStage(e.target.value)}>
-                        {Object.entries(OPP_STAGE_CONFIG).map(([k, v]) => (
-                          <option key={k} value={k}>{v.label}</option>
+                        {(Object.keys(OPP_STAGE_COLOR) as Array<keyof typeof cd.opportunities.stageLabels>).map(k => (
+                          <option key={k} value={k}>{(cd.opportunities.stageLabels as Record<string, string>)[k] ?? k}</option>
                         ))}
                       </select>
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">成交機率 %</Label>
+                      <Label className="text-xs">{cd.opportunities.probLabel}</Label>
                       <Input type="number" className="h-8 text-sm" value={oppProb}
                         onChange={e => setOppProb(e.target.value)} min={0} max={100} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">預期金額（元）</Label>
+                      <Label className="text-xs">{cd.opportunities.amountLabel}</Label>
                       <Input type="number" className="h-8 text-sm" value={oppAmount}
-                        onChange={e => setOppAmount(e.target.value)} placeholder="0" min={0} />
+                        onChange={e => setOppAmount(e.target.value)} placeholder={cd.opportunities.amountPlaceholder} min={0} />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs">預計成交日</Label>
+                      <Label className="text-xs">{cd.opportunities.closeDateLabel}</Label>
                       <Input type="date" className="h-8 text-sm" value={oppCloseDate}
                         onChange={e => setOppCloseDate(e.target.value)} />
                     </div>
                     <div className="col-span-2 space-y-1">
-                      <Label className="text-xs">備注</Label>
+                      <Label className="text-xs">{cd.opportunities.notesLabel}</Label>
                       <Input className="h-8 text-sm" value={oppNotes}
-                        onChange={e => setOppNotes(e.target.value)} placeholder="產品興趣、競品情況..." />
+                        onChange={e => setOppNotes(e.target.value)} placeholder={cd.opportunities.notesPlaceholder} />
                     </div>
                   </div>
                   <div className="flex justify-end gap-2 pt-1">
                     <Button variant="outline" size="sm" onClick={() => setShowOppForm(false)}>{dict.common.cancel}</Button>
                     <Button size="sm" onClick={handleCreateOpportunity} disabled={savingOpp}>
                       {savingOpp && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
-                      建立
+                      {cd.opportunities.createBtn}
                     </Button>
                   </div>
                 </div>
@@ -1088,12 +1064,14 @@ export default function CustomerDetailPage() {
               {/* Opportunity list */}
               {opportunities.length === 0 ? (
                 <div className="py-12 text-center text-sm text-muted-foreground">
-                  尚無商機記錄，點擊上方建立第一筆
+                  {cd.opportunities.noRecords}
                 </div>
               ) : (
                 <div className="space-y-2">
                   {opportunities.map(opp => {
-                    const sc = OPP_STAGE_CONFIG[opp.stage] ?? { label: opp.stage, color: 'bg-slate-100 text-slate-600' }
+                    const stageColor = OPP_STAGE_COLOR[opp.stage] ?? 'bg-slate-100 text-slate-600'
+                    const stageLabel = (cd.opportunities.stageLabels as Record<string, string>)[opp.stage] ?? opp.stage
+                    const sc = { color: stageColor, label: stageLabel }
                     const isLost = opp.stage === 'LOST' || !opp.isActive
                     return (
                       <div key={opp.id} className={`rounded-lg border bg-white p-3 ${isLost ? 'opacity-50' : ''}`}>
@@ -1106,13 +1084,13 @@ export default function CustomerDetailPage() {
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                               {opp.expectedAmount && (
-                                <span>預期：{new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(Number(opp.expectedAmount))}</span>
+                                <span>{cd.opportunities.expectedLabel}{new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(Number(opp.expectedAmount))}</span>
                               )}
                               {opp.expectedCloseDate && (
-                                <span>預計：{new Date(opp.expectedCloseDate).toLocaleDateString('zh-TW')}</span>
+                                <span>{cd.opportunities.expectedDateLabel}{new Date(opp.expectedCloseDate).toLocaleDateString('zh-TW')}</span>
                               )}
-                              {opp.owner && <span>負責：{opp.owner.name}</span>}
-                              <span>互動 {opp._count.followUpLogs} 次</span>
+                              {opp.owner && <span>{cd.opportunities.ownerLabel}{opp.owner.name}</span>}
+                              <span>{cd.opportunities.interactCount.replace('{n}', String(opp._count.followUpLogs))}</span>
                             </div>
                             {opp.notes && <p className="text-xs text-slate-500 mt-1 truncate">{opp.notes}</p>}
                           </div>
@@ -1133,21 +1111,21 @@ export default function CustomerDetailPage() {
       {/* ── 拜訪 Dialog ── */}
       <Dialog open={visitOpen} onOpenChange={o => !o && setVisitOpen(false)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>新增拜訪紀錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{cd.visits.dialogTitle}</DialogTitle></DialogHeader>
           <form onSubmit={async e => { e.preventDefault(); const res = await post('visits', visitForm); if (res.ok) { toast.success(dict.common.createSuccess); setVisitOpen(false); setVisitForm({ visitDate: new Date().toISOString().slice(0,10), purpose: '', content: '', result: '', nextAction: '', nextVisitDate: '' }); load() } else toast.error(dict.common.saveFailed) }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>拜訪日期 *</Label><Input type="date" value={visitForm.visitDate} onChange={e => setVisitForm(p => ({ ...p, visitDate: e.target.value }))} required /></div>
-              <div className="space-y-1.5"><Label>目的</Label>
+              <div className="space-y-1.5"><Label>{cd.visits.visitDateLabel}</Label><Input type="date" value={visitForm.visitDate} onChange={e => setVisitForm(p => ({ ...p, visitDate: e.target.value }))} required /></div>
+              <div className="space-y-1.5"><Label>{cd.visits.purposeLabel}</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={visitForm.purpose} onChange={e => setVisitForm(p => ({ ...p, purpose: e.target.value }))}>
-                  <option value="">選擇目的</option>{visitPurposes.map(p => <option key={p} value={p}>{p}</option>)}
+                  <option value="">{cd.visits.purposeEmpty}</option>{(cd.visits.purposes as readonly string[]).map((p: string) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
             </div>
-            <div className="space-y-1.5"><Label>拜訪內容</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={3} value={visitForm.content} onChange={e => setVisitForm(p => ({ ...p, content: e.target.value }))} placeholder="拜訪過程、討論事項..." /></div>
-            <div className="space-y-1.5"><Label>拜訪結果</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={2} value={visitForm.result} onChange={e => setVisitForm(p => ({ ...p, result: e.target.value }))} placeholder="結果、客戶反應..." /></div>
+            <div className="space-y-1.5"><Label>{cd.visits.contentLabel}</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={3} value={visitForm.content} onChange={e => setVisitForm(p => ({ ...p, content: e.target.value }))} placeholder={cd.visits.contentPlaceholder} /></div>
+            <div className="space-y-1.5"><Label>{cd.visits.resultFormLabel}</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={2} value={visitForm.result} onChange={e => setVisitForm(p => ({ ...p, result: e.target.value }))} placeholder={cd.visits.resultPlaceholder} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>下次跟進</Label><Input value={visitForm.nextAction} onChange={e => setVisitForm(p => ({ ...p, nextAction: e.target.value }))} placeholder="待辦事項..." /></div>
-              <div className="space-y-1.5"><Label>下次拜訪日</Label><Input type="date" value={visitForm.nextVisitDate} onChange={e => setVisitForm(p => ({ ...p, nextVisitDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>{cd.visits.nextActionLabel}</Label><Input value={visitForm.nextAction} onChange={e => setVisitForm(p => ({ ...p, nextAction: e.target.value }))} placeholder={cd.visits.nextActionPlaceholder} /></div>
+              <div className="space-y-1.5"><Label>{cd.visits.nextDateLabel}</Label><Input type="date" value={visitForm.nextVisitDate} onChange={e => setVisitForm(p => ({ ...p, nextVisitDate: e.target.value }))} /></div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setVisitOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
@@ -1160,19 +1138,19 @@ export default function CustomerDetailPage() {
       {/* ── 電訪 Dialog ── */}
       <Dialog open={callOpen} onOpenChange={o => !o && setCallOpen(false)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>新增電訪紀錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{cd.calls.dialogTitle}</DialogTitle></DialogHeader>
           <form onSubmit={async e => { e.preventDefault(); const res = await post('calls', callForm); if (res.ok) { toast.success(dict.common.createSuccess); setCallOpen(false); setCallForm({ callDate: new Date().toISOString().slice(0,10), duration: '', purpose: '', content: '', result: '' }); load() } else toast.error(dict.common.saveFailed) }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>電訪日期 *</Label><Input type="date" value={callForm.callDate} onChange={e => setCallForm(p => ({ ...p, callDate: e.target.value }))} required /></div>
-              <div className="space-y-1.5"><Label>通話時長（分）</Label><Input type="number" value={callForm.duration} onChange={e => setCallForm(p => ({ ...p, duration: e.target.value }))} placeholder="5" min={1} /></div>
+              <div className="space-y-1.5"><Label>{cd.calls.callDateLabel}</Label><Input type="date" value={callForm.callDate} onChange={e => setCallForm(p => ({ ...p, callDate: e.target.value }))} required /></div>
+              <div className="space-y-1.5"><Label>{cd.calls.durationLabel}</Label><Input type="number" value={callForm.duration} onChange={e => setCallForm(p => ({ ...p, duration: e.target.value }))} placeholder="5" min={1} /></div>
             </div>
-            <div className="space-y-1.5"><Label>目的</Label>
+            <div className="space-y-1.5"><Label>{cd.calls.purposeLabel}</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value={callForm.purpose} onChange={e => setCallForm(p => ({ ...p, purpose: e.target.value }))}>
-                <option value="">選擇目的</option>{callPurposes.map(p => <option key={p} value={p}>{p}</option>)}
+                <option value="">{cd.calls.purposeEmpty}</option>{(cd.calls.purposes as readonly string[]).map((p: string) => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
-            <div className="space-y-1.5"><Label>通話內容</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={3} value={callForm.content} onChange={e => setCallForm(p => ({ ...p, content: e.target.value }))} placeholder="談話要點..." /></div>
-            <div className="space-y-1.5"><Label>結果</Label><Input value={callForm.result} onChange={e => setCallForm(p => ({ ...p, result: e.target.value }))} placeholder="客戶回應、結論..." /></div>
+            <div className="space-y-1.5"><Label>{cd.calls.contentLabel}</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={3} value={callForm.content} onChange={e => setCallForm(p => ({ ...p, content: e.target.value }))} placeholder={cd.calls.contentPlaceholder} /></div>
+            <div className="space-y-1.5"><Label>{cd.calls.resultFormLabel}</Label><Input value={callForm.result} onChange={e => setCallForm(p => ({ ...p, result: e.target.value }))} placeholder={cd.calls.resultPlaceholder} /></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCallOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}</Button>
@@ -1184,18 +1162,18 @@ export default function CustomerDetailPage() {
       {/* ── 樣品 Dialog ── */}
       <Dialog open={sampleOpen} onOpenChange={o => !o && setSampleOpen(false)}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>新增樣品寄送紀錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{cd.samples.dialogTitle}</DialogTitle></DialogHeader>
           <form onSubmit={async e => { e.preventDefault(); const res = await post('samples', sampleForm); if (res.ok) { toast.success(dict.common.createSuccess); setSampleOpen(false); setSampleForm({ sentDate: new Date().toISOString().slice(0,10), items: '', trackingNo: '', recipient: '', followUpDate: '', notes: '' }); load() } else toast.error(dict.common.saveFailed) }} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>寄送日期 *</Label><Input type="date" value={sampleForm.sentDate} onChange={e => setSampleForm(p => ({ ...p, sentDate: e.target.value }))} required /></div>
-              <div className="space-y-1.5"><Label>收件人</Label><Input value={sampleForm.recipient} onChange={e => setSampleForm(p => ({ ...p, recipient: e.target.value }))} placeholder="收件聯絡人" /></div>
+              <div className="space-y-1.5"><Label>{cd.samples.sentDateLabel}</Label><Input type="date" value={sampleForm.sentDate} onChange={e => setSampleForm(p => ({ ...p, sentDate: e.target.value }))} required /></div>
+              <div className="space-y-1.5"><Label>{cd.samples.recipientFormLabel}</Label><Input value={sampleForm.recipient} onChange={e => setSampleForm(p => ({ ...p, recipient: e.target.value }))} placeholder={cd.samples.recipientPlaceholder} /></div>
             </div>
-            <div className="space-y-1.5"><Label>樣品品項 *</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={2} value={sampleForm.items} onChange={e => setSampleForm(p => ({ ...p, items: e.target.value }))} placeholder="成人紙尿布 M 號 x2、護墊 L x1..." required /></div>
+            <div className="space-y-1.5"><Label>{cd.samples.itemsLabel}</Label><textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" rows={2} value={sampleForm.items} onChange={e => setSampleForm(p => ({ ...p, items: e.target.value }))} placeholder={cd.samples.itemsPlaceholder} required /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>寄送單號</Label><Input value={sampleForm.trackingNo} onChange={e => setSampleForm(p => ({ ...p, trackingNo: e.target.value }))} placeholder="快遞/宅配單號" /></div>
-              <div className="space-y-1.5"><Label>預計追蹤日</Label><Input type="date" value={sampleForm.followUpDate} onChange={e => setSampleForm(p => ({ ...p, followUpDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>{cd.samples.trackingNoLabel}</Label><Input value={sampleForm.trackingNo} onChange={e => setSampleForm(p => ({ ...p, trackingNo: e.target.value }))} placeholder={cd.samples.trackingNoPlaceholder} /></div>
+              <div className="space-y-1.5"><Label>{cd.samples.followUpDateFormLabel}</Label><Input type="date" value={sampleForm.followUpDate} onChange={e => setSampleForm(p => ({ ...p, followUpDate: e.target.value }))} /></div>
             </div>
-            <div className="space-y-1.5"><Label>備註</Label><Input value={sampleForm.notes} onChange={e => setSampleForm(p => ({ ...p, notes: e.target.value }))} placeholder="備註..." /></div>
+            <div className="space-y-1.5"><Label>{cd.samples.notesLabel}</Label><Input value={sampleForm.notes} onChange={e => setSampleForm(p => ({ ...p, notes: e.target.value }))} placeholder={cd.samples.notesPlaceholder} /></div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setSampleOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}</Button>
@@ -1215,22 +1193,6 @@ export default function CustomerDetailPage() {
 // UsageProfileTab component
 // ═══════════════════════════════════════════════════════════
 
-const FOREIGN_COUNTRY_LABEL: Record<string, string> = {
-  INDONESIA: '印尼', VIETNAM: '越南', PHILIPPINES: '菲律賓',
-  THAILAND: '泰國', OTHER: '其他', NONE: '無',
-}
-const MGMT_QUALITY_LABEL: Record<string, string> = {
-  GOOD: '很好', AVERAGE: '普通', NEEDS_IMPROVEMENT: '待加強', UNKNOWN: '不明',
-}
-const BRAND_SWITCH_LABEL: Record<string, string> = {
-  ALMOST_NEVER: '幾乎不換', OCCASIONAL_TEST: '偶爾測試',
-  QUARTERLY_EVAL: '每季評估', FREQUENT: '經常更換', PRICE_DRIVEN: '看價格決定',
-}
-const PROCUREMENT_STYLE_LABEL: Record<string, string> = {
-  PRICE_ORIENTED: '價格導向', QUALITY_ORIENTED: '品質導向',
-  STABLE_SUPPLY_ORIENTED: '穩定供貨導向', MANAGEMENT_DECIDES: '主管決定',
-  FRONTLINE_DECIDES: '第一線決定', MIXED: '混合型',
-}
 
 type UsageForm = {
   totalBeds: string; occupiedBeds: string; vacantBeds: string; residentCareNote: string
@@ -1278,6 +1240,7 @@ function profileToForm(p: any): UsageForm {
 
 function UsageProfileTab({ customerId }: { customerId: string }) {
   const { dict } = useI18n()
+  const cd = dict.customerDetail
   const [form, setForm] = useState<UsageForm>(emptyUsageForm())
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1351,23 +1314,23 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 床位資訊 ── */}
       <div>
-        <SectionTitle>床位資訊</SectionTitle>
+        <SectionTitle>{cd.usage.sectionBed}</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="space-y-1.5">
-            <Label>總床數</Label>
+            <Label>{cd.usage.totalBeds}</Label>
             <Input type="number" min={0} value={form.totalBeds} onChange={e => setField('totalBeds', e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-1.5">
-            <Label>目前入住床數</Label>
+            <Label>{cd.usage.occupiedBeds}</Label>
             <Input type="number" min={0} value={form.occupiedBeds} onChange={e => setField('occupiedBeds', e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-1.5">
-            <Label>空床數</Label>
+            <Label>{cd.usage.vacantBeds}</Label>
             <Input type="number" min={0} value={form.vacantBeds} onChange={e => setField('vacantBeds', e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-1.5 col-span-2 sm:col-span-1">
-            <Label>住民失能型態備註</Label>
-            <Input value={form.residentCareNote} onChange={e => setField('residentCareNote', e.target.value)} placeholder="如：重度失能為主…" />
+            <Label>{cd.usage.residentCareNote}</Label>
+            <Input value={form.residentCareNote} onChange={e => setField('residentCareNote', e.target.value)} placeholder={cd.usage.residentCareNotePlaceholder} />
           </div>
         </div>
       </div>
@@ -1376,17 +1339,17 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 外籍照護 ── */}
       <div>
-        <SectionTitle>外籍照護</SectionTitle>
+        <SectionTitle>{cd.usage.sectionForeign}</SectionTitle>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label>外籍照護比例（%）</Label>
-            <Input type="number" min={0} max={100} value={form.foreignCaregiverRatio} onChange={e => setField('foreignCaregiverRatio', e.target.value)} placeholder="0–100" />
+            <Label>{cd.usage.foreignRatio}</Label>
+            <Input type="number" min={0} max={100} value={form.foreignCaregiverRatio} onChange={e => setField('foreignCaregiverRatio', e.target.value)} placeholder={cd.usage.foreignRatioPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>外籍主要國籍</Label>
+            <Label>{cd.usage.foreignCountry}</Label>
             <select className={sel} value={form.foreignCaregiverCountry} onChange={e => setField('foreignCaregiverCountry', e.target.value)}>
-              <option value="">請選擇</option>
-              {Object.entries(FOREIGN_COUNTRY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="">{cd.usage.selectPlaceholder}</option>
+              {(Object.keys(cd.usage.foreignCountryLabels) as Array<keyof typeof cd.usage.foreignCountryLabels>).map(v => <option key={v} value={v}>{cd.usage.foreignCountryLabels[v]}</option>)}
             </select>
           </div>
         </div>
@@ -1396,43 +1359,43 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 品牌與採購 ── */}
       <div>
-        <SectionTitle>品牌與採購</SectionTitle>
+        <SectionTitle>{cd.usage.sectionBrand}</SectionTitle>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label>管理品質評估</Label>
+            <Label>{cd.usage.mgmtQuality}</Label>
             <select className={sel} value={form.managementQuality} onChange={e => setField('managementQuality', e.target.value)}>
-              <option value="">請選擇</option>
-              {Object.entries(MGMT_QUALITY_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="">{cd.usage.selectPlaceholder}</option>
+              {(Object.keys(cd.usage.mgmtQualityLabels) as Array<keyof typeof cd.usage.mgmtQualityLabels>).map(v => <option key={v} value={v}>{cd.usage.mgmtQualityLabels[v]}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>換品牌頻率</Label>
+            <Label>{cd.usage.brandSwitchFreq}</Label>
             <select className={sel} value={form.brandSwitchFreq} onChange={e => setField('brandSwitchFreq', e.target.value)}>
-              <option value="">請選擇</option>
-              {Object.entries(BRAND_SWITCH_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="">{cd.usage.selectPlaceholder}</option>
+              {(Object.keys(cd.usage.brandSwitchLabels) as Array<keyof typeof cd.usage.brandSwitchLabels>).map(v => <option key={v} value={v}>{cd.usage.brandSwitchLabels[v]}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>目前使用品牌</Label>
-            <Input value={form.currentBrands} onChange={e => setField('currentBrands', e.target.value)} placeholder="如：包大人、添寧…" />
+            <Label>{cd.usage.currentBrands}</Label>
+            <Input value={form.currentBrands} onChange={e => setField('currentBrands', e.target.value)} placeholder={cd.usage.currentBrandsPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>競品品牌補充</Label>
-            <Input value={form.competitorBrands} onChange={e => setField('competitorBrands', e.target.value)} placeholder="同時使用或評估中品牌" />
+            <Label>{cd.usage.competitorBrands}</Label>
+            <Input value={form.competitorBrands} onChange={e => setField('competitorBrands', e.target.value)} placeholder={cd.usage.competitorBrandsPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>是否容易轉牌</Label>
+            <Label>{cd.usage.easySwitchBrand}</Label>
             <select className={sel} value={form.easySwitchBrand} onChange={e => setField('easySwitchBrand', e.target.value)}>
-              <option value="">不確定</option>
-              <option value="true">容易</option>
-              <option value="false">不容易</option>
+              <option value="">{cd.usage.easySwitchUnknown}</option>
+              <option value="true">{cd.usage.easySwitchYes}</option>
+              <option value="false">{cd.usage.easySwitchNo}</option>
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>採購決策模式</Label>
+            <Label>{cd.usage.procurementStyle}</Label>
             <select className={sel} value={form.procurementStyle} onChange={e => setField('procurementStyle', e.target.value)}>
-              <option value="">請選擇</option>
-              {Object.entries(PROCUREMENT_STYLE_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="">{cd.usage.selectPlaceholder}</option>
+              {(Object.keys(cd.usage.procurementStyleLabels) as Array<keyof typeof cd.usage.procurementStyleLabels>).map(v => <option key={v} value={v}>{cd.usage.procurementStyleLabels[v]}</option>)}
             </select>
           </div>
         </div>
@@ -1442,9 +1405,9 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 每日用量 ── */}
       <div>
-        <SectionTitle>每日用量</SectionTitle>
+        <SectionTitle>{cd.usage.sectionDaily}</SectionTitle>
         <div className="mb-3 flex items-center gap-3">
-          <Label className="text-sm font-normal">是否使用濕紙巾</Label>
+          <Label className="text-sm font-normal">{cd.usage.usesWipesLabel}</Label>
           <button type="button" onClick={() => setField('usesWipes', !form.usesWipes)}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.usesWipes ? 'bg-blue-600' : 'bg-slate-300'}`}>
             <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${form.usesWipes ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
@@ -1452,10 +1415,10 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { field: 'dailyDiaperLargeQty' as keyof UsageForm, label: '每日大尿布（片）' },
-            { field: 'dailyDiaperSmallQty' as keyof UsageForm, label: '每日小尿布（片）' },
-            { field: 'dailyUnderpadsQty'   as keyof UsageForm, label: '每日看護墊（片）' },
-            { field: 'dailyWipesQty'       as keyof UsageForm, label: '每日濕紙巾（片）', disabled: !form.usesWipes },
+            { field: 'dailyDiaperLargeQty' as keyof UsageForm, label: cd.usage.dailyDiaperLarge },
+            { field: 'dailyDiaperSmallQty' as keyof UsageForm, label: cd.usage.dailyDiaperSmall },
+            { field: 'dailyUnderpadsQty'   as keyof UsageForm, label: cd.usage.dailyUnderpads },
+            { field: 'dailyWipesQty'       as keyof UsageForm, label: cd.usage.dailyWipes, disabled: !form.usesWipes },
           ].map(({ field, label, disabled }) => (
             <div key={field} className="space-y-1.5">
               <Label className={disabled ? 'text-muted-foreground' : ''}>{label}</Label>
@@ -1472,15 +1435,15 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
       {/* ── 每月預估量 ── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <SectionTitle>每月預估量</SectionTitle>
-          <span className="text-xs text-muted-foreground -mt-3">（自動帶入每日 × 30，可手動修改）</span>
+          <SectionTitle>{cd.usage.sectionMonthly}</SectionTitle>
+          <span className="text-xs text-muted-foreground -mt-3">{cd.usage.monthlyHint}</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { field: 'monthlyDiaperLargeQty' as keyof UsageForm, label: '大尿布（片/月）' },
-            { field: 'monthlyDiaperSmallQty' as keyof UsageForm, label: '小尿布（片/月）' },
-            { field: 'monthlyUnderpadsQty'   as keyof UsageForm, label: '看護墊（片/月）' },
-            { field: 'monthlyWipesQty'       as keyof UsageForm, label: '濕紙巾（片/月）', disabled: !form.usesWipes },
+            { field: 'monthlyDiaperLargeQty' as keyof UsageForm, label: cd.usage.monthlyDiaperLarge },
+            { field: 'monthlyDiaperSmallQty' as keyof UsageForm, label: cd.usage.monthlyDiaperSmall },
+            { field: 'monthlyUnderpadsQty'   as keyof UsageForm, label: cd.usage.monthlyUnderpads },
+            { field: 'monthlyWipesQty'       as keyof UsageForm, label: cd.usage.monthlyWipes, disabled: !form.usesWipes },
           ].map(({ field, label, disabled }) => (
             <div key={field} className="space-y-1.5">
               <Label className={disabled ? 'text-muted-foreground' : ''}>{label}</Label>
@@ -1495,7 +1458,7 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
 
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={saving}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存使用輪廓
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{cd.usage.saveBtn}
         </Button>
       </div>
     </form>
@@ -1506,11 +1469,6 @@ function UsageProfileTab({ customerId }: { customerId: string }) {
 // ContactsTab component
 // ═══════════════════════════════════════════════════════════
 
-const CONTACT_ROLE_LABEL: Record<string, string> = {
-  PURCHASING: '採購', DIRECTOR: '主任', HEAD_NURSE: '護理長',
-  ACCOUNTING: '會計', ADMIN: '行政', OWNER: '老闆/負責人',
-  WAREHOUSE: '倉管', RECEIVING: '收貨窗口', OTHER: '其他',
-}
 const CONTACT_ROLE_COLOR: Record<string, string> = {
   PURCHASING: 'bg-blue-100 text-blue-700', DIRECTOR: 'bg-purple-100 text-purple-700',
   HEAD_NURSE: 'bg-pink-100 text-pink-700', ACCOUNTING: 'bg-green-100 text-green-700',
@@ -1518,14 +1476,6 @@ const CONTACT_ROLE_COLOR: Record<string, string> = {
   WAREHOUSE: 'bg-orange-100 text-orange-700', RECEIVING: 'bg-teal-100 text-teal-700',
   OTHER: 'bg-slate-100 text-slate-500',
 }
-const CONTACT_TIME_LABEL: Record<string, string> = {
-  MORNING_9_11: '上午 09–11', NOON_11_13: '中午 11–13',
-  AFTERNOON_13_15: '下午 13–15', AFTERNOON_15_17: '下午 15–17',
-  BEFORE_NIGHT: '晚班前', AFTER_NIGHT: '晚班後',
-  FLEXIBLE: '不固定', NEED_LINE: '需先 LINE', OTHER: '其他',
-}
-const contactRoles = Object.entries(CONTACT_ROLE_LABEL).map(([value, label]) => ({ value, label }))
-const contactTimes = Object.entries(CONTACT_TIME_LABEL).map(([value, label]) => ({ value, label }))
 
 interface ContactsTabProps {
   contacts: CustomerContact[]; customerId: string
@@ -1537,6 +1487,13 @@ interface ContactsTabProps {
 }
 
 function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editContact, setEditContact, contactForm, setContactForm, emptyContactForm, saving, setSaving, reload }: ContactsTabProps) {
+  const { dict } = useI18n()
+  const cd = dict.customerDetail
+  const contactRoles = (Object.keys(cd.contacts.roleLabels) as Array<keyof typeof cd.contacts.roleLabels>).map(value => ({ value, label: cd.contacts.roleLabels[value] }))
+  const contactTimes = (Object.keys(cd.contacts.timeLabels) as Array<keyof typeof cd.contacts.timeLabels>).map(value => ({ value, label: cd.contacts.timeLabels[value] }))
+  const CONTACT_ROLE_LABEL = cd.contacts.roleLabels as Record<string, string>
+  const CONTACT_TIME_LABEL = cd.contacts.timeLabels as Record<string, string>
+
   function openNew() { setEditContact(null); setContactForm(emptyContactForm()); setContactOpen(true) }
   function openEdit(c: CustomerContact) {
     setEditContact(c)
@@ -1565,7 +1522,7 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
   }
 
   async function remove(contactId: string) {
-    if (!confirm('確定刪除此聯絡人？')) return
+    if (!confirm(cd.contacts.deleteConfirm)) return
     await fetch(`/api/customers/${customerId}/contacts?contactId=${contactId}`, { method: 'DELETE' })
     reload()
   }
@@ -1573,14 +1530,14 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />新增聯絡人</Button>
+        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />{cd.contacts.addBtn}</Button>
       </div>
 
       {contacts.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Users className="h-10 w-10 mx-auto mb-2 opacity-30" />
-          <p>尚未新增聯絡人</p>
-          <p className="text-xs mt-1">點擊「新增聯絡人」建立結構化聯絡窗口</p>
+          <p>{cd.contacts.noContacts}</p>
+          <p className="text-xs mt-1">{cd.contacts.noContactsHint}</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -1588,7 +1545,7 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
             <div key={c.id} className={`rounded-lg border p-4 relative ${c.isPrimary ? 'border-blue-300 bg-blue-50/30' : 'bg-white'}`}>
               {c.isPrimary && (
                 <span className="absolute top-3 right-10 text-xs font-medium text-blue-600 flex items-center gap-0.5">
-                  <Star className="h-3 w-3 fill-blue-500 text-blue-500" />主窗口
+                  <Star className="h-3 w-3 fill-blue-500 text-blue-500" />{cd.contacts.primaryLabel}
                 </span>
               )}
               <div className="flex items-start justify-between gap-2 pr-6">
@@ -1607,13 +1564,13 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
                     </p>
                   )}
                   <div className="mt-2 space-y-1">
-                    {c.mobile && <p className="text-xs flex items-center gap-1.5 text-slate-700"><Phone className="h-3 w-3 text-slate-400" />{c.mobile}（手機）</p>}
-                    {c.phone && <p className="text-xs flex items-center gap-1.5 text-slate-700"><Phone className="h-3 w-3 text-slate-400" />{c.phone}{c.phoneExt && ` 分機 ${c.phoneExt}`}（市話）</p>}
+                    {c.mobile && <p className="text-xs flex items-center gap-1.5 text-slate-700"><Phone className="h-3 w-3 text-slate-400" />{c.mobile}{cd.contacts.mobileLabel}</p>}
+                    {c.phone && <p className="text-xs flex items-center gap-1.5 text-slate-700"><Phone className="h-3 w-3 text-slate-400" />{c.phone}{c.phoneExt && `${cd.contacts.extPrefix}${c.phoneExt}`}{cd.contacts.phoneLabel}</p>}
                     {c.lineId && <p className="text-xs flex items-center gap-1.5 text-slate-700"><MessageCircle className="h-3 w-3 text-slate-400" />LINE: {c.lineId}</p>}
                     {c.email && <p className="text-xs flex items-center gap-1.5 text-slate-700"><Mail className="h-3 w-3 text-slate-400" />{c.email}</p>}
                     {c.preferredContactTime && (
                       <p className="text-xs flex items-center gap-1.5 text-blue-600">
-                        <Clock className="h-3 w-3" />建議聯繫：{CONTACT_TIME_LABEL[c.preferredContactTime] ?? c.preferredContactTime}
+                        <Clock className="h-3 w-3" />{cd.contacts.preferredTimePrefix}{CONTACT_TIME_LABEL[c.preferredContactTime] ?? c.preferredContactTime}
                       </p>
                     )}
                     {c.notes && <p className="text-xs text-slate-500 italic mt-1">{c.notes}</p>}
@@ -1632,57 +1589,57 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
       {/* Contact Dialog */}
       <Dialog open={contactOpen} onOpenChange={o => !o && setContactOpen(false)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editContact ? '編輯聯絡人' : '新增聯絡人'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editContact ? cd.contacts.dialogTitleEdit : cd.contacts.dialogTitleNew}</DialogTitle></DialogHeader>
           <form onSubmit={save} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-1.5">
-                <Label>姓名 *</Label>
-                <Input value={contactForm.name as string} onChange={e => setContactForm({ ...contactForm, name: e.target.value })} placeholder="聯絡人姓名" required />
+                <Label>{cd.contacts.nameLabel}</Label>
+                <Input value={contactForm.name as string} onChange={e => setContactForm({ ...contactForm, name: e.target.value })} placeholder={cd.contacts.namePlaceholder} required />
               </div>
               <div className="space-y-1.5">
-                <Label>聯絡人角色</Label>
+                <Label>{cd.contacts.roleLabel}</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={contactForm.role as string} onChange={e => setContactForm({ ...contactForm, role: e.target.value })}>
-                  <option value="">請選擇</option>
+                  <option value="">{cd.contacts.roleEmpty}</option>
                   {contactRoles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>職稱</Label>
-                <Input value={contactForm.title as string} onChange={e => setContactForm({ ...contactForm, title: e.target.value })} placeholder="護理長、主任…" />
+                <Label>{cd.contacts.titleLabel}</Label>
+                <Input value={contactForm.title as string} onChange={e => setContactForm({ ...contactForm, title: e.target.value })} placeholder={cd.contacts.titlePlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>部門</Label>
-                <Input value={contactForm.department as string} onChange={e => setContactForm({ ...contactForm, department: e.target.value })} placeholder="護理部、採購部…" />
+                <Label>{cd.contacts.deptLabel}</Label>
+                <Input value={contactForm.department as string} onChange={e => setContactForm({ ...contactForm, department: e.target.value })} placeholder={cd.contacts.deptPlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>手機</Label>
-                <Input value={contactForm.mobile as string} onChange={e => setContactForm({ ...contactForm, mobile: e.target.value })} placeholder="09xx-xxx-xxx" />
+                <Label>{cd.contacts.mobileFormLabel}</Label>
+                <Input value={contactForm.mobile as string} onChange={e => setContactForm({ ...contactForm, mobile: e.target.value })} placeholder={cd.contacts.mobilePlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>市話</Label>
+                <Label>{cd.contacts.phoneFormLabel}</Label>
                 <div className="flex gap-2">
-                  <Input value={contactForm.phone as string} onChange={e => setContactForm({ ...contactForm, phone: e.target.value })} placeholder="02-xxxx-xxxx" className="flex-1" />
-                  <Input value={contactForm.phoneExt as string} onChange={e => setContactForm({ ...contactForm, phoneExt: e.target.value })} placeholder="分機" className="w-20" />
+                  <Input value={contactForm.phone as string} onChange={e => setContactForm({ ...contactForm, phone: e.target.value })} placeholder={cd.contacts.phonePlaceholder} className="flex-1" />
+                  <Input value={contactForm.phoneExt as string} onChange={e => setContactForm({ ...contactForm, phoneExt: e.target.value })} placeholder={cd.contacts.extPlaceholder} className="w-20" />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>LINE</Label>
-                <Input value={contactForm.lineId as string} onChange={e => setContactForm({ ...contactForm, lineId: e.target.value })} placeholder="@line_id" />
+                <Label>{cd.contacts.lineLabel}</Label>
+                <Input value={contactForm.lineId as string} onChange={e => setContactForm({ ...contactForm, lineId: e.target.value })} placeholder={cd.contacts.linePlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>Email</Label>
-                <Input type="email" value={contactForm.email as string} onChange={e => setContactForm({ ...contactForm, email: e.target.value })} placeholder="email@example.com" />
+                <Label>{cd.contacts.emailLabel}</Label>
+                <Input type="email" value={contactForm.email as string} onChange={e => setContactForm({ ...contactForm, email: e.target.value })} placeholder={cd.contacts.emailPlaceholder} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>建議聯絡時段</Label>
+                <Label>{cd.contacts.preferredTimeLabel}</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={contactForm.preferredContactTime as string} onChange={e => setContactForm({ ...contactForm, preferredContactTime: e.target.value })}>
-                  <option value="">不限</option>
+                  <option value="">{cd.contacts.preferredTimeEmpty}</option>
                   {contactTimes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               <div className="col-span-2">
                 <div className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
-                  <div><p className="text-sm font-medium">設為主要窗口</p><p className="text-xs text-muted-foreground">設定後其他聯絡人主窗口身份將解除</p></div>
+                  <div><p className="text-sm font-medium">{cd.contacts.isPrimaryLabel}</p><p className="text-xs text-muted-foreground">{cd.contacts.isPrimaryHint}</p></div>
                   <button type="button" onClick={() => setContactForm({ ...contactForm, isPrimary: !contactForm.isPrimary })}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${contactForm.isPrimary ? 'bg-blue-600' : 'bg-slate-300'}`}>
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${contactForm.isPrimary ? 'translate-x-6' : 'translate-x-1'}`} />
@@ -1690,14 +1647,14 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
                 </div>
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>備註</Label>
-                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={contactForm.notes as string} onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} placeholder="備註（如：只接 LINE、勿直撥）" />
+                <Label>{cd.contacts.notesLabel}</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={contactForm.notes as string} onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} placeholder={cd.contacts.notesPlaceholder} />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setContactOpen(false)} disabled={saving}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setContactOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving || !contactForm.name}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}
               </Button>
             </DialogFooter>
           </form>
@@ -1721,13 +1678,6 @@ type DeliveryForm = {
   photoUrls: PhotoEntry[]
 }
 
-const PHOTO_CATEGORIES = [
-  { category: 'ENTRANCE',  label: '大門照' },
-  { category: 'UNLOADING', label: '卸貨點照片' },
-  { category: 'ELEVATOR',  label: '電梯位置' },
-  { category: 'PARKING',   label: '停車位置' },
-  { category: 'WAREHOUSE', label: '倉儲/收貨口' },
-]
 
 function emptyDeliveryForm(): DeliveryForm {
   return {
@@ -1758,6 +1708,7 @@ function deliveryProfileToForm(p: any): DeliveryForm {
 
 function DeliveryProfileTab({ customerId }: { customerId: string }) {
   const { dict } = useI18n()
+  const cd = dict.customerDetail
   const [form, setForm] = useState<DeliveryForm>(emptyDeliveryForm())
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1776,7 +1727,7 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
   function setPhotoUrl(category: string, url: string) {
     setForm(f => {
       const existing = f.photoUrls.filter(p => p.category !== category)
-      const catLabel = PHOTO_CATEGORIES.find(c => c.category === category)?.label ?? category
+      const catLabel = (cd.delivery.photoCategories as Record<string, string>)[category] ?? category
       if (url) existing.push({ category, url, label: catLabel })
       return { ...f, photoUrls: existing }
     })
@@ -1803,7 +1754,7 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
 
   const sel = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-  const yesNoOpts = [{ value: '', label: '未知' }, { value: 'true', label: '是' }, { value: 'false', label: '否' }]
+  const yesNoOpts = [{ value: '', label: cd.delivery.yesNoUnknown }, { value: 'true', label: cd.delivery.yesNoYes }, { value: 'false', label: cd.delivery.yesNoNo }]
   const SectionTitle = ({ children }: { children: React.ReactNode }) => (
     <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{children}</h3>
   )
@@ -1813,27 +1764,27 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 收貨地址 ── */}
       <div>
-        <SectionTitle>收貨資訊</SectionTitle>
+        <SectionTitle>{cd.delivery.sectionReceiving}</SectionTitle>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-1.5">
-            <Label>收貨地址</Label>
-            <Input value={form.deliveryAddress} onChange={e => setField('deliveryAddress', e.target.value)} placeholder="若與公司地址不同，填入實際收貨地址" />
+            <Label>{cd.delivery.deliveryAddress}</Label>
+            <Input value={form.deliveryAddress} onChange={e => setField('deliveryAddress', e.target.value)} placeholder={cd.delivery.deliveryAddressPlaceholder} />
           </div>
           <div className="col-span-2 space-y-1.5">
-            <Label>下貨地點說明</Label>
-            <Input value={form.unloadingLocation} onChange={e => setField('unloadingLocation', e.target.value)} placeholder="如：後門卸貨區、地下一樓貨梯旁…" />
+            <Label>{cd.delivery.unloadingLocation}</Label>
+            <Input value={form.unloadingLocation} onChange={e => setField('unloadingLocation', e.target.value)} placeholder={cd.delivery.unloadingLocationPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>下貨樓層</Label>
-            <Input type="number" value={form.unloadingFloor} onChange={e => setField('unloadingFloor', e.target.value)} placeholder="如：B1、1、2" />
+            <Label>{cd.delivery.unloadingFloor}</Label>
+            <Input type="number" value={form.unloadingFloor} onChange={e => setField('unloadingFloor', e.target.value)} placeholder={cd.delivery.unloadingFloorPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>簽收窗口</Label>
-            <Input value={form.receiverName} onChange={e => setField('receiverName', e.target.value)} placeholder="收貨負責人姓名" />
+            <Label>{cd.delivery.receiverName}</Label>
+            <Input value={form.receiverName} onChange={e => setField('receiverName', e.target.value)} placeholder={cd.delivery.receiverNamePlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>簽收電話</Label>
-            <Input value={form.receiverPhone} onChange={e => setField('receiverPhone', e.target.value)} placeholder="收貨聯絡電話" />
+            <Label>{cd.delivery.receiverPhone}</Label>
+            <Input value={form.receiverPhone} onChange={e => setField('receiverPhone', e.target.value)} placeholder={cd.delivery.receiverPhonePlaceholder} />
           </div>
         </div>
       </div>
@@ -1842,22 +1793,22 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 現場條件 ── */}
       <div>
-        <SectionTitle>現場條件</SectionTitle>
+        <SectionTitle>{cd.delivery.sectionSite}</SectionTitle>
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label>是否有電梯</Label>
+            <Label>{cd.delivery.hasElevator}</Label>
             <select className={sel} value={form.hasElevator} onChange={e => setField('hasElevator', e.target.value)}>
               {yesNoOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>是否需推車</Label>
+            <Label>{cd.delivery.needsCart}</Label>
             <select className={sel} value={form.needsCart} onChange={e => setField('needsCart', e.target.value)}>
               {yesNoOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>是否有管理室</Label>
+            <Label>{cd.delivery.hasReception}</Label>
             <select className={sel} value={form.hasReception} onChange={e => setField('hasReception', e.target.value)}>
               {yesNoOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -1869,27 +1820,27 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 時段與動線 ── */}
       <div>
-        <SectionTitle>時段與動線</SectionTitle>
+        <SectionTitle>{cd.delivery.sectionTiming}</SectionTitle>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label>收貨時段</Label>
-            <Input value={form.receivingHours} onChange={e => setField('receivingHours', e.target.value)} placeholder="如：週一至週五 09:00–17:00" />
+            <Label>{cd.delivery.receivingHours}</Label>
+            <Input value={form.receivingHours} onChange={e => setField('receivingHours', e.target.value)} placeholder={cd.delivery.receivingHoursPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>建議送貨時段</Label>
-            <Input value={form.suggestedDeliveryTime} onChange={e => setField('suggestedDeliveryTime', e.target.value)} placeholder="如：上午 10:00 前" />
+            <Label>{cd.delivery.suggestedDeliveryTime}</Label>
+            <Input value={form.suggestedDeliveryTime} onChange={e => setField('suggestedDeliveryTime', e.target.value)} placeholder={cd.delivery.suggestedDeliveryTimePlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>停車注意事項</Label>
-            <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.parkingNotes} onChange={e => setField('parkingNotes', e.target.value)} placeholder="停車位置、費用、限制時間…" />
+            <Label>{cd.delivery.parkingNotes}</Label>
+            <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.parkingNotes} onChange={e => setField('parkingNotes', e.target.value)} placeholder={cd.delivery.parkingNotesPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>動線說明</Label>
-            <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.routeNotes} onChange={e => setField('routeNotes', e.target.value)} placeholder="從大門→電梯→卸貨點的動線…" />
+            <Label>{cd.delivery.routeNotes}</Label>
+            <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.routeNotes} onChange={e => setField('routeNotes', e.target.value)} placeholder={cd.delivery.routeNotesPlaceholder} />
           </div>
           <div className="col-span-2 space-y-1.5">
-            <Label>配送備註</Label>
-            <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.deliveryNotes} onChange={e => setField('deliveryNotes', e.target.value)} placeholder="其他配送注意事項…" />
+            <Label>{cd.delivery.deliveryNotes}</Label>
+            <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.deliveryNotes} onChange={e => setField('deliveryNotes', e.target.value)} placeholder={cd.delivery.deliveryNotesPlaceholder} />
           </div>
         </div>
       </div>
@@ -1898,10 +1849,11 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
 
       {/* ── 配送照片 ── */}
       <div>
-        <SectionTitle>配送參考照片</SectionTitle>
-        <p className="text-xs text-muted-foreground mb-3">貼入照片網址（Google Drive 共用連結、內部圖床等）</p>
+        <SectionTitle>{cd.delivery.sectionPhotos}</SectionTitle>
+        <p className="text-xs text-muted-foreground mb-3">{cd.delivery.photosHint}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {PHOTO_CATEGORIES.map(({ category, label }) => {
+          {(Object.keys(cd.delivery.photoCategories) as Array<keyof typeof cd.delivery.photoCategories>).map(category => {
+            const label = cd.delivery.photoCategories[category]
             const entry = form.photoUrls.find(p => p.category === category)
             return (
               <div key={category} className="space-y-1.5">
@@ -1934,7 +1886,7 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
 
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={saving}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存配送條件
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{cd.delivery.saveBtn}
         </Button>
       </div>
     </form>
@@ -1945,14 +1897,10 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
 // DemandForecastTab component
 // ═══════════════════════════════════════════════════════════
 
-const ORDER_FREQ_LABEL: Record<string, string> = {
-  WEEKLY: '每週', BIWEEKLY: '每兩週', MONTHLY: '每月', IRREGULAR: '不固定', URGENT_ONLY: '急單型',
-}
-const FORECAST_CONF_LABEL: Record<string, string> = { HIGH: '高', MEDIUM: '中', LOW: '低' }
-const TREND_LABEL: Record<string, { label: string; cls: string }> = {
-  GROWING:   { label: '↗ 成長中', cls: 'text-green-600 bg-green-50' },
-  DECLINING: { label: '↘ 衰退中', cls: 'text-red-600 bg-red-50' },
-  STABLE:    { label: '→ 穩定',   cls: 'text-blue-600 bg-blue-50' },
+const TREND_CLS: Record<string, string> = {
+  GROWING:   'text-green-600 bg-green-50',
+  DECLINING: 'text-red-600 bg-red-50',
+  STABLE:    'text-blue-600 bg-blue-50',
 }
 
 type ForecastFormData = {
@@ -1999,6 +1947,7 @@ function forecastToForm(f: any): ForecastFormData {
 function DemandForecastTab({ customerId }: { customerId: string }) {
   const { dict } = useI18n()
   const cu = dict.customers
+  const cd = dict.customerDetail
   const [form, setForm]           = useState<ForecastFormData>(emptyForecastForm())
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [storedForecast, setStoredForecast] = useState<{ analyticsUpdatedAt: string | null; predictedNextOrderDate: string | null; avgDaysBetweenOrders: number | null; avgCasesPerOrder: number | null; last3OrdersTrend: string | null } | null>(null)
@@ -2081,7 +2030,9 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
   )
 
   const displayAnalytics = analytics ?? (storedForecast?.avgDaysBetweenOrders != null ? storedForecast : null)
-  const trend = displayAnalytics?.last3OrdersTrend ? TREND_LABEL[displayAnalytics.last3OrdersTrend] : null
+  const trendKey = displayAnalytics?.last3OrdersTrend
+  const trendLabel = trendKey ? (cd.forecast.trendLabels as Record<string, string>)[trendKey] ?? trendKey : null
+  const trendCls = trendKey ? TREND_CLS[trendKey] ?? '' : ''
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
@@ -2089,20 +2040,20 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
       {/* ── 歷史訂單分析 ── */}
       <div className="rounded-lg border border-blue-200 bg-blue-50/40 p-4">
         <div className="flex items-center justify-between mb-3">
-          <SectionTitle>歷史訂單自動分析</SectionTitle>
+          <SectionTitle>{cd.forecast.sectionAnalytics}</SectionTitle>
           <Button type="button" variant="outline" size="sm" onClick={runAnalytics} disabled={analyzing}>
             {analyzing ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-            重新分析
+            {cd.forecast.reanalyzeBtn}
           </Button>
         </div>
         {displayAnalytics ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: '歷史訂單數', value: `${'orderCount' in displayAnalytics ? displayAnalytics.orderCount : '—'} 張` },
-              { label: '平均下單間隔', value: displayAnalytics.avgDaysBetweenOrders != null ? `${displayAnalytics.avgDaysBetweenOrders} 天` : '—' },
-              { label: '平均每次箱數', value: displayAnalytics.avgCasesPerOrder != null ? `${displayAnalytics.avgCasesPerOrder} 箱` : '—' },
-              { label: '近 3 次趨勢', value: trend ? undefined : '—', custom: trend ? (
-                <span className={`text-xs font-medium px-2 py-0.5 rounded ${trend.cls}`}>{trend.label}</span>
+              { label: cd.forecast.orderCount, value: `${'orderCount' in displayAnalytics ? displayAnalytics.orderCount : '—'}${cd.forecast.orderCountUnit}` },
+              { label: cd.forecast.avgInterval, value: displayAnalytics.avgDaysBetweenOrders != null ? `${displayAnalytics.avgDaysBetweenOrders}${cd.forecast.avgIntervalUnit}` : '—' },
+              { label: cd.forecast.avgCases, value: displayAnalytics.avgCasesPerOrder != null ? `${displayAnalytics.avgCasesPerOrder}${cd.forecast.avgCasesUnit}` : '—' },
+              { label: cd.forecast.trendLabel, value: trendLabel ? undefined : '—', custom: trendLabel ? (
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${trendCls}`}>{trendLabel}</span>
               ) : null },
             ].map(item => (
               <div key={item.label} className="rounded-lg bg-white border p-3">
@@ -2118,14 +2069,14 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
         ) : (
           <div className="text-center py-6 text-muted-foreground">
             <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">點擊「重新分析」從歷史訂單計算下單節奏</p>
+            <p className="text-sm">{cd.forecast.noAnalytics}</p>
           </div>
         )}
         {displayAnalytics?.predictedNextOrderDate && (
           <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-4 py-2.5 flex items-center gap-2">
             <Clock className="h-4 w-4 text-amber-600 shrink-0" />
             <p className="text-sm text-amber-800">
-              系統預測下次下單日：<span className="font-semibold">{fmtDate(displayAnalytics.predictedNextOrderDate)}</span>
+              {cd.forecast.predictedNextOrder}<span className="font-semibold">{fmtDate(displayAnalytics.predictedNextOrderDate)}</span>
             </p>
           </div>
         )}
@@ -2134,30 +2085,30 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
       {/* ── 每日/月用量預估 ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <SectionTitle>用量預估</SectionTitle>
+          <SectionTitle>{cd.forecast.sectionUsage}</SectionTitle>
           <Button type="button" variant="outline" size="sm" onClick={syncFromUsage} disabled={saving}>
-            從使用輪廓同步
+            {cd.forecast.syncFromUsage}
           </Button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { dailyKey: 'dailyDiaperLargeQty' as keyof ForecastFormData, monthlyKey: 'monthlyDiaperLargeQty' as keyof ForecastFormData, label: '大尿布' },
-            { dailyKey: 'dailyDiaperSmallQty' as keyof ForecastFormData, monthlyKey: 'monthlyDiaperSmallQty' as keyof ForecastFormData, label: '小尿布' },
-            { dailyKey: 'dailyUnderpadsQty'   as keyof ForecastFormData, monthlyKey: 'monthlyUnderpadsQty'   as keyof ForecastFormData, label: '看護墊' },
-            { dailyKey: 'dailyWipesQty'       as keyof ForecastFormData, monthlyKey: 'monthlyWipesQty'       as keyof ForecastFormData, label: '濕紙巾' },
+            { dailyKey: 'dailyDiaperLargeQty' as keyof ForecastFormData, monthlyKey: 'monthlyDiaperLargeQty' as keyof ForecastFormData, label: cd.forecast.productDiaperLarge },
+            { dailyKey: 'dailyDiaperSmallQty' as keyof ForecastFormData, monthlyKey: 'monthlyDiaperSmallQty' as keyof ForecastFormData, label: cd.forecast.productDiaperSmall },
+            { dailyKey: 'dailyUnderpadsQty'   as keyof ForecastFormData, monthlyKey: 'monthlyUnderpadsQty'   as keyof ForecastFormData, label: cd.forecast.productUnderpads },
+            { dailyKey: 'dailyWipesQty'       as keyof ForecastFormData, monthlyKey: 'monthlyWipesQty'       as keyof ForecastFormData, label: cd.forecast.productWipes },
           ].map(({ dailyKey, monthlyKey, label }) => (
-            <div key={label} className="rounded-lg border bg-slate-50 p-3 space-y-2">
+            <div key={dailyKey} className="rounded-lg border bg-slate-50 p-3 space-y-2">
               <p className="text-xs font-medium text-slate-700">{label}</p>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">每日（片）</Label>
+                <Label className="text-xs text-muted-foreground">{cd.forecast.dailyUnit}</Label>
                 <Input type="number" min={0} value={form[dailyKey] as string}
                   onChange={e => setField(dailyKey, e.target.value)} className="h-8 text-sm" placeholder="0" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">每月預估（片）</Label>
+                <Label className="text-xs text-muted-foreground">{cd.forecast.monthlyUnit}</Label>
                 <Input type="number" min={0} value={form[monthlyKey] as string}
                   onChange={e => setField(monthlyKey, e.target.value)}
-                  className={`h-8 text-sm ${form[monthlyKey] ? 'border-blue-300 bg-blue-50' : ''}`} placeholder="自動" />
+                  className={`h-8 text-sm ${form[monthlyKey] ? 'border-blue-300 bg-blue-50' : ''}`} placeholder={cd.forecast.monthlyAuto} />
               </div>
             </div>
           ))}
@@ -2168,40 +2119,40 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
 
       {/* ── 下單節奏（手動）── */}
       <div>
-        <SectionTitle>下單節奏（手動設定）</SectionTitle>
+        <SectionTitle>{cd.forecast.sectionRhythm}</SectionTitle>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label>下單頻率</Label>
+            <Label>{cd.forecast.orderFrequency}</Label>
             <select className={sel} value={form.orderFrequency} onChange={e => setField('orderFrequency', e.target.value)}>
-              <option value="">請選擇</option>
-              {Object.entries(ORDER_FREQ_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="">{cd.forecast.selectPlaceholder}</option>
+              {(Object.keys(cd.forecast.orderFreqLabels) as Array<keyof typeof cd.forecast.orderFreqLabels>).map(v => <option key={v} value={v}>{cd.forecast.orderFreqLabels[v]}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label>平均每次下單量（包）</Label>
+            <Label>{cd.forecast.avgOrderQty}</Label>
             <Input type="number" min={0} value={form.avgOrderQty} onChange={e => setField('avgOrderQty', e.target.value)} placeholder="0" />
           </div>
           <div className="space-y-1.5">
-            <Label>下次預估下單日</Label>
+            <Label>{cd.forecast.nextExpectedDate}</Label>
             <Input type="date" value={form.nextExpectedOrderDate} onChange={e => setField('nextExpectedOrderDate', e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>預估可信度</Label>
+            <Label>{cd.forecast.forecastConfidence}</Label>
             <select className={sel} value={form.forecastConfidence} onChange={e => setField('forecastConfidence', e.target.value)}>
-              <option value="">請選擇</option>
-              {Object.entries(FORECAST_CONF_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <option value="">{cd.forecast.selectPlaceholder}</option>
+              {(Object.keys(cd.forecast.confidenceLabels) as Array<keyof typeof cd.forecast.confidenceLabels>).map(v => <option key={v} value={v}>{cd.forecast.confidenceLabels[v]}</option>)}
             </select>
           </div>
           <div className="col-span-2 space-y-1.5">
-            <Label>備註</Label>
-            <Input value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="補充說明…" />
+            <Label>{cd.forecast.notesLabel}</Label>
+            <Input value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder={cd.forecast.notesPlaceholder} />
           </div>
         </div>
       </div>
 
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={saving}>
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存銷售預估
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{cd.forecast.saveBtn}
         </Button>
       </div>
     </form>
@@ -2212,28 +2163,13 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
 // ComplaintsTab component
 // ═══════════════════════════════════════════════════════════
 
-const SEVERITY_CONFIG: Record<string, { label: string; cls: string }> = {
-  LOW:      { label: '低',  cls: 'bg-slate-50 text-slate-500 border-slate-200' },
-  MEDIUM:   { label: '中',  cls: 'bg-amber-50 text-amber-600 border-amber-200' },
-  HIGH:     { label: '高',  cls: 'bg-orange-50 text-orange-600 border-orange-200' },
-  CRITICAL: { label: '緊急', cls: 'bg-red-100 text-red-700 border-red-300' },
-}
-const ACTION_LABEL: Record<string, string> = {
-  NOTE:           '備忘',
-  PHONE_CALL:     '電話聯繫',
-  ONSITE_VISIT:   '現場關心',
-  EMAIL:          '電子郵件',
-  LINE:           'LINE 聯繫',
-  FIRST_RESPONSE: '首次回應',
-  FOLLOW_UP:      '後續跟進',
-  RESOLVED:       '標記解決',
-  CLOSED:         '結案',
+const SEVERITY_CLS: Record<string, string> = {
+  LOW:      'bg-slate-50 text-slate-500 border-slate-200',
+  MEDIUM:   'bg-amber-50 text-amber-600 border-amber-200',
+  HIGH:     'bg-orange-50 text-orange-600 border-orange-200',
+  CRITICAL: 'bg-red-100 text-red-700 border-red-300',
 }
 const METHOD_OPTIONS = ['PHONE_CALL','ONSITE_VISIT','EMAIL','LINE','VIDEO_CALL','OTHER']
-const METHOD_LABEL: Record<string, string> = {
-  PHONE_CALL: '電話', ONSITE_VISIT: '現場', EMAIL: '電郵', LINE: 'LINE',
-  VIDEO_CALL: '視訊', OTHER: '其他',
-}
 
 interface CLog {
   id: string; logDate: string; action: string; description: string
@@ -2260,6 +2196,17 @@ const cTa  = `${cSel} resize-none`
 function ComplaintsTab({ customerId }: { customerId: string }) {
   const { dict } = useI18n()
   const cu = dict.customers
+  const cd = dict.customerDetail
+  const complaintStatusConfig: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
+    OPEN:        { label: (cd.complaints.statusLabels as Record<string,string>).OPEN,        cls: complaintStatusClsMap.OPEN,        icon: complaintStatusIconMap.OPEN },
+    IN_PROGRESS: { label: (cd.complaints.statusLabels as Record<string,string>).IN_PROGRESS, cls: complaintStatusClsMap.IN_PROGRESS, icon: complaintStatusIconMap.IN_PROGRESS },
+    RESOLVED:    { label: (cd.complaints.statusLabels as Record<string,string>).RESOLVED,    cls: complaintStatusClsMap.RESOLVED,    icon: complaintStatusIconMap.RESOLVED },
+    CLOSED:      { label: (cd.complaints.statusLabels as Record<string,string>).CLOSED,      cls: complaintStatusClsMap.CLOSED,      icon: complaintStatusIconMap.CLOSED },
+  }
+  const complaintTypeLabel = cd.complaints.typeLabels as Record<string, string>
+  const ACTION_LABEL = cd.complaints.actionLabels as Record<string, string>
+  const METHOD_LABEL = cd.complaints.methodLabels as Record<string, string>
+  const severityLabels = cd.complaints.severityLabels as Record<string, string>
   const [records,      setRecords]      = useState<CRecord[]>([])
   const [loading,      setLoading]      = useState(true)
   const [saving,       setSaving]       = useState(false)
@@ -2396,27 +2343,28 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
         <div className="flex items-center gap-2 flex-wrap">
           {openCount > 0 && (
             <Badge className="bg-red-100 text-red-700 border border-red-200">
-              <AlertCircle className="mr-1 h-3 w-3" />{openCount} 件待處理
+              <AlertCircle className="mr-1 h-3 w-3" />{cd.complaints.pendingBadge.replace('{n}', String(openCount))}
             </Badge>
           )}
           {records.filter(r => r.severity === 'CRITICAL').length > 0 && (
             <Badge className="bg-red-600 text-white">
-              緊急 {records.filter(r => r.severity === 'CRITICAL').length} 件
+              {cd.complaints.criticalBadge.replace('{n}', String(records.filter(r => r.severity === 'CRITICAL').length))}
             </Badge>
           )}
         </div>
         <Button onClick={() => setNewOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />新增客訴/售後紀錄
+          <Plus className="mr-2 h-4 w-4" />{cd.complaints.addBtn}
         </Button>
       </div>
 
       {records.length === 0 && (
-        <p className="py-10 text-center text-muted-foreground">尚無客訴或售後紀錄</p>
+        <p className="py-10 text-center text-muted-foreground">{cd.complaints.noRecords}</p>
       )}
 
       {records.map(c => {
         const sc  = complaintStatusConfig[c.status]  ?? complaintStatusConfig.OPEN
-        const sev = SEVERITY_CONFIG[c.severity] ?? SEVERITY_CONFIG.MEDIUM
+        const sevCls = SEVERITY_CLS[c.severity] ?? SEVERITY_CLS.MEDIUM
+        const sevLabel = severityLabels[c.severity] ?? c.severity
         const isExpanded = expanded === c.id
         const noFirstResponse = !c.firstResponseAt && (c.status === 'OPEN' || c.status === 'IN_PROGRESS')
         const overdue = c.nextFollowUpDate && new Date(c.nextFollowUpDate) < new Date()
@@ -2432,31 +2380,31 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
                 <Badge variant="outline" className={`text-xs ${sc.cls}`}>
                   <sc.icon className="mr-1 h-3 w-3" />{sc.label}
                 </Badge>
-                <Badge variant="outline" className={`text-xs ${sev.cls}`}>{sev.label}嚴重度</Badge>
+                <Badge variant="outline" className={`text-xs ${sevCls}`}>{sevLabel}{cd.complaints.severityLabel}</Badge>
                 {noFirstResponse && (
                   <Badge className="text-xs bg-red-100 text-red-700 border border-red-200">
-                    <AlertCircle className="mr-1 h-3 w-3" />未首次回應
+                    <AlertCircle className="mr-1 h-3 w-3" />{cd.complaints.noFirstResponse}
                   </Badge>
                 )}
                 {overdue && (
                   <Badge className="text-xs bg-orange-100 text-orange-700 border border-orange-200">
-                    <Clock className="mr-1 h-3 w-3" />逾期追蹤
+                    <Clock className="mr-1 h-3 w-3" />{cd.complaints.overdueLabel}
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-1 flex-wrap">
                 <button onClick={() => toggleExpand(c.id)}
                   className="rounded px-2 py-1 text-xs hover:bg-slate-100 text-slate-500">
-                  {isExpanded ? '收起' : `紀錄 ${c._count.logs}`}
+                  {isExpanded ? cd.complaints.collapseBtn : cd.complaints.logsCountBtn.replace('{n}', String(c._count.logs))}
                 </button>
                 <button onClick={() => { setLogTarget(c.id); setLogForm(emptyLog()) }}
                   className="rounded px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 font-medium">
-                  + 新增處理紀錄
+                  {cd.complaints.addLogBtn}
                 </button>
                 {(c.status === 'OPEN' || c.status === 'IN_PROGRESS') && (
                   <button onClick={() => { setUpdateTarget(c); setUpdateForm({ status: 'RESOLVED', resolution: c.resolution ?? '', handler: c.handler ?? '' }) }}
                     className="rounded px-2 py-1 hover:bg-green-50 text-green-600 text-xs font-medium">
-                    更新狀態
+                    {cd.complaints.updateStatusBtn}
                   </button>
                 )}
                 <button onClick={() => handleDelete(c.id)}
@@ -2471,30 +2419,30 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
 
             {/* Meta */}
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-muted-foreground">
-              <span>登錄人：{c.reportedBy.name}</span>
-              {c.handler && <span>處理人：{c.handler}</span>}
+              <span>{cd.complaints.reportedBy}{c.reportedBy.name}</span>
+              {c.handler && <span>{cd.complaints.handler}{c.handler}</span>}
               {c.assignedSupervisor && (
                 <span className="flex items-center gap-1">
-                  <User className="h-3 w-3" />督導：{c.assignedSupervisor.name}
+                  <User className="h-3 w-3" />{cd.complaints.supervisor}{c.assignedSupervisor.name}
                   {c.supervisorAppointDate && ` (${fmtDate(c.supervisorAppointDate)})`}
                 </span>
               )}
               {c.firstResponseAt ? (
                 <span className="text-green-600">
-                  首次回應：{fmtDateTime(c.firstResponseAt)}
+                  {cd.complaints.firstResponse}{fmtDateTime(c.firstResponseAt)}
                   {c.firstResponseMethod && ` · ${METHOD_LABEL[c.firstResponseMethod] ?? c.firstResponseMethod}`}
                 </span>
               ) : (
-                <span className="text-red-500">尚未首次回應</span>
+                <span className="text-red-500">{cd.complaints.noFirstResponseYet}</span>
               )}
               {c.nextFollowUpDate && (
                 <span className={overdue ? 'text-orange-600 font-medium' : ''}>
-                  下次追蹤：{fmtDate(c.nextFollowUpDate)}
+                  {cd.complaints.nextFollowUp}{fmtDate(c.nextFollowUpDate)}
                   {c.nextFollowUpMethod && ` · ${METHOD_LABEL[c.nextFollowUpMethod] ?? c.nextFollowUpMethod}`}
                 </span>
               )}
-              {c.resolvedAt && <span>解決於：{fmtDate(c.resolvedAt)}</span>}
-              {c.closedAt   && <span>結案於：{fmtDate(c.closedAt)}</span>}
+              {c.resolvedAt && <span>{cd.complaints.resolvedAt}{fmtDate(c.resolvedAt)}</span>}
+              {c.closedAt   && <span>{cd.complaints.closedAt}{fmtDate(c.closedAt)}</span>}
             </div>
 
             {/* Photos */}
@@ -2512,18 +2460,18 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
             {/* Resolution */}
             {c.resolution && (
               <p className="text-sm text-green-700 bg-green-50 rounded px-3 py-2">
-                <span className="font-medium">處理結果：</span>{c.resolution}
+                <span className="font-medium">{cd.complaints.resolutionLabel}</span>{c.resolution}
               </p>
             )}
 
             {/* Expanded log timeline */}
             {isExpanded && (
               <div className="border-t pt-3 space-y-2">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">處理時序</p>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{cd.complaints.logTimelineTitle}</p>
                 {logsLoading === c.id ? (
                   <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
                 ) : (logs[c.id] ?? []).length === 0 ? (
-                  <p className="text-xs text-muted-foreground">尚無處理紀錄</p>
+                  <p className="text-xs text-muted-foreground">{cd.complaints.noLogs}</p>
                 ) : (
                   <div className="space-y-2">
                     {(logs[c.id] ?? []).map(log => (
@@ -2541,7 +2489,7 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
                           <p className="text-slate-700 mt-0.5">{log.description}</p>
                           {log.nextFollowUpDate && (
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              下次：{fmtDate(log.nextFollowUpDate)}
+                              {cd.complaints.logNextLabel}{fmtDate(log.nextFollowUpDate)}
                               {log.nextFollowUpMethod && ` · ${METHOD_LABEL[log.nextFollowUpMethod] ?? log.nextFollowUpMethod}`}
                             </p>
                           )}
@@ -2569,16 +2517,16 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
       {/* ── 新增客訴 Dialog ── */}
       <Dialog open={newOpen} onOpenChange={o => { if (!o) { setNewOpen(false); setNewFiles([]) } }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增客訴/售後紀錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{cd.complaints.newDialogTitle}</DialogTitle></DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>日期 *</Label>
+                <Label>{cd.complaints.dateLabel}</Label>
                 <Input type="date" value={newForm.complaintDate}
                   onChange={e => setNewForm(p => ({ ...p, complaintDate: e.target.value }))} required />
               </div>
               <div className="space-y-1.5">
-                <Label>類型</Label>
+                <Label>{cd.complaints.typeLabel}</Label>
                 <select className={cSel} value={newForm.type}
                   onChange={e => setNewForm(p => ({ ...p, type: e.target.value }))}>
                   {complaintTypes.map(t => <option key={t} value={t}>{complaintTypeLabel[t]}</option>)}
@@ -2586,51 +2534,51 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>嚴重程度</Label>
+              <Label>{cd.complaints.severityFormLabel}</Label>
               <div className="flex gap-2">
                 {(['LOW','MEDIUM','HIGH','CRITICAL'] as const).map(s => (
                   <button key={s} type="button"
                     onClick={() => setNewForm(p => ({ ...p, severity: s }))}
-                    className={`flex-1 py-1.5 rounded text-xs font-medium border transition-colors ${newForm.severity === s ? SEVERITY_CONFIG[s].cls + ' border-current' : 'border-slate-200 text-slate-400 hover:border-slate-300'}`}>
-                    {SEVERITY_CONFIG[s].label}
+                    className={`flex-1 py-1.5 rounded text-xs font-medium border transition-colors ${newForm.severity === s ? SEVERITY_CLS[s] + ' border-current' : 'border-slate-200 text-slate-400 hover:border-slate-300'}`}>
+                    {severityLabels[s] ?? s}
                   </button>
                 ))}
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>客訴/售後內容 *</Label>
+              <Label>{cd.complaints.contentLabel}</Label>
               <textarea className={cTa} rows={4} value={newForm.content}
                 onChange={e => setNewForm(p => ({ ...p, content: e.target.value }))}
-                placeholder="詳細描述客訴/售後問題..." required />
+                placeholder={cd.complaints.contentPlaceholder} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>處理人員</Label>
+                <Label>{cd.complaints.handlerLabel}</Label>
                 <Input value={newForm.handler}
                   onChange={e => setNewForm(p => ({ ...p, handler: e.target.value }))}
-                  placeholder="負責處理人員" />
+                  placeholder={cd.complaints.handlerPlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>指派照護督導</Label>
+                <Label>{cd.complaints.supervisorLabel}</Label>
                 <select className={cSel} value={newForm.assignedSupervisorId}
                   onChange={e => setNewForm(p => ({ ...p, assignedSupervisorId: e.target.value }))}>
-                  <option value="">不指派</option>
+                  <option value="">{cd.complaints.supervisorEmpty}</option>
                   {supervisors.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
             </div>
             {newForm.assignedSupervisorId && (
               <div className="space-y-1.5">
-                <Label>督導約訪時間</Label>
+                <Label>{cd.complaints.appointDateLabel}</Label>
                 <Input type="datetime-local" value={newForm.supervisorAppointDate}
                   onChange={e => setNewForm(p => ({ ...p, supervisorAppointDate: e.target.value }))} />
               </div>
             )}
             <div className="space-y-1.5">
-              <Label>上傳照片/截圖</Label>
+              <Label>{cd.complaints.uploadLabel}</Label>
               <label className="flex items-center gap-2 cursor-pointer rounded border border-dashed border-slate-300 px-4 py-3 hover:border-slate-400 transition-colors">
                 <ImagePlus className="h-4 w-4 text-slate-400" />
-                <span className="text-sm text-muted-foreground">點擊選擇或拍照上傳</span>
+                <span className="text-sm text-muted-foreground">{cd.complaints.uploadHint}</span>
                 <input type="file" accept="image/*" multiple capture="environment" className="hidden"
                   onChange={e => setNewFiles(Array.from(e.target.files ?? []))} />
               </label>
@@ -2650,9 +2598,9 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
               )}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setNewOpen(false); setNewFiles([]) }} disabled={saving}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => { setNewOpen(false); setNewFiles([]) }} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}新增紀錄
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{cd.complaints.addRecordBtn}
               </Button>
             </DialogFooter>
           </form>
@@ -2662,41 +2610,41 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
       {/* ── 新增處理紀錄 Dialog ── */}
       <Dialog open={!!logTarget} onOpenChange={o => { if (!o) { setLogTarget(null); setLogFiles([]) } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>新增處理紀錄</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{cd.complaints.logDialogTitle}</DialogTitle></DialogHeader>
           <form onSubmit={handleAddLog} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>處理動作</Label>
+                <Label>{cd.complaints.actionLabel}</Label>
                 <select className={cSel} value={logForm.action}
                   onChange={e => setLogForm(p => ({ ...p, action: e.target.value }))}>
                   {Object.entries(ACTION_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>聯繫方式</Label>
+                <Label>{cd.complaints.methodLabel}</Label>
                 <select className={cSel} value={logForm.nextFollowUpMethod}
                   onChange={e => setLogForm(p => ({ ...p, nextFollowUpMethod: e.target.value }))}>
-                  <option value="">不填</option>
+                  <option value="">{cd.complaints.methodEmpty}</option>
                   {METHOD_OPTIONS.map(m => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}
                 </select>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>處理說明 *</Label>
+              <Label>{cd.complaints.descLabel}</Label>
               <textarea className={cTa} rows={4} value={logForm.description}
                 onChange={e => setLogForm(p => ({ ...p, description: e.target.value }))}
-                placeholder="描述本次處理的狀況、客戶反應..." required />
+                placeholder={cd.complaints.descPlaceholder} required />
             </div>
             <div className="space-y-1.5">
-              <Label>下次追蹤日期</Label>
+              <Label>{cd.complaints.nextDateLabel}</Label>
               <Input type="date" value={logForm.nextFollowUpDate}
                 onChange={e => setLogForm(p => ({ ...p, nextFollowUpDate: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <Label>上傳照片/截圖</Label>
+              <Label>{cd.complaints.uploadLabel}</Label>
               <label className="flex items-center gap-2 cursor-pointer rounded border border-dashed border-slate-300 px-4 py-3 hover:border-slate-400 transition-colors">
                 <ImagePlus className="h-4 w-4 text-slate-400" />
-                <span className="text-sm text-muted-foreground">點擊選擇或拍照上傳</span>
+                <span className="text-sm text-muted-foreground">{cd.complaints.uploadHint}</span>
                 <input type="file" accept="image/*" multiple capture="environment" className="hidden"
                   onChange={e => setLogFiles(Array.from(e.target.files ?? []))} />
               </label>
@@ -2716,9 +2664,9 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
               )}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setLogTarget(null); setLogFiles([]) }} disabled={saving}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => { setLogTarget(null); setLogFiles([]) }} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}新增紀錄
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{cd.complaints.addRecordBtn}
               </Button>
             </DialogFooter>
           </form>
@@ -2728,10 +2676,10 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
       {/* ── 更新狀態 Dialog ── */}
       <Dialog open={!!updateTarget} onOpenChange={o => !o && setUpdateTarget(null)}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>更新處理狀態</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{cd.complaints.updateDialogTitle}</DialogTitle></DialogHeader>
           <form onSubmit={handleUpdateStatus} className="space-y-4">
             <div className="space-y-1.5">
-              <Label>處理狀態</Label>
+              <Label>{cd.complaints.statusLabel}</Label>
               <select className={cSel} value={updateForm.status}
                 onChange={e => setUpdateForm(p => ({ ...p, status: e.target.value }))}>
                 {(['OPEN','IN_PROGRESS','RESOLVED','CLOSED'] as const).map(s => (
@@ -2740,21 +2688,21 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>處理人員</Label>
+              <Label>{cd.complaints.handlerFormLabel}</Label>
               <Input value={updateForm.handler}
                 onChange={e => setUpdateForm(p => ({ ...p, handler: e.target.value }))}
-                placeholder="負責處理人員" />
+                placeholder={cd.complaints.handlerPlaceholder} />
             </div>
             <div className="space-y-1.5">
-              <Label>處理結果說明</Label>
+              <Label>{cd.complaints.resolutionFormLabel}</Label>
               <textarea className={cTa} rows={3} value={updateForm.resolution}
                 onChange={e => setUpdateForm(p => ({ ...p, resolution: e.target.value }))}
-                placeholder="說明如何解決或處理..." />
+                placeholder={cd.complaints.resolutionPlaceholder} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setUpdateTarget(null)} disabled={saving}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setUpdateTarget(null)} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}更新狀態
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{cd.complaints.updateBtn}
               </Button>
             </DialogFooter>
           </form>
