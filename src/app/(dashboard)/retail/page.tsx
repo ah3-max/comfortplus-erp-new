@@ -864,13 +864,13 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
           <div className="space-y-3">
             <div className="grid grid-cols-4 gap-3">
               {[
-                { k: 'attendeeCount',         l: '到場人次' },
-                { k: 'sampleQty',             l: '發放樣品' },
-                { k: 'ordersTaken',           l: '現場成交筆' },
-                { k: 'leadsCollected',        l: '蒐集名單' },
-                { k: 'unitsSoldDuringEvent',  l: '銷售件數' },
-                { k: 'couponRedeemed',        l: '兌換優惠券' },
-                { k: 'newCustomersCollected', l: '新客資數' },
+                { k: 'attendeeCount',         l: rt.attendeeCountLabel },
+                { k: 'sampleQty',             l: rt.sampleQtyLabel },
+                { k: 'ordersTaken',           l: rt.ordersTakenLabel },
+                { k: 'leadsCollected',        l: rt.leadsCollectedLabel },
+                { k: 'unitsSoldDuringEvent',  l: rt.unitsSoldLabel },
+                { k: 'couponRedeemed',        l: rt.couponRedeemedLabel },
+                { k: 'newCustomersCollected', l: rt.newCustomersLabel },
               ].map(({ k, l }) => (
                 <div key={k}>
                   <Label className="text-xs text-slate-600 mb-1.5 block">{l}</Label>
@@ -878,7 +878,7 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
                 </div>
               ))}
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">活動銷售額</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.revenueDuringEventLabel}</Label>
                 <Input type="number" value={String(f.revenueDuringEvent)} onChange={e => set('revenueDuringEvent', e.target.value)} className="h-9 text-sm" />
               </div>
               <div>
@@ -886,22 +886,22 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
                 <Input type="number" step="0.01" value={String(f.roi)} onChange={e => set('roi', e.target.value)} className="h-9 text-sm" placeholder="1.5 = 150%" />
               </div>
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">目標達成率 %</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{rt.targetAchievementLabel}</Label>
                 <Input type="number" value={String(f.targetAchievementPct)} onChange={e => set('targetAchievementPct', e.target.value)} className="h-9 text-sm" />
               </div>
             </div>
             {f.eventType === 'GROUP_BUY' && (
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs text-slate-600 mb-1.5 block">實際訂單數</Label>
+                  <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyActualOrdersLabel}</Label>
                   <Input type="number" value={String(f.groupBuyActualOrders)} onChange={e => set('groupBuyActualOrders', e.target.value)} className="h-9 text-sm" />
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-600 mb-1.5 block">實際成團量</Label>
+                  <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyActualQtyLabel}</Label>
                   <Input type="number" value={String(f.groupBuyActualQty)} onChange={e => set('groupBuyActualQty', e.target.value)} className="h-9 text-sm" />
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-600 mb-1.5 block">團購狀態</Label>
+                  <Label className="text-xs text-slate-600 mb-1.5 block">{rt.groupBuyStatusLabel}</Label>
                   <select className="w-full border rounded-md h-9 px-2 text-sm" value={f.groupBuyStatus} onChange={e => set('groupBuyStatus', e.target.value)}>
                     {Object.entries(rt.groupBuyStatuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                   </select>
@@ -909,15 +909,15 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
               </div>
             )}
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">成效總結</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.performanceSummaryLabel}</Label>
               <Input value={f.performanceSummary} onChange={e => set('performanceSummary', e.target.value)} className="h-9 text-sm" placeholder="活動成效概述…" />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">下次活動建議 / 行動事項</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.nextActionNoteLabel}</Label>
               <Input value={f.nextActionNote} onChange={e => set('nextActionNote', e.target.value)} className="h-9 text-sm" placeholder="下次提前2週補貨…" />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 mb-1.5 block">備注</Label>
+              <Label className="text-xs text-slate-600 mb-1.5 block">{rt.notesLabel}</Label>
               <Input value={f.notes} onChange={e => set('notes', e.target.value)} className="h-9 text-sm" />
             </div>
           </div>
@@ -926,9 +926,9 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
         <div className="flex gap-2 pt-1">
           <Button size="sm" onClick={handleSubmit} disabled={saving}>
             {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-            {isEdit ? '儲存活動' : '建立活動'}
+            {isEdit ? rt.saveEvent : rt.createEvent}
           </Button>
-          <Button size="sm" variant="outline" onClick={onCancel}>取消</Button>
+          <Button size="sm" variant="outline" onClick={onCancel}>{dict.common.cancel}</Button>
         </div>
       </CardContent>
     </Card>
@@ -937,6 +937,8 @@ function EventForm({ outlets, initial, onSaved, onCancel }: {
 
 // ── Outlet Card ─────────────────────────────────────────────────────────────
 function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => void }) {
+  const { dict } = useI18n()
+  const rt = dict.retail
   const [expanded, setExpanded] = useState(false)
   const activeEvent  = outlet.events.find(e => e.eventStatus === 'ACTIVE')
   const nextEvent    = outlet.events.find(e => e.eventStatus === 'PLANNING')
@@ -954,7 +956,7 @@ function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => vo
           </div>
           <div className="flex items-center gap-1 shrink-0">
             <Badge variant="outline" className={`text-xs ${outlet.isActive ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-500'}`}>
-              {outlet.isActive ? '營業中' : '停業'}
+              {outlet.isActive ? rt.outletActive : rt.outletInactive}
             </Badge>
             <button onClick={onEdit} className="p-1 rounded hover:bg-slate-100 text-muted-foreground hover:text-slate-700"><Pencil className="h-3.5 w-3.5" /></button>
           </div>
@@ -964,16 +966,16 @@ function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => vo
 
         {/* ── 基本資訊 ── */}
         <div className="space-y-1">
-          <InfoRow icon={MapPin} label="地址" value={[outlet.address, outlet.city].filter(Boolean).join('，')} />
-          <InfoRow icon={Clock} label="營業" value={outlet.openHours} />
-          <InfoRow icon={Phone} label="電話" value={outlet.phone} />
+          <InfoRow icon={MapPin} label={rt.addressLabel} value={[outlet.address, outlet.city].filter(Boolean).join('，')} />
+          <InfoRow icon={Clock} label={rt.openHoursLabel} value={outlet.openHours} />
+          <InfoRow icon={Phone} label={rt.outletPhoneLabel} value={outlet.phone} />
         </div>
 
         {/* ── 人員 ── */}
         {(outlet.storeManagerName || outlet.salesRepName) && (
           <div className="space-y-1 border-t pt-2">
-            <InfoRow icon={User}  label="店長" value={outlet.storeManagerName ? `${outlet.storeManagerName}${outlet.storeManagerPhone ? ` · ${outlet.storeManagerPhone}` : ''}` : null} />
-            <InfoRow icon={Users} label="業務" value={outlet.salesRepName} />
+            <InfoRow icon={User}  label={rt.storeManagerNameLabel} value={outlet.storeManagerName ? `${outlet.storeManagerName}${outlet.storeManagerPhone ? ` · ${outlet.storeManagerPhone}` : ''}` : null} />
+            <InfoRow icon={Users} label={rt.salesRepNameLabel} value={outlet.salesRepName} />
           </div>
         )}
 
@@ -981,8 +983,8 @@ function OutletCard({ outlet, onEdit }: { outlet: RetailOutlet; onEdit: () => vo
         {(outlet.maxSkuCount || outlet.maxPacksTotal || outlet.shelfLocation) && (
           <div className="flex flex-wrap gap-2 border-t pt-2">
             {outlet.shelfLocation && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{outlet.shelfLocation}</span>}
-            {outlet.maxSkuCount && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded">最多 {outlet.maxSkuCount} SKU</span>}
-            {outlet.maxPacksTotal && <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded">上限 {outlet.maxPacksTotal} 包</span>}
+            {outlet.maxSkuCount && <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{rt.maxSkuDisplay.replace('{n}', String(outlet.maxSkuCount))}</span>}
+            {outlet.maxPacksTotal && <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded">{rt.maxPacksDisplay.replace('{n}', String(outlet.maxPacksTotal))}</span>}
           </div>
         )}
 
