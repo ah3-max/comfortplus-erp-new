@@ -108,7 +108,7 @@ export default function ARAgingPage() {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-muted-foreground">
         <AlertTriangle className="h-8 w-8 mb-2" />
-        <p>無法載入帳齡資料</p>
+        <p>{dict.arAging.loadFailed}</p>
       </div>
     )
   }
@@ -120,9 +120,9 @@ export default function ARAgingPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{dict.finance.arAging}</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{dict.arAging.title}</h1>
         <p className="text-sm text-muted-foreground">
-          應收帳款帳齡分佈與逾期分析
+          {dict.arAging.subtitle}
         </p>
       </div>
 
@@ -134,7 +134,7 @@ export default function ARAgingPage() {
               <DollarSign className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-xs text-slate-500">應收總餘額</p>
+              <p className="text-xs text-slate-500">{dict.arAging.totalBalance}</p>
               <p className="text-lg font-bold text-slate-900">{fmt(summary.totalBalance)}</p>
             </div>
           </CardContent>
@@ -145,7 +145,7 @@ export default function ARAgingPage() {
               <AlertTriangle className={`h-5 w-5 ${summary.totalOverdue > 0 ? 'text-red-600' : 'text-green-600'}`} />
             </div>
             <div>
-              <p className="text-xs text-slate-500">逾期總額</p>
+              <p className="text-xs text-slate-500">{dict.arAging.totalOverdue}</p>
               <p className={`text-lg font-bold ${summary.totalOverdue > 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {fmt(summary.totalOverdue)}
               </p>
@@ -158,7 +158,7 @@ export default function ARAgingPage() {
               <Clock className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-xs text-slate-500">逾期比率</p>
+              <p className="text-xs text-slate-500">{dict.arAging.overdueRate}</p>
               <p className="text-lg font-bold text-amber-600">{summary.overdueRate}%</p>
             </div>
           </CardContent>
@@ -169,8 +169,8 @@ export default function ARAgingPage() {
               <Users className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-xs text-slate-500">應收筆數</p>
-              <p className="text-lg font-bold text-slate-900">{summary.totalCount} 筆</p>
+              <p className="text-xs text-slate-500">{dict.arAging.totalCount}</p>
+              <p className="text-lg font-bold text-slate-900">{summary.totalCount} {dict.arAging.countUnit}</p>
             </div>
           </CardContent>
         </Card>
@@ -179,7 +179,7 @@ export default function ARAgingPage() {
       {/* Aging Buckets */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">帳齡分佈</CardTitle>
+          <CardTitle className="text-base">{dict.arAging.agingDistribution}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -197,7 +197,7 @@ export default function ARAgingPage() {
                     <div className={`h-full rounded-full ${color.bar}`} style={{ width: `${pct}%` }} />
                   </div>
                   <p className={`text-xs mt-1 ${color.text} opacity-80`}>
-                    {bucket.count} 筆 ({pct}%)
+                    {bucket.count} {dict.arAging.countUnit} ({pct}%)
                   </p>
                 </div>
               )
@@ -210,16 +210,16 @@ export default function ARAgingPage() {
       {topCustomers.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">應收餘額 Top 10 客戶</CardTitle>
+            <CardTitle className="text-base">{dict.arAging.top10Title}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10 text-xs">#</TableHead>
-                  <TableHead className="text-xs">客戶代碼</TableHead>
-                  <TableHead className="text-xs">客戶名稱</TableHead>
-                  <TableHead className="text-xs text-right">應收餘額</TableHead>
+                  <TableHead className="text-xs">{dict.arAging.customerCode}</TableHead>
+                  <TableHead className="text-xs">{dict.arAging.customerName}</TableHead>
+                  <TableHead className="text-xs text-right">{dict.arAging.arBalance}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -240,7 +240,7 @@ export default function ARAgingPage() {
       {/* Detail Table */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">應收帳款明細</CardTitle>
+          <CardTitle className="text-base">{dict.arAging.detailTitle}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -248,44 +248,44 @@ export default function ARAgingPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-xs cursor-pointer select-none" onClick={() => toggleSort('customerName')}>
-                    客戶{sortIcon('customerName')}
+                    {dict.arAging.customerName}{sortIcon('customerName')}
                   </TableHead>
-                  <TableHead className="text-xs">訂單編號</TableHead>
-                  <TableHead className="text-xs">發票號碼</TableHead>
+                  <TableHead className="text-xs">{dict.arAging.orderNo}</TableHead>
+                  <TableHead className="text-xs">{dict.arAging.invoiceNo}</TableHead>
                   <TableHead className="text-xs text-right cursor-pointer select-none" onClick={() => toggleSort('amount')}>
-                    應收金額{sortIcon('amount')}
+                    {dict.arAging.arAmount}{sortIcon('amount')}
                   </TableHead>
-                  <TableHead className="text-xs text-right">已收</TableHead>
+                  <TableHead className="text-xs text-right">{dict.arAging.received}</TableHead>
                   <TableHead className="text-xs text-right cursor-pointer select-none" onClick={() => toggleSort('balance')}>
-                    餘額{sortIcon('balance')}
+                    {dict.arAging.balance}{sortIcon('balance')}
                   </TableHead>
                   <TableHead className="text-xs cursor-pointer select-none" onClick={() => toggleSort('dueDate')}>
-                    到期日{sortIcon('dueDate')}
+                    {dict.arAging.dueDate}{sortIcon('dueDate')}
                   </TableHead>
                   <TableHead className="text-xs text-right cursor-pointer select-none" onClick={() => toggleSort('overdueDays')}>
-                    逾期天數{sortIcon('overdueDays')}
+                    {dict.arAging.overdueDays}{sortIcon('overdueDays')}
                   </TableHead>
-                  <TableHead className="text-xs">狀態</TableHead>
+                  <TableHead className="text-xs">{dict.common.status}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedItems.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="py-16 text-center text-muted-foreground">
-                      目前無應收帳款資料
+                      {dict.arAging.noData}
                     </TableCell>
                   </TableRow>
                 ) : (
                   sortedItems.map(item => {
                     const badge = item.overdueDays <= 0
-                      ? { label: '未到期', cls: 'bg-green-100 text-green-700' }
+                      ? { label: dict.arAging.statusNotDue, cls: 'bg-green-100 text-green-700' }
                       : item.overdueDays <= 30
-                      ? { label: '逾期', cls: 'bg-yellow-100 text-yellow-700' }
+                      ? { label: dict.arAging.statusOverdue, cls: 'bg-yellow-100 text-yellow-700' }
                       : item.overdueDays <= 60
-                      ? { label: '逾期', cls: 'bg-orange-100 text-orange-700' }
+                      ? { label: dict.arAging.statusOverdue, cls: 'bg-orange-100 text-orange-700' }
                       : item.overdueDays <= 90
-                      ? { label: '嚴重逾期', cls: 'bg-red-100 text-red-700' }
-                      : { label: '嚴重逾期', cls: 'bg-red-200 text-red-900' }
+                      ? { label: dict.arAging.statusSevere, cls: 'bg-red-100 text-red-700' }
+                      : { label: dict.arAging.statusSevere, cls: 'bg-red-200 text-red-900' }
                     return (
                       <TableRow key={item.id} className="hover:bg-slate-50/80">
                         <TableCell className="text-sm">{item.customerName}</TableCell>
@@ -313,7 +313,7 @@ export default function ARAgingPage() {
                         <TableCell className="text-xs text-muted-foreground">{formatDate(item.dueDate)}</TableCell>
                         <TableCell className="text-sm text-right">
                           {item.overdueDays > 0 ? (
-                            <span className="text-red-600 font-medium">{item.overdueDays} 天</span>
+                            <span className="text-red-600 font-medium">{item.overdueDays}</span>
                           ) : (
                             <span className="text-green-600">-</span>
                           )}

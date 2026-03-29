@@ -28,16 +28,16 @@ interface PurchaseReturn {
   items: ReturnItem[]
 }
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  PENDING:    { label: '待處理', cls: 'bg-slate-100 text-slate-600' },
-  APPROVED:   { label: '已核准', cls: 'bg-blue-100 text-blue-700' },
-  RECEIVING:  { label: '退貨中', cls: 'bg-amber-100 text-amber-700' },
-  RECEIVED:   { label: '已出貨', cls: 'bg-green-100 text-green-700' },
-  INSPECTING: { label: '確認中', cls: 'bg-purple-100 text-purple-700' },
-  COMPLETED:  { label: '已完成', cls: 'bg-green-200 text-green-800' },
-  CANCELLED:  { label: '已取消', cls: 'bg-red-100 text-red-600' },
+const STATUS_CONFIG: Record<string, { cls: string }> = {
+  PENDING:    { cls: 'bg-slate-100 text-slate-600' },
+  APPROVED:   { cls: 'bg-blue-100 text-blue-700' },
+  RECEIVING:  { cls: 'bg-amber-100 text-amber-700' },
+  RECEIVED:   { cls: 'bg-green-100 text-green-700' },
+  INSPECTING: { cls: 'bg-purple-100 text-purple-700' },
+  COMPLETED:  { cls: 'bg-green-200 text-green-800' },
+  CANCELLED:  { cls: 'bg-red-100 text-red-600' },
 }
-const TYPE_LABEL: Record<string, string> = { RETURN: '退貨', EXCHANGE: '換貨', PARTIAL: '部分退' }
+// TYPE_LABEL replaced by dict.purchaseReturns.typeLabels
 
 function fmt(n: string | number | null) {
   if (n == null) return '—'
@@ -99,7 +99,7 @@ export default function PurchaseReturnsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.purchaseReturns.title}</h1>
-          <p className="text-sm text-muted-foreground">供應商退貨管理、審核、應付帳款沖銷</p>
+          <p className="text-sm text-muted-foreground">{dict.purchaseReturns.subtitle}</p>
         </div>
         <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4 mr-1" />{dict.purchaseReturns.newReturn}</Button>
       </div>
@@ -107,16 +107,16 @@ export default function PurchaseReturnsPage() {
       <div className="flex flex-wrap gap-3 items-end rounded-lg border bg-white p-4">
         <Input placeholder={dict.purchaseReturns.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="w-52" />
         <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-          <option value="">全部狀態</option>
-          {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          <option value="">{dict.purchaseReturns.allStatuses}</option>
+          {Object.keys(STATUS_CONFIG).map(k => <option key={k} value={k}>{dict.purchaseReturns.statusLabels[k as keyof typeof dict.purchaseReturns.statusLabels] ?? k}</option>)}
         </select>
-        <Button onClick={() => fetchData(1)} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={() => fetchData(1)} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.confirm}</Button>
       </div>
 
       {data && (
         <>
           <div className="flex justify-between items-center text-sm text-muted-foreground">
-            <span>共 {data.pagination.total} 筆</span>
+            <span>{dict.purchaseReturns.totalPrefix} {data.pagination.total} {dict.common.items}</span>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => fetchData(page - 1)}>{dict.common.prevPage}</Button>
               <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages} onClick={() => fetchData(page + 1)}>{dict.common.nextPage}</Button>
@@ -126,7 +126,8 @@ export default function PurchaseReturnsPage() {
             {data.data.length === 0 ? (
               <div className="py-16 text-center text-muted-foreground">{dict.purchaseReturns.noReturns}</div>
             ) : data.data.map(row => {
-              const sc = STATUS_CONFIG[row.status] ?? { label: row.status, cls: 'bg-slate-100' }
+              const sc = STATUS_CONFIG[row.status] ?? { cls: 'bg-slate-100' }
+              const scLabel = (dict.purchaseReturns.statusLabels as Record<string, string>)[row.status] ?? row.status
               const isOpen = expanded.has(row.id)
               return (
                 <div key={row.id} className="border-b last:border-0">
@@ -135,21 +136,21 @@ export default function PurchaseReturnsPage() {
                       {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </button>
                     <span className="font-mono text-xs w-32 flex-shrink-0">{row.returnNo}</span>
-                    <Badge className={`text-xs flex-shrink-0 ${sc.cls}`}>{sc.label}</Badge>
-                    <Badge className="bg-slate-100 text-slate-600 text-xs flex-shrink-0">{TYPE_LABEL[row.returnType] ?? row.returnType}</Badge>
+                    <Badge className={`text-xs flex-shrink-0 ${sc.cls}`}>{scLabel}</Badge>
+                    <Badge className="bg-slate-100 text-slate-600 text-xs flex-shrink-0">{(dict.purchaseReturns.typeLabels as Record<string, string>)[row.returnType] ?? row.returnType}</Badge>
                     <span className="flex-1 font-medium">{row.supplier.name}</span>
-                    <span className="text-xs text-muted-foreground">採購單：{row.purchase.poNo}</span>
+                    <span className="text-xs text-muted-foreground">{dict.purchaseReturns.poLabel}：{row.purchase.poNo}</span>
                     <span className="font-mono text-xs w-24 text-right text-red-600">{fmt(row.deductAmount)}</span>
                     <span className="text-xs text-muted-foreground w-24 flex-shrink-0">{row.requestDate.slice(0, 10)}</span>
                     <div className="flex gap-1">
                       {row.status === 'PENDING' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'APPROVED')}>核准</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'APPROVED')}>{dict.common.approve}</Button>
                       )}
                       {row.status === 'APPROVED' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'RECEIVED')}>已出貨</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'RECEIVED')}>{dict.purchaseReturns.statusLabels.RECEIVED}</Button>
                       )}
                       {row.status === 'RECEIVED' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'COMPLETED')}>完成</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'COMPLETED')}>{dict.common.complete}</Button>
                       )}
                     </div>
                   </div>
@@ -157,18 +158,18 @@ export default function PurchaseReturnsPage() {
                     <div className="bg-slate-50 border-t px-6 py-3 space-y-2">
                       <div className="flex gap-4 text-xs text-muted-foreground">
                         {row.reason && <span>{dict.purchaseReturns.reason}：{row.reason}</span>}
-                        {row.debitNoteNo && <span>扣款通知單：{row.debitNoteNo}</span>}
-                        {row.deductStatus && <span>扣款狀態：{row.deductStatus}</span>}
+                        {row.debitNoteNo && <span>{dict.purchaseReturns.debitNoteLabel}：{row.debitNoteNo}</span>}
+                        {row.deductStatus && <span>{dict.purchaseReturns.deductStatusLabel}：{row.deductStatus}</span>}
                       </div>
                       <Table>
                         <TableHeader>
                           <TableRow className="text-xs">
-                            <TableHead className="h-7">品項</TableHead>
-                            <TableHead className="h-7 w-16">數量</TableHead>
-                            <TableHead className="h-7 w-24 text-right">單價</TableHead>
-                            <TableHead className="h-7 w-24 text-right">小計</TableHead>
-                            <TableHead className="h-7 w-20">批號</TableHead>
-                            <TableHead className="h-7">退貨原因</TableHead>
+                            <TableHead className="h-7">{dict.common.product}</TableHead>
+                            <TableHead className="h-7 w-16">{dict.common.quantity}</TableHead>
+                            <TableHead className="h-7 w-24 text-right">{dict.common.price}</TableHead>
+                            <TableHead className="h-7 w-24 text-right">{dict.common.total}</TableHead>
+                            <TableHead className="h-7 w-20">{dict.purchaseReturns.batchNo}</TableHead>
+                            <TableHead className="h-7">{dict.purchaseReturns.reason}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -252,33 +253,33 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
         <DialogHeader><DialogTitle>{dict.purchaseReturns.newReturn}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">供應商 *</label>
+            <label className="text-xs font-medium text-muted-foreground">{dict.common.supplier} *</label>
             <select value={form.supplierId} onChange={e => setForm(p => ({ ...p, supplierId: e.target.value, purchaseId: '' }))} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="">選擇供應商</option>
+              <option value="">{dict.purchaseReturns.selectSupplier}</option>
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.code ? `${s.code} - ` : ''}{s.name}</option>)}
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">採購單 *</label>
+            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.poLabel} *</label>
             <select value={form.purchaseId} onChange={e => handlePurchaseChange(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="">選擇採購單</option>
+              <option value="">{dict.purchaseReturns.selectPo}</option>
               {filteredPurchases.map(po => <option key={po.id} value={po.id}>{po.poNo} — {po.supplier?.name ?? ''}</option>)}
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">扣款金額</label>
-            <Input value={form.deductAmount} onChange={e => setForm(p => ({ ...p, deductAmount: e.target.value }))} placeholder="選填" />
+            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.deductAmount}</label>
+            <Input value={form.deductAmount} onChange={e => setForm(p => ({ ...p, deductAmount: e.target.value }))} placeholder={dict.common.optional} />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">扣款通知單號</label>
-            <Input value={form.debitNoteNo} onChange={e => setForm(p => ({ ...p, debitNoteNo: e.target.value }))} placeholder="選填" />
+            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.debitNoteLabel}</label>
+            <Input value={form.debitNoteNo} onChange={e => setForm(p => ({ ...p, debitNoteNo: e.target.value }))} placeholder={dict.common.optional} />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">退貨類型</label>
+            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.returnTypeLabel}</label>
             <select value={form.returnType} onChange={e => setForm(p => ({ ...p, returnType: e.target.value }))} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="RETURN">退貨</option>
-              <option value="EXCHANGE">換貨</option>
-              <option value="PARTIAL">部分退貨</option>
+              <option value="RETURN">{dict.purchaseReturns.typeLabels.RETURN}</option>
+              <option value="EXCHANGE">{dict.purchaseReturns.typeLabels.EXCHANGE}</option>
+              <option value="PARTIAL">{dict.purchaseReturns.typeLabels.PARTIAL}</option>
             </select>
           </div>
           <div className="space-y-1">

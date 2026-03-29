@@ -22,6 +22,7 @@ interface WarehouseItem {
 
 export default function WarehousesPage() {
   const { dict } = useI18n()
+  const wh = dict.warehouses
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([])
   const [loading, setLoading]       = useState(true)
   const [showInactive, setShowInactive] = useState(false)
@@ -89,7 +90,7 @@ export default function WarehousesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.warehouses.title}</h1>
-          <p className="text-sm text-muted-foreground">共 {activeCount} 間倉庫</p>
+          <p className="text-sm text-muted-foreground">{wh.subtitle.replace('{n}', String(activeCount))}</p>
         </div>
         <div className="flex gap-2">
           <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer">
@@ -131,7 +132,7 @@ export default function WarehousesPage() {
               <div className="mt-4 flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Package className="h-3.5 w-3.5" />
-                  <span>{w._count.lots} 個批號</span>
+                  <span>{w._count.lots} {wh.lotsCount}</span>
                 </div>
                 <div className="ml-auto">
                   {w.isActive
@@ -169,23 +170,23 @@ export default function WarehousesPage() {
                 <Label>{dict.common.code} <span className="text-red-500">*</span></Label>
                 <Input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
                   placeholder="MAIN / WH-A / COLD" maxLength={20} />
-                <p className="text-xs text-muted-foreground">英數大寫，建立後不可更改</p>
+                <p className="text-xs text-muted-foreground">{wh.codeNote}</p>
               </div>
             )}
             <div className="space-y-1.5">
               <Label>{dict.warehouses.warehouseName} <span className="text-red-500">*</span></Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="主倉庫 / 冷藏倉" />
+                placeholder={wh.warehouseName} />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.common.address}</Label>
               <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                placeholder="倉庫地址" />
+                placeholder={dict.common.address} />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.common.notes}</Label>
               <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                rows={2} placeholder="特殊說明..." />
+                rows={2} placeholder={dict.common.description} />
             </div>
           </div>
           <DialogFooter>

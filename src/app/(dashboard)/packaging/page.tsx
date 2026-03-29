@@ -30,13 +30,6 @@ interface PackagingMaterial {
 }
 
 // ── Config ─────────────────────────────────────────────────────────────────
-const MATERIAL_TYPE_LABEL: Record<string, string> = {
-  WAISTBAND: '腰貼',
-  BAG:       '袋',
-  BOX:       '箱',
-  LABEL:     '標籤',
-  OTHER:     '其他',
-}
 const MATERIAL_TYPE_COLOR: Record<string, string> = {
   WAISTBAND: 'bg-purple-100 text-purple-700',
   BAG:       'bg-blue-100 text-blue-700',
@@ -56,11 +49,12 @@ function MaterialForm({
   onCancel: () => void
 }) {
   const { dict } = useI18n()
+  const materialTypeLabel: Record<string, string> = dict.packaging.materialTypes as unknown as Record<string, string>
   const isEdit = !!initial?.id
   const [code,             setCode]             = useState(initial?.code             ?? '')
   const [name,             setName]             = useState(initial?.name             ?? '')
   const [materialType,     setMaterialType]     = useState(initial?.materialType     ?? 'OTHER')
-  const [unit,             setUnit]             = useState(initial?.unit             ?? '個')
+  const [unit,             setUnit]             = useState(initial?.unit             ?? '')
   const [stockQty,         setStockQty]         = useState(String(initial?.stockQty         ?? 0))
   const [inTransitQty,     setInTransitQty]     = useState(String(initial?.inTransitQty     ?? 0))
   const [sentToFactoryQty, setSentToFactoryQty] = useState(String(initial?.sentToFactoryQty ?? 0))
@@ -113,11 +107,11 @@ function MaterialForm({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* 類型選擇 */}
+        {/* type selector */}
         <div>
-          <Label className="text-xs text-slate-600 mb-2 block">類型 *</Label>
+          <Label className="text-xs text-slate-600 mb-2 block">{dict.packaging.typeLabel} *</Label>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(MATERIAL_TYPE_LABEL).map(([key, label]) => (
+            {Object.entries(materialTypeLabel).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setMaterialType(key)}
@@ -140,32 +134,32 @@ function MaterialForm({
               value={code}
               onChange={e => setCode(e.target.value)}
               className="text-sm h-9"
-              placeholder="例：PKG-WB-001"
+              placeholder="PKG-WB-001"
               disabled={isEdit}
             />
           </div>
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.packagingName} *</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} className="text-sm h-9" placeholder="例：L號腰貼" />
+            <Input value={name} onChange={e => setName(e.target.value)} className="text-sm h-9" />
           </div>
           <div>
             <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.unit}</Label>
-            <Input value={unit} onChange={e => setUnit(e.target.value)} className="text-sm h-9" placeholder="個 / 卷 / 張…" />
+            <Input value={unit} onChange={e => setUnit(e.target.value)} className="text-sm h-9" />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">損耗率 %</Label>
-            <Input type="number" min={0} step={0.1} value={wastageRate} onChange={e => setWastageRate(e.target.value)} className="text-sm h-9" placeholder="例：2.5" />
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.wastageRate} %</Label>
+            <Input type="number" min={0} step={0.1} value={wastageRate} onChange={e => setWastageRate(e.target.value)} className="text-sm h-9" />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">庫存數量</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.stockQty}</Label>
             <Input type="number" min={0} value={stockQty} onChange={e => setStockQty(e.target.value)} className="text-sm h-9" />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">在途數量</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.inTransitQty}</Label>
             <Input type="number" min={0} value={inTransitQty} onChange={e => setInTransitQty(e.target.value)} className="text-sm h-9" />
           </div>
           <div>
-            <Label className="text-xs text-slate-600 mb-1.5 block">已送工廠</Label>
+            <Label className="text-xs text-slate-600 mb-1.5 block">{dict.packaging.sentToFactoryQty}</Label>
             <Input type="number" min={0} value={sentToFactoryQty} onChange={e => setSentToFactoryQty(e.target.value)} className="text-sm h-9" />
           </div>
           <div>
@@ -176,7 +170,7 @@ function MaterialForm({
 
         <div>
           <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.notes}</Label>
-          <Input value={notes} onChange={e => setNotes(e.target.value)} className="text-sm h-9" placeholder="（選填）" />
+          <Input value={notes} onChange={e => setNotes(e.target.value)} className="text-sm h-9" placeholder={dict.common.optional} />
         </div>
 
         <div className="flex gap-2 pt-1">
@@ -223,10 +217,10 @@ export default function PackagingPage() {
   const lowStock = materials.filter(m => m.safetyStock > 0 && m.stockQty < m.safetyStock).length
 
   const stats = [
-    { label: '包材種類',  value: materials.length, color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200' },
-    { label: '低於安全庫存', value: lowStock,       color: 'text-red-600',   bg: 'bg-red-50',   border: 'border-red-200' },
-    { label: '在途中',    value: materials.reduce((s, m) => s + m.inTransitQty, 0),     color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200' },
-    { label: '已送工廠',  value: materials.reduce((s, m) => s + m.sentToFactoryQty, 0), color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-200' },
+    { label: dict.packaging.statsTypes,       value: materials.length, color: 'text-slate-700', bg: 'bg-slate-50', border: 'border-slate-200' },
+    { label: dict.packaging.statsBelowSafety, value: lowStock,         color: 'text-red-600',   bg: 'bg-red-50',   border: 'border-red-200' },
+    { label: dict.packaging.statsInTransit,   value: materials.reduce((s, m) => s + m.inTransitQty, 0),     color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200' },
+    { label: dict.packaging.statsSentToFactory, value: materials.reduce((s, m) => s + m.sentToFactoryQty, 0), color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-200' },
   ]
 
   function handleSaved() {
@@ -244,7 +238,7 @@ export default function PackagingPage() {
             <Layers className="h-6 w-6 text-purple-600" />
             {dict.packaging.title}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Packaging Materials — 共 {materials.length} 種</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Packaging Materials — {materials.length}</p>
         </div>
         {!showForm && !editing && (
           <Button onClick={() => setShowForm(true)} className="gap-2">
@@ -287,14 +281,14 @@ export default function PackagingPage() {
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
         >
-          <option value="">全部類型</option>
-          {Object.entries(MATERIAL_TYPE_LABEL).map(([k, v]) => (
+          <option value="">{dict.packaging.allTypes}</option>
+          {Object.entries(dict.packaging.materialTypes as unknown as Record<string, string>).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
         {typeFilter && (
           <button onClick={() => setTypeFilter('')} className="text-xs text-red-500 hover:text-red-700 px-2">
-            清除篩選
+            {dict.packaging.clearFilter}
           </button>
         )}
       </div>
@@ -310,7 +304,7 @@ export default function PackagingPage() {
             <div className="text-center py-16 text-muted-foreground">
               <XCircle className="h-10 w-10 mx-auto mb-3 opacity-30" />
               <p>{dict.packaging.noPackaging}</p>
-              <p className="text-xs mt-1">點擊右上角「{dict.packaging.newPackaging}」開始建立</p>
+              <p className="text-xs mt-1">{dict.packaging.noResults2.replace('{btn}', dict.packaging.newPackaging)}</p>
             </div>
           ) : (
             <div className="divide-y">
@@ -319,10 +313,10 @@ export default function PackagingPage() {
                 <span>{dict.packaging.packagingCode} / {dict.packaging.packagingName}</span>
                 <span>{dict.common.type}</span>
                 <span>{dict.packaging.currentStock}</span>
-                <span>在途</span>
-                <span>送廠</span>
+                <span>{dict.packaging.inTransit}</span>
+                <span>{dict.packaging.sentToFactory}</span>
                 <span>{dict.packaging.safetyStock}</span>
-                <span>損耗率</span>
+                <span>{dict.packaging.wastageRate}</span>
                 <span></span>
               </div>
               {filtered.map(m => {
@@ -341,7 +335,7 @@ export default function PackagingPage() {
                     </div>
                     <div>
                       <Badge className={`text-xs font-normal border-0 ${MATERIAL_TYPE_COLOR[m.materialType] ?? 'bg-slate-100 text-slate-600'}`}>
-                        {MATERIAL_TYPE_LABEL[m.materialType] ?? m.materialType}
+                        {(dict.packaging.materialTypes as unknown as Record<string, string>)[m.materialType] ?? m.materialType}
                       </Badge>
                     </div>
                     <div className={`text-sm font-medium ${isLow ? 'text-red-600' : 'text-slate-700'}`}>
@@ -367,7 +361,7 @@ export default function PackagingPage() {
                     <button
                       onClick={() => { setEditing(m); setShowForm(false) }}
                       className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground hover:text-slate-700 transition-colors"
-                      title="編輯"
+                      title={dict.common.edit}
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>

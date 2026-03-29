@@ -94,31 +94,31 @@ export default function VehiclesPage() {
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.vehicles ?? '車輛管理'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">自有車輛資料、保險驗車到期提醒、保養記錄</p>
+          <h1 className="text-2xl font-bold">{dict.nav?.vehicles ?? dict.vehiclesPage.addVehicle}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{dict.vehiclesPage.subtitle}</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus size={16} />新增車輛
+          <Plus size={16} />{dict.vehiclesPage.addVehicle}
         </Button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">車輛總數</div>
+          <div className="text-xs text-gray-400 mb-1">{dict.vehiclesPage.cardTotal}</div>
           <div className="text-2xl font-bold">{vehicles.length}</div>
         </div>
         <div className="bg-white border rounded-xl p-4 cursor-pointer" onClick={() => setSearch('')}>
           <div className="flex items-center gap-1.5 mb-1">
             <AlertTriangle size={14} className="text-red-500" />
-            <span className="text-xs text-gray-400">待處理警示</span>
+            <span className="text-xs text-gray-400">{dict.vehiclesPage.cardAlerts}</span>
           </div>
           <div className="text-2xl font-bold text-red-600">{alertCount}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <CheckCircle2 size={14} className="text-emerald-500" />
-            <span className="text-xs text-gray-400">狀態正常</span>
+            <span className="text-xs text-gray-400">{dict.vehiclesPage.cardNormal}</span>
           </div>
           <div className="text-2xl font-bold text-emerald-600">{vehicles.length - alertCount}</div>
         </div>
@@ -128,17 +128,17 @@ export default function VehiclesPage() {
       <div className="relative bg-white border rounded-xl px-3">
         <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <Input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="搜尋車牌、品牌…" className="pl-8 border-0 shadow-none h-11" />
+          placeholder={dict.vehiclesPage.searchPlaceholder} className="pl-8 border-0 shadow-none h-11" />
       </div>
 
       {/* Vehicle cards */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-          <div className="col-span-3 py-12 text-center text-gray-400">載入中…</div>
+          <div className="col-span-3 py-12 text-center text-gray-400">{dict.vehiclesPage.loading}</div>
         ) : filtered.length === 0 ? (
           <div className="col-span-3 py-16 text-center text-gray-400">
             <Truck size={40} className="mx-auto mb-3 opacity-30" />
-            <p>無車輛資料</p>
+            <p>{dict.vehiclesPage.empty}</p>
           </div>
         ) : filtered.map(v => (
           <div key={v.id} className="bg-white border rounded-xl p-4 cursor-pointer hover:shadow-sm transition-shadow"
@@ -154,9 +154,9 @@ export default function VehiclesPage() {
                 </div>
               </div>
               {v.alerts.length > 0 ? (
-                <Badge className="bg-red-100 text-red-700 shrink-0">{v.alerts.length} 警示</Badge>
+                <Badge className="bg-red-100 text-red-700 shrink-0">{v.alerts.length} {dict.vehiclesPage.alertBadge}</Badge>
               ) : (
-                <Badge className="bg-emerald-100 text-emerald-700 shrink-0">正常</Badge>
+                <Badge className="bg-emerald-100 text-emerald-700 shrink-0">{dict.vehiclesPage.normalBadge}</Badge>
               )}
             </div>
 
@@ -171,13 +171,13 @@ export default function VehiclesPage() {
             )}
 
             <div className="mt-3 grid grid-cols-2 gap-1 text-xs text-gray-500">
-              <div>保險：{fmtDate(v.insuranceExpiry)}</div>
-              <div>驗車：{fmtDate(v.inspectionExpiry)}</div>
+              <div>{dict.vehiclesPage.cardInsurance}：{fmtDate(v.insuranceExpiry)}</div>
+              <div>{dict.vehiclesPage.cardInspection}：{fmtDate(v.inspectionExpiry)}</div>
               {v.drivers.length > 0 && (
-                <div className="col-span-2 text-blue-500">司機：{v.drivers.map(d => d.name).join('、')}</div>
+                <div className="col-span-2 text-blue-500">{dict.vehiclesPage.cardDriver}：{v.drivers.map(d => d.name).join('、')}</div>
               )}
-              <div>出車：{v._count.trips} 次</div>
-              <div>保養：{v._count.maintenances} 次</div>
+              <div>{dict.vehiclesPage.cardTrips}：{v._count.trips}</div>
+              <div>{dict.vehiclesPage.cardMaintenance}：{v._count.maintenances}</div>
             </div>
           </div>
         ))}
@@ -186,53 +186,53 @@ export default function VehiclesPage() {
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>新增車輛</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.vehiclesPage.createTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <div>
-              <div className="text-xs text-gray-500 mb-1">車牌號碼 *</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldPlate}</div>
               <Input value={form.plateNo} onChange={e => setForm(f => ({ ...f, plateNo: e.target.value }))} placeholder="ABC-1234" className="h-9" />
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">品牌</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldBrand}</div>
                 <Input value={form.brand} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="HINO" className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">型號</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldModel}</div>
                 <Input value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} placeholder="300" className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">出廠年</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldYear}</div>
                 <Input type="number" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))} placeholder="2022" className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">車型</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldType}</div>
                 <Input value={form.vehicleType} onChange={e => setForm(f => ({ ...f, vehicleType: e.target.value }))} placeholder="3.5T" className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">燃料</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldFuel}</div>
                 <Input value={form.fuelType} onChange={e => setForm(f => ({ ...f, fuelType: e.target.value }))} placeholder="DIESEL" className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">保險到期</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldInsuranceExpiry}</div>
                 <Input type="date" value={form.insuranceExpiry} onChange={e => setForm(f => ({ ...f, insuranceExpiry: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">驗車到期</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldInspectionExpiry}</div>
                 <Input type="date" value={form.inspectionExpiry} onChange={e => setForm(f => ({ ...f, inspectionExpiry: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">備註</div>
-              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="備註" className="h-9" />
+              <div className="text-xs text-gray-500 mb-1">{dict.vehiclesPage.fieldNotes}</div>
+              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="h-9" />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleCreate} className="flex-1" disabled={!form.plateNo}>新增</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+              <Button onClick={handleCreate} className="flex-1" disabled={!form.plateNo}>{dict.vehiclesPage.btnAdd}</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>{dict.common.cancel}</Button>
             </div>
           </div>
         </DialogContent>
@@ -251,9 +251,12 @@ export default function VehiclesPage() {
               <div className="space-y-3 mt-2 text-sm">
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    ['品牌', selected.brand], ['型號', selected.model],
-                    ['車型', selected.vehicleType], ['燃料', selected.fuelType],
-                    ['出廠年', selected.year], ['里程', selected.currentOdometer ? `${selected.currentOdometer.toLocaleString()} km` : null],
+                    [dict.vehiclesPage.detailBrand, selected.brand],
+                    [dict.vehiclesPage.detailModel, selected.model],
+                    [dict.vehiclesPage.detailType, selected.vehicleType],
+                    [dict.vehiclesPage.detailFuel, selected.fuelType],
+                    [dict.vehiclesPage.detailYear, selected.year],
+                    [dict.vehiclesPage.detailOdometer, selected.currentOdometer ? `${selected.currentOdometer.toLocaleString()} km` : null],
                   ].filter(([, v]) => v).map(([k, v]) => (
                     <div key={k as string} className="bg-gray-50 rounded p-2">
                       <div className="text-gray-400">{k}</div>
@@ -262,13 +265,13 @@ export default function VehiclesPage() {
                   ))}
                 </div>
                 <div>
-                  <div className="text-xs font-medium text-gray-400 mb-1.5">到期管理</div>
+                  <div className="text-xs font-medium text-gray-400 mb-1.5">{dict.vehiclesPage.sectionExpiry}</div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     {[
-                      ['保險到期', selected.insuranceExpiry],
-                      ['驗車到期', selected.inspectionExpiry],
-                      ['牌照稅', selected.licenseTaxExpiry],
-                      ['燃料稅', selected.fuelTaxExpiry],
+                      [dict.vehiclesPage.detailInsurance, selected.insuranceExpiry],
+                      [dict.vehiclesPage.detailInspection, selected.inspectionExpiry],
+                      [dict.vehiclesPage.detailLicenseTax, selected.licenseTaxExpiry],
+                      [dict.vehiclesPage.detailFuelTax, selected.fuelTaxExpiry],
                     ].map(([k, v]) => (
                       <div key={k as string} className="bg-gray-50 rounded p-2">
                         <div className="text-gray-400">{k}</div>
@@ -279,7 +282,7 @@ export default function VehiclesPage() {
                 </div>
                 {selected.drivers.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-400 mb-1.5">指派司機</div>
+                    <div className="text-xs font-medium text-gray-400 mb-1.5">{dict.vehiclesPage.sectionDrivers}</div>
                     {selected.drivers.map(d => (
                       <div key={d.id} className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded mb-1">
                         {d.name} {d.phone && `· ${d.phone}`}
@@ -289,12 +292,12 @@ export default function VehiclesPage() {
                 )}
                 {selected.maintenances.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-400 mb-1.5">最近保養記錄</div>
+                    <div className="text-xs font-medium text-gray-400 mb-1.5">{dict.vehiclesPage.sectionMaintenance}</div>
                     {selected.maintenances.map(m => (
                       <div key={m.id} className="text-xs border rounded p-2 mb-1">
                         <div className="font-medium">{new Date(m.serviceDate).toLocaleDateString('zh-TW')} — {m.serviceType}</div>
-                        {m.totalCost && <div className="text-gray-500">費用：NT${m.totalCost.toLocaleString()}</div>}
-                        {m.nextServiceDate && <div className="text-yellow-600">下次保養：{new Date(m.nextServiceDate).toLocaleDateString('zh-TW')}</div>}
+                        {m.totalCost && <div className="text-gray-500">{dict.vehiclesPage.maintenanceCost}：NT${m.totalCost.toLocaleString()}</div>}
+                        {m.nextServiceDate && <div className="text-yellow-600">{dict.vehiclesPage.maintenanceNext}：{new Date(m.nextServiceDate).toLocaleDateString('zh-TW')}</div>}
                       </div>
                     ))}
                   </div>

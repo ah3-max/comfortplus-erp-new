@@ -16,6 +16,7 @@ type View = 'monthly' | 'product' | 'customer'
 
 export default function FulfillmentRatePage() {
   const { dict } = useI18n()
+  const fr = dict.fulfillmentRate
   const [view, setView] = useState<View>('monthly')
   const [from, setFrom] = useState(() => `${new Date().getFullYear()}-01-01`)
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10))
@@ -48,19 +49,19 @@ export default function FulfillmentRatePage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.fulfillmentRate ?? '訂單履約率分析'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">訂單商品出貨比率，追蹤缺貨與延遲履約</p>
+        <h1 className="text-2xl font-bold">{fr.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{fr.subtitle}</p>
       </div>
 
       {/* Filters */}
       <div className="bg-white border rounded-xl p-4 flex flex-wrap gap-3 items-end">
         <div>
-          <div className="text-xs text-gray-500 mb-1">開始日期</div>
+          <div className="text-xs text-gray-500 mb-1">{fr.startDate}</div>
           <input type="date" value={from} onChange={e => setFrom(e.target.value)}
             className="border rounded px-2 py-1.5 text-sm h-9" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">結束日期</div>
+          <div className="text-xs text-gray-500 mb-1">{fr.endDate}</div>
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
             className="border rounded px-2 py-1.5 text-sm h-9" />
         </div>
@@ -68,7 +69,7 @@ export default function FulfillmentRatePage() {
           {(['monthly', 'product', 'customer'] as View[]).map(v => (
             <button key={v} onClick={() => setView(v)}
               className={`px-3 py-1.5 rounded text-sm h-9 ${view === v ? 'bg-blue-600 text-white' : 'border hover:bg-gray-50'}`}>
-              {v === 'monthly' ? '月份' : v === 'product' ? '品項' : '客戶'}
+              {v === 'monthly' ? fr.viewMonthly : v === 'product' ? fr.viewProduct : fr.viewCustomer}
             </button>
           ))}
         </div>
@@ -80,25 +81,25 @@ export default function FulfillmentRatePage() {
           <div className="bg-white border rounded-xl p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <TrendingUp size={14} className="text-blue-500" />
-              <span className="text-xs text-gray-400">平均履約率</span>
+              <span className="text-xs text-gray-400">{fr.avgRate}</span>
             </div>
             <div className="text-2xl font-bold" style={{ color: rateColor(avgRate) }}>{avgRate}%</div>
           </div>
           <div className="bg-white border rounded-xl p-4">
-            <div className="text-xs text-gray-400 mb-1">總訂購數量</div>
+            <div className="text-xs text-gray-400 mb-1">{fr.totalOrdered}</div>
             <div className="text-2xl font-bold">{monthly.reduce((s, r) => s + r.ordered, 0).toLocaleString()}</div>
           </div>
           <div className="bg-white border rounded-xl p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <CheckCircle2 size={14} className="text-emerald-500" />
-              <span className="text-xs text-gray-400">已出貨數量</span>
+              <span className="text-xs text-gray-400">{fr.totalShipped}</span>
             </div>
             <div className="text-2xl font-bold text-emerald-600">{monthly.reduce((s, r) => s + r.shipped, 0).toLocaleString()}</div>
           </div>
           <div className="bg-white border rounded-xl p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <AlertTriangle size={14} className="text-red-500" />
-              <span className="text-xs text-gray-400">未出貨數量</span>
+              <span className="text-xs text-gray-400">{fr.totalUnshipped}</span>
             </div>
             <div className="text-2xl font-bold text-red-600">
               {(monthly.reduce((s, r) => s + r.ordered, 0) - monthly.reduce((s, r) => s + r.shipped, 0)).toLocaleString()}
@@ -108,18 +109,18 @@ export default function FulfillmentRatePage() {
       )}
 
       {loading ? (
-        <div className="bg-white border rounded-xl py-16 text-center text-gray-400">載入中…</div>
+        <div className="bg-white border rounded-xl py-16 text-center text-gray-400">{dict.common.loading}</div>
       ) : view === 'monthly' ? (
         <div className="space-y-4">
           {/* Line Chart - Rate Trend */}
           <div className="bg-white border rounded-xl p-4">
-            <div className="text-sm font-medium mb-3">履約率趨勢</div>
+            <div className="text-sm font-medium mb-3">{fr.rateTrend}</div>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: unknown) => [`${v}%`, '履約率']} />
+                <Tooltip formatter={(v: unknown) => [`${v}%`, fr.colRate]} />
                 <ReferenceLine y={95} stroke="#10b981" strokeDasharray="4 4" label={{ value: '95%', position: 'right', fontSize: 10 }} />
                 <ReferenceLine y={85} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: '85%', position: 'right', fontSize: 10 }} />
                 <Line type="monotone" dataKey="rate" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
@@ -129,15 +130,15 @@ export default function FulfillmentRatePage() {
 
           {/* Stacked Bar - Ordered vs Shipped */}
           <div className="bg-white border rounded-xl p-4">
-            <div className="text-sm font-medium mb-3">訂購量 vs 出貨量</div>
+            <div className="text-sm font-medium mb-3">{fr.orderedVsShipped}</div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthly}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="shipped" name="已出貨" fill="#10b981" stackId="a" />
-                <Bar dataKey="ordered" name="未出貨" fill="#fee2e2"
+                <Bar dataKey="shipped" name={fr.totalShipped} fill="#10b981" stackId="a" />
+                <Bar dataKey="ordered" name={fr.totalUnshipped} fill="#fee2e2"
                   stackId="b"
                   label={false}
                 />
@@ -149,13 +150,13 @@ export default function FulfillmentRatePage() {
         <div className="bg-white border rounded-xl overflow-hidden">
           <div className="p-4 border-b flex items-center gap-2">
             <Package size={16} className="text-gray-400" />
-            <span className="text-sm font-medium">品項履約率（由低至高）</span>
+            <span className="text-sm font-medium">{fr.productRateTitle}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {['品項名稱', 'SKU', '訂購量', '出貨量', '未出貨', '履約率'].map(h => (
+                  {[fr.colProductName, fr.colSku, fr.colOrdered, fr.colShipped, fr.colUnshipped, fr.colRate].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">{h}</th>
                   ))}
                 </tr>
@@ -179,7 +180,7 @@ export default function FulfillmentRatePage() {
                   </tr>
                 ))}
                 {products.length === 0 && (
-                  <tr><td colSpan={6} className="text-center py-10 text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={6} className="text-center py-10 text-gray-400">{fr.noData}</td></tr>
                 )}
               </tbody>
             </table>
@@ -189,13 +190,13 @@ export default function FulfillmentRatePage() {
         <div className="bg-white border rounded-xl overflow-hidden">
           <div className="p-4 border-b flex items-center gap-2">
             <Users size={16} className="text-gray-400" />
-            <span className="text-sm font-medium">客戶履約率（由低至高）</span>
+            <span className="text-sm font-medium">{fr.customerRateTitle}</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {['客戶', '訂單數', '訂購量', '出貨量', '未出貨', '履約率'].map(h => (
+                  {[fr.colCustomer, fr.colOrders, fr.colOrdered, fr.colShipped, fr.colUnshipped, fr.colRate].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">{h}</th>
                   ))}
                 </tr>
@@ -219,7 +220,7 @@ export default function FulfillmentRatePage() {
                   </tr>
                 ))}
                 {customers.length === 0 && (
-                  <tr><td colSpan={6} className="text-center py-10 text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={6} className="text-center py-10 text-gray-400">{fr.noData}</td></tr>
                 )}
               </tbody>
             </table>

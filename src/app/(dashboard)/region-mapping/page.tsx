@@ -18,6 +18,7 @@ interface RegionMap {
 
 export default function RegionMappingPage() {
   const { dict } = useI18n()
+  const rm = dict.regionMapping
   const [mappings, setMappings] = useState<RegionMap[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -61,7 +62,7 @@ export default function RegionMappingPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.regionMapping.title}</h1>
-          <p className="text-sm text-muted-foreground">地區 → 業務區域 / 配送區域對應</p>
+          <p className="text-sm text-muted-foreground">{rm.subtitle}</p>
         </div>
         <Button onClick={() => { setForm({ city: '', district: '', region: '', deliveryZone: '' }); setDialog(true) }}>
           <Plus className="h-4 w-4 mr-1" />{dict.regionMapping.newMapping}
@@ -88,7 +89,7 @@ export default function RegionMappingPage() {
                 <table className="w-full text-sm">
                   <thead className="border-b bg-slate-50">
                     <tr>
-                      {['區/鄉鎮', '業務區域', '配送區域', '操作'].map(h => (
+                      {[rm.districtHeader, rm.salesRegionHeader, rm.deliveryZoneHeader, rm.actionsHeader].map(h => (
                         <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground">{h}</th>
                       ))}
                     </tr>
@@ -96,7 +97,7 @@ export default function RegionMappingPage() {
                   <tbody>
                     {items.map(m => (
                       <tr key={m.id} className="border-b last:border-0 hover:bg-slate-50/50">
-                        <td className="px-3 py-2">{m.district ?? '（全市）'}</td>
+                        <td className="px-3 py-2">{m.district ?? rm.wholeCity}</td>
                         <td className="px-3 py-2 font-medium">{m.region}</td>
                         <td className="px-3 py-2">{m.deliveryZone ?? '-'}</td>
                         <td className="px-3 py-2">
@@ -123,18 +124,18 @@ export default function RegionMappingPage() {
           <div className="space-y-3 py-2">
             <div>
               <Label>{dict.regionMapping.city}</Label>
-              <Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className="mt-1" placeholder="台北市" />
+              <Input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} className="mt-1" placeholder={rm.city} />
             </div>
             <div>
               <Label>{dict.regionMapping.district}</Label>
-              <Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} className="mt-1" placeholder="信義區" />
+              <Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} className="mt-1" placeholder={rm.district} />
             </div>
             <div>
               <Label>{dict.regionMapping.region}</Label>
-              <Input value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))} className="mt-1" placeholder="北北桃" />
+              <Input value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))} className="mt-1" placeholder={rm.region} />
             </div>
             <div>
-              <Label>配送區域（選填）</Label>
+              <Label>{rm.deliveryZoneOptional}</Label>
               <Input value={form.deliveryZone} onChange={e => setForm(f => ({ ...f, deliveryZone: e.target.value }))} className="mt-1" placeholder="Zone A" />
             </div>
           </div>

@@ -80,12 +80,12 @@ export default function DispatchPage() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`派貨單已${label}`); fetchData() }
+    if (res.ok) { toast.success(`${dict.dispatch.statusUpdated}${label}`); fetchData() }
     else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消派貨單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.dispatch.cancelConfirmPrefix} ${no} ${dict.dispatch.cancelSuffix}`)) return
     const res = await fetch(`/api/dispatch-orders/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.common.cancelSuccess); fetchData() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
@@ -96,7 +96,7 @@ export default function DispatchPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.dispatch.title}</h1>
-          <p className="text-sm text-muted-foreground">共 {pagination?.total ?? data.length} 筆</p>
+          <p className="text-sm text-muted-foreground">{dict.ordersExt.totalCount} {pagination?.total ?? data.length} {dict.ordersExt.records}</p>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export default function DispatchPage() {
               <TableHead>{dict.common.warehouse}</TableHead>
               <TableHead className="w-20">{dict.common.status}</TableHead>
               <TableHead className="w-16">{dict.common.pieces}</TableHead>
-              <TableHead className="w-20">承辦人</TableHead>
+              <TableHead className="w-20">{dict.common.handler}</TableHead>
               <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -158,19 +158,19 @@ export default function DispatchPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         {d.status === 'PENDING' && (
-                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'DISPATCHED', '派貨')}>
-                            <Truck className="mr-2 h-4 w-4" />標記已派貨
+                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'DISPATCHED', dict.dispatch.statuses.DISPATCHED)}>
+                            <Truck className="mr-2 h-4 w-4" />{dict.dispatch.markDispatched}
                           </DropdownMenuItem>
                         )}
                         {d.status === 'DISPATCHED' && (
-                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'DELIVERED', '送達')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />標記已送達
+                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'DELIVERED', dict.dispatch.statuses.DELIVERED)}>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />{dict.dispatch.markDelivered}
                           </DropdownMenuItem>
                         )}
                         {!['DELIVERED', 'CANCELLED'].includes(d.status) && (
                           <><DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleCancel(d.id, d.dispatchNumber)} variant="destructive">
-                            <XCircle className="mr-2 h-4 w-4" />取消
+                            <XCircle className="mr-2 h-4 w-4" />{dict.common.cancel}
                           </DropdownMenuItem></>
                         )}
                       </DropdownMenuContent>
@@ -199,7 +199,7 @@ export default function DispatchPage() {
                 <span>{d.customer.name}</span>
                 <span className="text-muted-foreground">{d.pickingOrder.pickingNumber}</span>
               </div>
-              <div className="text-xs text-muted-foreground">{d.items.length} 項 · {d.warehouse.name}</div>
+              <div className="text-xs text-muted-foreground">{d.items.length} {dict.dispatch.itemsUnit} · {d.warehouse.name}</div>
             </div>
           )
         })}
@@ -207,7 +207,7 @@ export default function DispatchPage() {
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-muted-foreground">共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁</p>
+          <p className="text-sm text-muted-foreground">{dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，{dict.common.pagePrefix} {pagination.page}/{pagination.totalPages} {dict.common.pageSuffix}</p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>

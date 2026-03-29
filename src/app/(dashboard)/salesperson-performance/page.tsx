@@ -54,31 +54,32 @@ export default function SalespersonPerformancePage() {
     finally { setLoading(false) }
   }, [month])
 
+  const sp = dict.salespersonPerformance
   // Radar data for selected person
   const radarData = selected ? [
-    { subject: '達成率', value: Math.min(selected.achieveRate ?? 0, 120) },
-    { subject: '毛利率', value: selected.grossMarginPct },
-    { subject: '拜訪次數', value: selected.visitTarget ? Math.min(selected.visitCount / selected.visitTarget * 100, 120) : selected.visitCount * 5 },
-    { subject: '新客戶', value: selected.newCustTarget ? Math.min(selected.newCustomers / selected.newCustTarget * 100, 120) : selected.newCustomers * 20 },
-    { subject: '訂單數', value: selected.orderTarget ? Math.min(selected.orderCount / selected.orderTarget * 100, 120) : selected.orderCount * 5 },
+    { subject: sp.radarDimAchieve, value: Math.min(selected.achieveRate ?? 0, 120) },
+    { subject: sp.radarDimMargin, value: selected.grossMarginPct },
+    { subject: sp.radarDimVisit, value: selected.visitTarget ? Math.min(selected.visitCount / selected.visitTarget * 100, 120) : selected.visitCount * 5 },
+    { subject: sp.radarDimNewCust, value: selected.newCustTarget ? Math.min(selected.newCustomers / selected.newCustTarget * 100, 120) : selected.newCustomers * 20 },
+    { subject: sp.radarDimOrders, value: selected.orderTarget ? Math.min(selected.orderCount / selected.orderTarget * 100, 120) : selected.orderCount * 5 },
   ] : []
 
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.salespersonPerformance ?? '業務員業績比較'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">各業務月度銷售達成率、毛利貢獻、客戶開發比較</p>
+        <h1 className="text-2xl font-bold">{sp.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{sp.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">分析月份</div>
+          <div className="text-xs text-gray-500 mb-1">{sp.monthLabel}</div>
           <Input type="month" value={month} onChange={e => setMonth(e.target.value)} className="h-9 w-36" />
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? sp.querying : sp.query}
         </Button>
       </div>
 
@@ -88,15 +89,15 @@ export default function SalespersonPerformancePage() {
           {summary && (
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">期間總銷售</div>
+                <div className="text-xs text-gray-400 mb-1">{sp.periodTotalRevenue}</div>
                 <div className="text-xl font-bold">{fmt(summary.totalRevenue)}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">總訂單數</div>
+                <div className="text-xs text-gray-400 mb-1">{sp.totalOrders}</div>
                 <div className="text-xl font-bold">{summary.totalOrders}</div>
               </div>
               <div className="bg-white border rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">總毛利</div>
+                <div className="text-xs text-gray-400 mb-1">{sp.totalGP}</div>
                 <div className="text-xl font-bold text-emerald-600">{fmt(summary.totalGP)}</div>
               </div>
             </div>
@@ -105,7 +106,7 @@ export default function SalespersonPerformancePage() {
           {/* Revenue comparison chart */}
           {data.length > 0 && (
             <div className="bg-white border rounded-xl p-4">
-              <h3 className="font-semibold mb-3 text-sm">業務員銷售額比較</h3>
+              <h3 className="font-semibold mb-3 text-sm">{sp.revenueCompareChart}</h3>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -113,8 +114,8 @@ export default function SalespersonPerformancePage() {
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} />
                   <Tooltip formatter={(v: unknown) => typeof v === 'number' ? fmt(v) : String(v ?? '')} />
                   <Legend />
-                  <Bar dataKey="revenueTarget" fill="#e5e7eb" name="目標" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="revenue" fill="#3b82f6" name="實際" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="revenueTarget" fill="#e5e7eb" name={sp.legendTarget} radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="revenue" fill="#3b82f6" name={sp.legendActual} radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -125,16 +126,16 @@ export default function SalespersonPerformancePage() {
             <div className="rounded-xl border bg-white overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                  <th className="px-4 py-3 text-left">業務員</th>
-                  <th className="px-4 py-3 text-right">銷售額</th>
-                  <th className="px-4 py-3 text-right">毛利率</th>
-                  <th className="px-4 py-3 text-right">訂單</th>
-                  <th className="px-4 py-3 text-right">新客</th>
-                  <th className="px-4 py-3 text-right">達成率</th>
+                  <th className="px-4 py-3 text-left">{sp.colSalesperson}</th>
+                  <th className="px-4 py-3 text-right">{sp.colRevenue}</th>
+                  <th className="px-4 py-3 text-right">{sp.colMarginPct}</th>
+                  <th className="px-4 py-3 text-right">{sp.colOrders}</th>
+                  <th className="px-4 py-3 text-right">{sp.colNewCust}</th>
+                  <th className="px-4 py-3 text-right">{sp.colAchieveRate}</th>
                 </tr></thead>
                 <tbody>
                   {data.length === 0 ? (
-                    <tr><td colSpan={6} className="py-8 text-center text-gray-400">無資料</td></tr>
+                    <tr><td colSpan={6} className="py-8 text-center text-gray-400">{sp.noData}</td></tr>
                   ) : data.map(row => (
                     <tr key={row.userId}
                       className={`border-b last:border-0 hover:bg-gray-50 cursor-pointer ${selected?.userId === row.userId ? 'bg-blue-50' : ''}`}
@@ -162,8 +163,8 @@ export default function SalespersonPerformancePage() {
             <div className="bg-white border rounded-xl p-4">
               {selected ? (
                 <>
-                  <h3 className="font-semibold mb-1 text-sm">{selected.name} — 五維雷達</h3>
-                  <div className="text-xs text-gray-400 mb-3">各項指標達成率（%）</div>
+                  <h3 className="font-semibold mb-1 text-sm">{selected.name} — {sp.radarTitle}</h3>
+                  <div className="text-xs text-gray-400 mb-3">{sp.radarSubtitle}</div>
                   <ResponsiveContainer width="100%" height={220}>
                     <RadarChart data={radarData}>
                       <PolarGrid />
@@ -173,26 +174,26 @@ export default function SalespersonPerformancePage() {
                   </ResponsiveContainer>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-gray-50 rounded p-2">
-                      <div className="text-gray-400">平均客單</div>
+                      <div className="text-gray-400">{sp.avgOrderValue}</div>
                       <div className="font-semibold">{fmt(selected.avgOrderValue)}</div>
                     </div>
                     <div className="bg-gray-50 rounded p-2">
-                      <div className="text-gray-400">服務客戶數</div>
+                      <div className="text-gray-400">{sp.activeCustomers}</div>
                       <div className="font-semibold">{selected.activeCustomers}</div>
                     </div>
                     <div className="bg-gray-50 rounded p-2">
-                      <div className="text-gray-400">拜訪 / 目標</div>
+                      <div className="text-gray-400">{sp.visitVsTarget}</div>
                       <div className="font-semibold">{selected.visitCount} / {selected.visitTarget ?? '-'}</div>
                     </div>
                     <div className="bg-gray-50 rounded p-2">
-                      <div className="text-gray-400">毛利額</div>
+                      <div className="text-gray-400">{sp.gpAmount}</div>
                       <div className="font-semibold text-emerald-600">{fmt(selected.grossProfit)}</div>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="h-full flex items-center justify-center text-gray-400 text-sm py-16">
-                  點選左側業務員查看五維雷達
+                  {sp.radarPrompt}
                 </div>
               )}
             </div>
@@ -203,7 +204,7 @@ export default function SalespersonPerformancePage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <Users size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇月份後按「查詢」</p>
+          <p>{sp.promptText}</p>
         </div>
       )}
     </div>

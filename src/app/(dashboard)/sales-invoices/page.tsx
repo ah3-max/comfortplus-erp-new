@@ -228,12 +228,12 @@ export default function SalesInvoicesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`銷貨單已${label}`); fetchInvoices() }
+    if (res.ok) { toast.success(label); fetchInvoices() }
     else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消銷貨單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.salesInvoicesPage.cancelConfirm} ${no}?`)) return
     const res = await fetch(`/api/sales-invoices/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.salesInvoicesPage.cancelSuccess); fetchInvoices() }
     else {
@@ -274,9 +274,9 @@ export default function SalesInvoicesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.salesInvoices.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : invoices.length} 筆
-            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
-            {confirmedCount > 0 && <span className="ml-2 text-blue-600">{confirmedCount} 筆已確認</span>}
+            {dict.salesInvoicesPage.totalPrefix} {pagination ? pagination.total : invoices.length} {dict.common.items}
+            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} {dict.common.items}{dict.salesInvoices.statuses.DRAFT}</span>}
+            {confirmedCount > 0 && <span className="ml-2 text-blue-600">{confirmedCount} {dict.common.items}{dict.salesInvoices.statuses.CONFIRMED}</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -323,11 +323,11 @@ export default function SalesInvoicesPage() {
               <TableHead className="w-40">{dict.salesInvoices.invoiceNo}</TableHead>
               <TableHead>{dict.common.customer}</TableHead>
               <TableHead className="w-24">{dict.common.status}</TableHead>
-              <TableHead>商品摘要</TableHead>
-              <TableHead className="text-right w-28">稅前</TableHead>
-              <TableHead className="text-right w-28">含稅金額</TableHead>
+              <TableHead>{dict.salesInvoicesPage.productSummary}</TableHead>
+              <TableHead className="text-right w-28">{dict.salesInvoicesPage.subtotal}</TableHead>
+              <TableHead className="text-right w-28">{dict.salesInvoicesPage.totalAmount}</TableHead>
               <TableHead className="w-20">{dict.common.salesRep}</TableHead>
-              <TableHead className="w-20">來源訂單</TableHead>
+              <TableHead className="w-20">{dict.salesInvoicesPage.sourceOrder}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -370,7 +370,7 @@ export default function SalesInvoicesPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {inv.items.length > 0
-                        ? `${inv.items[0].product.name}${inv.items.length > 1 ? ` 等 ${inv.items.length} 項` : ''}`
+                        ? `${inv.items[0].product.name}${inv.items.length > 1 ? ` ${dict.salesInvoicesPage.itemsEtc.replace('{n}', String(inv.items.length))}` : ''}`
                         : '—'}
                     </TableCell>
                     <TableCell className="text-right">{formatCurrency(inv.subtotal)}</TableCell>
@@ -395,25 +395,25 @@ export default function SalesInvoicesPage() {
                             </DropdownMenuItem>
                           )}
                           {inv.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'CONFIRMED', '確認')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />確認銷貨單
+                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'CONFIRMED', dict.salesInvoicesPage.confirmedMsg)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.salesInvoicesPage.actionConfirm}
                             </DropdownMenuItem>
                           )}
                           {inv.status === 'CONFIRMED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'SHIPPED', '出貨')}>
-                              <Truck className="mr-2 h-4 w-4" />標記已出貨
+                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'SHIPPED', dict.salesInvoicesPage.shippedMsg)}>
+                              <Truck className="mr-2 h-4 w-4" />{dict.salesInvoicesPage.actionShip}
                             </DropdownMenuItem>
                           )}
                           {inv.status === 'SHIPPED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'RETURNED', '退貨')}>
-                              <XCircle className="mr-2 h-4 w-4" />標記退貨
+                            <DropdownMenuItem onClick={() => updateStatus(inv.id, 'RETURNED', dict.salesInvoicesPage.returnedMsg)}>
+                              <XCircle className="mr-2 h-4 w-4" />{dict.salesInvoicesPage.actionReturn}
                             </DropdownMenuItem>
                           )}
                           {!['SHIPPED', 'CANCELLED', 'RETURNED'].includes(inv.status) && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCancel(inv.id, inv.invoiceNumber)} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />取消銷貨單
+                                <XCircle className="mr-2 h-4 w-4" />{dict.salesInvoicesPage.actionCancel}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -460,7 +460,7 @@ export default function SalesInvoicesPage() {
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {inv.items.length > 0
-                    ? `${inv.items[0].product.name}${inv.items.length > 1 ? ` 等 ${inv.items.length} 項` : ''}`
+                    ? `${inv.items[0].product.name}${inv.items.length > 1 ? ` ${dict.salesInvoicesPage.itemsEtc.replace('{n}', String(inv.items.length))}` : ''}`
                     : '—'}
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -477,7 +477,7 @@ export default function SalesInvoicesPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.salesInvoicesPage.totalPrefix} {pagination.total} {dict.common.items}，{dict.salesInvoicesPage.pageInfo.replace('{page}', String(pagination.page)).replace('{totalPages}', String(pagination.totalPages))}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -535,7 +535,7 @@ export default function SalesInvoicesPage() {
                 </select>
               </div>
               <div>
-                <Label>承辦人</Label>
+                <Label>{dict.salesInvoicesPage.handlerLabel}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
                   <option value="">{dict.common.select}</option>
@@ -543,11 +543,11 @@ export default function SalesInvoicesPage() {
                 </select>
               </div>
               <div>
-                <Label>交易類型</Label>
+                <Label>{dict.salesInvoicesPage.transactionTypeLabel}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.transactionType} onChange={e => setForm(f => ({ ...f, transactionType: e.target.value }))}>
-                  <option value="TAX">營業稅</option>
-                  <option value="OTHER">其他（寄庫）</option>
+                  <option value="TAX">{dict.salesInvoicesPage.transactionTypeTax}</option>
+                  <option value="OTHER">{dict.salesInvoicesPage.transactionTypeOther}</option>
                 </select>
               </div>
             </div>
@@ -555,18 +555,18 @@ export default function SalesInvoicesPage() {
             {/* Shipping Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>收貨人</Label>
+                <Label>{dict.salesInvoicesPage.receiverName}</Label>
                 <Input value={form.receiverName}
                   onChange={e => setForm(f => ({ ...f, receiverName: e.target.value }))} />
               </div>
               <div>
-                <Label>手機號碼</Label>
+                <Label>{dict.common.phone}</Label>
                 <Input value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
               </div>
             </div>
             <div>
-              <Label>送貨地址</Label>
+              <Label>{dict.salesInvoicesPage.shippingAddress}</Label>
               <Input value={form.shippingAddress}
                 onChange={e => setForm(f => ({ ...f, shippingAddress: e.target.value }))} />
             </div>
@@ -574,7 +574,7 @@ export default function SalesInvoicesPage() {
             {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-base font-semibold">明細項目</Label>
+                <Label className="text-base font-semibold">{dict.salesInvoicesPage.itemsLabel}</Label>
                 <Button variant="outline" size="sm"
                   onClick={() => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }))}>
                   <Plus className="mr-1 h-3 w-3" />{dict.common.add}
@@ -584,7 +584,7 @@ export default function SalesInvoicesPage() {
                 {form.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3 bg-slate-50">
                     <div className="col-span-12 md:col-span-4">
-                      <Label className="text-xs">品項</Label>
+                      <Label className="text-xs">{dict.common.product}</Label>
                       <select className="w-full rounded-md border px-2 py-1.5 text-sm"
                         value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
                         <option value="">{dict.common.select}</option>
@@ -597,19 +597,19 @@ export default function SalesInvoicesPage() {
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
                     <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs">單價(未稅)</Label>
+                      <Label className="text-xs">{dict.salesInvoicesPage.unitPriceExcl}</Label>
                       <Input type="number" min={0} step={0.01} value={item.unitPrice}
                         onChange={e => updateItem(idx, 'unitPrice', Number(e.target.value))} />
                     </div>
                     <div className="col-span-3 md:col-span-2">
-                      <Label className="text-xs">小計</Label>
+                      <Label className="text-xs">{dict.salesInvoicesPage.subtotal}</Label>
                       <div className="text-sm font-medium py-1.5">
                         {formatCurrency(item.quantity * item.unitPrice)}
                       </div>
                     </div>
                     <div className="col-span-1 md:col-span-2 flex items-end gap-1">
                       <div className="flex-1">
-                        <Label className="text-xs">含稅</Label>
+                        <Label className="text-xs">{dict.salesInvoicesPage.inclTax}</Label>
                         <div className="text-sm font-medium py-1.5 text-blue-600">
                           {formatCurrency(Math.round(item.quantity * item.unitPrice * 1.05))}
                         </div>
@@ -627,13 +627,13 @@ export default function SalesInvoicesPage() {
               {/* Totals */}
               <div className="mt-3 text-right space-y-1">
                 <div className="text-sm text-muted-foreground">
-                  稅前合計：{formatCurrency(form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0))}
+                  {dict.salesInvoicesPage.subtotalLabel}：{formatCurrency(form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0))}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  營業稅：{formatCurrency(Math.round(form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0) * 0.05))}
+                  {dict.salesInvoicesPage.taxLabel}：{formatCurrency(Math.round(form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0) * 0.05))}
                 </div>
                 <div className="text-lg font-bold">
-                  含稅合計：{formatCurrency(Math.round(form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0) * 1.05))}
+                  {dict.salesInvoicesPage.totalLabel}：{formatCurrency(Math.round(form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0) * 1.05))}
                 </div>
               </div>
             </div>

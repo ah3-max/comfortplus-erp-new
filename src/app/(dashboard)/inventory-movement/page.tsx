@@ -32,16 +32,9 @@ interface Summary {
   zeroStock: number
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  FINISHED_GOODS: '成品',
-  RAW_MATERIAL: '原料',
-  PACKAGING: '包材',
-  SEMI_FINISHED: '半成品',
-  CONSUMABLE: '耗材',
-}
-
 export default function InventoryMovementPage() {
   const { dict } = useI18n()
+  const CATEGORY_LABELS: Record<string, string> = dict.inventoryMovement.categoryLabels as unknown as Record<string, string>
   const [rows, setRows] = useState<MovementRow[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(false)
@@ -84,33 +77,33 @@ export default function InventoryMovementPage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.inventoryMovement ?? '進銷存彙總報表'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">查詢任意期間各品項的期初庫存、進貨、出貨、期末庫存</p>
+        <h1 className="text-2xl font-bold">{dict.inventoryMovement.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{dict.inventoryMovement.subtitle}</p>
       </div>
 
       {/* Query bar */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.inventoryMovement.periodFrom}</div>
           <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.inventoryMovement.periodTo}</div>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">品項類型</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.inventoryMovement.categoryLabel}</div>
           <Select value={categoryFilter} onValueChange={v => { if (v) setCategoryFilter(v) }}>
             <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">全部</SelectItem>
+              <SelectItem value="ALL">{dict.common.all}</SelectItem>
               {Object.entries(CATEGORY_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? dict.inventoryMovement.querying : dict.inventoryMovement.query}
         </Button>
       </div>
 
@@ -118,11 +111,11 @@ export default function InventoryMovementPage() {
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: '品項數', value: summary.totalProducts, icon: BarChart3, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: '本期進貨', value: `${summary.totalInbound.toLocaleString()} 件`, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-            { label: '本期出貨', value: `${summary.totalOutbound.toLocaleString()} 件`, icon: TrendingDown, color: 'text-orange-600', bg: 'bg-orange-50' },
-            { label: '期末庫存', value: `${summary.totalClosing.toLocaleString()} 件`, icon: BarChart3, color: 'text-purple-600', bg: 'bg-purple-50' },
-            { label: '零庫存品項', value: summary.zeroStock, icon: PackageX, color: 'text-red-600', bg: 'bg-red-50' },
+            { label: dict.inventoryMovement.cardProducts, value: summary.totalProducts, icon: BarChart3, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: dict.inventoryMovement.cardInbound, value: summary.totalInbound.toLocaleString(), icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
+            { label: dict.inventoryMovement.cardOutbound, value: summary.totalOutbound.toLocaleString(), icon: TrendingDown, color: 'text-orange-600', bg: 'bg-orange-50' },
+            { label: dict.inventoryMovement.cardClosing, value: summary.totalClosing.toLocaleString(), icon: BarChart3, color: 'text-purple-600', bg: 'bg-purple-50' },
+            { label: dict.inventoryMovement.cardZeroStock, value: summary.zeroStock, icon: PackageX, color: 'text-red-600', bg: 'bg-red-50' },
           ].map((c, i) => {
             const Icon = c.icon
             return (
@@ -143,7 +136,7 @@ export default function InventoryMovementPage() {
         <div className="relative max-w-xs">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input
-            placeholder="篩選品名/SKU…"
+            placeholder={dict.inventoryMovement.filterPlaceholder}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-8 h-9 text-sm"
@@ -157,23 +150,23 @@ export default function InventoryMovementPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                <th className="px-4 py-3 text-left">品項</th>
-                <th className="px-4 py-3 text-center">類型</th>
-                <th className="px-4 py-3 text-right">期初庫存</th>
-                <th className="px-4 py-3 text-right">本期進貨 ↑</th>
-                <th className="px-4 py-3 text-right">本期出貨 ↓</th>
-                <th className="px-4 py-3 text-right">淨異動</th>
-                <th className="px-4 py-3 text-right">期末庫存</th>
-                <th className="px-4 py-3 text-center">週轉率</th>
-                <th className="px-4 py-3 text-left">倉庫</th>
+                <th className="px-4 py-3 text-left">{dict.inventoryMovement.colProduct}</th>
+                <th className="px-4 py-3 text-center">{dict.inventoryMovement.colCategory}</th>
+                <th className="px-4 py-3 text-right">{dict.inventoryMovement.colOpening}</th>
+                <th className="px-4 py-3 text-right">{dict.inventoryMovement.colInbound}</th>
+                <th className="px-4 py-3 text-right">{dict.inventoryMovement.colOutbound}</th>
+                <th className="px-4 py-3 text-right">{dict.inventoryMovement.colNet}</th>
+                <th className="px-4 py-3 text-right">{dict.inventoryMovement.colClosing}</th>
+                <th className="px-4 py-3 text-center">{dict.inventoryMovement.colTurnover}</th>
+                <th className="px-4 py-3 text-left">{dict.inventoryMovement.colWarehouse}</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="py-12 text-center text-gray-400">查詢中…</td></tr>
+                <tr><td colSpan={9} className="py-12 text-center text-gray-400">{dict.inventoryMovement.querying}</td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={9} className="py-12 text-center text-gray-400">
-                  {rows.length === 0 ? '無資料（期間內無庫存異動）' : '無符合搜尋的品項'}
+                  {rows.length === 0 ? dict.inventoryMovement.noData : dict.inventoryMovement.noSearchResult}
                 </td></tr>
               ) : filtered.map(row => (
                 <tr key={row.productId} className={`border-b last:border-0 hover:bg-gray-50 ${row.closingQty <= 0 ? 'bg-red-50/30' : ''}`}>
@@ -223,7 +216,7 @@ export default function InventoryMovementPage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <BarChart3 size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇期間後按「查詢」</p>
+          <p>{dict.inventoryMovement.promptText}</p>
         </div>
       )}
     </div>

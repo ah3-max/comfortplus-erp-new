@@ -24,15 +24,14 @@ interface AssetLoan {
   borrower: { name: string }; createdBy: { name: string }
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  BORROWED: { label: '借出中', color: 'bg-blue-100 text-blue-700' },
-  RETURNED: { label: '已歸還', color: 'bg-green-100 text-green-700' },
-  OVERDUE: { label: '逾期', color: 'bg-red-100 text-red-700' },
-  LOST: { label: '遺失', color: 'bg-slate-100 text-slate-600' },
+const STATUS_COLORS: Record<string, string> = {
+  BORROWED: 'bg-blue-100 text-blue-700',
+  RETURNED: 'bg-green-100 text-green-700',
+  OVERDUE: 'bg-red-100 text-red-700',
+  LOST: 'bg-slate-100 text-slate-600',
 }
 
 const CATS = ['LAPTOP', 'PHONE', 'PROJECTOR', 'VEHICLE', 'OTHER']
-const CAT_LABELS: Record<string, string> = { LAPTOP: '筆電', PHONE: '手機', PROJECTOR: '投影機', VEHICLE: '車輛', OTHER: '其他' }
 
 export default function AssetLoansPage() {
   const { dict } = useI18n()
@@ -80,7 +79,7 @@ export default function AssetLoansPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.assetLoans.title}</h1>
-          <p className="text-sm text-muted-foreground">管理公司設備借用與歸還</p>
+          <p className="text-sm text-muted-foreground">{dict.assetLoans.subtitle}</p>
         </div>
         <Button onClick={() => setDialog(true)}><Plus className="h-4 w-4 mr-1" />{dict.assetLoans.newLoan}</Button>
       </div>
@@ -89,8 +88,11 @@ export default function AssetLoansPage() {
         <Select value={statusFilter || 'all'} onValueChange={(v: string | null) => setStatusFilter((v ?? '') === 'all' ? '' : (v ?? ''))}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部</SelectItem>
-            {Object.entries(STATUS_MAP).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+            <SelectItem value="all">{dict.assetLoans.allStatus}</SelectItem>
+            {Object.keys(STATUS_COLORS).map(k => {
+              type StKey = keyof typeof dict.assetLoans.statuses
+              return <SelectItem key={k} value={k}>{dict.assetLoans.statuses[k as StKey] ?? k}</SelectItem>
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -102,7 +104,10 @@ export default function AssetLoansPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {loans.map(l => {
-            const st = STATUS_MAP[l.status] ?? { label: l.status, color: '' }
+            type StKey = keyof typeof dict.assetLoans.statuses
+            type CatKey = keyof typeof dict.assetLoans.categories
+            const stLabel = dict.assetLoans.statuses[l.status as StKey] ?? l.status
+            const stColor = STATUS_COLORS[l.status] ?? ''
             return (
               <Card key={l.id}>
                 <CardHeader className="pb-2">
@@ -111,11 +116,11 @@ export default function AssetLoansPage() {
                       <Package className="h-4 w-4 text-muted-foreground" />
                       {l.assetName}
                     </CardTitle>
-                    <Badge variant="outline" className={st.color}>{st.label}</Badge>
+                    <Badge variant="outline" className={stColor}>{stLabel}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-1 text-sm">
-                  <div className="flex justify-between"><span className="text-muted-foreground">分類</span><span>{CAT_LABELS[l.category] ?? l.category}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.category}</span><span>{dict.assetLoans.categories[l.category as CatKey] ?? l.category}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.borrower}</span><span>{l.borrower.name}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.loanDate}</span><span>{l.borrowDate?.slice(0, 10)}</span></div>
                   {l.expectedReturnDate && <div className="flex justify-between"><span className="text-muted-foreground">{dict.assetLoans.returnDate}</span><span>{l.expectedReturnDate.slice(0, 10)}</span></div>}
@@ -145,10 +150,13 @@ export default function AssetLoansPage() {
               <Input value={form.assetCode} onChange={e => setForm(f => ({ ...f, assetCode: e.target.value }))} className="mt-1" placeholder="IT-001" />
             </div>
             <div>
-              <Label>分類</Label>
+              <Label>{dict.assetLoans.category}</Label>
               <Select value={form.category} onValueChange={(v: string | null) => setForm(f => ({ ...f, category: v ?? 'LAPTOP' }))}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{CATS.map(c => <SelectItem key={c} value={c}>{CAT_LABELS[c]}</SelectItem>)}</SelectContent>
+                <SelectContent>{CATS.map(c => {
+                  type CatKey = keyof typeof dict.assetLoans.categories
+                  return <SelectItem key={c} value={c}>{dict.assetLoans.categories[c as CatKey] ?? c}</SelectItem>
+                })}</SelectContent>
               </Select>
             </div>
             <div>

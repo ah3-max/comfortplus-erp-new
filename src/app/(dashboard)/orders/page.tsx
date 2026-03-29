@@ -117,7 +117,7 @@ export default function OrdersPage() {
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`${dict.ordersExt.cancelConfirm} ${no} 嗎？`)) return
+    if (!confirm(`${dict.ordersExt.cancelConfirm} ${no}?`)) return
     const res = await fetch(`/api/orders/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.orders.statuses.CANCELLED); fetchOrders() }
     else {
@@ -229,7 +229,7 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {o.items.length > 0
-                        ? `${o.items[0].product.name}${o.items.length > 1 ? ` 等 ${o.items.length} 項` : ''}`
+                        ? `${o.items[0].product.name}${o.items.length > 1 ? ` ${dict.common.etcItems} ${o.items.length} ${dict.common.pieces}` : ''}`
                         : '—'}
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(o.totalAmount)}</TableCell>
@@ -344,7 +344,7 @@ export default function OrdersPage() {
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {o.items.length > 0
-                    ? `${o.items[0].product.name}${o.items.length > 1 ? ` 等 ${o.items.length} 項` : ''}`
+                    ? `${o.items[0].product.name}${o.items.length > 1 ? ` ${dict.common.etcItems} ${o.items.length} ${dict.common.pieces}` : ''}`
                     : '—'}
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -368,7 +368,7 @@ export default function OrdersPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            {dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，{dict.common.pagePrefix} {pagination.page}/{pagination.totalPages} {dict.common.pageSuffix}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}

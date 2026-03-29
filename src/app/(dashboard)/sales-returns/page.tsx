@@ -28,17 +28,15 @@ interface ReturnOrder {
   items: ReturnItem[]
 }
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  PENDING:    { label: '待處理', cls: 'bg-slate-100 text-slate-600' },
-  APPROVED:   { label: '已核准', cls: 'bg-blue-100 text-blue-700' },
-  RECEIVING:  { label: '收貨中', cls: 'bg-amber-100 text-amber-700' },
-  RECEIVED:   { label: '已收貨', cls: 'bg-green-100 text-green-700' },
-  INSPECTING: { label: '檢驗中', cls: 'bg-purple-100 text-purple-700' },
-  COMPLETED:  { label: '已完成', cls: 'bg-green-200 text-green-800' },
-  CANCELLED:  { label: '已取消', cls: 'bg-red-100 text-red-600' },
+const STATUS_CLS: Record<string, string> = {
+  PENDING:    'bg-slate-100 text-slate-600',
+  APPROVED:   'bg-blue-100 text-blue-700',
+  RECEIVING:  'bg-amber-100 text-amber-700',
+  RECEIVED:   'bg-green-100 text-green-700',
+  INSPECTING: 'bg-purple-100 text-purple-700',
+  COMPLETED:  'bg-green-200 text-green-800',
+  CANCELLED:  'bg-red-100 text-red-600',
 }
-const TYPE_LABEL: Record<string, string> = { RETURN: '退貨', EXCHANGE: '換貨', PARTIAL: '部分退' }
-const CONDITION_LABEL: Record<string, string> = { GOOD: '良品', DAMAGED: '損壞', DEFECTIVE: '瑕疵' }
 
 function fmt(n: string | number | null) {
   if (n == null) return '—'
@@ -47,6 +45,18 @@ function fmt(n: string | number | null) {
 
 export default function SalesReturnsPage() {
   const { dict } = useI18n()
+  const sr = dict.salesReturns
+  const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+    PENDING:    { label: sr.statuses.PENDING,    cls: STATUS_CLS.PENDING },
+    APPROVED:   { label: sr.statuses.APPROVED,   cls: STATUS_CLS.APPROVED },
+    RECEIVING:  { label: sr.statuses.RECEIVING,  cls: STATUS_CLS.RECEIVING },
+    RECEIVED:   { label: sr.statuses.RECEIVED,   cls: STATUS_CLS.RECEIVED },
+    INSPECTING: { label: sr.statuses.INSPECTING, cls: STATUS_CLS.INSPECTING },
+    COMPLETED:  { label: sr.statuses.COMPLETED,  cls: STATUS_CLS.COMPLETED },
+    CANCELLED:  { label: sr.statuses.CANCELLED,  cls: STATUS_CLS.CANCELLED },
+  }
+  const TYPE_LABEL: Record<string, string> = { RETURN: sr.typeLabels.RETURN, EXCHANGE: sr.typeLabels.EXCHANGE, PARTIAL: sr.typeLabels.PARTIAL }
+  const CONDITION_LABEL: Record<string, string> = { GOOD: sr.conditionLabels.GOOD, DAMAGED: sr.conditionLabels.DAMAGED, DEFECTIVE: sr.conditionLabels.DEFECTIVE }
   const [data, setData] = useState<{ data: ReturnOrder[]; pagination: { total: number; totalPages: number } } | null>(null)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -97,7 +107,7 @@ export default function SalesReturnsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.salesReturns.title}</h1>
-          <p className="text-sm text-muted-foreground">客戶退貨申請管理、審核、庫存回沖</p>
+          <p className="text-sm text-muted-foreground">{dict.salesReturns.title}</p>
         </div>
         <Button onClick={() => setShowNew(true)}><Plus className="h-4 w-4 mr-1" />{dict.salesReturns.newReturn}</Button>
       </div>
@@ -105,16 +115,16 @@ export default function SalesReturnsPage() {
       <div className="flex flex-wrap gap-3 items-end rounded-lg border bg-white p-4">
         <Input placeholder={dict.salesReturns.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} className="w-52" />
         <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-          <option value="">全部狀態</option>
+          <option value="">{sr.allStatuses}</option>
           {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
-        <Button onClick={() => fetchData(1)} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}查詢</Button>
+        <Button onClick={() => fetchData(1)} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{sr.query}</Button>
       </div>
 
       {data && (
         <>
           <div className="flex justify-between items-center text-sm text-muted-foreground">
-            <span>共 {data.pagination.total} 筆</span>
+            <span>{data.pagination.total}</span>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => fetchData(page - 1)}>{dict.common.prevPage}</Button>
               <Button size="sm" variant="outline" disabled={page >= data.pagination.totalPages} onClick={() => fetchData(page + 1)}>{dict.common.nextPage}</Button>
@@ -136,18 +146,18 @@ export default function SalesReturnsPage() {
                     <Badge className={`text-xs flex-shrink-0 ${sc.cls}`}>{sc.label}</Badge>
                     <Badge className="bg-slate-100 text-slate-600 text-xs flex-shrink-0">{TYPE_LABEL[row.returnType] ?? row.returnType}</Badge>
                     <span className="flex-1 font-medium">{row.customer.name}</span>
-                    <span className="text-xs text-muted-foreground">訂單：{row.order.orderNo}</span>
+                    <span className="text-xs text-muted-foreground">{sr.orderLabel}：{row.order.orderNo}</span>
                     <span className="font-mono text-xs w-24 text-right">{fmt(row.refundAmount)}</span>
                     <span className="text-xs text-muted-foreground w-24 flex-shrink-0">{row.requestDate.slice(0, 10)}</span>
                     <div className="flex gap-1">
                       {row.status === 'PENDING' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'APPROVED')}>核准</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'APPROVED')}>{sr.actionApprove}</Button>
                       )}
                       {row.status === 'APPROVED' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'RECEIVED')}>確認收貨</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'RECEIVED')}>{sr.actionReceive}</Button>
                       )}
                       {row.status === 'RECEIVED' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'COMPLETED')}>完成</Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateStatus(row.id, 'COMPLETED')}>{sr.actionComplete}</Button>
                       )}
                     </div>
                   </div>
@@ -157,11 +167,11 @@ export default function SalesReturnsPage() {
                       <Table>
                         <TableHeader>
                           <TableRow className="text-xs">
-                            <TableHead className="h-7">品項</TableHead>
-                            <TableHead className="h-7 w-16">數量</TableHead>
-                            <TableHead className="h-7 w-20">批號</TableHead>
-                            <TableHead className="h-7 w-16">品況</TableHead>
-                            <TableHead className="h-7">退貨原因</TableHead>
+                            <TableHead className="h-7">{sr.colProduct}</TableHead>
+                            <TableHead className="h-7 w-16">{sr.colQty}</TableHead>
+                            <TableHead className="h-7 w-20">{sr.colBatchNo}</TableHead>
+                            <TableHead className="h-7 w-16">{sr.colCondition}</TableHead>
+                            <TableHead className="h-7">{sr.colReason}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -217,9 +227,9 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
         <DialogHeader><DialogTitle>{dict.salesReturns.newReturn}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
           {[
-            { label: '訂單 ID', key: 'orderId', placeholder: '貼上訂單 ID' },
-            { label: '客戶 ID', key: 'customerId', placeholder: '貼上客戶 ID' },
-            { label: '退款金額', key: 'refundAmount', placeholder: '選填' },
+            { label: dict.salesReturns.orderId, key: 'orderId', placeholder: '' },
+            { label: dict.salesReturns.customerId, key: 'customerId', placeholder: '' },
+            { label: dict.salesReturns.refundAmount, key: 'refundAmount', placeholder: dict.common.optional },
           ].map(f => (
             <div key={f.key} className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
@@ -227,11 +237,11 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
             </div>
           ))}
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">退貨類型</label>
+            <label className="text-xs font-medium text-muted-foreground">{dict.salesReturns.returnTypeLabel}</label>
             <select value={form.returnType} onChange={e => setForm(p => ({ ...p, returnType: e.target.value }))} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="RETURN">退貨</option>
-              <option value="EXCHANGE">換貨</option>
-              <option value="PARTIAL">部分退貨</option>
+              <option value="RETURN">{dict.salesReturns.typeLabels.RETURN}</option>
+              <option value="EXCHANGE">{dict.salesReturns.typeLabels.EXCHANGE}</option>
+              <option value="PARTIAL">{dict.salesReturns.typeLabels.PARTIAL}</option>
             </select>
           </div>
           <div className="space-y-1">

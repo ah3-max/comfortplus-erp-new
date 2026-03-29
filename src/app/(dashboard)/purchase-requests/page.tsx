@@ -206,7 +206,7 @@ export default function PurchaseRequestsPage() {
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消請購單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.common.deleteConfirm} (${no})`)) return
     const res = await fetch(`/api/purchase-requests/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(pr.cancelSuccess); fetchRequests() }
     else {
@@ -259,11 +259,11 @@ export default function PurchaseRequestsPage() {
         body: JSON.stringify({
           supplierId: convertSupplierId,
           orderType: 'FINISHED_GOODS',
-          notes: `由請購單 ${convertTarget.requestNumber} 轉入`,
+          notes: `${pr.convertDialogTitle}: ${convertTarget.requestNumber}`,
           items,
         }),
       })
-      if (!poRes.ok) throw new Error('建立採購單失敗')
+      if (!poRes.ok) throw new Error(dict.common.createFailed)
       const poData = await poRes.json()
 
       // 2. Only update PR status after PO is created successfully
@@ -272,9 +272,9 @@ export default function PurchaseRequestsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ statusOnly: true, status: 'ORDERED' }),
       })
-      if (!statusRes.ok) throw new Error('採購單已建立，但更新請購單狀態失敗，請手動更新')
+      if (!statusRes.ok) throw new Error(dict.common.updateFailed)
 
-      toast.success(`已建立採購單 ${poData.poNo}`)
+      toast.success(`${poData.poNo}`)
       setConvertOpen(false)
       fetchRequests()
     } catch (err) {
@@ -294,9 +294,9 @@ export default function PurchaseRequestsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.purchaseRequests.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : requests.length} 筆
-            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
-            {submittedCount > 0 && <span className="ml-2 text-blue-600">{submittedCount} 筆待核准</span>}
+            {pagination ? pagination.total : requests.length}
+            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} {pr.draftCount}</span>}
+            {submittedCount > 0 && <span className="ml-2 text-blue-600">{submittedCount} {pr.pendingApprovalCount}</span>}
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -331,10 +331,10 @@ export default function PurchaseRequestsPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-40">{dict.purchaseRequests.requestNo}</TableHead>
-              <TableHead>承辦人</TableHead>
+              <TableHead>{pr.handler}</TableHead>
               <TableHead>{dict.common.warehouse}</TableHead>
               <TableHead className="w-24">{dict.purchaseRequests.requiredDate}</TableHead>
-              <TableHead className="w-20 text-center">品項數</TableHead>
+              <TableHead className="w-20 text-center">{pr.itemCount}</TableHead>
               <TableHead className="w-24">{dict.common.status}</TableHead>
               <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
@@ -391,25 +391,25 @@ export default function PurchaseRequestsPage() {
                             </DropdownMenuItem>
                           )}
                           {pr.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={() => updateStatus(pr.id, 'SUBMITTED', '提交')}>
-                              <Send className="mr-2 h-4 w-4" />提交審核
+                            <DropdownMenuItem onClick={() => updateStatus(pr.id, 'SUBMITTED', dict.purchaseRequests.submitForReview)}>
+                              <Send className="mr-2 h-4 w-4" />{dict.purchaseRequests.submitForReview}
                             </DropdownMenuItem>
                           )}
                           {pr.status === 'SUBMITTED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(pr.id, 'APPROVED', '核准')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />核准
+                            <DropdownMenuItem onClick={() => updateStatus(pr.id, 'APPROVED', dict.purchaseRequests.approve)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.purchaseRequests.approve}
                             </DropdownMenuItem>
                           )}
                           {pr.status === 'APPROVED' && (
                             <DropdownMenuItem onClick={() => openConvertDialog(pr)}>
-                              <ShoppingCart className="mr-2 h-4 w-4" />轉採購單
+                              <ShoppingCart className="mr-2 h-4 w-4" />{dict.purchaseRequests.convertToPurchase}
                             </DropdownMenuItem>
                           )}
                           {['DRAFT', 'SUBMITTED'].includes(pr.status) && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCancel(pr.id, pr.requestNumber)} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />取消請購單
+                                <XCircle className="mr-2 h-4 w-4" />{dict.purchaseRequests.cancelRequest}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -454,7 +454,7 @@ export default function PurchaseRequestsPage() {
                   <span className="text-sm text-muted-foreground">{pr.warehouse.name}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span>{pr.items.length} 品項</span>
+                  <span>{pr.items.length} {dict.purchaseRequests.itemCount}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(pr.createdAt)}</span>
                 </div>
               </div>
@@ -467,7 +467,7 @@ export default function PurchaseRequestsPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {pagination.total} — {dict.common.pagePrefix}{pagination.page}/{pagination.totalPages}{dict.common.pageSuffix}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -493,7 +493,7 @@ export default function PurchaseRequestsPage() {
             {/* Header Fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>承辦人 *</Label>
+                <Label>{dict.purchaseRequests.handler} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
                   <option value="">{dict.common.select}</option>
@@ -528,7 +528,7 @@ export default function PurchaseRequestsPage() {
                 {form.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3 bg-slate-50">
                     <div className="col-span-12 md:col-span-4">
-                      <Label className="text-xs">品項</Label>
+                      <Label className="text-xs">{dict.common.product}</Label>
                       <select className="w-full rounded-md border px-2 py-1.5 text-sm"
                         value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
                         <option value="">{dict.common.select}</option>
@@ -541,14 +541,14 @@ export default function PurchaseRequestsPage() {
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
                     <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs">預估單價</Label>
+                      <Label className="text-xs">{pr.estimatedUnitPrice}</Label>
                       <Input type="number" min={0} step={0.01} value={item.unitPrice}
                         onChange={e => updateItem(idx, 'unitPrice', Number(e.target.value))} />
                     </div>
                     <div className="col-span-3 md:col-span-3">
-                      <Label className="text-xs">規格/備註</Label>
+                      <Label className="text-xs">{pr.specNotes}</Label>
                       <Input value={item.specification}
-                        onChange={e => updateItem(idx, 'specification', e.target.value)} placeholder="選填" />
+                        onChange={e => updateItem(idx, 'specification', e.target.value)} placeholder={dict.common.optional} />
                     </div>
                     <div className="col-span-1 flex items-end">
                       {form.items.length > 1 && (
@@ -584,21 +584,20 @@ export default function PurchaseRequestsPage() {
       <Dialog open={convertOpen} onOpenChange={o => !o && setConvertOpen(false)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>轉採購單</DialogTitle>
+            <DialogTitle>{pr.convertDialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              將請購單 <span className="font-mono font-medium text-slate-700">{convertTarget?.requestNumber}</span> 轉為採購單，
-              包含 {convertTarget?.items.length ?? 0} 項品項。
+              <span className="font-mono font-medium text-slate-700">{convertTarget?.requestNumber}</span> {pr.convertDialogDesc} {convertTarget?.items.length ?? 0} {pr.convertDialogItems}
             </p>
             <div className="space-y-1.5">
-              <Label>供應商 *</Label>
+              <Label>{dict.common.supplier} *</Label>
               <select
                 className="w-full rounded-md border px-3 py-2 text-sm"
                 value={convertSupplierId}
                 onChange={e => setConvertSupplierId(e.target.value)}
               >
-                <option value="">選擇供應商</option>
+                <option value="">{pr.selectSupplier}</option>
                 {convertSuppliers.map(s => (
                   <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
                 ))}
@@ -609,7 +608,7 @@ export default function PurchaseRequestsPage() {
             <Button variant="outline" onClick={() => setConvertOpen(false)} disabled={converting}>{dict.common.cancel}</Button>
             <Button onClick={handleConvertToPurchase} disabled={converting}>
               {converting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <ShoppingCart className="mr-2 h-4 w-4" />確認轉採購
+              <ShoppingCart className="mr-2 h-4 w-4" />{pr.confirmConvert}
             </Button>
           </div>
         </DialogContent>

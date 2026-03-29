@@ -31,7 +31,6 @@ const RISK_BADGE: Record<string, string> = {
   SLOW: 'bg-orange-100 text-orange-700',
   WATCH: 'bg-yellow-100 text-yellow-700',
 }
-const RISK_LABEL: Record<string, string> = { DEAD: '呆滯庫存', SLOW: '緩慢移動', WATCH: '留意' }
 
 export default function DeadStockPage() {
   const { dict } = useI18n()
@@ -64,31 +63,31 @@ export default function DeadStockPage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.deadStock ?? '庫存呆滯分析'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">識別長期無出貨移動的品項，評估呆滯庫存風險與金額</p>
+        <h1 className="text-2xl font-bold">{dict.deadStock.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{dict.deadStock.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">無移動天數（≥）</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.deadStock.noMovementDays}</div>
           <Input type="number" value={noMovementDays} onChange={e => setNoMovementDays(e.target.value)}
             className="h-9 w-24" min={7} />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">倉庫</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.deadStock.warehouseLabel}</div>
           <Select value={warehouse} onValueChange={v => { if (v) setWarehouse(v) }}>
             <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">全部倉庫</SelectItem>
-              <SelectItem value="MAIN">主倉</SelectItem>
-              <SelectItem value="BONDED">保稅倉</SelectItem>
+              <SelectItem value="__all__">{dict.deadStock.allWarehouses}</SelectItem>
+              <SelectItem value="MAIN">{dict.deadStock.warehouseMain}</SelectItem>
+              <SelectItem value="BONDED">{dict.deadStock.warehouseBonded}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '分析中…' : '開始分析'}
+          {loading ? dict.deadStock.analyzing : dict.deadStock.analyze}
         </Button>
       </div>
 
@@ -99,36 +98,36 @@ export default function DeadStockPage() {
             <div className="bg-white border rounded-xl p-4 cursor-pointer" onClick={() => setRiskFilter(riskFilter === 'DEAD' ? 'ALL' : 'DEAD')}>
               <div className="flex items-center gap-2 mb-1">
                 <PackageX size={16} className="text-red-500" />
-                <span className="text-xs text-gray-400">呆滯庫存 (≥180天)</span>
+                <span className="text-xs text-gray-400">{dict.deadStock.deadLabel}</span>
               </div>
-              <div className="text-2xl font-bold text-red-600">{summary.dead} 品項</div>
+              <div className="text-2xl font-bold text-red-600">{summary.dead} {dict.deadStock.itemsUnit}</div>
               <div className="text-sm text-gray-500 mt-0.5">{fmt(summary.deadStockValue)}</div>
             </div>
             <div className="bg-white border rounded-xl p-4 cursor-pointer" onClick={() => setRiskFilter(riskFilter === 'SLOW' ? 'ALL' : 'SLOW')}>
               <div className="flex items-center gap-2 mb-1">
                 <AlertTriangle size={16} className="text-orange-500" />
-                <span className="text-xs text-gray-400">緩慢移動 (90~180天)</span>
+                <span className="text-xs text-gray-400">{dict.deadStock.slowLabel}</span>
               </div>
-              <div className="text-2xl font-bold text-orange-600">{summary.slow} 品項</div>
+              <div className="text-2xl font-bold text-orange-600">{summary.slow} {dict.deadStock.itemsUnit}</div>
             </div>
             <div className="bg-white border rounded-xl p-4 cursor-pointer" onClick={() => setRiskFilter(riskFilter === 'WATCH' ? 'ALL' : 'WATCH')}>
               <div className="flex items-center gap-2 mb-1">
                 <Eye size={16} className="text-yellow-500" />
-                <span className="text-xs text-gray-400">留意 (&lt;90天)</span>
+                <span className="text-xs text-gray-400">{dict.deadStock.watchLabel}</span>
               </div>
-              <div className="text-2xl font-bold text-yellow-600">{summary.watch} 品項</div>
+              <div className="text-2xl font-bold text-yellow-600">{summary.watch} {dict.deadStock.itemsUnit}</div>
             </div>
             <div className="bg-white border rounded-xl p-4 col-span-2 md:col-span-1">
-              <div className="text-xs text-gray-400 mb-1">呆滯庫存總值</div>
+              <div className="text-xs text-gray-400 mb-1">{dict.deadStock.deadStockValue}</div>
               <div className="text-2xl font-bold text-red-600">{fmt(summary.deadStockValue)}</div>
-              <div className="text-xs text-gray-400 mt-0.5">佔總庫存值 {summary.totalStockValue > 0 ? Math.round(summary.deadStockValue / summary.totalStockValue * 1000) / 10 : 0}%</div>
+              <div className="text-xs text-gray-400 mt-0.5">{dict.deadStock.ofTotalValuePct} {summary.totalStockValue > 0 ? Math.round(summary.deadStockValue / summary.totalStockValue * 1000) / 10 : 0}%</div>
             </div>
             <div className="bg-white border rounded-xl p-4">
-              <div className="text-xs text-gray-400 mb-1">分析品項數</div>
+              <div className="text-xs text-gray-400 mb-1">{dict.deadStock.totalItems}</div>
               <div className="text-2xl font-bold">{summary.total}</div>
             </div>
             <div className="bg-white border rounded-xl p-4">
-              <div className="text-xs text-gray-400 mb-1">所有庫存總值</div>
+              <div className="text-xs text-gray-400 mb-1">{dict.deadStock.totalStockValue}</div>
               <div className="text-2xl font-bold">{fmt(summary.totalStockValue)}</div>
             </div>
           </div>
@@ -138,28 +137,28 @@ export default function DeadStockPage() {
             {(['ALL', 'DEAD', 'SLOW', 'WATCH'] as const).map(r => (
               <button key={r} onClick={() => setRiskFilter(r)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${riskFilter === r ? 'bg-blue-600 text-white' : 'bg-white border hover:bg-gray-50 text-gray-700'}`}>
-                {r === 'ALL' ? '全部' : RISK_LABEL[r]}
+                {r === 'ALL' ? dict.deadStock.filterAll : (dict.deadStock.riskLabels as Record<string, string>)[r]}
               </button>
             ))}
-            <span className="text-sm text-gray-400 ml-2">{filtered.length} 品項</span>
+            <span className="text-sm text-gray-400 ml-2">{filtered.length} {dict.deadStock.itemsUnit}</span>
           </div>
 
           {/* Table */}
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">品項</th>
-                <th className="px-4 py-3 text-left">倉庫</th>
-                <th className="px-4 py-3 text-right">庫存量</th>
-                <th className="px-4 py-3 text-right">庫存值</th>
-                <th className="px-4 py-3 text-right">最後出貨</th>
-                <th className="px-4 py-3 text-right">無移動天數</th>
-                <th className="px-4 py-3 text-center">風險</th>
-                <th className="px-4 py-3 text-center">備註</th>
+                <th className="px-4 py-3 text-left">{dict.deadStock.colProduct}</th>
+                <th className="px-4 py-3 text-left">{dict.deadStock.colWarehouse}</th>
+                <th className="px-4 py-3 text-right">{dict.deadStock.colQty}</th>
+                <th className="px-4 py-3 text-right">{dict.deadStock.colValue}</th>
+                <th className="px-4 py-3 text-right">{dict.deadStock.colLastMovement}</th>
+                <th className="px-4 py-3 text-right">{dict.deadStock.colDaysSince}</th>
+                <th className="px-4 py-3 text-center">{dict.deadStock.colRisk}</th>
+                <th className="px-4 py-3 text-center">{dict.deadStock.colRemark}</th>
               </tr></thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={8} className="py-8 text-center text-gray-400">{dict.deadStock.noData}</td></tr>
                 ) : filtered.map((row, i) => (
                   <tr key={`${row.productId}-${row.warehouse}-${i}`} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3">
@@ -170,22 +169,22 @@ export default function DeadStockPage() {
                     <td className="px-4 py-3 text-gray-500 text-xs">{row.warehouse}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{row.quantity.toLocaleString()} {row.unit}</td>
                     <td className="px-4 py-3 text-right tabular-nums font-medium">{fmt(row.stockValue)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">{row.lastMovementDate ?? '從未出貨'}</td>
+                    <td className="px-4 py-3 text-right font-mono text-xs">{row.lastMovementDate ?? dict.deadStock.neverShipped}</td>
                     <td className="px-4 py-3 text-right">
                       {row.daysSinceMovement != null
                         ? <span className={row.daysSinceMovement >= 180 ? 'text-red-600 font-medium' : row.daysSinceMovement >= 90 ? 'text-orange-500' : 'text-yellow-600'}>
-                            {row.daysSinceMovement} 天
+                            {row.daysSinceMovement} {dict.deadStock.daysUnit}
                           </span>
-                        : <span className="text-red-600 font-medium">從未</span>
+                        : <span className="text-red-600 font-medium">{dict.deadStock.neverMoved}</span>
                       }
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <Badge className={RISK_BADGE[row.riskLevel]}>{RISK_LABEL[row.riskLevel]}</Badge>
+                      <Badge className={RISK_BADGE[row.riskLevel]}>{(dict.deadStock.riskLabels as Record<string, string>)[row.riskLevel]}</Badge>
                     </td>
                     <td className="px-4 py-3 text-center text-xs text-gray-400">
-                      {row.isDiscontinued && <span className="text-red-400">停產</span>}
-                      {row.isNewlyReceived && <span className="text-blue-400">新進貨</span>}
-                      {row.damagedQty > 0 && <span className="text-orange-400"> 含{row.damagedQty}不良</span>}
+                      {row.isDiscontinued && <span className="text-red-400">{dict.deadStock.discontinued}</span>}
+                      {row.isNewlyReceived && <span className="text-blue-400">{dict.deadStock.newlyReceived}</span>}
+                      {row.damagedQty > 0 && <span className="text-orange-400"> {dict.deadStock.defectiveNote.replace('{n}', String(row.damagedQty))}</span>}
                     </td>
                   </tr>
                 ))}
@@ -198,8 +197,8 @@ export default function DeadStockPage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <PackageX size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請設定無移動天數後按「開始分析」</p>
-          <p className="text-xs mt-1">系統將找出該天數內無出貨記錄的庫存品項</p>
+          <p>{dict.deadStock.promptText}</p>
+          <p className="text-xs mt-1">{dict.deadStock.promptSubText}</p>
         </div>
       )}
     </div>

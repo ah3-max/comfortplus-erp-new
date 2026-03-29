@@ -31,11 +31,11 @@ interface Summary {
   gradeA: number; gradeB: number; gradeC: number; gradeD: number
 }
 
-const GRADE_CONFIG = {
-  A: { color: 'bg-green-100 text-green-700', label: 'A 優秀' },
-  B: { color: 'bg-blue-100 text-blue-700',   label: 'B 良好' },
-  C: { color: 'bg-yellow-100 text-yellow-700', label: 'C 普通' },
-  D: { color: 'bg-red-100 text-red-700',    label: 'D 待改善' },
+const GRADE_COLORS: Record<string, string> = {
+  A: 'bg-green-100 text-green-700',
+  B: 'bg-blue-100 text-blue-700',
+  C: 'bg-yellow-100 text-yellow-700',
+  D: 'bg-red-100 text-red-700',
 }
 
 export default function SupplierPerformancePage() {
@@ -65,33 +65,33 @@ export default function SupplierPerformancePage() {
   }, [startDate, endDate])
 
   const radarData = selected ? [
-    { subject: '準時率', value: selected.onTimePct ?? 0 },
-    { subject: '品質', value: selected.avgDefectRate !== null ? Math.max(0, 100 - selected.avgDefectRate * 10) : 100 },
-    { subject: '訂單量', value: Math.min(100, selected.orderCount * 5) },
-    { subject: '採購額', value: Math.min(100, selected.totalAmount / 10000) },
-    { subject: '總評分', value: selected.score ?? 0 },
+    { subject: dict.supplierPerformance.radarDimOnTime, value: selected.onTimePct ?? 0 },
+    { subject: dict.supplierPerformance.radarDimQuality, value: selected.avgDefectRate !== null ? Math.max(0, 100 - selected.avgDefectRate * 10) : 100 },
+    { subject: dict.supplierPerformance.radarDimOrders, value: Math.min(100, selected.orderCount * 5) },
+    { subject: dict.supplierPerformance.radarDimAmount, value: Math.min(100, selected.totalAmount / 10000) },
+    { subject: dict.supplierPerformance.radarDimTotal, value: selected.score ?? 0 },
   ] : []
 
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.supplierPerformance ?? '供應商績效分析'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">準時率、品質評分、採購額綜合評鑑</p>
+        <h1 className="text-2xl font-bold">{dict.supplierPerformance.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{dict.supplierPerformance.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.supplierPerformance.periodFrom}</div>
           <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.supplierPerformance.periodTo}</div>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? dict.supplierPerformance.querying : dict.supplierPerformance.query}
         </Button>
       </div>
 
@@ -99,10 +99,10 @@ export default function SupplierPerformancePage() {
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'A 優秀', value: summary.gradeA, color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle2 },
-            { label: 'B 良好', value: summary.gradeB, color: 'text-blue-600', bg: 'bg-blue-50', icon: TrendingUp },
-            { label: 'C 普通', value: summary.gradeC, color: 'text-yellow-600', bg: 'bg-yellow-50', icon: AlertTriangle },
-            { label: 'D 待改善', value: summary.gradeD, color: 'text-red-600', bg: 'bg-red-50', icon: TrendingDown },
+            { label: dict.supplierPerformance.gradeA, value: summary.gradeA, color: 'text-green-600', bg: 'bg-green-50', icon: CheckCircle2 },
+            { label: dict.supplierPerformance.gradeB, value: summary.gradeB, color: 'text-blue-600', bg: 'bg-blue-50', icon: TrendingUp },
+            { label: dict.supplierPerformance.gradeC, value: summary.gradeC, color: 'text-yellow-600', bg: 'bg-yellow-50', icon: AlertTriangle },
+            { label: dict.supplierPerformance.gradeD, value: summary.gradeD, color: 'text-red-600', bg: 'bg-red-50', icon: TrendingDown },
           ].map((c, i) => {
             const Icon = c.icon
             return (
@@ -112,7 +112,7 @@ export default function SupplierPerformancePage() {
                   <span className="text-xs text-gray-600">{c.label}</span>
                 </div>
                 <div className={`text-2xl font-bold ${c.color}`}>{c.value}</div>
-                <div className="text-xs text-gray-400">供應商</div>
+                <div className="text-xs text-gray-400">{dict.supplierPerformance.supplierLabel}</div>
               </div>
             )
           })}
@@ -125,21 +125,27 @@ export default function SupplierPerformancePage() {
           <div className="md:col-span-2 rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">供應商</th>
-                <th className="px-4 py-3 text-right">訂單數</th>
-                <th className="px-4 py-3 text-right">準時率</th>
-                <th className="px-4 py-3 text-right">不良率</th>
-                <th className="px-4 py-3 text-right">採購額</th>
-                <th className="px-4 py-3 text-center">評級</th>
-                <th className="px-4 py-3 text-center">分數</th>
+                <th className="px-4 py-3 text-left">{dict.supplierPerformance.colSupplier}</th>
+                <th className="px-4 py-3 text-right">{dict.supplierPerformance.colOrderCount}</th>
+                <th className="px-4 py-3 text-right">{dict.supplierPerformance.colOnTimePct}</th>
+                <th className="px-4 py-3 text-right">{dict.supplierPerformance.colDefectRate}</th>
+                <th className="px-4 py-3 text-right">{dict.supplierPerformance.colAmount}</th>
+                <th className="px-4 py-3 text-center">{dict.supplierPerformance.colGrade}</th>
+                <th className="px-4 py-3 text-center">{dict.supplierPerformance.colScore}</th>
               </tr></thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">查詢中…</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">{dict.supplierPerformance.querying}</td></tr>
                 ) : data.length === 0 ? (
-                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-gray-400">{dict.supplierPerformance.noData}</td></tr>
                 ) : data.map(row => {
-                  const gradeCfg = row.grade ? GRADE_CONFIG[row.grade] : null
+                  const gradeColor = row.grade ? GRADE_COLORS[row.grade] : null
+                  const gradeLabels: Record<string, string> = {
+                    A: dict.supplierPerformance.gradeA,
+                    B: dict.supplierPerformance.gradeB,
+                    C: dict.supplierPerformance.gradeC,
+                    D: dict.supplierPerformance.gradeD,
+                  }
                   return (
                     <tr
                       key={row.supplierId}
@@ -167,8 +173,8 @@ export default function SupplierPerformancePage() {
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">{fmt(row.totalAmount)}</td>
                       <td className="px-4 py-3 text-center">
-                        {gradeCfg ? (
-                          <Badge className={`${gradeCfg.color} border-0 text-xs`}>{gradeCfg.label}</Badge>
+                        {gradeColor && row.grade ? (
+                          <Badge className={`${gradeColor} border-0 text-xs`}>{gradeLabels[row.grade]}</Badge>
                         ) : <span className="text-gray-300 text-xs">—</span>}
                       </td>
                       <td className="px-4 py-3 text-center font-bold">
@@ -191,7 +197,7 @@ export default function SupplierPerformancePage() {
               <>
                 <div className="font-semibold text-sm mb-1">{selected.name}</div>
                 <div className="text-xs text-gray-400 mb-3">
-                  {selected.orderCount} 筆訂單・{fmt(selected.totalAmount)}
+                  {selected.orderCount} {dict.supplierPerformance.ordersUnit}・{fmt(selected.totalAmount)}
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
                   <RadarChart data={radarData}>
@@ -203,23 +209,23 @@ export default function SupplierPerformancePage() {
                 </ResponsiveContainer>
                 <div className="mt-3 space-y-1.5 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">準時交貨</span>
-                    <span className="font-medium">{selected.onTimeCount}次 / 遲{selected.lateCount}次</span>
+                    <span className="text-gray-500">{dict.supplierPerformance.onTimeDelivery}</span>
+                    <span className="font-medium">{selected.onTimeCount}{dict.supplierPerformance.onTimeUnit} / {dict.supplierPerformance.latePrefix}{selected.lateCount}{dict.supplierPerformance.onTimeUnit}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">平均不良率</span>
+                    <span className="text-gray-500">{dict.supplierPerformance.avgDefectRate}</span>
                     <span className="font-medium">{selected.avgDefectRate !== null ? `${selected.avgDefectRate}%` : '—'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">未收貨訂單</span>
-                    <span className={`font-medium ${selected.noReceiptCount > 0 ? 'text-orange-600' : ''}`}>{selected.noReceiptCount} 筆</span>
+                    <span className="text-gray-500">{dict.supplierPerformance.noReceiptOrders}</span>
+                    <span className={`font-medium ${selected.noReceiptCount > 0 ? 'text-orange-600' : ''}`}>{selected.noReceiptCount} {dict.supplierPerformance.countUnit}</span>
                   </div>
                 </div>
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-gray-400 py-12">
                 <Star size={32} className="mb-2 opacity-30" />
-                <p className="text-sm">點選左側供應商<br/>查看雷達圖</p>
+                <p className="text-sm">{dict.supplierPerformance.radarPrompt.split('\n').map((line, i) => <span key={i}>{line}{i === 0 && <br/>}</span>)}</p>
               </div>
             )}
           </div>
@@ -229,7 +235,7 @@ export default function SupplierPerformancePage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <Star size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇期間後按「查詢」</p>
+          <p>{dict.supplierPerformance.promptText}</p>
         </div>
       )}
     </div>

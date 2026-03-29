@@ -113,26 +113,11 @@ interface DailyReport {
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
-const LOG_TYPE_LABEL: Record<string, string> = {
-  CALL: '電話', LINE: 'LINE', EMAIL: 'Email', MEETING: '會議',
-  FIRST_VISIT: '初訪', SECOND_VISIT: '二訪', THIRD_VISIT: '三訪+',
-  DELIVERY: '送貨', EXPO: '展覽', OTHER: '其他',
-}
 const REACTION_COLOR: Record<string, string> = {
   POSITIVE:    'text-green-600',
   NEUTRAL:     'text-slate-500',
   NEGATIVE:    'text-red-500',
   NO_RESPONSE: 'text-slate-400',
-}
-const REACTION_LABEL: Record<string, string> = {
-  POSITIVE: '正面', NEUTRAL: '普通', NEGATIVE: '拒絕', NO_RESPONSE: '未接',
-}
-const SOURCE_LABEL: Record<string, string> = {
-  COLD_CALL:   '陌生開發',
-  REFERRAL:    '轉介紹',
-  EXHIBITION:  '展覽',
-  ADVERTISING: '廣告',
-  WEBSITE:     '官網',
 }
 
 function fmtMoney(n: number) {
@@ -162,11 +147,38 @@ function addDays(dateStr: string, n: number) {
 export default function DailyReportPage() {
   const { dict } = useI18n()
   const router = useRouter()
+  const dr = dict.dailyReport
   const [date, setDate]         = useState(yesterdayStr())
   const [report, setReport]     = useState<DailyReport | null>(null)
   const [loading, setLoading]   = useState(true)
   const [sending, setSending]   = useState(false)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ logs: true, orders: true })
+
+  const LOG_TYPE_LABEL: Record<string, string> = {
+    CALL: dr.logTypeLabels.CALL,
+    LINE: dr.logTypeLabels.LINE,
+    EMAIL: dr.logTypeLabels.EMAIL,
+    MEETING: dr.logTypeLabels.MEETING,
+    FIRST_VISIT: dr.logTypeLabels.FIRST_VISIT,
+    SECOND_VISIT: dr.logTypeLabels.SECOND_VISIT,
+    THIRD_VISIT: dr.logTypeLabels.THIRD_VISIT,
+    DELIVERY: dr.logTypeLabels.DELIVERY,
+    EXPO: dr.logTypeLabels.EXPO,
+    OTHER: dr.logTypeLabels.OTHER,
+  }
+  const REACTION_LABEL: Record<string, string> = {
+    POSITIVE: dr.reactionLabels.POSITIVE,
+    NEUTRAL: dr.reactionLabels.NEUTRAL,
+    NEGATIVE: dr.reactionLabels.NEGATIVE,
+    NO_RESPONSE: dr.reactionLabels.NO_RESPONSE,
+  }
+  const SOURCE_LABEL: Record<string, string> = {
+    COLD_CALL: dr.sourceLabels.COLD_CALL,
+    REFERRAL: dr.sourceLabels.REFERRAL,
+    EXHIBITION: dr.sourceLabels.EXHIBITION,
+    ADVERTISING: dr.sourceLabels.ADVERTISING,
+    WEBSITE: dr.sourceLabels.WEBSITE,
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -187,9 +199,9 @@ export default function DailyReportPage() {
       const res = await fetch('/api/reports/daily/send', { method: 'POST' })
       if (res.ok) {
         const d = await res.json()
-        toast.success(`日報已推送給 ${d.notifiedCount} 位主管`)
+        toast.success(`${dr.pushedToManagers} ${d.notifiedCount} ${dr.pushedSuffix}`)
       } else {
-        toast.error(dict.dailyReport.pushFailed)
+        toast.error(dr.pushFailed)
       }
     } finally {
       setSending(false)
@@ -227,23 +239,23 @@ export default function DailyReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.dailyReport.title}</h1>
-          <p className="text-sm text-muted-foreground">所有數據自動從系統彙整，無需手動填寫</p>
+          <h1 className="text-2xl font-bold text-slate-900">{dr.title}</h1>
+          <p className="text-sm text-muted-foreground">{dr.subtitle}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Quick toggle: 昨天 / 今天 */}
+          {/* Quick toggle */}
           <div className="flex rounded-lg border overflow-hidden text-sm">
             <button
               onClick={() => setDate(yesterdayStr())}
               className={`px-3 py-1.5 font-medium transition-colors ${isYesterday ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
             >
-              昨天
+              {dr.btnYesterday}
             </button>
             <button
               onClick={() => setDate(todayStr())}
               className={`px-3 py-1.5 font-medium transition-colors border-l ${isToday ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
             >
-              今天
+              {dr.btnToday}
             </button>
           </div>
 
@@ -272,7 +284,7 @@ export default function DailyReportPage() {
             {sending
               ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               : <Send className="mr-2 h-4 w-4" />}
-            {dict.dailyReport.submitReport}
+            {dr.submitReport}
           </Button>
           <Button
             variant="outline"
@@ -291,17 +303,17 @@ export default function DailyReportPage() {
         </div>
       ) : !report ? null : (
         <>
-          {/* Stats row — 6 key sales metrics */}
+          {/* Stats row */}
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {(() => {
               const cmp = report.comparison
               const items = [
-                { label: '互動記錄', value: s!.totalLogs,     icon: MessageSquare, color: 'text-blue-600',   bg: 'bg-blue-50',    change: undefined as number | undefined },
-                { label: '電話/LINE', value: s!.totalCalls,   icon: Phone,         color: 'text-indigo-600', bg: 'bg-indigo-50',  change: cmp ? s!.totalCalls - cmp.yesterdayCalls : undefined },
-                { label: '拜訪客戶', value: s!.totalVisits,   icon: MapPin,        color: 'text-teal-600',   bg: 'bg-teal-50',    change: cmp ? s!.totalVisits - cmp.yesterdayVisits : undefined },
-                { label: '新客戶',   value: s!.newCustomers,  icon: Users,         color: 'text-amber-600',  bg: 'bg-amber-50',   change: undefined },
-                { label: '報價單',   value: s!.quotations,    icon: FileText,      color: 'text-purple-600', bg: 'bg-purple-50',  change: undefined },
-                { label: '訂單',     value: s!.orders,        icon: ShoppingCart,  color: 'text-green-600',  bg: 'bg-green-50',   change: cmp ? cmp.orderChange : undefined },
+                { label: dr.statInteractions, value: s!.totalLogs,     icon: MessageSquare, color: 'text-blue-600',   bg: 'bg-blue-50',    change: undefined as number | undefined },
+                { label: dr.statCalls,        value: s!.totalCalls,   icon: Phone,         color: 'text-indigo-600', bg: 'bg-indigo-50',  change: cmp ? s!.totalCalls - cmp.yesterdayCalls : undefined },
+                { label: dr.statVisits,       value: s!.totalVisits,   icon: MapPin,        color: 'text-teal-600',   bg: 'bg-teal-50',    change: cmp ? s!.totalVisits - cmp.yesterdayVisits : undefined },
+                { label: dr.statNewCustomers, value: s!.newCustomers,  icon: Users,         color: 'text-amber-600',  bg: 'bg-amber-50',   change: undefined },
+                { label: dr.statQuotations,   value: s!.quotations,    icon: FileText,      color: 'text-purple-600', bg: 'bg-purple-50',  change: undefined },
+                { label: dr.statOrders,       value: s!.orders,        icon: ShoppingCart,  color: 'text-green-600',  bg: 'bg-green-50',   change: cmp ? cmp.orderChange : undefined },
               ]
               return items.map(item => (
                 <div key={item.label} className={`rounded-xl ${item.bg} p-3 text-center`}>
@@ -310,11 +322,11 @@ export default function DailyReportPage() {
                   <p className="text-[10px] text-muted-foreground">{item.label}</p>
                   {item.change !== undefined && item.change !== 0 && (
                     <p className={`text-[10px] font-medium mt-0.5 ${item.change > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                      {item.change > 0 ? '\u2191' : '\u2193'}{Math.abs(item.change)} vs 昨日
+                      {item.change > 0 ? '\u2191' : '\u2193'}{Math.abs(item.change)} {dr.vsYesterday}
                     </p>
                   )}
                   {item.change !== undefined && item.change === 0 && (
-                    <p className="text-[10px] text-slate-400 mt-0.5">- vs 昨日</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">- {dr.vsYesterday}</p>
                   )}
                 </div>
               ))
@@ -328,11 +340,11 @@ export default function DailyReportPage() {
                 <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 flex items-center gap-3">
                   <TrendingUp className="h-5 w-5 text-green-600 shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">{isToday ? '今日' : '當日'}成交金額</p>
+                    <p className="text-xs text-muted-foreground">{isToday ? dr.todayPrefix : dr.dayPrefix}{dr.dealAmount}</p>
                     <p className="text-xl font-bold text-green-700">{fmtMoney(s!.orderAmount)}</p>
                     {report.comparison && report.comparison.revenueChange !== 0 && (
                       <p className={`text-xs font-medium ${report.comparison.revenueChange > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        {report.comparison.revenueChange > 0 ? '\u2191' : '\u2193'}{fmtMoney(Math.abs(report.comparison.revenueChange))} vs 昨日
+                        {report.comparison.revenueChange > 0 ? '\u2191' : '\u2193'}{fmtMoney(Math.abs(report.comparison.revenueChange))} {dr.vsYesterday}
                       </p>
                     )}
                   </div>
@@ -342,7 +354,7 @@ export default function DailyReportPage() {
                 <div className="rounded-xl bg-purple-50 border border-purple-200 px-4 py-3 flex items-center gap-3">
                   <FileText className="h-5 w-5 text-purple-600 shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">{isToday ? '今日' : '當日'}報價金額</p>
+                    <p className="text-xs text-muted-foreground">{isToday ? dr.todayPrefix : dr.dayPrefix}{dr.quoteAmount}</p>
                     <p className="text-xl font-bold text-purple-700">{fmtMoney(s!.quotationAmount)}</p>
                   </div>
                 </div>
@@ -354,21 +366,21 @@ export default function DailyReportPage() {
           {report.repSummaries.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">{dict.dailyReport.salesRep}</CardTitle>
+                <CardTitle className="text-base">{dr.salesRep}</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 text-xs text-muted-foreground">
                       <tr>
-                        <th className="px-4 py-2.5 text-left font-medium">業務員</th>
-                        <th className="px-3 py-2.5 text-center font-medium">互動</th>
-                        <th className="px-3 py-2.5 text-center font-medium">電話</th>
-                        <th className="px-3 py-2.5 text-center font-medium">拜訪</th>
-                        <th className="px-3 py-2.5 text-center font-medium">新客戶</th>
-                        <th className="px-3 py-2.5 text-center font-medium">報價</th>
-                        <th className="px-3 py-2.5 text-center font-medium">訂單</th>
-                        <th className="px-3 py-2.5 text-right font-medium">訂單金額</th>
+                        <th className="px-4 py-2.5 text-left font-medium">{dr.colSalesperson}</th>
+                        <th className="px-3 py-2.5 text-center font-medium">{dr.colInteractions}</th>
+                        <th className="px-3 py-2.5 text-center font-medium">{dr.colCalls}</th>
+                        <th className="px-3 py-2.5 text-center font-medium">{dr.colVisits}</th>
+                        <th className="px-3 py-2.5 text-center font-medium">{dr.colNewCustomers}</th>
+                        <th className="px-3 py-2.5 text-center font-medium">{dr.colQuotations}</th>
+                        <th className="px-3 py-2.5 text-center font-medium">{dr.colOrders}</th>
+                        <th className="px-3 py-2.5 text-right font-medium">{dr.colOrderAmount}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -411,11 +423,11 @@ export default function DailyReportPage() {
           <div className="space-y-3">
             {/* Follow-up logs */}
             <DetailSection
-              title={`互動記錄 (${report.details.followUpLogs.length})`}
+              title={`${dr.sectionLogs} (${report.details.followUpLogs.length})`}
               expanded={!!expanded['logs']}
               onToggle={() => toggle('logs')}
               empty={report.details.followUpLogs.length === 0}
-              emptyText="今天尚無互動記錄"
+              emptyText={dr.emptyLogs}
             >
               <div className="space-y-2">
                 {report.details.followUpLogs.map(log => (
@@ -450,11 +462,11 @@ export default function DailyReportPage() {
 
             {/* New customers */}
             <DetailSection
-              title={`新增客戶 (${report.details.newCustomers.length})${s!.coldCallProspects > 0 ? ` · 陌生開發 ${s!.coldCallProspects} 個` : ''}`}
+              title={`${dr.sectionNewCustomers} (${report.details.newCustomers.length})${s!.coldCallProspects > 0 ? ` · ${dr.coldCallNote} ${s!.coldCallProspects}` : ''}`}
               expanded={!!expanded['customers']}
               onToggle={() => toggle('customers')}
               empty={report.details.newCustomers.length === 0}
-              emptyText="今天尚無新增客戶"
+              emptyText={dr.emptyCustomers}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {report.details.newCustomers.map(c => (
@@ -480,11 +492,11 @@ export default function DailyReportPage() {
 
             {/* Quotations */}
             <DetailSection
-              title={`報價單 (${report.details.quotations.length})`}
+              title={`${dr.sectionQuotations} (${report.details.quotations.length})`}
               expanded={!!expanded['quotations']}
               onToggle={() => toggle('quotations')}
               empty={report.details.quotations.length === 0}
-              emptyText="今天尚無新增報價單"
+              emptyText={dr.emptyQuotations}
             >
               <div className="space-y-2">
                 {report.details.quotations.map(q => (
@@ -507,11 +519,11 @@ export default function DailyReportPage() {
 
             {/* Orders */}
             <DetailSection
-              title={`訂單 (${report.details.salesOrders.length})`}
+              title={`${dr.sectionOrders} (${report.details.salesOrders.length})`}
               expanded={!!expanded['orders']}
               onToggle={() => toggle('orders')}
               empty={report.details.salesOrders.length === 0}
-              emptyText="今天尚無新增訂單"
+              emptyText={dr.emptyOrders}
             >
               <div className="space-y-2">
                 {report.details.salesOrders.map(o => (
@@ -533,19 +545,19 @@ export default function DailyReportPage() {
             </DetailSection>
           </div>
 
-          {/* Sample / Tasks note for completeness */}
+          {/* Sample / Tasks note */}
           {(s!.samples > 0 || s!.completedTasks > 0) && (
             <div className="flex gap-3 text-sm text-muted-foreground">
               {s!.samples > 0 && (
                 <span className="flex items-center gap-1">
                   <Package className="h-4 w-4 text-violet-500" />
-                  今日送樣 {s!.samples} 件
+                  {dr.sampleNote} {s!.samples} {dr.sampleUnit}
                 </span>
               )}
               {s!.completedTasks > 0 && (
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  完成任務 {s!.completedTasks} 項
+                  {dr.taskNote} {s!.completedTasks} {dr.taskUnit}
                 </span>
               )}
             </div>
@@ -554,7 +566,7 @@ export default function DailyReportPage() {
           {/* Footer note */}
           <div className="rounded-lg border bg-slate-50 px-4 py-3 text-xs text-muted-foreground flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
-            資料自動從系統彙整，業務員在系統中的任何操作（記錄互動、開報價、建訂單、新增客戶）都會自動反映在此報表。無需手動填寫。
+            {dr.footerNote}
           </div>
         </>
       )}

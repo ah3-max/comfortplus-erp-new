@@ -25,11 +25,11 @@ interface FormItem { productId: string; supplierId: string; requiredQty: number;
 interface Product { id: string; name: string; sku: string }
 interface Supplier { id: string; name: string }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: '草稿', color: 'bg-slate-100 text-slate-600' },
-  SUBMITTED: { label: '已提交', color: 'bg-blue-100 text-blue-700' },
-  APPROVED: { label: '已核准', color: 'bg-green-100 text-green-700' },
-  EXECUTED: { label: '已執行', color: 'bg-emerald-100 text-emerald-700' },
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: 'bg-slate-100 text-slate-600',
+  SUBMITTED: 'bg-blue-100 text-blue-700',
+  APPROVED: 'bg-green-100 text-green-700',
+  EXECUTED: 'bg-emerald-100 text-emerald-700',
 }
 
 function fmt(n: number) { return n.toLocaleString('zh-TW') }
@@ -40,6 +40,13 @@ const DEFAULT_ITEM = (): FormItem => ({ productId: '', supplierId: '', requiredQ
 
 export default function PurchasePlansPage() {
   const { dict } = useI18n()
+  const pp = dict.purchasePlans
+  const STATUS_MAP: Record<string, { label: string; color: string }> = {
+    DRAFT: { label: pp.statuses.DRAFT, color: STATUS_COLORS.DRAFT },
+    SUBMITTED: { label: pp.statusSubmitted, color: STATUS_COLORS.SUBMITTED },
+    APPROVED: { label: pp.statuses.APPROVED, color: STATUS_COLORS.APPROVED },
+    EXECUTED: { label: pp.statusExecuted, color: STATUS_COLORS.EXECUTED },
+  }
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [year, setYear] = useState(now.getFullYear())
@@ -119,15 +126,15 @@ export default function PurchasePlansPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.purchasePlans.title}</h1>
-          <p className="text-sm text-muted-foreground">月度採購計畫與預算管理</p>
+          <h1 className="text-2xl font-bold text-slate-900">{pp.title}</h1>
+          <p className="text-sm text-muted-foreground">{pp.subtitle}</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" />{dict.purchasePlans.newPlan}</Button>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" />{pp.newPlan}</Button>
       </div>
 
       <div className="flex items-center gap-2">
         <Input type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="w-24" min={2020} max={2030} />
-        <span className="text-sm">年</span>
+        <span className="text-sm">{pp.yearLabel}</span>
       </div>
 
       {loading ? (
@@ -136,24 +143,24 @@ export default function PurchasePlansPage() {
         <div className="text-center py-16 text-muted-foreground">{dict.purchasePlans.noPlans}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {plans.map(p => {
-            const st = STATUS_MAP[p.status] ?? { label: p.status, color: '' }
+          {plans.map(plan => {
+            const st = STATUS_MAP[plan.status] ?? { label: plan.status, color: '' }
             return (
-              <Card key={p.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDetail(p)}>
+              <Card key={plan.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDetail(plan)}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                      {p.planYear}/{String(p.planMonth).padStart(2, '0')}
+                      {plan.planYear}/{String(plan.planMonth).padStart(2, '0')}
                     </CardTitle>
                     <Badge variant="outline" className={st.color}>{st.label}</Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground font-mono">{p.planNo}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{plan.planNo}</p>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold">${fmt(Number(p.totalBudget))}</span>
-                    <span className="text-xs text-muted-foreground">{p.items.length} 品項</span>
+                    <span className="text-lg font-bold">${fmt(Number(plan.totalBudget))}</span>
+                    <span className="text-xs text-muted-foreground">{plan.items.length} {pp.itemsCount}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -168,7 +175,7 @@ export default function PurchasePlansPage() {
           {detail && (
             <>
               <DialogHeader>
-                <DialogTitle>{detail.planYear}/{String(detail.planMonth).padStart(2, '0')} 採購計畫</DialogTitle>
+                <DialogTitle>{detail.planYear}/{String(detail.planMonth).padStart(2, '0')} {pp.detailTitle}</DialogTitle>
                 <p className="text-xs text-muted-foreground font-mono">{detail.planNo}</p>
               </DialogHeader>
               <div className="space-y-3">
@@ -184,7 +191,7 @@ export default function PurchasePlansPage() {
                         {item.supplier && <span className="text-muted-foreground ml-2">({item.supplier.name})</span>}
                       </div>
                       <div className="text-right">
-                        <span>{item.requiredQty} 件</span>
+                        <span>{item.requiredQty} {pp.pieceUnit}</span>
                         {item.unitPrice && <span className="text-muted-foreground ml-2">@${fmt(Number(item.unitPrice))}</span>}
                       </div>
                     </div>
@@ -192,13 +199,13 @@ export default function PurchasePlansPage() {
                 </div>
                 <div className="flex gap-2 justify-end flex-wrap">
                   {detail.status === 'DRAFT' && (
-                    <Button size="sm" onClick={() => doAction(detail.id, 'SUBMIT')}>提交 <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
+                    <Button size="sm" onClick={() => doAction(detail.id, 'SUBMIT')}>{pp.submitAction} <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
                   )}
                   {detail.status === 'SUBMITTED' && (
-                    <Button size="sm" onClick={() => doAction(detail.id, 'APPROVE')}>核准</Button>
+                    <Button size="sm" onClick={() => doAction(detail.id, 'APPROVE')}>{pp.approveAction}</Button>
                   )}
                   {detail.status === 'APPROVED' && (
-                    <Button size="sm" onClick={() => doAction(detail.id, 'EXECUTE')}>執行</Button>
+                    <Button size="sm" onClick={() => doAction(detail.id, 'EXECUTE')}>{pp.executeAction}</Button>
                   )}
                 </div>
               </div>
@@ -210,15 +217,15 @@ export default function PurchasePlansPage() {
       {/* Create Dialog */}
       <Dialog open={createDialog} onOpenChange={setCreateDialog}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle><ShoppingBag className="inline h-4 w-4 mr-2" />{dict.purchasePlans.newPlan}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle><ShoppingBag className="inline h-4 w-4 mr-2" />{pp.newPlan}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>年度</Label>
+                <Label>{pp.yearFormLabel}</Label>
                 <Input type="number" value={form.planYear} onChange={e => setForm(f => ({ ...f, planYear: Number(e.target.value) }))} className="mt-1" min={2020} max={2030} />
               </div>
               <div>
-                <Label>月份</Label>
+                <Label>{pp.monthFormLabel}</Label>
                 <Input type="number" value={form.planMonth} onChange={e => setForm(f => ({ ...f, planMonth: Math.min(12, Math.max(1, Number(e.target.value))) }))} className="mt-1" min={1} max={12} />
               </div>
             </div>
@@ -229,8 +236,8 @@ export default function PurchasePlansPage() {
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label>採購品項</Label>
-                <Button type="button" variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />新增</Button>
+                <Label>{pp.itemsLabel}</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}</Button>
               </div>
               <div className="space-y-2">
                 {items.map((item, i) => (
@@ -241,7 +248,7 @@ export default function PurchasePlansPage() {
                         value={item.productId}
                         onChange={e => updateItem(i, 'productId', e.target.value)}
                       >
-                        <option value="">選擇品項</option>
+                        <option value="">{pp.selectItem}</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                     </div>
@@ -251,15 +258,15 @@ export default function PurchasePlansPage() {
                         value={item.supplierId}
                         onChange={e => updateItem(i, 'supplierId', e.target.value)}
                       >
-                        <option value="">供應商(選填)</option>
+                        <option value="">{pp.supplierOptional}</option>
                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
                     <div className="col-span-2">
-                      <Input type="number" min={1} value={item.requiredQty} onChange={e => updateItem(i, 'requiredQty', Number(e.target.value))} placeholder="數量" className="text-sm" />
+                      <Input type="number" min={1} value={item.requiredQty} onChange={e => updateItem(i, 'requiredQty', Number(e.target.value))} placeholder={pp.qtyPlaceholder} className="text-sm" />
                     </div>
                     <div className="col-span-2">
-                      <Input type="number" min={0} value={item.unitPrice || ''} onChange={e => updateItem(i, 'unitPrice', Number(e.target.value))} placeholder="單價" className="text-sm" />
+                      <Input type="number" min={0} value={item.unitPrice || ''} onChange={e => updateItem(i, 'unitPrice', Number(e.target.value))} placeholder={pp.pricePlaceholder} className="text-sm" />
                     </div>
                     <div className="col-span-1 flex justify-center pt-1.5">
                       {items.length > 1 && (
@@ -272,14 +279,14 @@ export default function PurchasePlansPage() {
                 ))}
               </div>
               {totalBudget > 0 && (
-                <div className="text-right text-sm font-medium mt-2">預估預算：${fmt(totalBudget)}</div>
+                <div className="text-right text-sm font-medium mt-2">{pp.estimatedBudget}：${fmt(totalBudget)}</div>
               )}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={doCreate} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}{dict.purchasePlans.newPlan}
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}{pp.newPlan}
             </Button>
           </DialogFooter>
         </DialogContent>

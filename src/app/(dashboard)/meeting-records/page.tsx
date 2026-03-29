@@ -28,23 +28,18 @@ interface MeetingRecord {
 interface Customer { id: string; name: string }
 interface User { id: string; name: string }
 
-const TYPE_LABEL: Record<string, string> = {
-  WEEKLY_ADMIN: '週行政會議', CHANNEL_NEGOTIATION: '通路談判',
-  ASSOCIATION_MEETING: '公會會議', EXHIBITION_DEBRIEF: '展後檢討',
-  PROMO_PLANNING: '檔期規劃', SUPPLIER_MEETING: '供應商會議',
-  INTERNAL: '內部會議', OTHER: '其他',
-}
 const STATUS_BADGE: Record<string, string> = {
   SCHEDULED: 'bg-blue-100 text-blue-700',
   IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
   COMPLETED: 'bg-emerald-100 text-emerald-700',
   CANCELLED: 'bg-gray-100 text-gray-500',
 }
-const STATUS_LABEL: Record<string, string> = {
-  SCHEDULED: '已排定', IN_PROGRESS: '進行中', COMPLETED: '已完成', CANCELLED: '已取消',
-}
 
-const MEETING_TYPES = Object.entries(TYPE_LABEL)
+const MEETING_TYPE_KEYS = [
+  'WEEKLY_ADMIN', 'CHANNEL_NEGOTIATION', 'ASSOCIATION_MEETING', 'EXHIBITION_DEBRIEF',
+  'PROMO_PLANNING', 'SUPPLIER_MEETING', 'INTERNAL', 'OTHER',
+]
+const STATUS_KEYS = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']
 
 export default function MeetingRecordsPage() {
   const { dict } = useI18n()
@@ -106,11 +101,11 @@ export default function MeetingRecordsPage() {
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.meetingRecords ?? '會議 / 拜訪記錄'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">業務拜訪、通路談判、內部會議紀錄管理</p>
+          <h1 className="text-2xl font-bold">{dict.meetingRecords.title}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{dict.meetingRecords.subtitle}</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus size={16} />新增記錄
+          <Plus size={16} />{dict.meetingRecords.addRecord}
         </Button>
       </div>
 
@@ -119,20 +114,20 @@ export default function MeetingRecordsPage() {
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="搜尋標題、摘要…" className="pl-8 h-9" />
+            placeholder={dict.meetingRecords.searchPlaceholder} className="pl-8 h-9" />
         </div>
         <Select value={typeFilter} onValueChange={v => { if (v) setTypeFilter(v) }}>
           <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">全部類型</SelectItem>
-            {MEETING_TYPES.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            <SelectItem value="__all__">{dict.meetingRecords.allTypes}</SelectItem>
+            {MEETING_TYPE_KEYS.map(k => <SelectItem key={k} value={k}>{(dict.meetingRecords.typeLabels as Record<string, string>)[k]}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={v => { if (v) setStatusFilter(v) }}>
           <SelectTrigger className="h-9 w-28"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">全部狀態</SelectItem>
-            {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            <SelectItem value="__all__">{dict.meetingRecords.allStatuses}</SelectItem>
+            {STATUS_KEYS.map(k => <SelectItem key={k} value={k}>{(dict.meetingRecords.statusLabels as Record<string, string>)[k]}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -140,11 +135,11 @@ export default function MeetingRecordsPage() {
       {/* List */}
       <div className="space-y-2">
         {loading ? (
-          <div className="py-12 text-center text-gray-400">載入中…</div>
+          <div className="py-12 text-center text-gray-400">{dict.meetingRecords.loading}</div>
         ) : records.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             <CalendarDays size={40} className="mx-auto mb-3 opacity-30" />
-            <p>尚無會議記錄</p>
+            <p>{dict.meetingRecords.empty}</p>
           </div>
         ) : records.map(rec => (
           <div key={rec.id}
@@ -154,8 +149,8 @@ export default function MeetingRecordsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono text-xs text-gray-400">{rec.meetingNo}</span>
-                  <Badge className={STATUS_BADGE[rec.status]}>{STATUS_LABEL[rec.status]}</Badge>
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{TYPE_LABEL[rec.meetingType] ?? rec.meetingType}</span>
+                  <Badge className={STATUS_BADGE[rec.status]}>{(dict.meetingRecords.statusLabels as Record<string, string>)[rec.status] ?? rec.status}</Badge>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{(dict.meetingRecords.typeLabels as Record<string, string>)[rec.meetingType] ?? rec.meetingType}</span>
                 </div>
                 <h3 className="font-semibold mt-1 truncate">{rec.title}</h3>
                 <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
@@ -167,7 +162,7 @@ export default function MeetingRecordsPage() {
                       <MapPin size={12} />{rec.location}
                     </span>
                   )}
-                  {rec.isOnline && <span className="text-blue-500">線上會議</span>}
+                  {rec.isOnline && <span className="text-blue-500">{dict.meetingRecords.onlineMeeting}</span>}
                   {rec.facilitator && (
                     <span className="flex items-center gap-1">
                       <Users size={12} />{rec.facilitator.name}
@@ -182,7 +177,7 @@ export default function MeetingRecordsPage() {
               {rec._count.actionItems > 0 && (
                 <div className="flex items-center gap-1 text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded-lg shrink-0">
                   <CheckSquare size={12} />
-                  {rec._count.actionItems} 待辦
+                  {rec._count.actionItems} {dict.meetingRecords.pendingItems}
                 </div>
               )}
             </div>
@@ -194,71 +189,71 @@ export default function MeetingRecordsPage() {
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>新增會議 / 拜訪記錄</DialogTitle>
+            <DialogTitle>{dict.meetingRecords.createTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div>
-              <div className="text-xs text-gray-500 mb-1">標題 *</div>
-              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="會議/拜訪標題" />
+              <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldTitle}</div>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={dict.meetingRecords.titlePlaceholder} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">類型 *</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldType}</div>
                 <Select value={form.meetingType} onValueChange={v => { if (v) setForm(f => ({ ...f, meetingType: v })) }}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {MEETING_TYPES.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    {MEETING_TYPE_KEYS.map(k => <SelectItem key={k} value={k}>{(dict.meetingRecords.typeLabels as Record<string, string>)[k]}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">狀態</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldStatus}</div>
                 <Select value={form.status} onValueChange={v => { if (v) setForm(f => ({ ...f, status: v })) }}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    {STATUS_KEYS.map(k => <SelectItem key={k} value={k}>{(dict.meetingRecords.statusLabels as Record<string, string>)[k]}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">日期 *</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldDate}</div>
                 <Input type="date" value={form.meetingDate} onChange={e => setForm(f => ({ ...f, meetingDate: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">地點</div>
-                <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="會議地點" className="h-9" />
+                <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldLocation}</div>
+                <Input value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder={dict.meetingRecords.locationPlaceholder} className="h-9" />
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">關聯客戶</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldCustomer}</div>
               <Select value={form.customerId || '__none__'} onValueChange={v => { if (v) setForm(f => ({ ...f, customerId: v === '__none__' ? '' : v })) }}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="選擇客戶（選填）" /></SelectTrigger>
+                <SelectTrigger className="h-9"><SelectValue placeholder={dict.meetingRecords.customerPlaceholder} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">不指定</SelectItem>
+                  <SelectItem value="__none__">{dict.meetingRecords.noCustomer}</SelectItem>
                   {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">議程</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldAgenda}</div>
               <textarea value={form.agenda} onChange={e => setForm(f => ({ ...f, agenda: e.target.value }))}
-                rows={3} placeholder="會議議程" className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                rows={3} placeholder={dict.meetingRecords.agendaPlaceholder} className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">會議摘要</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldSummaryText}</div>
               <textarea value={form.summary} onChange={e => setForm(f => ({ ...f, summary: e.target.value }))}
-                rows={3} placeholder="本次會議摘要" className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                rows={3} placeholder={dict.meetingRecords.summaryPlaceholder} className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">決議事項</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.meetingRecords.fieldDecisions}</div>
               <textarea value={form.decisions} onChange={e => setForm(f => ({ ...f, decisions: e.target.value }))}
-                rows={2} placeholder="本次決議事項" className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                rows={2} placeholder={dict.meetingRecords.decisionsPlaceholder} className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleCreate} className="flex-1" disabled={!form.title}>建立</Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+              <Button onClick={handleCreate} className="flex-1" disabled={!form.title}>{dict.meetingRecords.btnCreate}</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>{dict.meetingRecords.btnCancel}</Button>
             </div>
           </div>
         </DialogContent>
@@ -272,7 +267,7 @@ export default function MeetingRecordsPage() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 flex-wrap">
                   <span>{selected.title}</span>
-                  <Badge className={STATUS_BADGE[selected.status]}>{STATUS_LABEL[selected.status]}</Badge>
+                  <Badge className={STATUS_BADGE[selected.status]}>{(dict.meetingRecords.statusLabels as Record<string, string>)[selected.status] ?? selected.status}</Badge>
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-3 mt-2 text-sm">
@@ -284,26 +279,26 @@ export default function MeetingRecordsPage() {
                     <div className="flex items-center gap-1"><MapPin size={12} />{selected.location}</div>
                   )}
                   {selected.facilitator && (
-                    <div className="flex items-center gap-1"><Users size={12} />主持：{selected.facilitator.name}</div>
+                    <div className="flex items-center gap-1"><Users size={12} />{dict.meetingRecords.facilitatorPrefix}{selected.facilitator.name}</div>
                   )}
                   {selected.customer && (
                     <div className="text-blue-500">{selected.customer.name}</div>
                   )}
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="text-xs font-medium text-gray-400 mb-1">類型</div>
-                  <div>{TYPE_LABEL[selected.meetingType] ?? selected.meetingType}</div>
+                  <div className="text-xs font-medium text-gray-400 mb-1">{dict.meetingRecords.detailType}</div>
+                  <div>{(dict.meetingRecords.typeLabels as Record<string, string>)[selected.meetingType] ?? selected.meetingType}</div>
                 </div>
                 {selected.summary && (
                   <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-xs font-medium text-gray-400 mb-1">會議摘要</div>
+                    <div className="text-xs font-medium text-gray-400 mb-1">{dict.meetingRecords.detailSummary}</div>
                     <div className="whitespace-pre-wrap text-gray-700">{selected.summary}</div>
                   </div>
                 )}
                 {selected._count.actionItems > 0 && (
                   <div className="flex items-center gap-2 text-orange-500 text-xs">
                     <CheckSquare size={14} />
-                    此記錄有 {selected._count.actionItems} 項待辦事項
+                    {dict.meetingRecords.actionItemsNote.replace('{n}', String(selected._count.actionItems))}
                   </div>
                 )}
               </div>

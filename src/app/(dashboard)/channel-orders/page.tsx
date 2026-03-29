@@ -141,7 +141,7 @@ export default function ChannelOrdersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{d.title}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">電商平台訂單管理（蝦皮、momo、PChome 等）</p>
+          <p className="text-sm text-gray-500 mt-0.5">{d.subtitle}</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
           <Plus size={16} />{d.newOrder}
@@ -175,7 +175,7 @@ export default function ChannelOrdersPage() {
         <div className="relative flex-1 min-w-[180px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="搜尋訂單號、買家…" className="pl-8 h-9" />
+            placeholder={d.searchPlaceholder} className="pl-8 h-9" />
         </div>
         <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)}
           className="border rounded-md px-3 h-9 text-sm bg-white">
@@ -202,7 +202,7 @@ export default function ChannelOrdersPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="text-center py-10 text-gray-400">載入中…</td></tr>
+                <tr><td colSpan={9} className="text-center py-10 text-gray-400">{dict.common.loading}</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-14 text-gray-400">
@@ -253,7 +253,7 @@ export default function ChannelOrdersPage() {
                 <div className="text-xs text-gray-500 mb-1">{d.channel} *</div>
                 <select value={form.channelId} onChange={e => setForm(f => ({ ...f, channelId: e.target.value }))}
                   className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                  <option value="">請選擇</option>
+                  <option value="">{d.selectChannel}</option>
                   {channels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
@@ -294,7 +294,7 @@ export default function ChannelOrdersPage() {
             {/* Items */}
             <div>
               <div className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1">
-                <Package size={12} />品項 *
+                <Package size={12} />{d.itemsLabel} *
               </div>
               {formItems.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-[1fr_80px_90px_24px] gap-1.5 mb-1.5">
@@ -302,15 +302,15 @@ export default function ChannelOrdersPage() {
                     const prod = products.find(p => p.id === e.target.value)
                     setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, productId: e.target.value, unitPrice: prod?.sellingPrice ? String(prod.sellingPrice) : it.unitPrice } : it))
                   }} className="border rounded-md px-2 h-8 text-xs bg-white">
-                    <option value="">選擇商品</option>
+                    <option value="">{d.selectProduct}</option>
                     {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
                   </select>
                   <Input type="number" value={item.quantity} min="1"
                     onChange={e => setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: e.target.value } : it))}
-                    placeholder="數量" className="h-8 text-xs px-2" />
+                    placeholder={dict.common.quantity} className="h-8 text-xs px-2" />
                   <Input type="number" value={item.unitPrice}
                     onChange={e => setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, unitPrice: e.target.value } : it))}
-                    placeholder="單價" className="h-8 text-xs px-2" />
+                    placeholder={dict.common.price} className="h-8 text-xs px-2" />
                   <button onClick={() => setFormItems(prev => prev.filter((_, i) => i !== idx))}
                     className="text-gray-300 hover:text-red-400 text-lg leading-none">×</button>
                 </div>
@@ -322,7 +322,7 @@ export default function ChannelOrdersPage() {
             </div>
 
             <div>
-              <div className="text-xs text-gray-500 mb-1">備註</div>
+              <div className="text-xs text-gray-500 mb-1">{d.notesLabel}</div>
               <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} className="h-9" />
             </div>
             <div className="flex gap-2 pt-1">
@@ -348,7 +348,7 @@ export default function ChannelOrdersPage() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
                     [d.channel, selected.channel.name],
-                    ['Platform', selected.channel.platform],
+                    [d.platform, selected.channel.platform],
                     [d.buyerName, selected.buyerName ?? '-'],
                     [d.buyerPhone, selected.buyerPhone ?? '-'],
                     [d.orderAmount, `NT$${Number(selected.orderAmount).toLocaleString()}`],
@@ -375,7 +375,7 @@ export default function ChannelOrdersPage() {
                 )}
                 {selected.items.length > 0 && (
                   <div>
-                    <div className="text-xs font-medium text-gray-400 mb-1.5">品項</div>
+                    <div className="text-xs font-medium text-gray-400 mb-1.5">{d.itemsLabel}</div>
                     {selected.items.map(item => (
                       <div key={item.id} className="text-xs border rounded p-2 mb-1 flex justify-between">
                         <div>

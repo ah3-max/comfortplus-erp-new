@@ -82,12 +82,12 @@ export default function PurchasesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`採購單已${label}`); fetchOrders() }
+    if (res.ok) { toast.success(`${dict.purchasesPage.statusUpdated}${label}`); fetchOrders() }
     else toast.error(dict.common.updateFailed)
   }
 
   async function handleDelete(id: string, no: string) {
-    if (!confirm(`確定要刪除採購單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.purchasesPage.deleteConfirmPrefix} ${no} ${dict.purchasesPage.deleteSuffix}`)) return
     const res = await fetch(`/api/purchases/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.purchasesPage.deleted); fetchOrders() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.deleteFailed) }
@@ -96,9 +96,12 @@ export default function PurchasesPage() {
   const pendingCount = orders.filter(o => ['CONFIRMED', 'PARTIAL'].includes(o.status)).length
 
   const purchaseTypeLabels: Record<string, string> = {
-    FINISHED_GOODS:     '成品', OEM: 'OEM',
-    PACKAGING:          '包材', RAW_MATERIAL: '原物料',
-    GIFT_PROMO:         '贈品', LOGISTICS_SUPPLIES: '物流耗材',
+    FINISHED_GOODS:     dict.purchases.purchaseTypes.FINISHED_GOODS,
+    OEM:                dict.purchases.purchaseTypes.OEM,
+    PACKAGING:          dict.purchases.purchaseTypes.PACKAGING,
+    RAW_MATERIAL:       dict.purchases.purchaseTypes.RAW_MATERIAL,
+    GIFT_PROMO:         dict.purchases.purchaseTypes.GIFT_PROMO,
+    LOGISTICS_SUPPLIES: dict.purchases.purchaseTypes.LOGISTICS_SUPPLIES,
   }
 
   const statusFilters = [
@@ -118,8 +121,8 @@ export default function PurchasesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.purchases.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : orders.length} 筆
-            {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} 筆待到貨</span>}
+            {dict.ordersExt.totalCount} {pagination ? pagination.total : orders.length} {dict.ordersExt.records}
+            {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} {dict.purchasesPage.pendingArrivalLabel}</span>}
           </p>
         </div>
         <div className="flex gap-2">
@@ -160,7 +163,7 @@ export default function PurchasesPage() {
               <TableHead>{dict.purchases.supplier}</TableHead>
               <TableHead className="w-20">{dict.common.type}</TableHead>
               <TableHead className="w-24">{dict.common.status}</TableHead>
-              <TableHead>商品摘要</TableHead>
+              <TableHead>{dict.ordersExt.productSummary}</TableHead>
               <TableHead className="text-right w-32">{dict.purchasesExt.totalAmount}</TableHead>
               <TableHead className="text-right w-28">{dict.purchasesExt.paidAmount}</TableHead>
               <TableHead className="w-24">{dict.purchasesExt.expectedDate}</TableHead>
@@ -203,7 +206,7 @@ export default function PurchasesPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {o.items.length > 0
-                      ? `${o.items[0].product.name}${o.items.length > 1 ? ` 等 ${o.items.length} 項` : ''}`
+                      ? `${o.items[0].product.name}${o.items.length > 1 ? ` ${dict.common.etcItems} ${o.items.length} ${dict.common.pieces}` : ''}`
                       : '—'}
                   </TableCell>
                   <TableCell className="text-right font-medium">{fmt(o.totalAmount)}</TableCell>
@@ -211,7 +214,7 @@ export default function PurchasesPage() {
                     {Number(o.paidAmount) > 0 ? (
                       <div>
                         <div className="font-medium text-green-600">{fmt(o.paidAmount)}</div>
-                        {unpaid > 0 && <div className="text-xs text-red-500">欠 {fmt(unpaid)}</div>}
+                        {unpaid > 0 && <div className="text-xs text-red-500">{dict.ordersExt.owe} {fmt(unpaid)}</div>}
                       </div>
                     ) : <span className="text-muted-foreground">—</span>}
                   </TableCell>
@@ -235,17 +238,17 @@ export default function PurchasesPage() {
                           </DropdownMenuItem>
                         )}
                         {o.status === 'DRAFT' && (
-                          <DropdownMenuItem onClick={() => updateStatus(o.id, 'PENDING_APPROVAL', '送審')}>
+                          <DropdownMenuItem onClick={() => updateStatus(o.id, 'PENDING_APPROVAL', dict.purchasesExt.submitForApproval)}>
                             <CheckCircle2 className="mr-2 h-4 w-4" />{dict.purchasesExt.submitForApproval}
                           </DropdownMenuItem>
                         )}
                         {o.status === 'PENDING_APPROVAL' && (
-                          <DropdownMenuItem onClick={() => updateStatus(o.id, 'SOURCING', '詢價')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />進入詢價比價
+                          <DropdownMenuItem onClick={() => updateStatus(o.id, 'SOURCING', dict.purchasesPage.enterSourcing)}>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />{dict.purchasesPage.enterSourcing}
                           </DropdownMenuItem>
                         )}
                         {o.status === 'SOURCING' && (
-                          <DropdownMenuItem onClick={() => updateStatus(o.id, 'CONFIRMED', '確認')}>
+                          <DropdownMenuItem onClick={() => updateStatus(o.id, 'CONFIRMED', dict.purchasesExt.confirmPO)}>
                             <CheckCircle2 className="mr-2 h-4 w-4" />{dict.purchasesExt.confirmPO}
                           </DropdownMenuItem>
                         )}
@@ -273,7 +276,7 @@ export default function PurchasesPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，{dict.common.pagePrefix} {pagination.page}/{pagination.totalPages} {dict.common.pageSuffix}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}

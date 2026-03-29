@@ -70,19 +70,16 @@ interface ArticleFormData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ENTRY_TYPES = [
-  { value: 'PRODUCT_FAQ',      label: '產品FAQ',   color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'INCIDENT_CASE',    label: '客訴案例',  color: 'bg-red-100 text-red-700 border-red-200' },
-  { value: 'BRAND_COMPARISON', label: '品牌比較',  color: 'bg-purple-100 text-purple-700 border-purple-200' },
-  { value: 'TRAINING_CASE',    label: '教育訓練',  color: 'bg-green-100 text-green-700 border-green-200' },
-  { value: 'BATCH_ISSUE',      label: '批號問題',  color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  { value: 'OTHER',            label: '其他',      color: 'bg-gray-100 text-gray-700 border-gray-200' },
-]
+const ENTRY_TYPE_COLORS: Record<string, string> = {
+  PRODUCT_FAQ:      'bg-blue-100 text-blue-700 border-blue-200',
+  INCIDENT_CASE:    'bg-red-100 text-red-700 border-red-200',
+  BRAND_COMPARISON: 'bg-purple-100 text-purple-700 border-purple-200',
+  TRAINING_CASE:    'bg-green-100 text-green-700 border-green-200',
+  BATCH_ISSUE:      'bg-orange-100 text-orange-700 border-orange-200',
+  OTHER:            'bg-gray-100 text-gray-700 border-gray-200',
+}
 
-const CATEGORY_FILTERS = [
-  { value: '', label: '全部' },
-  ...ENTRY_TYPES,
-]
+const ENTRY_TYPE_KEYS = ['PRODUCT_FAQ', 'INCIDENT_CASE', 'BRAND_COMPARISON', 'TRAINING_CASE', 'BATCH_ISSUE', 'OTHER'] as const
 
 const DEFAULT_FORM: ArticleFormData = {
   entryType: 'PRODUCT_FAQ',
@@ -93,12 +90,8 @@ const DEFAULT_FORM: ArticleFormData = {
   isPublic: true,
 }
 
-function getTypeConfig(entryType: string) {
-  return ENTRY_TYPES.find(t => t.value === entryType) ?? {
-    value: entryType,
-    label: entryType,
-    color: 'bg-gray-100 text-gray-700 border-gray-200',
-  }
+function getTypeColor(entryType: string) {
+  return ENTRY_TYPE_COLORS[entryType] ?? 'bg-gray-100 text-gray-700 border-gray-200'
 }
 
 function parseCsv(raw: string): string[] {
@@ -127,6 +120,12 @@ interface ArticleFormDialogProps {
 
 function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormDialogProps) {
   const { dict } = useI18n()
+  const kx = dict.knowledgeExt
+  const entryTypes = ENTRY_TYPE_KEYS.map(k => ({
+    value: k,
+    label: dict.knowledge.entryTypes[k as keyof typeof dict.knowledge.entryTypes] ?? k,
+    color: ENTRY_TYPE_COLORS[k],
+  }))
   const isEdit = Boolean(editArticle)
   const [form, setForm] = useState<ArticleFormData>(DEFAULT_FORM)
   const [saving, setSaving] = useState(false)
@@ -215,7 +214,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
             </Label>
             <Input
               id="kb-title"
-              placeholder="輸入文章標題"
+              placeholder={kx.titlePlaceholder}
               value={form.title}
               onChange={e => set('title', e.target.value)}
               required
@@ -227,10 +226,10 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
             <Label htmlFor="kb-type">{dict.common.type}</Label>
             <Select value={form.entryType} onValueChange={v => set('entryType', v ?? '')}>
               <SelectTrigger id="kb-type">
-                <SelectValue placeholder="選擇類別" />
+                <SelectValue placeholder={kx.selectCategory} />
               </SelectTrigger>
               <SelectContent>
-                {ENTRY_TYPES.map(t => (
+                {entryTypes.map(t => (
                   <SelectItem key={t.value} value={t.value}>
                     {t.label}
                   </SelectItem>
@@ -246,7 +245,7 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
             </Label>
             <Textarea
               id="kb-summary"
-              placeholder="輸入知識庫內容、說明、解決方案…"
+              placeholder={kx.contentPlaceholder}
               value={form.summary}
               onChange={e => set('summary', e.target.value)}
               rows={8}
@@ -258,12 +257,12 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
           {/* Tags */}
           <div className="space-y-1.5">
             <Label htmlFor="kb-tags" className="flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5" /> {dict.knowledgeExt.tags}
-              <span className="text-xs text-muted-foreground font-normal">（逗號分隔）</span>
+              <Tag className="h-3.5 w-3.5" /> {kx.tags}
+              <span className="text-xs text-muted-foreground font-normal">（{kx.commaSeparated}）</span>
             </Label>
             <Input
               id="kb-tags"
-              placeholder="例：防漏, 尺寸, 更換頻率"
+              placeholder={kx.tagsPlaceholder}
               value={form.tags}
               onChange={e => set('tags', e.target.value)}
             />
@@ -272,12 +271,12 @@ function ArticleFormDialog({ open, onClose, onSaved, editArticle }: ArticleFormD
           {/* Related SKUs */}
           <div className="space-y-1.5">
             <Label htmlFor="kb-skus">
-              相關 SKU
-              <span className="text-xs text-muted-foreground font-normal ml-1">（逗號分隔）</span>
+              {kx.relatedSkus}
+              <span className="text-xs text-muted-foreground font-normal ml-1">（{kx.commaSeparated}）</span>
             </Label>
             <Input
               id="kb-skus"
-              placeholder="例：CP-001, CP-002"
+              placeholder={kx.relatedSkusPlaceholder}
               value={form.relatedSkus}
               onChange={e => set('relatedSkus', e.target.value)}
             />
@@ -368,8 +367,10 @@ interface ArticleDetailDialogProps {
 
 function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogProps) {
   const { dict } = useI18n()
+  const kx = dict.knowledgeExt
   if (!article) return null
-  const typeConfig = getTypeConfig(article.entryType)
+  const typeColor = getTypeColor(article.entryType)
+  const typeLabel = dict.knowledge.entryTypes[article.entryType as keyof typeof dict.knowledge.entryTypes] ?? article.entryType
 
   return (
     <Dialog open={Boolean(article)} onOpenChange={v => { if (!v) onClose() }}>
@@ -377,8 +378,8 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
         <DialogHeader>
           <div className="flex items-start justify-between gap-4 pr-8">
             <div className="space-y-2">
-              <Badge variant="outline" className={typeConfig.color}>
-                {typeConfig.label}
+              <Badge variant="outline" className={typeColor}>
+                {typeLabel}
               </Badge>
               <DialogTitle className="text-lg leading-snug">{article.title}</DialogTitle>
             </div>
@@ -390,10 +391,10 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
           <span>{dict.common.createdAt}：{formatDate(article.createdAt)}</span>
           <span>{dict.common.updatedAt}：{formatDate(article.updatedAt)}</span>
           <span className={article.isPublic ? 'text-green-600' : 'text-amber-600'}>
-            {article.isPublic ? '● 公開' : '● 草稿'}
+            {article.isPublic ? kx.statusPublic : kx.statusDraft}
           </span>
           {article.incident && (
-            <span className="text-blue-600">來自客訴 {article.incident.incidentNo}</span>
+            <span className="text-blue-600">{kx.fromIncident} {article.incident.incidentNo}</span>
           )}
         </div>
 
@@ -406,7 +407,7 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
         {article.tags.length > 0 && (
           <div className="space-y-1.5">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Tag className="h-3 w-3" /> 標籤
+              <Tag className="h-3 w-3" /> {kx.tags}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {article.tags.map(tag => (
@@ -421,7 +422,7 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
         {/* Related SKUs */}
         {article.relatedSkus.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">相關 SKU</p>
+            <p className="text-xs font-medium text-muted-foreground">{kx.relatedSkus}</p>
             <div className="flex flex-wrap gap-1.5">
               {article.relatedSkus.map(sku => (
                 <Badge key={sku} variant="secondary" className="text-xs font-mono">
@@ -451,6 +452,13 @@ function ArticleDetailDialog({ article, onClose, onEdit }: ArticleDetailDialogPr
 
 export default function KnowledgePage() {
   const { dict } = useI18n()
+  const kx = dict.knowledgeExt
+  const entryTypes = ENTRY_TYPE_KEYS.map(k => ({
+    value: k,
+    label: dict.knowledge.entryTypes[k as keyof typeof dict.knowledge.entryTypes] ?? k,
+    color: ENTRY_TYPE_COLORS[k],
+  }))
+  const categoryFilters = [{ value: '', label: kx.filterAll }, ...entryTypes]
   const [articles, setArticles] = useState<KnowledgeArticle[]>([])
   const [total, setTotal] = useState(0)
   const [stats, setStats] = useState<{ entryType: string; _count: { id: number } }[]>([])
@@ -587,7 +595,7 @@ export default function KnowledgePage() {
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {ENTRY_TYPES.map(t => (
+        {entryTypes.map(t => (
           <Card
             key={t.value}
             className={`cursor-pointer transition-all active:scale-[0.97] hover:shadow-md ${
@@ -607,7 +615,7 @@ export default function KnowledgePage() {
 
       {/* Category filter tabs */}
       <div className="flex gap-2 flex-wrap">
-        {CATEGORY_FILTERS.map(f => (
+        {categoryFilters.map(f => (
           <Button
             key={f.value}
             size="sm"
@@ -649,13 +657,14 @@ export default function KnowledgePage() {
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            共 <span className="font-medium text-foreground">{total}</span> 筆結果
+            <span className="font-medium text-foreground">{total}</span> {kx.resultsCount}
           </p>
 
           {/* Article grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {articles.map(article => {
-              const typeConfig = getTypeConfig(article.entryType)
+              const typeColor = getTypeColor(article.entryType)
+              const typeLabel = dict.knowledge.entryTypes[article.entryType as keyof typeof dict.knowledge.entryTypes] ?? article.entryType
               return (
                 <Card
                   key={article.id}
@@ -663,17 +672,17 @@ export default function KnowledgePage() {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className={`text-xs ${typeConfig.color}`}>
-                        {typeConfig.label}
+                      <Badge variant="outline" className={`text-xs ${typeColor}`}>
+                        {typeLabel}
                       </Badge>
                       {!article.isPublic && (
                         <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                          草稿
+                          {kx.draftBadge}
                         </Badge>
                       )}
                       {article.incident && (
                         <Badge variant="secondary" className="text-xs">
-                          客訴 {article.incident.incidentNo}
+                          {kx.incidentBadge} {article.incident.incidentNo}
                         </Badge>
                       )}
                     </div>
@@ -726,7 +735,7 @@ export default function KnowledgePage() {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8"
-                          title="查看詳情"
+                          title={kx.viewDetail}
                           onClick={() => setDetailArticle(article)}
                         >
                           <Eye className="h-4 w-4" />
@@ -735,7 +744,7 @@ export default function KnowledgePage() {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8"
-                          title="編輯文章"
+                          title={kx.editEntry}
                           onClick={() => openEdit(article)}
                         >
                           <Edit className="h-4 w-4" />
@@ -744,7 +753,7 @@ export default function KnowledgePage() {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          title="刪除文章"
+                          title={kx.deleteEntry}
                           onClick={() => setDeleteTarget(article)}
                         >
                           <Trash2 className="h-4 w-4" />

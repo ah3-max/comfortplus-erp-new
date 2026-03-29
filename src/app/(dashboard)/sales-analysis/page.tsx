@@ -54,34 +54,34 @@ export default function SalesAnalysisPage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.salesAnalysis ?? '銷售分析報表'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">銷售趨勢、客戶占比、品項銷售量分析</p>
+        <h1 className="text-2xl font-bold">{dict.salesAnalysis.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{dict.salesAnalysis.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">分析維度</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.salesAnalysis.dimLabel}</div>
           <Select value={view} onValueChange={v => { if (v) setView(v as ViewKey) }}>
             <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="monthly">月度趨勢</SelectItem>
-              <SelectItem value="customer">客戶分析</SelectItem>
-              <SelectItem value="product">品項分析</SelectItem>
+              <SelectItem value="monthly">{dict.salesAnalysis.viewMonthly}</SelectItem>
+              <SelectItem value="customer">{dict.salesAnalysis.viewCustomer}</SelectItem>
+              <SelectItem value="product">{dict.salesAnalysis.viewProduct}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.salesAnalysis.periodFrom}</div>
           <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <div className="text-xs text-gray-500 mb-1">{dict.salesAnalysis.periodTo}</div>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? dict.salesAnalysis.querying : dict.salesAnalysis.query}
         </Button>
       </div>
 
@@ -89,30 +89,30 @@ export default function SalesAnalysisPage() {
       {searched && view === 'monthly' && (
         <div className="space-y-4">
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">月度銷售金額趨勢</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.salesAnalysis.monthlyChartTitle}</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthly} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} />
                 <Tooltip formatter={tooltipFmt} />
-                <Bar dataKey="totalAmount" fill="#3b82f6" name="銷售金額" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="totalAmount" fill="#3b82f6" name={dict.salesAnalysis.colSalesAmount} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">月份</th>
-                <th className="px-4 py-3 text-right">訂單數</th>
-                <th className="px-4 py-3 text-right">稅前金額</th>
-                <th className="px-4 py-3 text-right">折扣</th>
-                <th className="px-4 py-3 text-right">稅額</th>
-                <th className="px-4 py-3 text-right">含稅合計</th>
+                <th className="px-4 py-3 text-left">{dict.salesAnalysis.colMonth}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colOrderCount}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colSubtotal}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colDiscount}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colTax}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colTotal}</th>
               </tr></thead>
               <tbody>
                 {monthly.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={6} className="py-8 text-center text-gray-400">{dict.salesAnalysis.noData}</td></tr>
                 ) : monthly.map(row => (
                   <tr key={row.month} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono">{row.month}</td>
@@ -133,7 +133,7 @@ export default function SalesAnalysisPage() {
       {searched && view === 'customer' && (
         <div className="grid md:grid-cols-2 gap-4">
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">客戶銷售占比 TOP 8</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.salesAnalysis.customerChartTitle}</h3>
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
@@ -156,14 +156,14 @@ export default function SalesAnalysisPage() {
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">客戶</th>
-                <th className="px-4 py-3 text-right">訂單數</th>
-                <th className="px-4 py-3 text-right">銷售金額</th>
-                <th className="px-4 py-3 text-right">占比</th>
+                <th className="px-4 py-3 text-left">{dict.salesAnalysis.colCustomer}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colOrderCount}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colSalesAmount}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colSharePct}</th>
               </tr></thead>
               <tbody>
                 {customers.length === 0 ? (
-                  <tr><td colSpan={4} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={4} className="py-8 text-center text-gray-400">{dict.salesAnalysis.noData}</td></tr>
                 ) : customers.map((row, i) => (
                   <tr key={row.customerId} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3">
@@ -181,7 +181,7 @@ export default function SalesAnalysisPage() {
               </tbody>
               {total > 0 && (
                 <tfoot><tr className="border-t bg-gray-50 font-semibold">
-                  <td className="px-4 py-2 text-xs text-gray-500" colSpan={2}>合計</td>
+                  <td className="px-4 py-2 text-xs text-gray-500" colSpan={2}>{dict.salesAnalysis.colGrandTotal}</td>
                   <td className="px-4 py-2 text-right tabular-nums">{fmt(total)}</td>
                   <td className="px-4 py-2 text-right">100%</td>
                 </tr></tfoot>
@@ -195,29 +195,29 @@ export default function SalesAnalysisPage() {
       {searched && view === 'product' && (
         <div className="space-y-4">
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">品項銷售金額 TOP 15</h3>
+            <h3 className="font-semibold mb-3 text-sm">{dict.salesAnalysis.productChartTitle}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={products.slice(0, 15)} layout="vertical" margin={{ left: 140, right: 16, top: 4, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => `${(v / 1000).toFixed(0)}K`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={130} />
                 <Tooltip formatter={tooltipFmt} />
-                <Bar dataKey="subtotal" fill="#3b82f6" name="銷售金額" radius={[0, 3, 3, 0]} />
+                <Bar dataKey="subtotal" fill="#3b82f6" name={dict.salesAnalysis.colSalesAmount} radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-left">品項</th>
-                <th className="px-4 py-3 text-right">銷售量</th>
-                <th className="px-4 py-3 text-right">銷售金額</th>
-                <th className="px-4 py-3 text-right">平均單價</th>
-                <th className="px-4 py-3 text-right">訂單數</th>
+                <th className="px-4 py-3 text-left">{dict.salesAnalysis.colProduct}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colQty}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colSalesAmount}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colAvgPrice}</th>
+                <th className="px-4 py-3 text-right">{dict.salesAnalysis.colOrderCount}</th>
               </tr></thead>
               <tbody>
                 {products.length === 0 ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={5} className="py-8 text-center text-gray-400">{dict.salesAnalysis.noData}</td></tr>
                 ) : products.map(row => (
                   <tr key={row.productId} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3">
@@ -239,7 +239,7 @@ export default function SalesAnalysisPage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <TrendingUp size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇維度與期間後按「查詢」</p>
+          <p>{dict.salesAnalysis.promptText}</p>
         </div>
       )}
     </div>

@@ -109,7 +109,7 @@ export default function PriceListsPage() {
   }
 
   const handleDelete = async (id: string, label: string) => {
-    if (!confirm(`確定刪除「${label}」的特殊定價？`)) return
+    if (!confirm(`${dict.common.deleteConfirm} (${label})`)) return
     try {
       const res = await fetch(`/api/special-prices?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
@@ -134,26 +134,26 @@ export default function PriceListsPage() {
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.priceLists ?? '客戶特殊價格表'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">針對特定客戶設定商品特殊售價，優先於一般定價</p>
+          <h1 className="text-2xl font-bold">{dict.priceLists.title}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{dict.priceLists.subtitle}</p>
         </div>
         <Button onClick={openCreate} className="gap-1.5">
-          <Plus size={16} />新增特殊定價
+          <Plus size={16} />{dict.priceLists.newPrice}
         </Button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">特殊定價總數</div>
+          <div className="text-xs text-gray-400 mb-1">{dict.priceLists.totalCount}</div>
           <div className="text-2xl font-bold">{prices.length}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">生效中</div>
+          <div className="text-xs text-gray-400 mb-1">{dict.priceLists.activeCount}</div>
           <div className="text-2xl font-bold text-emerald-600">{prices.filter(isActive).length}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">已過期</div>
+          <div className="text-xs text-gray-400 mb-1">{dict.priceLists.expiredCount}</div>
           <div className="text-2xl font-bold text-red-500">{prices.filter(isExpired).length}</div>
         </div>
       </div>
@@ -162,7 +162,7 @@ export default function PriceListsPage() {
       <div className="relative bg-white border rounded-xl px-3">
         <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <Input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="搜尋客戶、商品…" className="pl-8 border-0 shadow-none h-11" />
+          placeholder={dict.priceLists.searchPlaceholder} className="pl-8 border-0 shadow-none h-11" />
       </div>
 
       {/* Table */}
@@ -171,19 +171,19 @@ export default function PriceListsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {['客戶', '商品', '特殊價格', '生效日', '到期日', '狀態', ''].map(h => (
+                {[dict.priceLists.colCustomer, dict.priceLists.colProduct, dict.priceLists.colSpecialPrice, dict.priceLists.colEffectiveDate, dict.priceLists.colExpiryDate, dict.priceLists.colStatus, ''].map(h => (
                   <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-10 text-gray-400">載入中…</td></tr>
+                <tr><td colSpan={7} className="text-center py-10 text-gray-400">{dict.common.loading}</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
                     <Tag size={36} className="mx-auto mb-2 opacity-30" />
-                    <p>無特殊定價資料</p>
+                    <p>{dict.priceLists.noData}</p>
                   </td>
                 </tr>
               ) : filtered.map(p => (
@@ -206,15 +206,15 @@ export default function PriceListsPage() {
                       <span className={isExpired(p) ? 'text-red-500' : ''}>
                         {new Date(p.expiryDate).toLocaleDateString('zh-TW')}
                       </span>
-                    ) : '無期限'}
+                    ) : dict.priceLists.noLimit}
                   </td>
                   <td className="px-4 py-2.5">
                     {isExpired(p) ? (
-                      <Badge className="bg-red-100 text-red-700">已過期</Badge>
+                      <Badge className="bg-red-100 text-red-700">{dict.priceLists.statusExpired}</Badge>
                     ) : isActive(p) ? (
-                      <Badge className="bg-emerald-100 text-emerald-700">生效中</Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700">{dict.priceLists.statusActive}</Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-600">未開始</Badge>
+                      <Badge className="bg-gray-100 text-gray-600">{dict.priceLists.statusPending}</Badge>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
@@ -239,53 +239,53 @@ export default function PriceListsPage() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editing ? '編輯特殊定價' : '新增特殊定價'}</DialogTitle>
+            <DialogTitle>{editing ? dict.priceLists.editTitle : dict.priceLists.createTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div>
-              <div className="text-xs text-gray-500 mb-1">客戶 *</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.priceLists.customerField}</div>
               <select value={form.customerId} onChange={e => setForm(f => ({ ...f, customerId: e.target.value }))}
                 className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                <option value="">請選擇客戶</option>
+                <option value="">{dict.priceLists.selectCustomer}</option>
                 {customers.map(c => (
                   <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                 ))}
               </select>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">商品 *</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.priceLists.productField}</div>
               <select value={form.productId} onChange={e => setForm(f => ({ ...f, productId: e.target.value }))}
                 className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                <option value="">請選擇商品</option>
+                <option value="">{dict.priceLists.selectProduct}</option>
                 {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.sku}){p.sellingPrice ? ` — 定價 NT$${Number(p.sellingPrice).toLocaleString()}` : ''}</option>
+                  <option key={p.id} value={p.id}>{p.name} ({p.sku}){p.sellingPrice ? ` — NT$${Number(p.sellingPrice).toLocaleString()}` : ''}</option>
                 ))}
               </select>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">特殊售價 (NT$) *</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.priceLists.specialPriceField}</div>
               <Input type="number" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
                 placeholder="0" className="h-9" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">生效日期</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.priceLists.effectiveDateField}</div>
                 <Input type="date" value={form.effectiveDate} onChange={e => setForm(f => ({ ...f, effectiveDate: e.target.value }))} className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">到期日（留空=無期限）</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.priceLists.expiryDateField}</div>
                 <Input type="date" value={form.expiryDate} onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">備註</div>
-              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="備註" className="h-9" />
+              <div className="text-xs text-gray-500 mb-1">{dict.priceLists.notesField}</div>
+              <Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder={dict.common.optional} className="h-9" />
             </div>
             <div className="flex gap-2 pt-1">
               <Button onClick={handleSave} className="flex-1" disabled={!form.customerId || !form.productId || !form.price}>
-                {editing ? '儲存' : '新增'}
+                {editing ? dict.common.save : dict.common.create}
               </Button>
-              <Button variant="outline" onClick={() => setShowDialog(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setShowDialog(false)}>{dict.common.cancel}</Button>
             </div>
           </div>
         </DialogContent>

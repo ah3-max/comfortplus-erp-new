@@ -198,12 +198,12 @@ export default function RFQPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`詢價單已${label}`); fetchRfqs() }
+    if (res.ok) { toast.success(label); fetchRfqs() }
     else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消詢價單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.rfq.cancelConfirm} ${no}?`)) return
     const res = await fetch(`/api/rfq/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.rfq.cancelSuccess); fetchRfqs() }
     else {
@@ -237,7 +237,7 @@ export default function RFQPage() {
               unitCost: Number(rfqSupplier?.quotedPrice ?? 0),
             }
           }),
-          notes: `由詢價單 ${convertTarget.rfqNumber} 轉入`,
+          notes: `${dict.rfq.convertedFromPrefix} ${convertTarget.rfqNumber}`,
         }),
       })
       if (!res.ok) {
@@ -245,11 +245,11 @@ export default function RFQPage() {
         throw new Error(d.error ?? dict.common.createFailed)
       }
       const po = await res.json()
-      toast.success(`採購單 ${po.poNo} 已建立`)
+      toast.success(`${dict.rfq.poCreated} ${po.poNo}`)
       setConvertOpen(false)
       // Mark RFQ as COMPLETED if not already
       if (convertTarget.status !== 'COMPLETED') {
-        await updateStatus(convertTarget.id, 'COMPLETED', '完成')
+        await updateStatus(convertTarget.id, 'COMPLETED', dict.common.createSuccess)
       } else {
         fetchRfqs()
       }
@@ -292,9 +292,9 @@ export default function RFQPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.rfq.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : rfqs.length} 筆
-            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
-            {sentCount > 0 && <span className="ml-2 text-blue-600">{sentCount} 筆已送出</span>}
+            {dict.rfq.totalPrefix} {pagination ? pagination.total : rfqs.length} {dict.common.items}
+            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} {dict.common.items}{dict.rfq.statuses.DRAFT}</span>}
+            {sentCount > 0 && <span className="ml-2 text-blue-600">{sentCount} {dict.common.items}{dict.rfq.statuses.SENT}</span>}
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -371,7 +371,7 @@ export default function RFQPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {rfq.items.length > 0
-                        ? `${rfq.items[0].product.name}${rfq.items.length > 1 ? ` 等 ${rfq.items.length} 項` : ''}`
+                        ? `${rfq.items[0].product.name}${rfq.items.length > 1 ? ` ${dict.rfq.itemsEtc.replace('{n}', String(rfq.items.length))}` : ''}`
                         : '--'}
                     </TableCell>
                     <TableCell className="text-center">{rfq.suppliers.length}</TableCell>
@@ -391,30 +391,30 @@ export default function RFQPage() {
                             </DropdownMenuItem>
                           )}
                           {rfq.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={() => updateStatus(rfq.id, 'SENT', '送出')}>
-                              <Send className="mr-2 h-4 w-4" />送出詢價
+                            <DropdownMenuItem onClick={() => updateStatus(rfq.id, 'SENT', dict.rfq.actionSent)}>
+                              <Send className="mr-2 h-4 w-4" />{dict.rfq.actionSendRfq}
                             </DropdownMenuItem>
                           )}
                           {rfq.status === 'SENT' && (
-                            <DropdownMenuItem onClick={() => updateStatus(rfq.id, 'RESPONDED', '回覆')}>
-                              <MessageSquare className="mr-2 h-4 w-4" />標記已回覆
+                            <DropdownMenuItem onClick={() => updateStatus(rfq.id, 'RESPONDED', dict.rfq.actionResponded)}>
+                              <MessageSquare className="mr-2 h-4 w-4" />{dict.rfq.actionMarkResponded}
                             </DropdownMenuItem>
                           )}
                           {rfq.status === 'RESPONDED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(rfq.id, 'COMPLETED', '完成')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />完成詢價
+                            <DropdownMenuItem onClick={() => updateStatus(rfq.id, 'COMPLETED', dict.rfq.actionCompleted)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.rfq.actionComplete}
                             </DropdownMenuItem>
                           )}
                           {['RESPONDED', 'COMPLETED'].includes(rfq.status) && rfq.suppliers.length > 0 && (
                             <DropdownMenuItem onClick={() => openConvert(rfq)}>
-                              <ShoppingCart className="mr-2 h-4 w-4" />轉採購單
+                              <ShoppingCart className="mr-2 h-4 w-4" />{dict.rfq.convertToPO}
                             </DropdownMenuItem>
                           )}
                           {['DRAFT', 'SENT'].includes(rfq.status) && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCancel(rfq.id, rfq.rfqNumber)} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />取消詢價單
+                                <XCircle className="mr-2 h-4 w-4" />{dict.rfq.cancelRfq}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -456,11 +456,11 @@ export default function RFQPage() {
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {rfq.items.length > 0
-                    ? `${rfq.items[0].product.name}${rfq.items.length > 1 ? ` 等 ${rfq.items.length} 項` : ''}`
+                    ? `${rfq.items[0].product.name}${rfq.items.length > 1 ? ` ${dict.rfq.itemsEtc.replace('{n}', String(rfq.items.length))}` : ''}`
                     : '--'}
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span>{rfq.suppliers.length} 家供應商</span>
+                  <span>{rfq.suppliers.length} {dict.rfq.supplierCount}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(rfq.createdAt)}</span>
                 </div>
               </div>
@@ -473,7 +473,7 @@ export default function RFQPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.rfq.totalPrefix} {pagination.total} {dict.common.items}，{dict.rfq.pageInfo.replace('{page}', String(pagination.page)).replace('{totalPages}', String(pagination.totalPages))}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -499,7 +499,7 @@ export default function RFQPage() {
             {/* Header Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>承辦人</Label>
+                <Label>{dict.rfq.handlerLabel}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
                   <option value="">{dict.common.select}</option>
@@ -546,7 +546,7 @@ export default function RFQPage() {
                 {form.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3 bg-slate-50">
                     <div className="col-span-12 md:col-span-5">
-                      <Label className="text-xs">品項</Label>
+                      <Label className="text-xs">{dict.common.product}</Label>
                       <select className="w-full rounded-md border px-2 py-1.5 text-sm"
                         value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
                         <option value="">{dict.common.select}</option>
@@ -559,9 +559,9 @@ export default function RFQPage() {
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
                     <div className="col-span-7 md:col-span-4">
-                      <Label className="text-xs">規格說明</Label>
+                      <Label className="text-xs">{dict.rfq.specLabel}</Label>
                       <Input value={item.specification}
-                        onChange={e => updateItem(idx, 'specification', e.target.value)} placeholder="選填" />
+                        onChange={e => updateItem(idx, 'specification', e.target.value)} placeholder={dict.common.optional} />
                     </div>
                     <div className="col-span-1 flex items-end">
                       {form.items.length > 1 && (
@@ -596,30 +596,30 @@ export default function RFQPage() {
       {/* Convert to PO Dialog */}
       <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>轉採購單</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.rfq.convertToPO}</DialogTitle></DialogHeader>
           {convertTarget && (
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">詢價單：<span className="font-mono font-medium text-slate-800">{convertTarget.rfqNumber}</span></p>
-                <p className="text-sm text-muted-foreground">品項數：{convertTarget.items.length} 項</p>
+                <p className="text-sm text-muted-foreground mb-1">{dict.rfq.rfqNo}：<span className="font-mono font-medium text-slate-800">{convertTarget.rfqNumber}</span></p>
+                <p className="text-sm text-muted-foreground">{dict.rfq.items}：{convertTarget.items.length} {dict.common.pieces}</p>
               </div>
               <div>
-                <Label>選擇供應商 *</Label>
+                <Label>{dict.common.supplier} *</Label>
                 <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
                   value={convertSupplierId}
                   onChange={e => setConvertSupplierId(e.target.value)}>
-                  <option value="">— 選擇供應商 —</option>
+                  <option value="">— {dict.common.select} —</option>
                   {convertTarget.suppliers.map(s => (
                     <option key={s.supplierId} value={s.supplierId}>
                       {s.supplier.name} ({s.supplier.code})
-                      {s.quotedPrice ? ` — 報價 ${Number(s.quotedPrice).toLocaleString()}` : ''}
+                      {s.quotedPrice ? ` — ${dict.rfq.quotedPrice} ${Number(s.quotedPrice).toLocaleString()}` : ''}
                       {s.selected ? ' ★' : ''}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="rounded-lg border bg-slate-50 p-3">
-                <p className="text-xs font-medium text-slate-600 mb-2">品項清單</p>
+                <p className="text-xs font-medium text-slate-600 mb-2">{dict.rfq.items}</p>
                 {convertTarget.items.map(item => (
                   <div key={item.id} className="flex justify-between text-sm py-0.5">
                     <span>{item.product.name}</span>
@@ -627,14 +627,14 @@ export default function RFQPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">建立採購單後，此詢價單將標記為「已完成」。</p>
+              <p className="text-xs text-muted-foreground">{dict.rfq.convertNote}</p>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConvertOpen(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleConvertToPO} disabled={converting || !convertSupplierId}>
               {converting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <ShoppingCart className="mr-2 h-4 w-4" />建立採購單
+              <ShoppingCart className="mr-2 h-4 w-4" />{dict.rfq.createPO}
             </Button>
           </DialogFooter>
         </DialogContent>

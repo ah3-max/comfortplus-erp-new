@@ -38,6 +38,7 @@ const GRADE_BAR_COLOR: Record<string, string> = { A: '#10b981', B: '#3b82f6', C:
 
 export default function ABCAnalysisPage() {
   const { dict } = useI18n()
+  const abc = dict.abcAnalysis
   const now = new Date()
   const [startDate, setStartDate] = useState(`${now.getFullYear()}-01-01`)
   const [endDate, setEndDate] = useState(now.toISOString().slice(0, 10))
@@ -75,23 +76,23 @@ export default function ABCAnalysisPage() {
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">{dict.nav?.abcAnalysis ?? '品項 ABC 分析'}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">依銷售金額分類：A 類=前80%、B 類=次15%、C 類=尾5%</p>
+        <h1 className="text-2xl font-bold">{abc.title}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{abc.subtitle}</p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-end bg-white border rounded-xl p-4">
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間起</div>
+          <div className="text-xs text-gray-500 mb-1">{abc.startDate}</div>
           <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-9 w-36" />
         </div>
         <div>
-          <div className="text-xs text-gray-500 mb-1">期間迄</div>
+          <div className="text-xs text-gray-500 mb-1">{abc.endDate}</div>
           <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-9 w-36" />
         </div>
         <Button onClick={query} disabled={loading} className="gap-1.5 h-9">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? '查詢中…' : '查詢'}
+          {loading ? abc.querying : abc.query}
         </Button>
       </div>
 
@@ -107,17 +108,17 @@ export default function ABCAnalysisPage() {
                 <div key={g} className="bg-white border rounded-xl p-4 cursor-pointer hover:shadow-sm transition-shadow"
                   onClick={() => setGradeFilter(gradeFilter === g ? 'ALL' : g)}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`font-bold text-lg px-2 py-0.5 rounded ${GRADE_COLOR[g]}`}>{g} 類</span>
-                    {gradeFilter === g && <span className="text-xs text-blue-500">已篩選</span>}
+                    <span className={`font-bold text-lg px-2 py-0.5 rounded ${GRADE_COLOR[g]}`}>{abc[`grade${g}` as 'gradeA' | 'gradeB' | 'gradeC']}</span>
+                    {gradeFilter === g && <span className="text-xs text-blue-500">{abc.filtered}</span>}
                   </div>
-                  <div className="text-2xl font-bold mt-1">{count} <span className="text-sm font-normal text-gray-400">品項</span></div>
+                  <div className="text-2xl font-bold mt-1">{count} <span className="text-sm font-normal text-gray-400">{abc.colProduct}</span></div>
                   <div className="text-sm text-gray-500">{fmt(rev)}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">目標 {pctTarget}% 貢獻</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{abc.targetContrib.replace('{n}', String(pctTarget))}</div>
                 </div>
               )
             })}
             <div className="bg-white border rounded-xl p-4">
-              <div className="text-xs text-gray-400 mb-1">總品項 / 總銷售額</div>
+              <div className="text-xs text-gray-400 mb-1">{abc.totalSummary}</div>
               <div className="text-2xl font-bold">{summary.totalProducts}</div>
               <div className="text-sm text-gray-500">{fmt(summary.grandTotal)}</div>
             </div>
@@ -125,7 +126,7 @@ export default function ABCAnalysisPage() {
 
           {/* Pareto chart */}
           <div className="bg-white border rounded-xl p-4">
-            <h3 className="font-semibold mb-3 text-sm">帕雷托分析 — TOP 20 品項</h3>
+            <h3 className="font-semibold mb-3 text-sm">{abc.paretoTitle}</h3>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={paretoData} margin={{ top: 4, right: 40, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -135,7 +136,7 @@ export default function ABCAnalysisPage() {
                 <Tooltip formatter={(v: unknown) => typeof v === 'number' ? fmt(v) : String(v ?? '')} />
                 <ReferenceLine yAxisId="right" y={80} stroke="#ef4444" strokeDasharray="4 4" label={{ value: '80%', position: 'right', fontSize: 10 }} />
                 <ReferenceLine yAxisId="right" y={95} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: '95%', position: 'right', fontSize: 10 }} />
-                <Bar yAxisId="left" dataKey="revenue" name="銷售金額" radius={[2, 2, 0, 0]}>
+                <Bar yAxisId="left" dataKey="revenue" name={abc.colRevenue} radius={[2, 2, 0, 0]}>
                   {paretoData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>
               </BarChart>
@@ -147,29 +148,29 @@ export default function ABCAnalysisPage() {
             {(['ALL', 'A', 'B', 'C'] as const).map(g => (
               <button key={g} onClick={() => setGradeFilter(g)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${gradeFilter === g ? 'bg-blue-600 text-white' : 'bg-white border hover:bg-gray-50 text-gray-700'}`}>
-                {g === 'ALL' ? '全部' : `${g} 類`}
+                {g === 'ALL' ? abc.filterAll : abc[`grade${g}` as 'gradeA' | 'gradeB' | 'gradeC']}
               </button>
             ))}
-            <span className="text-sm text-gray-400 ml-2">{filtered.length} 品項</span>
+            <span className="text-sm text-gray-400 ml-2">{filtered.length} {abc.colProduct}</span>
           </div>
 
           {/* Table */}
           <div className="rounded-xl border bg-white overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b bg-gray-50 text-xs text-gray-500">
-                <th className="px-4 py-3 text-right w-12">排名</th>
-                <th className="px-4 py-3 text-left">品項</th>
-                <th className="px-4 py-3 text-left">類別</th>
-                <th className="px-4 py-3 text-right">銷售量</th>
-                <th className="px-4 py-3 text-right">銷售金額</th>
-                <th className="px-4 py-3 text-right">占比</th>
-                <th className="px-4 py-3 text-right">累計占比</th>
-                <th className="px-4 py-3 text-right">訂單數</th>
-                <th className="px-4 py-3 text-center">等級</th>
+                <th className="px-4 py-3 text-right w-12">{abc.colRank}</th>
+                <th className="px-4 py-3 text-left">{abc.colProduct}</th>
+                <th className="px-4 py-3 text-left">{abc.colCategory}</th>
+                <th className="px-4 py-3 text-right">{abc.colQty}</th>
+                <th className="px-4 py-3 text-right">{abc.colRevenue}</th>
+                <th className="px-4 py-3 text-right">{abc.colSharePct}</th>
+                <th className="px-4 py-3 text-right">{abc.colCumPct}</th>
+                <th className="px-4 py-3 text-right">{abc.colOrderCount}</th>
+                <th className="px-4 py-3 text-center">{abc.colGrade}</th>
               </tr></thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={9} className="py-8 text-center text-gray-400">無資料</td></tr>
+                  <tr><td colSpan={9} className="py-8 text-center text-gray-400">{abc.noData}</td></tr>
                 ) : filtered.map(row => (
                   <tr key={row.productId} className="border-b last:border-0 hover:bg-gray-50">
                     <td className="px-4 py-3 text-right text-gray-400 font-mono text-xs">{row.rank}</td>
@@ -204,7 +205,7 @@ export default function ABCAnalysisPage() {
       {!searched && (
         <div className="py-20 text-center text-gray-400">
           <Package size={40} className="mx-auto mb-3 opacity-30" />
-          <p>請選擇期間後按「查詢」進行 ABC 分析</p>
+          <p>{abc.promptText}</p>
         </div>
       )}
     </div>

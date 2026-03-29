@@ -216,7 +216,7 @@ export default function MaterialRequisitionsPage() {
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消領料單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.common.deleteConfirm} (${no})`)) return
     const res = await fetch(`/api/material-requisitions/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(mr.cancelSuccess); fetchRequisitions() }
     else {
@@ -253,11 +253,11 @@ export default function MaterialRequisitionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.materialRequisitions.title}管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.materialRequisitions.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : requisitions.length} 筆
-            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
-            {confirmedCount > 0 && <span className="ml-2 text-blue-600">{confirmedCount} 筆已確認</span>}
+            {dict.common.total}: {pagination ? pagination.total : requisitions.length}
+            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} {dict.materialRequisitions.statuses.DRAFT}</span>}
+            {confirmedCount > 0 && <span className="ml-2 text-blue-600">{confirmedCount} {dict.materialRequisitions.statuses.CONFIRMED}</span>}
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -293,10 +293,10 @@ export default function MaterialRequisitionsPage() {
             <TableRow>
               <TableHead className="w-40">{dict.materialRequisitions.requisitionNo}</TableHead>
               <TableHead>{dict.materialRequisitions.productionOrder}</TableHead>
-              <TableHead>出料倉</TableHead>
-              <TableHead>收料倉</TableHead>
+              <TableHead>{dict.materialRequisitions.fromWarehouse}</TableHead>
+              <TableHead>{dict.materialRequisitions.toWarehouse}</TableHead>
               <TableHead className="w-24">{dict.common.status}</TableHead>
-              <TableHead className="w-20 text-center">品項數</TableHead>
+              <TableHead className="w-20 text-center">{dict.materialRequisitions.itemCount}</TableHead>
               <TableHead className="w-20">{dict.materialRequisitions.requester}</TableHead>
               <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
@@ -349,29 +349,29 @@ export default function MaterialRequisitionsPage() {
                         <DropdownMenuContent align="end" className="w-44">
                           {req.status === 'DRAFT' && (
                             <DropdownMenuItem onClick={() => openEdit(req)}>
-                              <Pencil className="mr-2 h-4 w-4" />編輯
+                              <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                             </DropdownMenuItem>
                           )}
                           {req.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={() => updateStatus(req.id, 'CONFIRMED', '確認')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />確認領料單
+                            <DropdownMenuItem onClick={() => updateStatus(req.id, 'CONFIRMED', dict.materialRequisitions.statuses.CONFIRMED)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.materialRequisitions.confirmRequisition}
                             </DropdownMenuItem>
                           )}
                           {req.status === 'CONFIRMED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(req.id, 'ISSUED', '發料')}>
-                              <Package className="mr-2 h-4 w-4" />標記已發料
+                            <DropdownMenuItem onClick={() => updateStatus(req.id, 'ISSUED', dict.materialRequisitions.statuses.ISSUED)}>
+                              <Package className="mr-2 h-4 w-4" />{dict.materialRequisitions.markIssued}
                             </DropdownMenuItem>
                           )}
                           {req.status === 'ISSUED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(req.id, 'COMPLETED', '完成')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />標記已完成
+                            <DropdownMenuItem onClick={() => updateStatus(req.id, 'COMPLETED', dict.materialRequisitions.statuses.COMPLETED)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.materialRequisitions.markCompleted}
                             </DropdownMenuItem>
                           )}
                           {!['ISSUED', 'COMPLETED', 'CANCELLED'].includes(req.status) && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCancel(req.id, req.requisitionNumber)} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />取消領料單
+                                <XCircle className="mr-2 h-4 w-4" />{dict.materialRequisitions.cancelRequisition}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -413,14 +413,14 @@ export default function MaterialRequisitionsPage() {
                   <Badge variant={sc.variant} className={sc.className}>{sc.label}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">工單：{req.productionOrder.productionNo}</span>
+                  <span className="text-sm font-medium">{dict.materialRequisitions.workOrder}：{req.productionOrder.productionNo}</span>
                   <span className="text-xs text-muted-foreground">{formatDate(req.createdAt)}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">
                   {req.fromWarehouse.name} → {req.toWarehouse.name}
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{req.items.length} 項品項</span>
+                  <span className="text-muted-foreground">{req.items.length} {dict.materialRequisitions.itemsLabel}</span>
                   <span className="text-muted-foreground">{req.handler.name}</span>
                 </div>
               </div>
@@ -433,7 +433,7 @@ export default function MaterialRequisitionsPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {pagination.total} {dict.common.items}，{pagination.page}/{pagination.totalPages}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -462,23 +462,23 @@ export default function MaterialRequisitionsPage() {
                 <Label>{dict.materialRequisitions.productionOrder} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.productionOrderId} onChange={e => setForm(f => ({ ...f, productionOrderId: e.target.value }))}>
-                  <option value="">選擇生產工單</option>
+                  <option value="">{dict.materialRequisitions.selectProductionOrder}</option>
                   {productionOrders.map(po => <option key={po.id} value={po.id}>{po.productionNo}</option>)}
                 </select>
               </div>
               <div>
-                <Label>出料倉庫 *</Label>
+                <Label>{dict.materialRequisitions.fromWarehouse} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.fromWarehouseId} onChange={e => setForm(f => ({ ...f, fromWarehouseId: e.target.value }))}>
-                  <option value="">選擇出料倉庫</option>
+                  <option value="">{dict.materialRequisitions.selectFromWarehouse}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.code} - {w.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>收料倉庫 *</Label>
+                <Label>{dict.materialRequisitions.toWarehouse} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.toWarehouseId} onChange={e => setForm(f => ({ ...f, toWarehouseId: e.target.value }))}>
-                  <option value="">選擇收料倉庫</option>
+                  <option value="">{dict.materialRequisitions.selectToWarehouse}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.code} - {w.name}</option>)}
                 </select>
               </div>
@@ -489,7 +489,7 @@ export default function MaterialRequisitionsPage() {
                 <Label>{dict.materialRequisitions.requester}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
-                  <option value="">選擇承辦人</option>
+                  <option value="">{dict.materialRequisitions.selectHandler}</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
@@ -506,17 +506,17 @@ export default function MaterialRequisitionsPage() {
                 <Label className="text-base font-semibold">{dict.materialRequisitions.items}</Label>
                 <Button variant="outline" size="sm"
                   onClick={() => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }))}>
-                  <Plus className="mr-1 h-3 w-3" />新增品項
+                  <Plus className="mr-1 h-3 w-3" />{dict.materialRequisitions.addItem}
                 </Button>
               </div>
               <div className="space-y-3">
                 {form.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3 bg-slate-50">
                     <div className="col-span-12 md:col-span-4">
-                      <Label className="text-xs">品項</Label>
+                      <Label className="text-xs">{dict.common.product}</Label>
                       <select className="w-full rounded-md border px-2 py-1.5 text-sm"
                         value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
-                        <option value="">選擇品項</option>
+                        <option value="">{dict.common.select}</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
                       </select>
                     </div>
@@ -526,7 +526,7 @@ export default function MaterialRequisitionsPage() {
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
                     <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs">BOM版本</Label>
+                      <Label className="text-xs">{dict.productionReceipts.bomVersion}</Label>
                       <Input value={item.bomVersion}
                         onChange={e => updateItem(idx, 'bomVersion', e.target.value)} />
                     </div>

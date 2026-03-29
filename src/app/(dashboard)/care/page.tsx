@@ -351,7 +351,7 @@ export default function CarePage() {
                 )}
                 <div>
                   <Label>{dict.common.notes}</Label>
-                  <Textarea rows={2} value={schForm.notes} onChange={e => setSchForm(f => ({ ...f, notes: e.target.value }))} placeholder="備註…" />
+                  <Textarea rows={2} value={schForm.notes} onChange={e => setSchForm(f => ({ ...f, notes: e.target.value }))} placeholder={dict.common.notes} />
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
@@ -497,7 +497,7 @@ export default function CarePage() {
                 </div>
                 <div>
                   <Label>{dict.common.description} *</Label>
-                  <Textarea rows={3} value={reqForm.description} onChange={e => setReqForm(f => ({ ...f, description: e.target.value }))} placeholder="描述客戶服務需求…" />
+                  <Textarea rows={3} value={reqForm.description} onChange={e => setReqForm(f => ({ ...f, description: e.target.value }))} placeholder={ca.descriptionPlaceholder} />
                 </div>
                 {reqEdit && (
                   <div>

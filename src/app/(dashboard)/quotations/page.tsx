@@ -149,13 +149,13 @@ export default function QuotationsPage() {
   }
 
   async function handleConvert(id: string, no: string) {
-    if (!confirm(`確定要將報價單 ${no} 轉為訂單嗎？`)) return
+    if (!confirm(`${dict.quotations.convertConfirmPrefix} ${no} ${dict.quotations.convertConfirmSuffix}`)) return
     setConverting(id)
     const res = await fetch(`/api/quotations/${id}/convert`, { method: 'POST' })
     setConverting(null)
     if (res.ok) {
       const data = await res.json()
-      toast.success(`已建立訂單 ${data.orderNo}`)
+      toast.success(`${dict.quotations.orderCreatedPrefix} ${data.orderNo}`)
       router.push(`/orders/${data.orderId}`)
     } else {
       const data = await res.json()
@@ -181,7 +181,7 @@ export default function QuotationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.quotations.title}</h1>
-          <p className="text-sm text-muted-foreground">共 {quotations.length} 筆報價單</p>
+          <p className="text-sm text-muted-foreground">{dict.quotations.subtitle.replace('{n}', String(quotations.length))}</p>
         </div>
         <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
           <Plus className="mr-2 h-4 w-4" />
@@ -304,7 +304,7 @@ export default function QuotationsPage() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {q.items.length > 0
-                        ? `${q.items[0].product.name}${q.items.length > 1 ? ` 等 ${q.items.length} 項` : ''}`
+                        ? `${q.items[0].product.name}${q.items.length > 1 ? ` ${dict.common.etcItems} ${q.items.length} ${dict.common.pieces}` : ''}`
                         : '—'}
                     </TableCell>
                     <TableCell className="text-right font-medium">{formatCurrency(q.totalAmount)}</TableCell>
@@ -327,19 +327,19 @@ export default function QuotationsPage() {
                           {q.status === 'DRAFT' && (
                             <DropdownMenuItem onClick={() => updateStatus(q.id, 'SENT')}>
                               <Send className="mr-2 h-4 w-4" />
-                              標記{dict.quotations.statuses.SENT}
+                              {dict.quotations.markAs}{dict.quotations.statuses.SENT}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'SENT' && (
                             <DropdownMenuItem onClick={() => updateStatus(q.id, 'ACCEPTED')}>
                               <CheckCircle2 className="mr-2 h-4 w-4" />
-                              標記{dict.quotations.statuses.ACCEPTED}
+                              {dict.quotations.markAs}{dict.quotations.statuses.ACCEPTED}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'SENT' && (
                             <DropdownMenuItem onClick={() => updateStatus(q.id, 'REJECTED')}>
                               <XCircle className="mr-2 h-4 w-4" />
-                              標記{dict.quotations.statuses.REJECTED}
+                              {dict.quotations.markAs}{dict.quotations.statuses.REJECTED}
                             </DropdownMenuItem>
                           )}
                           {q.status === 'ACCEPTED' && (
@@ -377,7 +377,7 @@ export default function QuotationsPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，{dict.common.pagePrefix} {pagination.page}/{pagination.totalPages} {dict.common.pageSuffix}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}

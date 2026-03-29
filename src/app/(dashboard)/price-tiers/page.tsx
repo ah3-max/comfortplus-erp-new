@@ -221,22 +221,21 @@ export default function PriceTiersPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.priceTiers.title}</h1>
           <p className="text-sm text-muted-foreground">
-            商品 A~J 級定價 · 客戶價格等級 · 特殊定價
+            {dict.priceTiers.subtitle}
           </p>
         </div>
       </div>
 
       {/* Priority info */}
       <div className="rounded-lg border bg-blue-50 border-blue-200 px-4 py-3 text-sm text-blue-700">
-        <strong>應用優先順序：</strong>
-        特殊定價 &gt; 客戶等級價 &gt; 客戶價格表 &gt; 建議售價
+        {dict.priceTiers.priorityInfo}
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="tiers">商品多級定價</TabsTrigger>
-          <TabsTrigger value="levels">客戶價格等級</TabsTrigger>
-          <TabsTrigger value="special">特殊定價</TabsTrigger>
+          <TabsTrigger value="tiers">{dict.priceTiers.tabProductTiers}</TabsTrigger>
+          <TabsTrigger value="levels">{dict.priceTiers.tabCustomerLevels}</TabsTrigger>
+          <TabsTrigger value="special">{dict.priceTiers.tabSpecialPricing}</TabsTrigger>
         </TabsList>
 
         {/* ── Tab 1: Product Price Tiers ── */}
@@ -244,7 +243,7 @@ export default function PriceTiersPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-9" placeholder="搜尋品項..." value={search} onChange={e => setSearch(e.target.value)} />
+              <Input className="pl-9" placeholder={dict.priceTiers.itemSearchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <Button onClick={saveTiers} disabled={saving || !Object.keys(edits).length}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -256,11 +255,11 @@ export default function PriceTiersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-32 sticky left-0 bg-white">品號</TableHead>
-                  <TableHead className="min-w-[140px] sticky left-32 bg-white">品名</TableHead>
-                  <TableHead className="text-right w-24">建議售價</TableHead>
+                  <TableHead className="w-32 sticky left-0 bg-white">{dict.priceTiers.colSku}</TableHead>
+                  <TableHead className="min-w-[140px] sticky left-32 bg-white">{dict.priceTiers.colProductName}</TableHead>
+                  <TableHead className="text-right w-24">{dict.priceTiers.colSellingPrice}</TableHead>
                   {LEVELS.map(l => (
-                    <TableHead key={l} className="text-right w-24">價格{l}</TableHead>
+                    <TableHead key={l} className="text-right w-24">{dict.priceTiers.priceLevel}{l}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -313,10 +312,10 @@ export default function PriceTiersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>客戶</TableHead>
-                  <TableHead>類型</TableHead>
-                  <TableHead className="w-40">價格等級</TableHead>
-                  <TableHead>備註</TableHead>
+                  <TableHead>{dict.priceTiers.colCustomer}</TableHead>
+                  <TableHead>{dict.common.type}</TableHead>
+                  <TableHead className="w-40">{dict.priceTiers.tabCustomerLevels}</TableHead>
+                  <TableHead>{dict.common.notes}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -375,12 +374,12 @@ export default function PriceTiersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>客戶</TableHead>
-                  <TableHead>品項</TableHead>
-                  <TableHead className="text-right">特殊價格</TableHead>
-                  <TableHead>生效日</TableHead>
-                  <TableHead>到期日</TableHead>
-                  <TableHead>備註</TableHead>
+                  <TableHead>{dict.priceTiers.colCustomer}</TableHead>
+                  <TableHead>{dict.priceTiers.colProduct}</TableHead>
+                  <TableHead className="text-right">{dict.priceTiers.colSpecialPrice}</TableHead>
+                  <TableHead>{dict.priceTiers.colEffectiveDate}</TableHead>
+                  <TableHead>{dict.priceTiers.colExpiryDate}</TableHead>
+                  <TableHead>{dict.common.notes}</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
@@ -405,7 +404,7 @@ export default function PriceTiersPage() {
                     </TableCell>
                     <TableCell className="text-right font-bold text-blue-700">${fmt(sp.price)}</TableCell>
                     <TableCell className="text-sm">{new Date(sp.effectiveDate).toLocaleDateString('zh-TW')}</TableCell>
-                    <TableCell className="text-sm">{sp.expiryDate ? new Date(sp.expiryDate).toLocaleDateString('zh-TW') : '永久'}</TableCell>
+                    <TableCell className="text-sm">{sp.expiryDate ? new Date(sp.expiryDate).toLocaleDateString('zh-TW') : dict.priceTiers.neverExpires}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{sp.notes ?? '—'}</TableCell>
                     <TableCell>
                       <button onClick={() => deleteSpecialPrice(sp.id)} className="rounded p-1 hover:bg-red-50 text-red-500">
@@ -424,47 +423,47 @@ export default function PriceTiersPage() {
       <Dialog open={showSpecialDialog} onOpenChange={setShowSpecialDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{dict.priceTiers.newTier}</DialogTitle>
+            <DialogTitle>{dict.priceTiers.specialPriceDialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium">客戶 *</label>
+              <label className="text-sm font-medium">{dict.priceTiers.colCustomer} *</label>
               <select
                 className="w-full rounded-md border px-3 py-2 text-sm"
                 value={spForm.customerId}
                 onChange={e => setSpForm(f => ({ ...f, customerId: e.target.value }))}
               >
-                <option value="">選擇客戶...</option>
+                <option value="">{dict.priceTiers.selectCustomerPlaceholder}</option>
                 {customers.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">品項 *</label>
+              <label className="text-sm font-medium">{dict.priceTiers.colProduct} *</label>
               <select
                 className="w-full rounded-md border px-3 py-2 text-sm"
                 value={spForm.productId}
                 onChange={e => setSpForm(f => ({ ...f, productId: e.target.value }))}
               >
-                <option value="">選擇品項...</option>
-                {allProducts.map(p => <option key={p.id} value={p.id}>{p.name} (建議售價 ${fmt(p.sellingPrice)})</option>)}
+                <option value="">{dict.priceTiers.selectProductPlaceholder}</option>
+                {allProducts.map(p => <option key={p.id} value={p.id}>{p.name} ({dict.priceTiers.colSellingPrice} ${fmt(p.sellingPrice)})</option>)}
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">特殊價格 *</label>
+              <label className="text-sm font-medium">{dict.priceTiers.colSpecialPrice} *</label>
               <Input type="number" placeholder="0" value={spForm.price} onChange={e => setSpForm(f => ({ ...f, price: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">生效日</label>
+                <label className="text-sm font-medium">{dict.priceTiers.colEffectiveDate}</label>
                 <Input type="date" value={spForm.effectiveDate} onChange={e => setSpForm(f => ({ ...f, effectiveDate: e.target.value }))} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">到期日</label>
+                <label className="text-sm font-medium">{dict.priceTiers.colExpiryDate}</label>
                 <Input type="date" value={spForm.expiryDate} onChange={e => setSpForm(f => ({ ...f, expiryDate: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">備註</label>
+              <label className="text-sm font-medium">{dict.common.notes}</label>
               <Input placeholder="..." value={spForm.notes} onChange={e => setSpForm(f => ({ ...f, notes: e.target.value }))} />
             </div>
           </div>

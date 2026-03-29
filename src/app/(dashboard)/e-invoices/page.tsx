@@ -187,7 +187,7 @@ export default function EInvoicesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`發票已${label}`); fetchInvoices() }
+    if (res.ok) { toast.success(`${ei.invoiceUpdated}${label}`); fetchInvoices() }
     else toast.error(dict.common.updateFailed)
   }
 
@@ -197,12 +197,12 @@ export default function EInvoicesPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ transmitOnly: true, transmitStatus }),
     })
-    if (res.ok) { toast.success(`發票已${label}`); fetchInvoices() }
+    if (res.ok) { toast.success(`${ei.invoiceUpdated}${label}`); fetchInvoices() }
     else toast.error(dict.common.updateFailed)
   }
 
   async function handleVoid(id: string, no: string) {
-    if (!confirm(`確定要作廢發票 ${no} 嗎？`)) return
+    if (!confirm(ei.confirmVoid.replace('{no}', no))) return
     const res = await fetch(`/api/e-invoices/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.eInvoicesPage.voided); fetchInvoices() }
     else {
@@ -219,11 +219,11 @@ export default function EInvoicesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.eInvoices.title}管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{ei.titleManagement}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : invoices.length} 筆
-            {createdCount > 0 && <span className="ml-2 text-amber-600">{createdCount} 筆待核准</span>}
-            {approvedCount > 0 && <span className="ml-2 text-green-600">{approvedCount} 筆已核准</span>}
+            {dict.common.total} {pagination ? pagination.total : invoices.length} {dict.common.items}
+            {createdCount > 0 && <span className="ml-2 text-amber-600">{createdCount} {ei.pendingApprovalCount}</span>}
+            {approvedCount > 0 && <span className="ml-2 text-green-600">{approvedCount} {ei.approvedCountLabel}</span>}
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -260,10 +260,10 @@ export default function EInvoicesPage() {
               <TableHead className="w-40">{dict.eInvoices.invoiceNo}</TableHead>
               <TableHead>{dict.common.customer}</TableHead>
               <TableHead className="w-20">{dict.common.type}</TableHead>
-              <TableHead className="text-right w-28">稅前</TableHead>
-              <TableHead className="text-right w-28">{dict.eInvoices.totalAmount}</TableHead>
+              <TableHead className="text-right w-28">{ei.subtotalLabel}</TableHead>
+              <TableHead className="text-right w-28">{ei.totalAmount}</TableHead>
               <TableHead className="w-24">{dict.common.status}</TableHead>
-              <TableHead className="w-24">傳送狀態</TableHead>
+              <TableHead className="w-24">{ei.transmitStatusLabel}</TableHead>
               <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -328,19 +328,19 @@ export default function EInvoicesPage() {
                         <DropdownMenuContent align="end" className="w-44">
                           {inv.status === 'CREATED' && (
                             <DropdownMenuItem onClick={() => updateStatus(inv.id, 'APPROVED', ei.statuses.APPROVED)}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />核准發票
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{ei.approveInvoice}
                             </DropdownMenuItem>
                           )}
                           {inv.status === 'APPROVED' && inv.transmitStatus === 'PENDING' && (
                             <DropdownMenuItem onClick={() => updateTransmit(inv.id, 'TRANSMITTED', ei.transmitStatuses.TRANSMITTED)}>
-                              <Send className="mr-2 h-4 w-4" />標記已傳送
+                              <Send className="mr-2 h-4 w-4" />{ei.markTransmitted}
                             </DropdownMenuItem>
                           )}
                           {inv.status !== 'VOIDED' && inv.transmitStatus !== 'TRANSMITTED' && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleVoid(inv.id, inv.invoiceNumber)} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />作廢發票
+                                <XCircle className="mr-2 h-4 w-4" />{ei.voidInvoice}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -406,7 +406,7 @@ export default function EInvoicesPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.common.total} {pagination.total} {dict.common.items}，{pagination.page}/{pagination.totalPages}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -431,10 +431,10 @@ export default function EInvoicesPage() {
           <div className="grid gap-4">
             {/* From Sales Invoice */}
             <div>
-              <Label>來源銷貨單（選填，可自動帶入金額）</Label>
+              <Label>{ei.salesInvoiceSource}</Label>
               <select className="w-full rounded-md border px-3 py-2 text-sm"
                 value={form.salesInvoiceId} onChange={e => onSalesInvoiceSelect(e.target.value)}>
-                <option value="">不選擇</option>
+                <option value="">{ei.noSalesInvoice}</option>
                 {salesInvoices.map(si => <option key={si.id} value={si.id}>{si.invoiceNumber} - {si.customer.name}</option>)}
               </select>
             </div>
@@ -447,16 +447,16 @@ export default function EInvoicesPage() {
                     const c = customers.find(c => c.id === e.target.value)
                     setForm(f => ({ ...f, customerId: e.target.value, customerName: c?.name ?? '' }))
                   }}>
-                  <option value="">選擇客戶</option>
+                  <option value="">{ei.selectCustomerOption}</option>
                   {customers.map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>發票類型 *</Label>
+                <Label>{ei.invoiceTypeLabel} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.invoiceType} onChange={e => setForm(f => ({ ...f, invoiceType: e.target.value }))}>
-                  <option value="B2B">B2B（存證）</option>
-                  <option value="B2C">B2C（存證）</option>
+                  <option value="B2B">{ei.b2bStored}</option>
+                  <option value="B2C">{ei.b2cStored}</option>
                 </select>
               </div>
             </div>
@@ -478,7 +478,7 @@ export default function EInvoicesPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>稅前金額</Label>
+                <Label>{ei.subtotalAmountLabel}</Label>
                 <Input type="number" min={0} value={form.subtotal}
                   onChange={e => {
                     const sub = Number(e.target.value)

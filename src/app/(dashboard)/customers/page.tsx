@@ -143,7 +143,7 @@ export default function CustomersPage() {
   }, [fetchCustomers])
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`確定要停用「${name}」嗎？`)) return
+    if (!confirm(dict.customersExt.deactivateConfirm.replace('{name}', name))) return
     const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.customersExt.deactivate); fetchCustomers() }
     else toast.error(dict.common.error)
@@ -158,8 +158,8 @@ export default function CustomersPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.customers.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {customers.length} 位客戶
-            {closedCount > 0 && <span className="ml-2 text-green-600">{closedCount} 位成交</span>}
+            {dict.customers.subtitle.replace('{n}', String(customers.length))}
+            {closedCount > 0 && <span className="ml-2 text-green-600">{closedCount} {dict.customers.closedLabel}</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -262,7 +262,7 @@ export default function CustomersPage() {
               <TableHead className="w-16">{dict.customers.region}</TableHead>
               <TableHead>{dict.customers.contact}</TableHead>
               <TableHead>{dict.customers.salesRep}</TableHead>
-              <TableHead className="w-16 text-center">紀錄</TableHead>
+              <TableHead className="w-16 text-center">{dict.customersExt.recordsLabel}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -340,7 +340,7 @@ export default function CustomersPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，{dict.common.pagePrefix} {pagination.page}/{pagination.totalPages} {dict.common.pageSuffix}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -362,11 +362,11 @@ export default function CustomersPage() {
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="rounded bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
-              適用於陌生開發、冷電話開發的機構。建立後可在客戶頁面記錄每次聯繫結果。
+              {dict.customersExt.prospectHint}
             </div>
             <div className="space-y-1.5">
               <Label>{dict.customersExt.organizationName} <span className="text-red-500">*</span></Label>
-              <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="例：XX護理之家" />
+              <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder={dict.customersExt.namePlaceholder} />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.customers.phone}</Label>
@@ -379,20 +379,20 @@ export default function CustomersPage() {
                 value={quickRepId}
                 onChange={e => setQuickRepId(e.target.value)}
               >
-                <option value="">-- 不指定 --</option>
+                <option value="">{dict.customersExt.unassignedSales}</option>
                 {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
             <div className="space-y-1.5">
               <Label>{dict.common.notes}</Label>
-              <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder="陌生開發來源、備注..." />
+              <Input value={quickNote} onChange={e => setQuickNote(e.target.value)} placeholder={dict.customersExt.prospectNotes} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setQuickOpen(false)} disabled={quickSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleQuickCreate} disabled={quickSaving}>
               {quickSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              建立並前往記錄
+              {dict.customersExt.createAndGo}
             </Button>
           </DialogFooter>
         </DialogContent>

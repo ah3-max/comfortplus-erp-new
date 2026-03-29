@@ -178,7 +178,7 @@ export default function ExpensesPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>{ex.itemsLabel}</Label>
-                <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />新增</Button>
+                <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}</Button>
               </div>
               {items.map((item, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-end">
@@ -192,10 +192,10 @@ export default function ExpensesPage() {
                     </Select>
                   </div>
                   <div className="col-span-5">
-                    <Input placeholder="說明" value={item.description} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
+                    <Input placeholder={dict.common.description} value={item.description} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
                   </div>
                   <div className="col-span-2">
-                    <Input type="number" placeholder="金額" value={item.amount || ''} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, amount: Number(e.target.value) } : x))} />
+                    <Input type="number" placeholder={dict.common.amount} value={item.amount || ''} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, amount: Number(e.target.value) } : x))} />
                   </div>
                   <div className="col-span-1">
                     <Button variant="ghost" size="sm" className="text-red-500 h-9" onClick={() => setItems(prev => prev.filter((_, j) => j !== i))}>

@@ -24,11 +24,11 @@ interface Announcement {
   createdBy: { name: string }; createdAt: string
 }
 
-const CATS: Record<string, string> = { GENERAL: '一般', POLICY: '制度', IT: '資訊', HR: '人事', URGENT: '緊急' }
 const PRIO_COLOR: Record<string, string> = { LOW: 'bg-slate-100 text-slate-600', NORMAL: 'bg-blue-100 text-blue-700', HIGH: 'bg-orange-100 text-orange-700', URGENT: 'bg-red-100 text-red-700' }
 
 export default function AnnouncementsPage() {
   const { dict } = useI18n()
+  const ann = dict.announcements
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const isAdmin = ['SUPER_ADMIN', 'GM'].includes(role)
@@ -56,7 +56,7 @@ export default function AnnouncementsPage() {
       body: JSON.stringify({ ...form, isPublished: true, expiresAt: form.expiresAt || null }),
     })
     setSaving(false)
-    if (res.ok) { toast.success(dict.announcements.title); setDialog(false); load() }
+    if (res.ok) { toast.success(ann.publish); setDialog(false); load() }
     else toast.error(dict.common.saveFailed)
   }
 
@@ -80,7 +80,7 @@ export default function AnnouncementsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.announcements.title}</h1>
-          <p className="text-sm text-muted-foreground">公司公告與政策通知</p>
+          <p className="text-sm text-muted-foreground">{ann.subtitle}</p>
         </div>
         {isAdmin && (
           <Button onClick={() => { setForm({ title: '', content: '', category: 'GENERAL', priority: 'NORMAL', isPinned: false, expiresAt: '' }); setDialog(true) }}>
@@ -103,7 +103,7 @@ export default function AnnouncementsPage() {
                     {a.isPinned && <Pin className="h-4 w-4 text-amber-500" />}
                     <CardTitle className="text-base">{a.title}</CardTitle>
                     <Badge variant="outline" className={PRIO_COLOR[a.priority] ?? ''}>{a.priority}</Badge>
-                    <Badge variant="outline">{CATS[a.category] ?? a.category}</Badge>
+                    <Badge variant="outline">{(ann.categories as Record<string, string>)[a.category] ?? a.category}</Badge>
                   </div>
                   {isAdmin && (
                     <div className="flex items-center gap-1">
@@ -122,7 +122,7 @@ export default function AnnouncementsPage() {
                 <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                   <span>{a.createdBy.name}</span>
                   <span>{new Date(a.createdAt).toLocaleDateString('zh-TW')}</span>
-                  {!a.isPublished && <Badge variant="outline" className="bg-slate-100 text-xs">未發佈</Badge>}
+                  {!a.isPublished && <Badge variant="outline" className="bg-slate-100 text-xs">{ann.unpublished}</Badge>}
                 </div>
               </CardContent>
             </Card>
@@ -144,16 +144,16 @@ export default function AnnouncementsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>分類</Label>
+                <Label>{ann.categoryLabel}</Label>
                 <Select value={form.category} onValueChange={(v: string | null) => setForm(f => ({ ...f, category: v ?? 'GENERAL' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(CATS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                    {Object.entries(ann.categories).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>優先級</Label>
+                <Label>{ann.priorityLabel}</Label>
                 <Select value={form.priority} onValueChange={(v: string | null) => setForm(f => ({ ...f, priority: v ?? 'NORMAL' }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -170,7 +170,7 @@ export default function AnnouncementsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={saving || !form.title || !form.content}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}發佈
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{ann.publish}
             </Button>
           </DialogFooter>
         </DialogContent>

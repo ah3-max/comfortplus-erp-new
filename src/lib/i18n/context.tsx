@@ -7,7 +7,7 @@ import th from './locales/th'
 
 export type Locale = 'zh-TW' | 'en' | 'th'
 // Deep string record type for dictionaries
-type DeepStringRecord = { [key: string]: string | DeepStringRecord }
+type DeepStringRecord = { [key: string]: string | DeepStringRecord | readonly string[] }
 export type Dictionary = typeof zhTW
 
 const dictionaries: Record<Locale, DeepStringRecord> = { 'zh-TW': zhTW, en, th }

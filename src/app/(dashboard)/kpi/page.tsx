@@ -27,9 +27,9 @@ interface SalesTargetData {
 
 const fmt = (n: number) => new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(n)
 
-function getMonthLabel(m: string) {
+function getMonthLabel(m: string, yearSuffix: string, monthSuffix: string) {
   const [y, mo] = m.split('-')
-  return `${y}年${mo}月`
+  return `${y}${yearSuffix}${mo}${monthSuffix}`
 }
 
 export default function KpiPage() {
@@ -129,7 +129,7 @@ export default function KpiPage() {
           <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-slate-100 active:scale-95">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="text-sm font-medium min-w-[100px] text-center">{getMonthLabel(month)}</span>
+          <span className="text-sm font-medium min-w-[100px] text-center">{getMonthLabel(month, dict.kpi.yearSuffix, dict.kpi.monthSuffix)}</span>
           <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-slate-100 active:scale-95">
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -243,7 +243,7 @@ export default function KpiPage() {
       <Dialog open={editOpen} onOpenChange={o => !o && setEditOpen(false)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{dict.kpi.setTargetFor} {editUser?.user?.name} — {getMonthLabel(month)}</DialogTitle>
+            <DialogTitle>{dict.kpi.setTargetFor} {editUser?.user?.name} — {getMonthLabel(month, dict.kpi.yearSuffix, dict.kpi.monthSuffix)}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -298,7 +298,7 @@ export default function KpiPage() {
       }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{getMonthLabel(month)} — {dict.kpi.batchSetTargets}</DialogTitle>
+            <DialogTitle>{getMonthLabel(month, dict.kpi.yearSuffix, dict.kpi.monthSuffix)} — {dict.kpi.batchSetTargets}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-xs text-muted-foreground">
@@ -347,7 +347,7 @@ export default function KpiPage() {
                     }))} />
                 </div>
                 <div>
-                  <Label className="sm:hidden text-xs text-muted-foreground">新客戶</Label>
+                  <Label className="sm:hidden text-xs text-muted-foreground">{dict.kpi.newCustomerCount}</Label>
                   <Input type="number" placeholder="—"
                     value={batchForm[item.userId]?.newCustomers ?? ''}
                     onChange={e => setBatchForm(f => ({

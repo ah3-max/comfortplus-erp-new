@@ -217,7 +217,7 @@ export default function ProductionReceiptsPage() {
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消入庫單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.common.confirm}: ${no}`)) return
     const res = await fetch(`/api/production-receipts/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.productionReceiptsPage.cancelSuccess); fetchReceipts() }
     else {
@@ -254,11 +254,11 @@ export default function ProductionReceiptsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.productionReceipts.title}管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{dict.productionReceipts.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination ? pagination.total : receipts.length} 筆
-            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} 筆草稿</span>}
-            {confirmedCount > 0 && <span className="ml-2 text-blue-600">{confirmedCount} 筆已確認</span>}
+            {dict.common.total}: {pagination ? pagination.total : receipts.length}
+            {draftCount > 0 && <span className="ml-2 text-amber-600">{draftCount} {dict.productionReceipts.statuses.DRAFT}</span>}
+            {confirmedCount > 0 && <span className="ml-2 text-blue-600">{confirmedCount} {dict.productionReceipts.statuses.CONFIRMED}</span>}
           </p>
         </div>
         <Button onClick={openCreate}>
@@ -293,11 +293,11 @@ export default function ProductionReceiptsPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-40">{dict.productionReceipts.receiptNo}</TableHead>
-              <TableHead>工廠</TableHead>
-              <TableHead>收貨倉</TableHead>
+              <TableHead>{dict.productionReceipts.factory}</TableHead>
+              <TableHead>{dict.productionReceipts.receivingWarehouse}</TableHead>
               <TableHead>{dict.productionReceipts.productionOrder}</TableHead>
               <TableHead className="w-24">{dict.common.status}</TableHead>
-              <TableHead className="w-20 text-center">品項數</TableHead>
+              <TableHead className="w-20 text-center">{dict.productionReceipts.itemCount}</TableHead>
               <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -350,24 +350,24 @@ export default function ProductionReceiptsPage() {
                         <DropdownMenuContent align="end" className="w-44">
                           {rcpt.status === 'DRAFT' && (
                             <DropdownMenuItem onClick={() => openEdit(rcpt)}>
-                              <Pencil className="mr-2 h-4 w-4" />編輯
+                              <Pencil className="mr-2 h-4 w-4" />{dict.common.edit}
                             </DropdownMenuItem>
                           )}
                           {rcpt.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={() => updateStatus(rcpt.id, 'CONFIRMED', '確認')}>
-                              <CheckCircle2 className="mr-2 h-4 w-4" />確認入庫單
+                            <DropdownMenuItem onClick={() => updateStatus(rcpt.id, 'CONFIRMED', dict.productionReceipts.statuses.CONFIRMED)}>
+                              <CheckCircle2 className="mr-2 h-4 w-4" />{dict.productionReceipts.confirmReceipt}
                             </DropdownMenuItem>
                           )}
                           {rcpt.status === 'CONFIRMED' && (
-                            <DropdownMenuItem onClick={() => updateStatus(rcpt.id, 'RECEIVED', '入庫')}>
-                              <PackageCheck className="mr-2 h-4 w-4" />標記已入庫
+                            <DropdownMenuItem onClick={() => updateStatus(rcpt.id, 'RECEIVED', dict.productionReceipts.statuses.RECEIVED)}>
+                              <PackageCheck className="mr-2 h-4 w-4" />{dict.productionReceipts.markReceived}
                             </DropdownMenuItem>
                           )}
                           {!['RECEIVED', 'CANCELLED'].includes(rcpt.status) && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleCancel(rcpt.id, rcpt.receiptNumber)} variant="destructive">
-                                <XCircle className="mr-2 h-4 w-4" />取消入庫單
+                                <XCircle className="mr-2 h-4 w-4" />{dict.productionReceipts.cancelReceipt}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -413,11 +413,11 @@ export default function ProductionReceiptsPage() {
                   <span className="text-xs text-muted-foreground">{formatDate(rcpt.createdAt)}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  收貨倉：{rcpt.receivingWarehouse.name}
-                  {rcpt.productionOrder && ` | 工單：${rcpt.productionOrder.productionNo}`}
+                  {dict.productionReceipts.receivingWarehouse}：{rcpt.receivingWarehouse.name}
+                  {rcpt.productionOrder && ` | ${dict.productionReceipts.productionOrder}：${rcpt.productionOrder.productionNo}`}
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{rcpt.items.length} 項品項</span>
+                  <span className="text-muted-foreground">{rcpt.items.length} {dict.productionReceipts.itemsLabel}</span>
                   <span className="text-muted-foreground">{rcpt.handler.name}</span>
                 </div>
               </div>
@@ -430,7 +430,7 @@ export default function ProductionReceiptsPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
           <p className="text-sm text-muted-foreground">
-            共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁
+            {pagination.total} {dict.common.items}，{pagination.page}/{pagination.totalPages}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1}
@@ -456,18 +456,18 @@ export default function ProductionReceiptsPage() {
             {/* Header Fields */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>工廠 *</Label>
+                <Label>{dict.productionReceipts.factory} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.factoryId} onChange={e => setForm(f => ({ ...f, factoryId: e.target.value }))}>
-                  <option value="">選擇工廠</option>
+                  <option value="">{dict.productionReceipts.selectFactory}</option>
                   {suppliers.map(s => <option key={s.id} value={s.id}>{s.code} - {s.name}</option>)}
                 </select>
               </div>
               <div>
-                <Label>收貨倉庫 *</Label>
+                <Label>{dict.productionReceipts.receivingWarehouse} *</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.receivingWarehouseId} onChange={e => setForm(f => ({ ...f, receivingWarehouseId: e.target.value }))}>
-                  <option value="">選擇收貨倉庫</option>
+                  <option value="">{dict.productionReceipts.selectReceivingWarehouse}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.code} - {w.name}</option>)}
                 </select>
               </div>
@@ -483,7 +483,7 @@ export default function ProductionReceiptsPage() {
                 <Label>{dict.productionReceipts.productionOrder}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.productionOrderId} onChange={e => setForm(f => ({ ...f, productionOrderId: e.target.value }))}>
-                  <option value="">選擇生產工單 (選填)</option>
+                  <option value="">{dict.productionReceipts.selectProductionOrder}</option>
                   {productionOrders.map(po => <option key={po.id} value={po.id}>{po.productionNo}</option>)}
                 </select>
               </div>
@@ -491,7 +491,7 @@ export default function ProductionReceiptsPage() {
                 <Label>{dict.materialRequisitions.requester}</Label>
                 <select className="w-full rounded-md border px-3 py-2 text-sm"
                   value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
-                  <option value="">選擇承辦人</option>
+                  <option value="">{dict.productionReceipts.selectHandler}</option>
                   {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
@@ -503,17 +503,17 @@ export default function ProductionReceiptsPage() {
                 <Label className="text-base font-semibold">{dict.materialRequisitions.items}</Label>
                 <Button variant="outline" size="sm"
                   onClick={() => setForm(f => ({ ...f, items: [...f.items, { ...emptyItem }] }))}>
-                  <Plus className="mr-1 h-3 w-3" />新增品項
+                  <Plus className="mr-1 h-3 w-3" />{dict.productionReceipts.addItem}
                 </Button>
               </div>
               <div className="space-y-3">
                 {form.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3 bg-slate-50">
                     <div className="col-span-12 md:col-span-4">
-                      <Label className="text-xs">品項</Label>
+                      <Label className="text-xs">{dict.common.product}</Label>
                       <select className="w-full rounded-md border px-2 py-1.5 text-sm"
                         value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
-                        <option value="">選擇品項</option>
+                        <option value="">{dict.common.select}</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
                       </select>
                     </div>
@@ -523,7 +523,7 @@ export default function ProductionReceiptsPage() {
                         onChange={e => updateItem(idx, 'quantity', Number(e.target.value))} />
                     </div>
                     <div className="col-span-4 md:col-span-2">
-                      <Label className="text-xs">BOM版本</Label>
+                      <Label className="text-xs">{dict.productionReceipts.bomVersion}</Label>
                       <Input value={item.bomVersion}
                         onChange={e => updateItem(idx, 'bomVersion', e.target.value)} />
                     </div>

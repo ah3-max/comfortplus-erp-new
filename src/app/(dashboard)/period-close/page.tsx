@@ -39,13 +39,6 @@ const STATUS_COLORS: Record<string, string> = {
   LOCKED: 'bg-gray-100 text-gray-700',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: '開放',
-  CLOSING: '結帳中',
-  CLOSED: '已結帳',
-  LOCKED: '鎖定',
-}
-
 interface FormState {
   periodType: string
   year: string
@@ -68,6 +61,13 @@ export default function PeriodClosePage() {
   const [showNewDialog, setShowNewDialog] = useState(false)
   const [confirmAction, setConfirmAction] = useState<{ id: string; action: string; label: string; code: string } | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
+
+  const STATUS_LABELS: Record<string, string> = {
+    OPEN: dict.periodClose.statusLabels.OPEN,
+    CLOSING: dict.periodClose.statusLabels.CLOSING,
+    CLOSED: dict.periodClose.statusLabels.CLOSED,
+    LOCKED: dict.periodClose.statusLabels.LOCKED,
+  }
 
   const [form, setForm] = useState<FormState>({
     periodType: 'MONTHLY',
@@ -150,7 +150,7 @@ export default function PeriodClosePage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? dict.common.operationFailed); return }
-      toast.success(`${confirmAction.label}成功`)
+      toast.success(`${confirmAction.label}${dict.common.success}`)
       setConfirmAction(null)
       fetchPeriods()
     } finally {
@@ -166,7 +166,7 @@ export default function PeriodClosePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-bold">{dict.nav.periodClose}</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">管理會計期間開放、結帳與鎖定狀態</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{dict.periodClose.subtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchPeriods}>
@@ -174,7 +174,7 @@ export default function PeriodClosePage() {
           </Button>
           {canManage && (
             <Button size="sm" onClick={() => setShowNewDialog(true)}>
-              <Plus className="w-4 h-4 mr-1" />新增期間
+              <Plus className="w-4 h-4 mr-1" />{dict.periodClose.addPeriod}
             </Button>
           )}
         </div>
@@ -187,18 +187,18 @@ export default function PeriodClosePage() {
           </SelectTrigger>
           <SelectContent>
             {yearOptions.map(y => (
-              <SelectItem key={y} value={String(y)}>{y} 年</SelectItem>
+              <SelectItem key={y} value={String(y)}>{y} {dict.periodClose.filterYear}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">載入中...</div>
+        <div className="text-center py-12 text-muted-foreground">{dict.periodClose.loading}</div>
       ) : periods.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>尚無會計期間，請新增</p>
+          <p>{dict.periodClose.empty}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -211,53 +211,53 @@ export default function PeriodClosePage() {
                     {STATUS_LABELS[p.status]}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
-                    {p.periodType === 'MONTHLY' ? '月結' : p.periodType === 'QUARTERLY' ? '季結' : '年結'}
+                    {p.periodType === 'MONTHLY' ? dict.periodClose.typeMonth : p.periodType === 'QUARTERLY' ? dict.periodClose.typeQuarter : dict.periodClose.typeYear}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {canManage && p.status === 'OPEN' && (
                     <Button size="sm" variant="outline"
-                      onClick={() => setConfirmAction({ id: p.id, action: 'START_CLOSING', label: '開始結帳', code: p.periodCode })}>
-                      <RefreshCw className="w-3 h-3 mr-1" />開始結帳
+                      onClick={() => setConfirmAction({ id: p.id, action: 'START_CLOSING', label: dict.periodClose.actionStartClose, code: p.periodCode })}>
+                      <RefreshCw className="w-3 h-3 mr-1" />{dict.periodClose.actionStartClose}
                     </Button>
                   )}
                   {canManage && (p.status === 'OPEN' || p.status === 'CLOSING') && (
                     <Button size="sm" variant="default"
-                      onClick={() => setConfirmAction({ id: p.id, action: 'CLOSE', label: '執行結帳', code: p.periodCode })}>
-                      <CheckCircle2 className="w-3 h-3 mr-1" />執行結帳
+                      onClick={() => setConfirmAction({ id: p.id, action: 'CLOSE', label: dict.periodClose.actionExecuteClose, code: p.periodCode })}>
+                      <CheckCircle2 className="w-3 h-3 mr-1" />{dict.periodClose.actionExecuteClose}
                     </Button>
                   )}
                   {canManage && p.status === 'CLOSED' && (
                     <>
                       <Button size="sm" variant="outline"
-                        onClick={() => setConfirmAction({ id: p.id, action: 'REOPEN', label: '重新開啟', code: p.periodCode })}>
-                        <Unlock className="w-3 h-3 mr-1" />重新開啟
+                        onClick={() => setConfirmAction({ id: p.id, action: 'REOPEN', label: dict.periodClose.actionReopen, code: p.periodCode })}>
+                        <Unlock className="w-3 h-3 mr-1" />{dict.periodClose.actionReopen}
                       </Button>
                       <Button size="sm" variant="destructive"
-                        onClick={() => setConfirmAction({ id: p.id, action: 'LOCK', label: '鎖定期間', code: p.periodCode })}>
-                        <Lock className="w-3 h-3 mr-1" />鎖定
+                        onClick={() => setConfirmAction({ id: p.id, action: 'LOCK', label: dict.periodClose.actionLock, code: p.periodCode })}>
+                        <Lock className="w-3 h-3 mr-1" />{dict.periodClose.actionLock}
                       </Button>
                     </>
                   )}
                   {p.status === 'LOCKED' && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Lock className="w-3 h-3" />已鎖定
+                      <Lock className="w-3 h-3" />{dict.periodClose.actionLocked}
                     </span>
                   )}
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground">
-                <div><span className="font-medium text-foreground">期間：</span>
+                <div><span className="font-medium text-foreground">{dict.periodClose.detailPeriod}：</span>
                   {p.startDate.slice(0, 10)} ~ {p.endDate.slice(0, 10)}
                 </div>
-                <div><span className="font-medium text-foreground">傳票數：</span>{p._count.journalEntries}</div>
+                <div><span className="font-medium text-foreground">{dict.periodClose.detailVouchers}：</span>{p._count.journalEntries}</div>
                 {p.closedAt && (
-                  <div><span className="font-medium text-foreground">結帳：</span>
+                  <div><span className="font-medium text-foreground">{dict.periodClose.detailClosed}：</span>
                     {new Date(p.closedAt).toLocaleDateString('zh-TW')} ({p.closedBy?.name})
                   </div>
                 )}
                 {p.lockedAt && (
-                  <div><span className="font-medium text-foreground">鎖定：</span>
+                  <div><span className="font-medium text-foreground">{dict.periodClose.detailLocked}：</span>
                     {new Date(p.lockedAt).toLocaleDateString('zh-TW')} ({p.lockedBy?.name})
                   </div>
                 )}
@@ -272,23 +272,23 @@ export default function PeriodClosePage() {
       <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>新增會計期間</DialogTitle>
+            <DialogTitle>{dict.periodClose.createTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>期間類型</Label>
+                <Label>{dict.periodClose.fieldType}</Label>
                 <Select value={form.periodType} onValueChange={(v) => { if (v) setField('periodType', v) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MONTHLY">月結</SelectItem>
-                    <SelectItem value="QUARTERLY">季結</SelectItem>
-                    <SelectItem value="ANNUAL">年結</SelectItem>
+                    <SelectItem value="MONTHLY">{dict.periodClose.typeMonth}</SelectItem>
+                    <SelectItem value="QUARTERLY">{dict.periodClose.typeQuarter}</SelectItem>
+                    <SelectItem value="ANNUAL">{dict.periodClose.typeYear}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>年度</Label>
+                <Label>{dict.periodClose.fieldYear}</Label>
                 <Select value={form.year} onValueChange={(v) => { if (v) setField('year', v) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -299,12 +299,12 @@ export default function PeriodClosePage() {
             </div>
             {form.periodType === 'MONTHLY' && (
               <div>
-                <Label>月份</Label>
+                <Label>{dict.periodClose.fieldMonth}</Label>
                 <Select value={form.month} onValueChange={(v) => { if (v) setField('month', v) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                      <SelectItem key={m} value={String(m)}>{m} 月</SelectItem>
+                      <SelectItem key={m} value={String(m)}>{m}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -312,7 +312,7 @@ export default function PeriodClosePage() {
             )}
             {form.periodType === 'QUARTERLY' && (
               <div>
-                <Label>季別</Label>
+                <Label>{dict.periodClose.fieldQuarter}</Label>
                 <Select value={form.quarter} onValueChange={(v) => { if (v) setField('quarter', v) }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -323,23 +323,23 @@ export default function PeriodClosePage() {
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>起始日</Label>
+                <Label>{dict.periodClose.fieldStartDate}</Label>
                 <Input type="date" value={form.startDate} onChange={e => setField('startDate', e.target.value)} />
               </div>
               <div>
-                <Label>截止日</Label>
+                <Label>{dict.periodClose.fieldEndDate}</Label>
                 <Input type="date" value={form.endDate} onChange={e => setField('endDate', e.target.value)} />
               </div>
             </div>
             <div>
-              <Label>備註</Label>
-              <Input value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder="選填" />
+              <Label>{dict.periodClose.fieldNotes}</Label>
+              <Input value={form.notes} onChange={e => setField('notes', e.target.value)} placeholder={dict.common.optional} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewDialog(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setShowNewDialog(false)}>{dict.common.cancel}</Button>
             <Button onClick={handleCreate} disabled={actionLoading}>
-              {actionLoading ? '建立中...' : '建立'}
+              {actionLoading ? dict.periodClose.creating : dict.periodClose.btnCreate}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -351,19 +351,18 @@ export default function PeriodClosePage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              確認{confirmAction?.label}
+              {dict.common.confirm}{confirmAction?.label}
             </DialogTitle>
           </DialogHeader>
           <div className="py-2 text-sm text-muted-foreground">
-            即將對期間 <strong className="text-foreground">{confirmAction?.code}</strong> 執行「{confirmAction?.label}」操作。
-            {confirmAction?.action === 'LOCK' && ' 鎖定後將無法再異動此期間的任何資料。'}
-            {confirmAction?.action === 'CLOSE' && ' 結帳後此期間將不再接受新傳票建立。'}
+            {confirmAction?.code} — {confirmAction?.label}
+            {confirmAction?.action === 'LOCK' && ` ${dict.periodClose.actionLocked}`}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmAction(null)} disabled={actionLoading}>取消</Button>
+            <Button variant="outline" onClick={() => setConfirmAction(null)} disabled={actionLoading}>{dict.common.cancel}</Button>
             <Button onClick={executeAction} disabled={actionLoading}
               variant={confirmAction?.action === 'LOCK' ? 'destructive' : 'default'}>
-              {actionLoading ? '執行中...' : `確認${confirmAction?.label ?? ''}`}
+              {actionLoading ? dict.periodClose.executing : `${dict.common.confirm}${confirmAction?.label ?? ''}`}
             </Button>
           </DialogFooter>
         </DialogContent>

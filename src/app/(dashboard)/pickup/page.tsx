@@ -159,7 +159,7 @@ export default function PickupListPage() {
 
                     {/* Row 3: Meta */}
                     <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                      <span>{p.pickedBy.name} · {p.warehouse === 'MARKETING' ? '中和行銷倉' : '龜山大倉'}</span>
+                      <span>{p.pickedBy.name} · {p.warehouse === 'MARKETING' ? dict.pickup.warehouseMarketing : dict.pickup.warehouseMain}</span>
                       <span>{new Date(p.createdAt).toLocaleDateString('zh-TW')}</span>
                     </div>
                   </CardContent>

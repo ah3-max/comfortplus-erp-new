@@ -452,7 +452,7 @@ export default function SalesOpportunitiesPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{d.title}</h1>
           <p className="text-sm text-muted-foreground">
-            {activeOpps.length} {d.noOpportunities !== '暫無商機資料' ? 'active' : '個進行中商機'} · {d.weightedValue} ${formatCurrency(weightedValue)}
+            {activeOpps.length} {d.activeOppsLabel} · {d.weightedValue} ${formatCurrency(weightedValue)}
           </p>
         </div>
         <Button onClick={openCreate}>

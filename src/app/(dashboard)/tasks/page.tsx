@@ -39,28 +39,25 @@ interface Task {
 interface User { id: string; name: string }
 interface Customer { id: string; name: string; code: string }
 
-const TASK_TYPES: Record<string, string> = {
-  VISIT: '客戶拜訪',
-  CALL: '電話聯繫',
-  FOLLOW_UP: '跟進客戶',
-  PROPOSAL: '提案報價',
-  DEMO: '產品展示',
-  ADMIN: '行政作業',
-  OTHER: '其他',
+const PRIORITY_COLORS: Record<string, string> = {
+  URGENT: 'bg-red-100 text-red-700 border-red-200',
+  HIGH:   'bg-orange-100 text-orange-700 border-orange-200',
+  MEDIUM: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  LOW:    'bg-slate-100 text-slate-600 border-slate-200',
 }
 
-const PRIORITIES: Record<string, { label: string; color: string }> = {
-  URGENT: { label: '緊急', color: 'bg-red-100 text-red-700 border-red-200' },
-  HIGH:   { label: '高',   color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  MEDIUM: { label: '中',   color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  LOW:    { label: '低',   color: 'bg-slate-100 text-slate-600 border-slate-200' },
+const STATUS_ICONS: Record<string, React.ReactNode> = {
+  PENDING:     <Circle className="h-4 w-4 text-slate-400" />,
+  IN_PROGRESS: <Clock className="h-4 w-4 text-blue-500" />,
+  DONE:        <CheckCircle2 className="h-4 w-4 text-green-500" />,
+  CANCELLED:   <AlertTriangle className="h-4 w-4 text-slate-400" />,
 }
 
-const STATUSES: Record<string, { label: string; icon: React.ReactNode; col: string }> = {
-  PENDING:     { label: '待辦',   icon: <Circle className="h-4 w-4 text-slate-400" />,        col: 'bg-slate-50' },
-  IN_PROGRESS: { label: '進行中', icon: <Clock className="h-4 w-4 text-blue-500" />,          col: 'bg-blue-50' },
-  DONE:        { label: '已完成', icon: <CheckCircle2 className="h-4 w-4 text-green-500" />,  col: 'bg-green-50' },
-  CANCELLED:   { label: '已取消', icon: <AlertTriangle className="h-4 w-4 text-slate-400" />, col: 'bg-slate-50' },
+const STATUS_COL_BG: Record<string, string> = {
+  PENDING:     'bg-slate-50',
+  IN_PROGRESS: 'bg-blue-50',
+  DONE:        'bg-green-50',
+  CANCELLED:   'bg-slate-50',
 }
 
 const KANBAN_COLS = ['PENDING', 'IN_PROGRESS', 'DONE']
@@ -74,6 +71,14 @@ type QuickTab = 'today' | 'week' | 'overdue' | 'done' | 'all'
 
 export default function TasksPage() {
   const { dict } = useI18n()
+  const te = dict.tasksExt
+  const TASK_TYPES = dict.tasks.taskTypes as Record<string, string>
+  const PRIORITIES: Record<string, { label: string; color: string }> = Object.fromEntries(
+    Object.entries(dict.tasks.priorities).map(([k, label]) => [k, { label, color: PRIORITY_COLORS[k] ?? '' }])
+  )
+  const STATUSES: Record<string, { label: string; icon: React.ReactNode; col: string }> = Object.fromEntries(
+    Object.entries(dict.tasks.statuses).map(([k, label]) => [k, { label, icon: STATUS_ICONS[k], col: STATUS_COL_BG[k] ?? '' }])
+  )
   const [tasks, setTasks]         = useState<Task[]>([])
   const [users, setUsers]         = useState<User[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -148,11 +153,11 @@ export default function TasksPage() {
   const doneCount    = tasks.filter(t => t.status === 'DONE' || t.status === 'CANCELLED').length
 
   const QUICK_TABS: { key: QuickTab; label: string; icon: React.ReactNode; count: number; urgentColor?: boolean }[] = [
-    { key: 'today',   label: '今日到期',  icon: <CalendarDays className="h-3.5 w-3.5" />,  count: todayCount,   urgentColor: todayCount > 0 },
-    { key: 'week',    label: '本週到期',  icon: <Timer className="h-3.5 w-3.5" />,          count: weekCount },
-    { key: 'overdue', label: '逾期待辦',  icon: <AlertTriangle className="h-3.5 w-3.5" />,  count: overdueCount, urgentColor: overdueCount > 0 },
-    { key: 'done',    label: dict.tasks.statuses.DONE,    icon: <CalendarCheck className="h-3.5 w-3.5" />,  count: doneCount },
-    { key: 'all',     label: dict.common.all,      icon: <ListTodo className="h-3.5 w-3.5" />,        count: tasks.length },
+    { key: 'today',   label: te.todayDue,             icon: <CalendarDays className="h-3.5 w-3.5" />,  count: todayCount,   urgentColor: todayCount > 0 },
+    { key: 'week',    label: te.weekDue,               icon: <Timer className="h-3.5 w-3.5" />,          count: weekCount },
+    { key: 'overdue', label: te.overduePending,        icon: <AlertTriangle className="h-3.5 w-3.5" />,  count: overdueCount, urgentColor: overdueCount > 0 },
+    { key: 'done',    label: dict.tasks.statuses.DONE, icon: <CalendarCheck className="h-3.5 w-3.5" />,  count: doneCount },
+    { key: 'all',     label: dict.common.all,          icon: <ListTodo className="h-3.5 w-3.5" />,        count: tasks.length },
   ]
 
   function openNew() {
@@ -195,7 +200,7 @@ export default function TasksPage() {
   }
 
   async function deleteTask(id: string) {
-    if (!confirm('確定刪除此工作？')) return
+    if (!confirm(te.deleteConfirm)) return
     await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
     load()
   }
@@ -256,7 +261,7 @@ export default function TasksPage() {
           <div className="space-y-4 py-2">
             <div>
               <Label>{dict.common.name} *</Label>
-              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="工作標題" />
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder={te.titlePlaceholder} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -271,7 +276,7 @@ export default function TasksPage() {
                 </Select>
               </div>
               <div>
-                <Label>優先級</Label>
+                <Label>{te.priorityLabel}</Label>
                 <Select value={form.priority} onValueChange={v => setForm(f => ({ ...f, priority: v ?? 'MEDIUM' }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -307,7 +312,7 @@ export default function TasksPage() {
               >
                 <SelectTrigger><SelectValue placeholder={dict.common.select + dict.common.customer} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">— 無 —</SelectItem>
+                  <SelectItem value="_none">{te.noCustomer}</SelectItem>
                   {customers.map(c => (
                     <SelectItem key={c.id} value={c.id}>[{c.code}] {c.name}</SelectItem>
                   ))}
@@ -331,11 +336,11 @@ export default function TasksPage() {
             </div>
             <div>
               <Label>{dict.common.description}</Label>
-              <Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="描述工作內容…" />
+              <Textarea rows={3} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder={te.descriptionPlaceholder} />
             </div>
             <div>
               <Label>{dict.common.notes}</Label>
-              <Textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="備註…" />
+              <Textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder={dict.common.optional} />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
@@ -348,9 +353,9 @@ export default function TasksPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={filterPriority || '_all'} onValueChange={v => setFilterPriority(v === '_all' ? '' : (v ?? ''))}>
-          <SelectTrigger className="w-32"><SelectValue placeholder="全部優先級" /></SelectTrigger>
+          <SelectTrigger className="w-32"><SelectValue placeholder={te.allPriority} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="_all">{dict.common.all}優先級</SelectItem>
+            <SelectItem value="_all">{te.allPriority}</SelectItem>
             {Object.entries(PRIORITIES).map(([k, { label }]) => (
               <SelectItem key={k} value={k}>{label}</SelectItem>
             ))}
@@ -400,7 +405,7 @@ export default function TasksPage() {
                           {PRIORITIES[task.priority]?.label}
                         </span>
                         <span className="text-xs px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200">
-                          {TASK_TYPES[task.taskType] ?? task.taskType}
+                          {(TASK_TYPES as Record<string, string>)[task.taskType] ?? task.taskType}
                         </span>
                       </div>
                       {task.customer && (
@@ -443,7 +448,7 @@ export default function TasksPage() {
                 <TableRow>
                   <TableHead>{dict.common.name}</TableHead>
                   <TableHead>{dict.common.type}</TableHead>
-                  <TableHead>優先級</TableHead>
+                  <TableHead>{te.priorityLabel}</TableHead>
                   <TableHead>{dict.common.status}</TableHead>
                   <TableHead>{dict.common.customer}</TableHead>
                   <TableHead>{dict.tasksExt.assignedTo}</TableHead>
@@ -470,7 +475,7 @@ export default function TasksPage() {
                       <div className="font-medium text-sm">{task.title}</div>
                       {task.description && <div className="text-xs text-slate-400 truncate max-w-xs">{task.description}</div>}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500">{TASK_TYPES[task.taskType] ?? task.taskType}</TableCell>
+                    <TableCell className="text-sm text-slate-500">{(TASK_TYPES as Record<string, string>)[task.taskType] ?? task.taskType}</TableCell>
                     <TableCell>
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${PRIORITIES[task.priority]?.color}`}>
                         {PRIORITIES[task.priority]?.label}

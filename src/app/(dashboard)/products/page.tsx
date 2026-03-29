@@ -39,7 +39,7 @@ interface Product {
   inventory: { quantity: number; safetyStock: number }[]
 }
 
-const categories = ['紙尿布', '護墊', '清潔用品', '護理用品', '防護用品', '輔具', '其他']
+const CATEGORY_VALUES = ['紙尿布', '護墊', '清潔用品', '護理用品', '防護用品', '輔具', '其他']
 
 function fmt(v: string | number) {
   return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(Number(v))
@@ -79,7 +79,7 @@ export default function ProductsPage() {
   }, [fetchProducts])
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`確定要刪除「${name}」嗎？`)) return
+    if (!confirm(dict.common.deleteConfirm)) return
     const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.productsExt.statusInactive); fetchProducts() }
     else toast.error(dict.common.deleteFailed)
@@ -90,28 +90,30 @@ export default function ProductsPage() {
     return inv && inv.quantity <= inv.safetyStock
   }).length
 
+  const p = dict.products
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.products.title}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{p.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {products.length} 項商品
+            {p.countLabel.replace('{n}', String(products.length))}
             {lowStockCount > 0 && (
               <span className="ml-2 inline-flex items-center gap-1 text-amber-600">
-                <AlertTriangle className="h-3.5 w-3.5" />{lowStockCount} 項低庫存
+                <AlertTriangle className="h-3.5 w-3.5" />{lowStockCount} {p.lowStock}
               </span>
             )}
             {!canSeeCost && (
               <span className="ml-3 inline-flex items-center gap-1 text-slate-400 text-xs">
-                <Lock className="h-3 w-3" />部分敏感欄位已隱藏
+                <Lock className="h-3 w-3" />{p.sensitiveHidden}
               </span>
             )}
           </p>
         </div>
         <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
-          <Plus className="mr-2 h-4 w-4" />{dict.products.newProduct}
+          <Plus className="mr-2 h-4 w-4" />{p.newProduct}
         </Button>
       </div>
 
@@ -127,16 +129,16 @@ export default function ProductsPage() {
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filterCategory === '' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
             {dict.common.all}
           </button>
-          {categories.map(c => (
+          {CATEGORY_VALUES.map((c, i) => (
             <button key={c} onClick={() => setFilterCategory(c === filterCategory ? '' : c)}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filterCategory === c ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-              {c}
+              {dict.productsPage.categoryLabels[i]}
             </button>
           ))}
         </div>
         <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
           <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} className="rounded" />
-          顯示{dict.productsExt.statusInactive}商品
+          {p.showInactive}{dict.productsExt.statusInactive}{dict.common.product}
         </label>
       </div>
 
@@ -145,16 +147,16 @@ export default function ProductsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-28">{dict.products.sku}</TableHead>
-              <TableHead>{dict.products.name}</TableHead>
-              <TableHead className="w-20">{dict.products.category}</TableHead>
-              <TableHead className="w-20">{dict.products.series}/{dict.products.size}</TableHead>
-              <TableHead className="w-24">包裝</TableHead>
-              {canSeeCost && <TableHead className="text-right w-24">{dict.products.costPrice}</TableHead>}
-              <TableHead className="text-right w-24">{dict.products.sellingPrice}</TableHead>
-              {canSeeCost && <TableHead className="text-right w-24">毛利率</TableHead>}
-              {canSeeManager && !canSeeCost && <TableHead className="text-right w-24">最低售價</TableHead>}
-              <TableHead className="text-center w-20">{dict.products.stock}</TableHead>
+              <TableHead className="w-28">{p.sku}</TableHead>
+              <TableHead>{p.name}</TableHead>
+              <TableHead className="w-20">{p.category}</TableHead>
+              <TableHead className="w-20">{p.series}/{p.size}</TableHead>
+              <TableHead className="w-24">{p.packaging}</TableHead>
+              {canSeeCost && <TableHead className="text-right w-24">{p.costPrice}</TableHead>}
+              <TableHead className="text-right w-24">{p.sellingPrice}</TableHead>
+              {canSeeCost && <TableHead className="text-right w-24">{p.grossMarginRate}</TableHead>}
+              {canSeeManager && !canSeeCost && <TableHead className="text-right w-24">{p.minPrice}</TableHead>}
+              <TableHead className="text-center w-20">{p.stock}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -198,7 +200,7 @@ export default function ProductsPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {p.packagingType
-                      ? <div>{p.packagingType}{p.piecesPerPack ? <span className="text-xs"> ({p.piecesPerPack}片)</span> : null}</div>
+                      ? <div>{p.packagingType}{p.piecesPerPack ? <span className="text-xs"> ({p.piecesPerPack})</span> : null}</div>
                       : '—'}
                   </TableCell>
                   {canSeeCost && (

@@ -9,26 +9,16 @@ import { useI18n } from '@/lib/i18n/context'
 import { Plus, Search, AlertTriangle, PackageX, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
-const SOURCE_LABELS: Record<string, string> = {
-  QC_FAIL: 'QC 驗退', CUSTOMER_RETURN: '客退', WAREHOUSE_DAMAGE: '倉儲損壞', PRODUCTION: '生產異常',
-}
 const SOURCE_COLORS: Record<string, string> = {
   QC_FAIL: 'bg-red-100 text-red-700', CUSTOMER_RETURN: 'bg-orange-100 text-orange-700',
   WAREHOUSE_DAMAGE: 'bg-yellow-100 text-yellow-700', PRODUCTION: 'bg-purple-100 text-purple-700',
 }
-const SEVERITY_LABELS: Record<string, string> = { MINOR: '輕微', MAJOR: '嚴重', CRITICAL: '致命' }
 const SEVERITY_COLORS: Record<string, string> = {
   MINOR: 'bg-yellow-100 text-yellow-700', MAJOR: 'bg-orange-100 text-orange-700', CRITICAL: 'bg-red-100 text-red-700',
-}
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: '待處理', PROCESSING: '處理中', RESOLVED: '已解決', CANCELLED: '已取消',
 }
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700', PROCESSING: 'bg-blue-100 text-blue-700',
   RESOLVED: 'bg-emerald-100 text-emerald-700', CANCELLED: 'bg-gray-100 text-gray-500',
-}
-const DISPOSITION_LABELS: Record<string, string> = {
-  SCRAP: '報廢', REWORK: '重工', RETURN_SUPPLIER: '退供應商', DISCOUNT_SALE: '折價出售', QUARANTINE: '隔離',
 }
 
 interface DefectiveRecord {
@@ -65,6 +55,31 @@ export default function DefectiveGoodsPage() {
     defectType: '', severity: 'MINOR', description: '', batchNo: '',
   })
   const [dispForm, setDispForm] = useState({ disposition: '', dispositionNote: '' })
+
+  const SOURCE_LABELS: Record<string, string> = {
+    QC_FAIL: dict.defectiveGoodsPage.sourceLabels.QC_FAIL,
+    CUSTOMER_RETURN: dict.defectiveGoodsPage.sourceLabels.CUSTOMER_RETURN,
+    WAREHOUSE_DAMAGE: dict.defectiveGoodsPage.sourceLabels.WAREHOUSE_DAMAGE,
+    PRODUCTION: dict.defectiveGoodsPage.sourceLabels.PRODUCTION,
+  }
+  const SEVERITY_LABELS: Record<string, string> = {
+    MINOR: dict.defectiveGoodsPage.severityLabels.MINOR,
+    MAJOR: dict.defectiveGoodsPage.severityLabels.MAJOR,
+    CRITICAL: dict.defectiveGoodsPage.severityLabels.CRITICAL,
+  }
+  const STATUS_LABELS: Record<string, string> = {
+    PENDING: dict.defectiveGoodsPage.statusLabels.PENDING,
+    PROCESSING: dict.defectiveGoodsPage.statusLabels.PROCESSING,
+    RESOLVED: dict.defectiveGoodsPage.statusLabels.RESOLVED,
+    CANCELLED: dict.defectiveGoodsPage.statusLabels.CANCELLED,
+  }
+  const DISPOSITION_LABELS: Record<string, string> = {
+    SCRAP: dict.defectiveGoodsPage.dispositionLabels.SCRAP,
+    REWORK: dict.defectiveGoodsPage.dispositionLabels.REWORK,
+    RETURN_SUPPLIER: dict.defectiveGoodsPage.dispositionLabels.RETURN_SUPPLIER,
+    DISCOUNT_SALE: dict.defectiveGoodsPage.dispositionLabels.DISCOUNT_SALE,
+    QUARANTINE: dict.defectiveGoodsPage.dispositionLabels.QUARANTINE,
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -132,39 +147,51 @@ export default function DefectiveGoodsPage() {
   const totalLossSum = records.reduce((s, r) => s + Number(r.totalLoss ?? 0), 0)
   const pendingCount = records.filter(r => r.status === 'PENDING').length
 
+  const colHeaders = [
+    dict.defectiveGoodsPage.colNo,
+    dict.defectiveGoodsPage.colSource,
+    dict.defectiveGoodsPage.colProduct,
+    dict.defectiveGoodsPage.colQty,
+    dict.defectiveGoodsPage.colSeverity,
+    dict.defectiveGoodsPage.colLoss,
+    dict.defectiveGoodsPage.colStatus,
+    dict.defectiveGoodsPage.colDisposition,
+    dict.defectiveGoodsPage.colDate,
+  ]
+
   return (
     <div className="p-4 md:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{dict.nav?.defectiveGoods ?? '不良品管理'}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">QC驗退、客退、倉損品項登錄與處置追蹤</p>
+          <h1 className="text-2xl font-bold">{dict.nav?.defectiveGoods ?? dict.defectiveGoodsPage.addRecord}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{dict.defectiveGoodsPage.subtitle}</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus size={16} />登錄不良品
+          <Plus size={16} />{dict.defectiveGoodsPage.addRecord}
         </Button>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">記錄總數</div>
+          <div className="text-xs text-gray-400 mb-1">{dict.defectiveGoodsPage.cardTotal}</div>
           <div className="text-2xl font-bold">{total}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <AlertTriangle size={13} className="text-yellow-500" />
-            <span className="text-xs text-gray-400">待處理</span>
+            <span className="text-xs text-gray-400">{dict.defectiveGoodsPage.cardPending}</span>
           </div>
           <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
-          <div className="text-xs text-gray-400 mb-1">本頁損失金額</div>
+          <div className="text-xs text-gray-400 mb-1">{dict.defectiveGoodsPage.cardLoss}</div>
           <div className="text-xl font-bold text-red-600">NT${totalLossSum.toLocaleString()}</div>
         </div>
         <div className="bg-white border rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <CheckCircle2 size={13} className="text-emerald-500" />
-            <span className="text-xs text-gray-400">已解決</span>
+            <span className="text-xs text-gray-400">{dict.defectiveGoodsPage.cardResolved}</span>
           </div>
           <div className="text-2xl font-bold text-emerald-600">{records.filter(r => r.status === 'RESOLVED').length}</div>
         </div>
@@ -175,16 +202,16 @@ export default function DefectiveGoodsPage() {
         <div className="relative flex-1 min-w-[180px]">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <Input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
-            placeholder="搜尋單號、品名、批號…" className="pl-8 h-9" />
+            placeholder={dict.defectiveGoodsPage.searchPlaceholder} className="pl-8 h-9" />
         </div>
         <select value={filterSource} onChange={e => { setFilterSource(e.target.value); setPage(1) }}
           className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">全部來源</option>
+          <option value="">{dict.defectiveGoodsPage.filterAllSource}</option>
           {Object.entries(SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }}
           className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">全部狀態</option>
+          <option value="">{dict.defectiveGoodsPage.filterAllStatus}</option>
           {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
@@ -195,19 +222,19 @@ export default function DefectiveGoodsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {['單號', '來源', '品項', '數量', '嚴重度', '損失金額', '狀態', '處置', '登錄日'].map(h => (
+                {colHeaders.map(h => (
                   <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-gray-500">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="text-center py-10 text-gray-400">載入中…</td></tr>
+                <tr><td colSpan={9} className="text-center py-10 text-gray-400">{dict.defectiveGoodsPage.loading}</td></tr>
               ) : records.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-14 text-gray-400">
                     <PackageX size={36} className="mx-auto mb-2 opacity-30" />
-                    <p>無不良品記錄</p>
+                    <p>{dict.defectiveGoodsPage.empty}</p>
                   </td>
                 </tr>
               ) : records.map(r => (
@@ -244,7 +271,7 @@ export default function DefectiveGoodsPage() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t text-sm text-gray-500">
-            <span>共 {total} 筆</span>
+            <span>{dict.defectiveGoodsPage.paginationTotal} {total} {dict.common.items}</span>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="h-7 w-7 p-0">
                 <ChevronLeft size={14} />
@@ -261,40 +288,40 @@ export default function DefectiveGoodsPage() {
       {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>登錄不良品</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{dict.defectiveGoodsPage.createTitle}</DialogTitle></DialogHeader>
           <div className="space-y-3 mt-2">
             <div>
-              <div className="text-xs text-gray-500 mb-1">品項 *</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldProduct}</div>
               <select value={form.productId} onChange={e => setForm(f => ({ ...f, productId: e.target.value }))}
                 className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                <option value="">請選擇品項</option>
+                <option value="">{dict.common.select}</option>
                 {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">倉庫 *</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldWarehouse}</div>
                 <select value={form.warehouseId} onChange={e => setForm(f => ({ ...f, warehouseId: e.target.value }))}
                   className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                  <option value="">請選擇</option>
+                  <option value="">{dict.common.select}</option>
                   {warehouses.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
                 </select>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">數量 *</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldQty}</div>
                 <Input type="number" min="1" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">來源</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldSource}</div>
                 <select value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}
                   className="w-full border rounded-md px-3 h-9 text-sm bg-white">
                   {Object.entries(SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">嚴重度</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldSeverity}</div>
                 <select value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
                   className="w-full border rounded-md px-3 h-9 text-sm bg-white">
                   {Object.entries(SEVERITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -303,25 +330,25 @@ export default function DefectiveGoodsPage() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <div className="text-xs text-gray-500 mb-1">瑕疵類型</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldDefectType}</div>
                 <Input value={form.defectType} onChange={e => setForm(f => ({ ...f, defectType: e.target.value }))}
                   placeholder="LEAK / PACKAGING…" className="h-9" />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">批號</div>
+                <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldBatchNo}</div>
                 <Input value={form.batchNo} onChange={e => setForm(f => ({ ...f, batchNo: e.target.value }))} className="h-9" />
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500 mb-1">說明</div>
+              <div className="text-xs text-gray-500 mb-1">{dict.defectiveGoodsPage.fieldDescription}</div>
               <Input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                placeholder="問題描述" className="h-9" />
+                className="h-9" />
             </div>
             <div className="flex gap-2 pt-1">
               <Button onClick={handleCreate} className="flex-1" disabled={!form.productId || !form.warehouseId || !form.quantity}>
-                登錄
+                {dict.defectiveGoodsPage.btnRegister}
               </Button>
-              <Button variant="outline" onClick={() => setShowCreate(false)}>取消</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>{dict.common.cancel}</Button>
             </div>
           </div>
         </DialogContent>
@@ -341,12 +368,14 @@ export default function DefectiveGoodsPage() {
               <div className="space-y-3 mt-2 text-sm">
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    ['品項', selected.product.name], ['SKU', selected.product.sku],
-                    ['倉庫', selected.warehouse.name], ['數量', `${selected.quantity} ${selected.product.unit ?? ''}`],
-                    ['來源', SOURCE_LABELS[selected.source] ?? selected.source],
-                    ['嚴重度', SEVERITY_LABELS[selected.severity] ?? selected.severity],
-                    ['批號', selected.batchNo ?? '-'],
-                    ['損失金額', selected.totalLoss ? `NT$${Number(selected.totalLoss).toLocaleString()}` : '-'],
+                    [dict.defectiveGoodsPage.detailProduct, selected.product.name],
+                    ['SKU', selected.product.sku],
+                    [dict.defectiveGoodsPage.detailWarehouse, selected.warehouse.name],
+                    [dict.defectiveGoodsPage.detailQty, `${selected.quantity} ${selected.product.unit ?? ''}`],
+                    [dict.defectiveGoodsPage.detailSource, SOURCE_LABELS[selected.source] ?? selected.source],
+                    [dict.defectiveGoodsPage.detailSeverity, SEVERITY_LABELS[selected.severity] ?? selected.severity],
+                    [dict.defectiveGoodsPage.detailBatchNo, selected.batchNo ?? '-'],
+                    [dict.defectiveGoodsPage.detailLoss, selected.totalLoss ? `NT$${Number(selected.totalLoss).toLocaleString()}` : '-'],
                   ].map(([k, v]) => (
                     <div key={k} className="bg-gray-50 rounded p-2">
                       <div className="text-gray-400">{k}</div>
@@ -356,13 +385,13 @@ export default function DefectiveGoodsPage() {
                 </div>
                 {selected.description && (
                   <div className="text-xs bg-gray-50 rounded p-2">
-                    <div className="text-gray-400 mb-0.5">說明</div>
+                    <div className="text-gray-400 mb-0.5">{dict.defectiveGoodsPage.detailDescription}</div>
                     <div>{selected.description}</div>
                   </div>
                 )}
                 {selected.resolvedBy && (
                   <div className="text-xs text-emerald-700 bg-emerald-50 rounded p-2">
-                    已解決 by {selected.resolvedBy.name}
+                    {dict.defectiveGoodsPage.resolvedByPrefix} {selected.resolvedBy.name}
                     {selected.resolvedAt && ` — ${new Date(selected.resolvedAt).toLocaleDateString('zh-TW')}`}
                   </div>
                 )}
@@ -370,19 +399,19 @@ export default function DefectiveGoodsPage() {
                 {/* Disposition */}
                 {selected.status === 'PENDING' || selected.status === 'PROCESSING' ? (
                   <div className="border-t pt-3">
-                    <div className="text-xs font-medium text-gray-500 mb-2">登錄處置方式</div>
+                    <div className="text-xs font-medium text-gray-500 mb-2">{dict.defectiveGoodsPage.sectionDispose}</div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <div className="text-xs text-gray-400 mb-1">處置</div>
+                        <div className="text-xs text-gray-400 mb-1">{dict.defectiveGoodsPage.fieldDisposition}</div>
                         <select value={dispForm.disposition}
                           onChange={e => setDispForm(f => ({ ...f, disposition: e.target.value }))}
                           className="w-full border rounded-md px-3 h-9 text-xs bg-white">
-                          <option value="">請選擇</option>
+                          <option value="">{dict.common.select}</option>
                           {Object.entries(DISPOSITION_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                         </select>
                       </div>
                       <div>
-                        <div className="text-xs text-gray-400 mb-1">備註</div>
+                        <div className="text-xs text-gray-400 mb-1">{dict.defectiveGoodsPage.fieldDispNote}</div>
                         <Input value={dispForm.dispositionNote}
                           onChange={e => setDispForm(f => ({ ...f, dispositionNote: e.target.value }))}
                           className="h-9 text-xs" />
@@ -390,12 +419,12 @@ export default function DefectiveGoodsPage() {
                     </div>
                     <Button onClick={handleDispose} className="mt-2 w-full" size="sm"
                       disabled={!dispForm.disposition}>
-                      標記已解決
+                      {dict.defectiveGoodsPage.btnMarkResolved}
                     </Button>
                   </div>
                 ) : selected.disposition ? (
                   <div className="text-xs bg-blue-50 text-blue-700 rounded p-2">
-                    處置：{DISPOSITION_LABELS[selected.disposition] ?? selected.disposition}
+                    {dict.defectiveGoodsPage.dispositionLabel}：{DISPOSITION_LABELS[selected.disposition] ?? selected.disposition}
                     {selected.dispositionNote && ` — ${selected.dispositionNote}`}
                   </div>
                 ) : null}

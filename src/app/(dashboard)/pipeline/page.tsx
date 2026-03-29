@@ -35,12 +35,12 @@ interface Customer {
 interface SalesRep { id: string; name: string }
 
 /* ── constants ── */
-const PIPELINE_STAGES = [
-  { key: 'POTENTIAL',   label: '潛在客戶', color: 'bg-slate-500',  lightBg: 'bg-slate-50',  border: 'border-slate-200', icon: '🎯' },
-  { key: 'NEGOTIATING', label: '洽談中',   color: 'bg-amber-500',  lightBg: 'bg-amber-50',  border: 'border-amber-200', icon: '🤝' },
-  { key: 'CLOSED',      label: '已成交',   color: 'bg-green-500',  lightBg: 'bg-green-50',  border: 'border-green-200', icon: '✅' },
-  { key: 'DORMANT',     label: '休眠',     color: 'bg-slate-400',  lightBg: 'bg-slate-50',  border: 'border-slate-200', icon: '💤' },
-  { key: 'REJECTED',    label: '拒絕',     color: 'bg-red-500',    lightBg: 'bg-red-50',    border: 'border-red-200',   icon: '❌' },
+const PIPELINE_STAGE_META = [
+  { key: 'POTENTIAL',   color: 'bg-slate-500',  lightBg: 'bg-slate-50',  border: 'border-slate-200', icon: '🎯' },
+  { key: 'NEGOTIATING', color: 'bg-amber-500',  lightBg: 'bg-amber-50',  border: 'border-amber-200', icon: '🤝' },
+  { key: 'CLOSED',      color: 'bg-green-500',  lightBg: 'bg-green-50',  border: 'border-green-200', icon: '✅' },
+  { key: 'DORMANT',     color: 'bg-slate-400',  lightBg: 'bg-slate-50',  border: 'border-slate-200', icon: '💤' },
+  { key: 'REJECTED',    color: 'bg-red-500',    lightBg: 'bg-red-50',    border: 'border-red-200',   icon: '❌' },
 ] as const
 
 const typeColors: Record<string, string> = {
@@ -130,7 +130,7 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1.5">
               <Label>{dict.customers.name} <span className="text-red-500">*</span></Label>
-              <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="請輸入客戶名稱" required />
+              <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder={dict.pipelinePage.customerNamePlaceholder} required />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.customers.type} <span className="text-red-500">*</span></Label>
@@ -150,7 +150,7 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
             </div>
             <div className="space-y-1.5">
               <Label>{dict.customers.contact}</Label>
-              <Input value={form.contactPerson} onChange={e => set('contactPerson', e.target.value)} placeholder="聯絡人姓名" />
+              <Input value={form.contactPerson} onChange={e => set('contactPerson', e.target.value)} placeholder={dict.pipelinePage.contactPlaceholder} />
             </div>
             <div className="space-y-1.5">
               <Label>{dict.customers.phone}</Label>
@@ -183,7 +183,7 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>客戶來源</Label>
+              <Label>{dict.pipelinePage.sourceLabel}</Label>
               <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.source} onChange={e => set('source', e.target.value)}>
                 <option value="">{dict.common.select}</option>
@@ -204,7 +204,7 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
                 placeholder="0" min={0} max={100} />
             </div>
             <div className="space-y-1.5">
-              <Label>{dict.pipeline.monthlyVolume}（元）</Label>
+              <Label>{dict.pipeline.monthlyVolume}（{dict.pipelinePage.monthlyVolumeUnit}）</Label>
               <Input type="number" value={form.estimatedMonthlyVolume}
                 onChange={e => set('estimatedMonthlyVolume', e.target.value)} placeholder="0" min={0} />
             </div>
@@ -213,7 +213,7 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
           <div className="space-y-1.5">
             <Label>{dict.common.notes}</Label>
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="備註事項..." />
+              rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} placeholder={dict.pipelinePage.notesPlaceholder} />
           </div>
 
           <DialogFooter>
@@ -236,6 +236,7 @@ function PipelineCard({ customer, onStatusChange }: {
 }) {
   const { dict } = useI18n()
   const router = useRouter()
+  const tr = dict.pipelinePage.transitions
   const volume = customer.estimatedMonthlyVolume ? Number(customer.estimatedMonthlyVolume) : 0
   const winRate = customer.winRate ?? 0
 
@@ -253,23 +254,23 @@ function PipelineCard({ customer, onStatusChange }: {
   // Available transitions per status
   const transitions: Record<string, { key: string; label: string; color: string }[]> = {
     POTENTIAL:   [
-      { key: 'NEGOTIATING', label: '轉洽談', color: 'text-amber-600 hover:bg-amber-50' },
-      { key: 'REJECTED',    label: '拒絕',   color: 'text-red-500 hover:bg-red-50' },
+      { key: 'NEGOTIATING', label: tr.toNegotiating, color: 'text-amber-600 hover:bg-amber-50' },
+      { key: 'REJECTED',    label: tr.toRejected,    color: 'text-red-500 hover:bg-red-50' },
     ],
     NEGOTIATING: [
-      { key: 'CLOSED',   label: '成交',   color: 'text-green-600 hover:bg-green-50' },
-      { key: 'DORMANT',  label: '休眠',   color: 'text-slate-500 hover:bg-slate-50' },
-      { key: 'REJECTED', label: '拒絕',   color: 'text-red-500 hover:bg-red-50' },
+      { key: 'CLOSED',   label: tr.toClosed,   color: 'text-green-600 hover:bg-green-50' },
+      { key: 'DORMANT',  label: tr.toDormant,  color: 'text-slate-500 hover:bg-slate-50' },
+      { key: 'REJECTED', label: tr.toRejected, color: 'text-red-500 hover:bg-red-50' },
     ],
     CLOSED: [
-      { key: 'DORMANT', label: '轉休眠', color: 'text-slate-500 hover:bg-slate-50' },
+      { key: 'DORMANT', label: tr.toDormantFromClosed, color: 'text-slate-500 hover:bg-slate-50' },
     ],
     DORMANT: [
-      { key: 'NEGOTIATING', label: '重啟洽談', color: 'text-amber-600 hover:bg-amber-50' },
-      { key: 'REJECTED',    label: '拒絕',     color: 'text-red-500 hover:bg-red-50' },
+      { key: 'NEGOTIATING', label: tr.reactivate, color: 'text-amber-600 hover:bg-amber-50' },
+      { key: 'REJECTED',    label: tr.toRejected, color: 'text-red-500 hover:bg-red-50' },
     ],
     REJECTED: [
-      { key: 'POTENTIAL', label: '重新開發', color: 'text-slate-600 hover:bg-slate-50' },
+      { key: 'POTENTIAL', label: tr.reopen, color: 'text-slate-600 hover:bg-slate-50' },
     ],
   }
 
@@ -338,10 +339,10 @@ function PipelineCard({ customer, onStatusChange }: {
         <Clock className="h-3 w-3" />
         {daysSinceContact != null ? (
           <span className={daysSinceContact > 30 ? 'text-red-500 font-medium' : daysSinceContact > 14 ? 'text-amber-500' : ''}>
-            {daysSinceContact === 0 ? dict.pipelineExt.today : `${daysSinceContact} 天前聯繫`}
+            {daysSinceContact === 0 ? dict.pipelineExt.today : `${daysSinceContact} ${dict.pipelinePage.daysSinceContact}`}
           </span>
         ) : (
-          <span className="text-red-400">尚無聯繫紀錄</span>
+          <span className="text-red-400">{dict.pipelinePage.noContactRecord}</span>
         )}
       </div>
 
@@ -368,6 +369,11 @@ function PipelineCard({ customer, onStatusChange }: {
 export default function PipelinePage() {
   const { dict } = useI18n()
   const router = useRouter()
+  const pgDict = dict.pipelinePage
+  const PIPELINE_STAGES = PIPELINE_STAGE_META.map(s => ({
+    ...s,
+    label: pgDict.stages[s.key as keyof typeof pgDict.stages],
+  }))
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -482,7 +488,7 @@ export default function PipelinePage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.pipeline.title}</h1>
           <p className="text-sm text-muted-foreground">
-            客戶開發管線 — 追蹤從潛在客戶到成交的完整歷程
+            {pgDict.subtitle}
           </p>
         </div>
         <div className="flex gap-2">
@@ -558,12 +564,12 @@ export default function PipelinePage() {
         <select className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm"
           value={filterGrade} onChange={e => setFilterGrade(e.target.value)}>
           <option value="">{dict.common.all}{dict.customers.grade}</option>
-          {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g} 級</option>)}
+          {['A', 'B', 'C', 'D'].map(g => <option key={g} value={g}>{g}{pgDict.gradeSuffix}</option>)}
         </select>
         {(search || filterSalesRep || filterGrade) && (
           <button className="text-xs text-muted-foreground hover:text-slate-900 underline"
             onClick={() => { setSearch(''); setFilterSalesRep(''); setFilterGrade('') }}>
-            清除篩選
+            {pgDict.clearFilter}
           </button>
         )}
       </div>

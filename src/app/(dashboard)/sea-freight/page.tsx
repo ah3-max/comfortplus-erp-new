@@ -418,7 +418,7 @@ export default function SeaFreightPage() {
                   <button
                     onClick={() => openEdit(r)}
                     className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground"
-                    title="編輯"
+                    title={sf.editTitle}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
@@ -426,7 +426,7 @@ export default function SeaFreightPage() {
                     <button
                       onClick={e => { e.stopPropagation(); handleDelete(r) }}
                       className="p-1.5 rounded hover:bg-red-50 text-red-500"
-                      title="刪除"
+                      title={sf.deleteTitle}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -539,10 +539,10 @@ export default function SeaFreightPage() {
                   onValueChange={v => cf('productionOrderId', v === '_none' ? '' : (v ?? ''))}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="選擇生產工單" />
+                    <SelectValue placeholder={sf.selectProductionOrder} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_none">-- 請選擇 --</SelectItem>
+                    <SelectItem value="_none">{sf.pleaseSelect}</SelectItem>
                     {productionOrders.map(po => (
                       <SelectItem key={po.id} value={po.id}>{po.orderNo}</SelectItem>
                     ))}
@@ -560,10 +560,10 @@ export default function SeaFreightPage() {
                   onValueChange={v => cf('purchaseOrderId', v === '_none' ? '' : (v ?? ''))}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="選擇採購單" />
+                    <SelectValue placeholder={sf.selectPurchaseOrder} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_none">-- 請選擇 --</SelectItem>
+                    <SelectItem value="_none">{sf.pleaseSelect}</SelectItem>
                     {purchaseOrders.map(po => (
                       <SelectItem key={po.id} value={po.id}>{po.poNo}</SelectItem>
                     ))}
@@ -599,10 +599,10 @@ export default function SeaFreightPage() {
                 onValueChange={v => cf('containerSize', v === '_none' ? '' : (v ?? ''))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選擇櫃型" />
+                  <SelectValue placeholder={sf.selectContainerSize} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">-- 請選擇 --</SelectItem>
+                  <SelectItem value="_none">{sf.pleaseSelect}</SelectItem>
                   {CONTAINER_SIZES.map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
@@ -617,7 +617,7 @@ export default function SeaFreightPage() {
                 <Input
                   value={createForm.portOfLoading}
                   onChange={e => cf('portOfLoading', e.target.value)}
-                  placeholder="深圳鹽田"
+                  placeholder={sf.portLoadingPlaceholder}
                 />
               </div>
               <div className="space-y-1.5">
@@ -625,7 +625,7 @@ export default function SeaFreightPage() {
                 <Input
                   value={createForm.portOfDischarge}
                   onChange={e => cf('portOfDischarge', e.target.value)}
-                  placeholder="高雄港"
+                  placeholder={sf.portDischargePlaceholder}
                 />
               </div>
             </div>
@@ -743,10 +743,10 @@ export default function SeaFreightPage() {
                 onValueChange={v => ef('containerSize', v === '_none' ? '' : (v ?? ''))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="選擇櫃型" />
+                  <SelectValue placeholder={sf.selectContainerSize} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">-- 請選擇 --</SelectItem>
+                  <SelectItem value="_none">{sf.pleaseSelect}</SelectItem>
                   {CONTAINER_SIZES.map(s => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}

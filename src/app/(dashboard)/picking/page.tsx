@@ -85,12 +85,12 @@ export default function PickingPage() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`理貨單已${label}`); fetchData() }
+    if (res.ok) { toast.success(`${dict.picking.statusUpdated}${label}`); fetchData() }
     else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
-    if (!confirm(`確定要取消理貨單 ${no} 嗎？`)) return
+    if (!confirm(`${dict.picking.cancelConfirmPrefix} ${no} ${dict.picking.cancelSuffix}`)) return
     const res = await fetch(`/api/picking-orders/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.common.cancelSuccess); fetchData() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
@@ -104,8 +104,8 @@ export default function PickingPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.picking.title}</h1>
           <p className="text-sm text-muted-foreground">
-            共 {pagination?.total ?? data.length} 筆
-            {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} 筆待理貨</span>}
+            {dict.ordersExt.totalCount} {pagination?.total ?? data.length} {dict.ordersExt.records}
+            {pendingCount > 0 && <span className="ml-2 text-amber-600">{pendingCount} {dict.picking.pendingPicking}</span>}
           </p>
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function PickingPage() {
               <TableHead>{dict.common.warehouse}</TableHead>
               <TableHead className="w-20">{dict.common.status}</TableHead>
               <TableHead className="w-16">{dict.common.pieces}</TableHead>
-              <TableHead className="w-24">出貨日</TableHead>
+              <TableHead className="w-24">{dict.ordersExt.shipDate}</TableHead>
               <TableHead className="w-24">{dict.dispatch.dispatchNo}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -174,19 +174,19 @@ export default function PickingPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
                         {d.status === 'PENDING' && (
-                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'PICKING', '開始理貨')}>
-                            <PackageCheck className="mr-2 h-4 w-4" />開始理貨
+                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'PICKING', dict.picking.startPicking)}>
+                            <PackageCheck className="mr-2 h-4 w-4" />{dict.picking.startPicking}
                           </DropdownMenuItem>
                         )}
                         {d.status === 'PICKING' && (
-                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'PICKED', '完成')}>
-                            <CheckCircle2 className="mr-2 h-4 w-4" />完成理貨
+                          <DropdownMenuItem onClick={() => updateStatus(d.id, 'PICKED', dict.picking.statuses.COMPLETED)}>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />{dict.picking.completePicking}
                           </DropdownMenuItem>
                         )}
                         {!['PICKED', 'CANCELLED'].includes(d.status) && (
                           <><DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleCancel(d.id, d.pickingNumber)} variant="destructive">
-                            <XCircle className="mr-2 h-4 w-4" />取消
+                            <XCircle className="mr-2 h-4 w-4" />{dict.common.cancel}
                           </DropdownMenuItem></>
                         )}
                       </DropdownMenuContent>
@@ -215,7 +215,7 @@ export default function PickingPage() {
                 <span>{d.customer.name}</span>
                 <span className="text-muted-foreground">{d.salesInvoice.invoiceNumber}</span>
               </div>
-              <div className="text-xs text-muted-foreground">{d.items.length} 項 · {d.warehouse.name}</div>
+              <div className="text-xs text-muted-foreground">{d.items.length} {dict.picking.itemsUnit} · {d.warehouse.name}</div>
             </div>
           )
         })}
@@ -223,7 +223,7 @@ export default function PickingPage() {
 
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-muted-foreground">共 {pagination.total} 筆，第 {pagination.page}/{pagination.totalPages} 頁</p>
+          <p className="text-sm text-muted-foreground">{dict.ordersExt.totalCount} {pagination.total} {dict.ordersExt.records}，{dict.common.pagePrefix} {pagination.page}/{pagination.totalPages} {dict.common.pageSuffix}</p>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled={pagination.page <= 1} onClick={() => setPage(p => p - 1)}>{dict.common.prevPage}</Button>
             <Button variant="outline" size="sm" disabled={pagination.page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>{dict.common.nextPage}</Button>

@@ -81,7 +81,7 @@ export default function DiscountRulesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.discountRules.title}</h1>
-          <p className="text-sm text-muted-foreground">管理銷售與採購折扣</p>
+          <p className="text-sm text-muted-foreground">{dict.discountRules.subtitle}</p>
         </div>
         <Button onClick={() => { setForm({ ...form, ruleType: tab }); setDialog(true) }}>
           <Plus className="h-4 w-4 mr-1" />{dict.discountRules.newRule}
@@ -90,8 +90,8 @@ export default function DiscountRulesPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          <TabsTrigger value="SALES" className="gap-1.5"><Tag className="h-3.5 w-3.5" />銷售折扣</TabsTrigger>
-          <TabsTrigger value="PURCHASE" className="gap-1.5"><Percent className="h-3.5 w-3.5" />採購折扣</TabsTrigger>
+          <TabsTrigger value="SALES" className="gap-1.5"><Tag className="h-3.5 w-3.5" />{dict.discountRules.salesDiscount}</TabsTrigger>
+          <TabsTrigger value="PURCHASE" className="gap-1.5"><Percent className="h-3.5 w-3.5" />{dict.discountRules.purchaseDiscount}</TabsTrigger>
         </TabsList>
 
         <TabsContent value={tab} className="mt-4">
@@ -104,7 +104,7 @@ export default function DiscountRulesPage() {
               <table className="w-full text-sm">
                 <thead className="border-b bg-slate-50">
                   <tr>
-                    {['名稱', '折扣類型', '折扣值', '適用範圍', '最低數量', '最低金額', '優先級', '啟用'].map(h => (
+                    {[dict.discountRules.colName, dict.discountRules.colDiscountType, dict.discountRules.colDiscountValue, dict.discountRules.colScope, dict.discountRules.colMinQty, dict.discountRules.colMinAmount, dict.discountRules.colPriority, dict.discountRules.colEnabled].map(h => (
                       <th key={h} className="px-3 py-2 text-left font-medium text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -113,9 +113,9 @@ export default function DiscountRulesPage() {
                   {rules.map(r => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50/50">
                       <td className="px-3 py-2 font-medium">{r.name}</td>
-                      <td className="px-3 py-2"><Badge variant="outline">{r.discountType === 'PERCENTAGE' ? '百分比' : '固定金額'}</Badge></td>
+                      <td className="px-3 py-2"><Badge variant="outline">{r.discountType === 'PERCENTAGE' ? dict.discountRules.percentage : dict.discountRules.fixedAmount}</Badge></td>
                       <td className="px-3 py-2 font-mono">{r.discountType === 'PERCENTAGE' ? `${r.discountValue}%` : `$${Number(r.discountValue).toLocaleString()}`}</td>
-                      <td className="px-3 py-2">{r.scope === 'ALL' ? '全部' : r.scopeValue ?? r.scope}</td>
+                      <td className="px-3 py-2">{r.scope === 'ALL' ? dict.discountRules.scopeAll : r.scopeValue ?? r.scope}</td>
                       <td className="px-3 py-2">{r.minQty ?? '-'}</td>
                       <td className="px-3 py-2">{r.minAmount ? `$${Number(r.minAmount).toLocaleString()}` : '-'}</td>
                       <td className="px-3 py-2">{r.priority}</td>
@@ -135,7 +135,7 @@ export default function DiscountRulesPage() {
           <div className="space-y-3 py-2">
             <div>
               <Label>{dict.discountRules.ruleName}</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="mt-1" placeholder="VIP 客戶 5% 折扣" />
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="mt-1" placeholder={dict.discountRules.namePlaceholder} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -164,7 +164,7 @@ export default function DiscountRulesPage() {
               </div>
             </div>
             <div>
-              <Label>優先級（數字越大越優先）</Label>
+              <Label>{dict.discountRules.priorityNote}</Label>
               <Input type="number" value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className="mt-1" />
             </div>
           </div>

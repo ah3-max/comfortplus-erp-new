@@ -80,17 +80,6 @@ interface EditForm {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORIES: { value: Category; label: string }[] = [
-  { value: 'ALL', label: '全部' },
-  { value: 'CONTRACT', label: '合約' },
-  { value: 'INVOICE', label: '發票/單據' },
-  { value: 'MANUAL', label: '操作手冊' },
-  { value: 'REPORT', label: '報告' },
-  { value: 'OTHER', label: '其他' },
-]
-
-const CATEGORY_UPLOAD_OPTIONS = CATEGORIES.filter((c) => c.value !== 'ALL')
-
 const CATEGORY_COLORS: Record<string, string> = {
   CONTRACT: 'bg-blue-100 text-blue-700 border-blue-200',
   INVOICE: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -122,10 +111,6 @@ function formatDate(iso: string): string {
   return iso.substring(0, 10)
 }
 
-function getCategoryLabel(value: string): string {
-  return CATEGORIES.find((c) => c.value === value)?.label ?? value
-}
-
 function FileTypeIcon({ mimeType, fileName }: { mimeType: string | null; fileName: string }) {
   const ext = fileName.split('.').pop()?.toLowerCase() ?? ''
   const mime = mimeType ?? ''
@@ -153,6 +138,17 @@ function FileTypeIcon({ mimeType, fileName }: { mimeType: string | null; fileNam
 export default function DocumentsPage() {
   const { dict } = useI18n()
   const dc = dict.documents
+
+  const CATEGORIES: { value: Category; label: string }[] = [
+    { value: 'ALL', label: dc.categoryLabels.ALL },
+    { value: 'CONTRACT', label: dc.categoryLabels.CONTRACT },
+    { value: 'INVOICE', label: dc.categoryLabels.INVOICE },
+    { value: 'MANUAL', label: dc.categoryLabels.MANUAL },
+    { value: 'REPORT', label: dc.categoryLabels.REPORT },
+    { value: 'OTHER', label: dc.categoryLabels.OTHER },
+  ]
+  const CATEGORY_UPLOAD_OPTIONS = CATEGORIES.filter((c) => c.value !== 'ALL')
+
   // List state
   const [documents, setDocuments] = useState<DocumentRecord[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
@@ -327,6 +323,10 @@ export default function DocumentsPage() {
     }
   }
 
+  function getCategoryLabel(value: string): string {
+    return CATEGORIES.find((c) => c.value === value)?.label ?? value
+  }
+
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   const tabStyle = (cat: Category) =>
@@ -341,8 +341,8 @@ export default function DocumentsPage() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{dict.documents.title}</h1>
-          <p className="text-sm text-slate-500 mt-1">管理合約、發票、手冊、報告等重要文件</p>
+          <h1 className="text-2xl font-bold text-slate-900">{dc.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">{dc.subtitle}</p>
         </div>
         <Button
           className="min-h-[44px] sm:min-h-auto active:scale-[0.97]"
@@ -352,7 +352,7 @@ export default function DocumentsPage() {
           }}
         >
           <Upload className="h-4 w-4 mr-2" />
-          {dict.documents.newVersion}
+          {dc.newVersion}
         </Button>
       </div>
 
@@ -361,7 +361,7 @@ export default function DocumentsPage() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
         <Input
           className="pl-9 min-h-[44px]"
-          placeholder="搜尋文件名稱、檔案名稱..."
+          placeholder={dc.searchPlaceholder}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
@@ -388,7 +388,7 @@ export default function DocumentsPage() {
       ) : documents.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <FileText className="h-10 w-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">尚無文件紀錄</p>
+          <p className="text-sm">{dc.empty}</p>
           <Button
             variant="outline"
             size="sm"
@@ -399,7 +399,7 @@ export default function DocumentsPage() {
             }}
           >
             <Upload className="h-4 w-4 mr-1" />
-            上傳第一份文件
+            {dc.uploadFirst}
           </Button>
         </div>
       ) : (
@@ -452,7 +452,7 @@ export default function DocumentsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       download={doc.fileName}
-                      title="下載"
+                      title={dc.downloadLabel}
                     >
                       <Button
                         variant="ghost"
@@ -460,7 +460,7 @@ export default function DocumentsPage() {
                         className="h-8 w-8 text-slate-500 hover:text-blue-600 min-h-[44px] min-w-[44px]"
                       >
                         <Download className="h-4 w-4" />
-                        <span className="sr-only">下載</span>
+                        <span className="sr-only">{dc.downloadLabel}</span>
                       </Button>
                     </a>
 
@@ -469,11 +469,11 @@ export default function DocumentsPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-slate-500 hover:text-slate-800 min-h-[44px] min-w-[44px]"
-                      title="編輯"
+                      title={dc.editLabel}
                       onClick={() => openEdit(doc)}
                     >
                       <Pencil className="h-4 w-4" />
-                      <span className="sr-only">編輯</span>
+                      <span className="sr-only">{dc.editLabel}</span>
                     </Button>
 
                     {/* Delete */}
@@ -481,11 +481,11 @@ export default function DocumentsPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-slate-500 hover:text-red-600 min-h-[44px] min-w-[44px]"
-                      title="刪除"
+                      title={dc.deleteLabel}
                       onClick={() => setDeleteTarget(doc)}
                     >
                       <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">刪除</span>
+                      <span className="sr-only">{dc.deleteLabel}</span>
                     </Button>
                   </div>
                 </div>
@@ -497,7 +497,7 @@ export default function DocumentsPage() {
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between pt-2 text-sm text-slate-500">
               <span>
-                共 {pagination.total} 筆，第 {pagination.page} / {pagination.totalPages} 頁
+                {pagination.total} {dict.common.items} — {pagination.page} / {pagination.totalPages}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -526,18 +526,17 @@ export default function DocumentsPage() {
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{dict.documents.newVersion}</DialogTitle>
+            <DialogTitle>{dc.btnAdd}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             {/* Document Name */}
             <div className="space-y-1.5">
               <Label htmlFor="upload-name">
-                文件名稱 <span className="text-red-500">*</span>
+                {dc.fieldName} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="upload-name"
-                placeholder="例：2024年度服務合約"
                 value={uploadForm.documentName}
                 onChange={(e) => setUploadForm((f) => ({ ...f, documentName: e.target.value }))}
               />
@@ -546,7 +545,7 @@ export default function DocumentsPage() {
             {/* Category */}
             <div className="space-y-1.5">
               <Label htmlFor="upload-category">
-                類別 <span className="text-red-500">*</span>
+                {dc.fieldCategory} <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={uploadForm.documentType}
@@ -555,7 +554,7 @@ export default function DocumentsPage() {
                 }
               >
                 <SelectTrigger id="upload-category">
-                  <SelectValue placeholder="選擇類別" />
+                  <SelectValue placeholder={dc.selectCategory} />
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORY_UPLOAD_OPTIONS.map((cat) => (
@@ -570,28 +569,25 @@ export default function DocumentsPage() {
             {/* File Name */}
             <div className="space-y-1.5">
               <Label htmlFor="upload-filename">
-                檔案名稱 <span className="text-red-500">*</span>
+                {dc.fieldFileName} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="upload-filename"
-                placeholder="例：contract-2024.pdf"
+                placeholder="contract-2024.pdf"
                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.png"
                 value={uploadForm.fileName}
                 onChange={(e) => setUploadForm((f) => ({ ...f, fileName: e.target.value }))}
               />
-              <p className="text-xs text-slate-400">
-                支援格式：PDF、Word、Excel、JPG、PNG
-              </p>
             </div>
 
             {/* File URL */}
             <div className="space-y-1.5">
               <Label htmlFor="upload-url">
-                檔案路徑 / URL <span className="text-red-500">*</span>
+                {dc.fieldFileUrl} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="upload-url"
-                placeholder="例：/uploads/contract-2024.pdf 或 https://..."
+                placeholder="/uploads/contract-2024.pdf"
                 value={uploadForm.fileUrl}
                 onChange={(e) => setUploadForm((f) => ({ ...f, fileUrl: e.target.value }))}
               />
@@ -599,10 +595,10 @@ export default function DocumentsPage() {
 
             {/* MIME Type (optional) */}
             <div className="space-y-1.5">
-              <Label htmlFor="upload-mime">MIME 類型（選填）</Label>
+              <Label htmlFor="upload-mime">{dc.fieldMime}</Label>
               <Input
                 id="upload-mime"
-                placeholder="例：application/pdf"
+                placeholder="application/pdf"
                 value={uploadForm.mimeType}
                 onChange={(e) => setUploadForm((f) => ({ ...f, mimeType: e.target.value }))}
               />
@@ -610,11 +606,11 @@ export default function DocumentsPage() {
 
             {/* File Size (optional) */}
             <div className="space-y-1.5">
-              <Label htmlFor="upload-size">檔案大小（Bytes，選填）</Label>
+              <Label htmlFor="upload-size">{dc.fieldSize}</Label>
               <Input
                 id="upload-size"
                 type="number"
-                placeholder="例：204800"
+                placeholder="204800"
                 value={uploadForm.fileSizeBytes}
                 onChange={(e) => setUploadForm((f) => ({ ...f, fileSizeBytes: e.target.value }))}
               />
@@ -622,10 +618,9 @@ export default function DocumentsPage() {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="upload-desc">說明（選填）</Label>
+              <Label htmlFor="upload-desc">{dc.fieldDesc}</Label>
               <Textarea
                 id="upload-desc"
-                placeholder="文件說明、備注..."
                 rows={3}
                 value={uploadForm.versionNote}
                 onChange={(e) => setUploadForm((f) => ({ ...f, versionNote: e.target.value }))}
@@ -641,12 +636,12 @@ export default function DocumentsPage() {
               {uploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  儲存中...
+                  {dc.saving}
                 </>
               ) : (
                 <>
                   <Upload className="h-4 w-4 mr-2" />
-                  新增文件
+                  {dc.btnAdd}
                 </>
               )}
             </Button>
@@ -658,14 +653,14 @@ export default function DocumentsPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{dict.documents.title}</DialogTitle>
+            <DialogTitle>{dc.title}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             {/* Document Name */}
             <div className="space-y-1.5">
               <Label htmlFor="edit-name">
-                文件名稱 <span className="text-red-500">*</span>
+                {dc.fieldName} <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="edit-name"
@@ -676,13 +671,13 @@ export default function DocumentsPage() {
 
             {/* Category */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-category">類別</Label>
+              <Label htmlFor="edit-category">{dc.fieldCategory}</Label>
               <Select
                 value={editForm.documentType}
                 onValueChange={(v) => setEditForm((f) => ({ ...f, documentType: v as Category }))}
               >
                 <SelectTrigger id="edit-category">
-                  <SelectValue placeholder="選擇類別" />
+                  <SelectValue placeholder={dc.selectCategory} />
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORY_UPLOAD_OPTIONS.map((cat) => (
@@ -696,10 +691,9 @@ export default function DocumentsPage() {
 
             {/* Description */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-desc">說明</Label>
+              <Label htmlFor="edit-desc">{dc.fieldDesc}</Label>
               <Textarea
                 id="edit-desc"
-                placeholder="文件說明、備注..."
                 rows={3}
                 value={editForm.versionNote}
                 onChange={(e) => setEditForm((f) => ({ ...f, versionNote: e.target.value }))}
@@ -715,10 +709,10 @@ export default function DocumentsPage() {
               {editSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  儲存中...
+                  {dc.saving}
                 </>
               ) : (
-                '儲存變更'
+                dc.btnSave
               )}
             </Button>
           </DialogFooter>
@@ -732,8 +726,7 @@ export default function DocumentsPage() {
             <DialogTitle>{dict.common.deleteConfirm}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-slate-600 py-2">
-            即將刪除「<strong>{deleteTarget?.documentName}</strong>」（
-            {deleteTarget?.fileName}）。此操作無法還原。
+            {deleteTarget?.documentName} — {dc.deleteConfirmText}
           </p>
           <DialogFooter className="gap-2">
             <Button
@@ -751,12 +744,12 @@ export default function DocumentsPage() {
               {deleting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  刪除中...
+                  {dc.deleting}
                 </>
               ) : (
                 <>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  確認刪除
+                  {dc.btnDelete}
                 </>
               )}
             </Button>

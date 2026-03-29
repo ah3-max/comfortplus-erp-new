@@ -15,13 +15,6 @@ interface Department {
 
 interface UserRow { id: string; name: string; role: string; title: string | null; departmentId: string | null }
 
-const ROLES: Record<string, string> = {
-  SUPER_ADMIN:'超級管理員', GM:'總經理', SALES_MANAGER:'業務主管',
-  SALES:'業務', CARE_SUPERVISOR:'護理主管', ECOMMERCE:'電商',
-  CS:'客服', WAREHOUSE_MANAGER:'倉管主管', WAREHOUSE:'倉庫',
-  PROCUREMENT:'採購', FINANCE:'財務',
-}
-
 function buildTree(depts: Department[]): Department[] {
   const map = new Map<string, Department>()
   const roots: Department[] = []
@@ -36,7 +29,7 @@ function buildTree(depts: Department[]): Department[] {
   return roots
 }
 
-function DeptNode({ dept, level, users }: { dept: Department; level: number; users: UserRow[] }) {
+function DeptNode({ dept, level, users, roles }: { dept: Department; level: number; users: UserRow[]; roles: Record<string, string> }) {
   const [expanded, setExpanded] = useState(level < 2)
   const hasChildren = dept.children && dept.children.length > 0
   const deptUsers = users.filter(u => u.departmentId === dept.id)
@@ -69,7 +62,7 @@ function DeptNode({ dept, level, users }: { dept: Department; level: number; use
             <div key={u.id} className="flex items-center gap-2 py-0.5 text-sm">
               <div className="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0" />
               <span>{u.name}</span>
-              <Badge variant="outline" className="text-[10px]">{ROLES[u.role] ?? u.role}</Badge>
+              <Badge variant="outline" className="text-[10px]">{roles[u.role] ?? u.role}</Badge>
               {u.title && <span className="text-xs text-muted-foreground">{u.title}</span>}
             </div>
           ))}
@@ -77,7 +70,7 @@ function DeptNode({ dept, level, users }: { dept: Department; level: number; use
       )}
 
       {expanded && dept.children?.map(child => (
-        <DeptNode key={child.id} dept={child} level={level + 1} users={users} />
+        <DeptNode key={child.id} dept={child} level={level + 1} users={users} roles={roles} />
       ))}
     </div>
   )
@@ -85,6 +78,7 @@ function DeptNode({ dept, level, users }: { dept: Department; level: number; use
 
 export default function OrgChartPage() {
   const { dict } = useI18n()
+  const oc = dict.orgChart
   const [depts, setDepts] = useState<Department[]>([])
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,8 +110,8 @@ export default function OrgChartPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{dict.orgChart.title}</h1>
-        <p className="text-sm text-muted-foreground">公司部門架構與人員配置</p>
+        <h1 className="text-2xl font-bold text-slate-900">{oc.title}</h1>
+        <p className="text-sm text-muted-foreground">{oc.subtitle}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -125,7 +119,7 @@ export default function OrgChartPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <Building2 className="h-5 w-5 text-blue-500" />
             <div>
-              <p className="text-xs text-muted-foreground">{dict.orgChart.department}</p>
+              <p className="text-xs text-muted-foreground">{oc.department}</p>
               <p className="text-lg font-bold">{totalDepts}</p>
             </div>
           </CardContent>
@@ -134,7 +128,7 @@ export default function OrgChartPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <Users className="h-5 w-5 text-green-500" />
             <div>
-              <p className="text-xs text-muted-foreground">{dict.orgChart.employee}</p>
+              <p className="text-xs text-muted-foreground">{oc.employee}</p>
               <p className="text-lg font-bold">{totalUsers}</p>
             </div>
           </CardContent>
@@ -143,7 +137,7 @@ export default function OrgChartPage() {
           <CardContent className="p-4 flex items-center gap-3">
             <Users className="h-5 w-5 text-amber-500" />
             <div>
-              <p className="text-xs text-muted-foreground">已指派部門</p>
+              <p className="text-xs text-muted-foreground">{oc.assignedDept}</p>
               <p className="text-lg font-bold">{assignedUsers} / {totalUsers}</p>
             </div>
           </CardContent>
@@ -153,12 +147,12 @@ export default function OrgChartPage() {
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : tree.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">{dict.orgChart.noData}</div>
+        <div className="text-center py-16 text-muted-foreground">{oc.noData}</div>
       ) : (
         <Card>
           <CardContent className="p-6">
             {tree.map(root => (
-              <DeptNode key={root.id} dept={root} level={0} users={users} />
+              <DeptNode key={root.id} dept={root} level={0} users={users} roles={oc.roles as Record<string, string>} />
             ))}
           </CardContent>
         </Card>

@@ -47,19 +47,19 @@ export default function SuppliersPage() {
   }, [fetchSuppliers])
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`確定要停用供應商「${name}」嗎？`)) return
+    if (!confirm(`${dict.suppliersPage.deactivateConfirm.replace('{name}', name)}`)) return
     const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.suppliersPage.deactivated); fetchSuppliers() }
     else toast.error(dict.common.updateFailed)
   }
 
   const purchaseTypeLabels: Record<string, string> = {
-    FINISHED_GOODS:     '成品',
-    OEM:                'OEM代工',
-    PACKAGING:          '包材',
-    RAW_MATERIAL:       '原物料',
-    GIFT_PROMO:         '贈品/活動',
-    LOGISTICS_SUPPLIES: '物流耗材',
+    FINISHED_GOODS:     dict.purchases.purchaseTypes.FINISHED_GOODS,
+    OEM:                dict.purchases.purchaseTypes.OEM,
+    PACKAGING:          dict.purchases.purchaseTypes.PACKAGING,
+    RAW_MATERIAL:       dict.purchases.purchaseTypes.RAW_MATERIAL,
+    GIFT_PROMO:         dict.purchases.purchaseTypes.GIFT_PROMO,
+    LOGISTICS_SUPPLIES: dict.purchases.purchaseTypes.LOGISTICS_SUPPLIES,
   }
 
   return (
@@ -68,7 +68,7 @@ export default function SuppliersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.suppliers.title}</h1>
-          <p className="text-sm text-muted-foreground">共 {suppliers.length} 家{dict.common.supplier}</p>
+          <p className="text-sm text-muted-foreground">{dict.suppliers.subtitle.replace('{n}', String(suppliers.length))}{dict.common.supplier}</p>
         </div>
         <Button onClick={() => { setEditTarget(null); setFormOpen(true) }}>
           <Plus className="mr-2 h-4 w-4" />{dict.suppliers.newSupplier}
@@ -85,7 +85,7 @@ export default function SuppliersPage() {
         <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
           <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)}
             className="h-4 w-4 rounded border-slate-300" />
-          顯示{dict.common.inactive}{dict.common.supplier}
+          {dict.suppliersPage.showInactive}{dict.common.inactive}{dict.common.supplier}
         </label>
       </div>
 
@@ -98,8 +98,8 @@ export default function SuppliersPage() {
               <TableHead>{dict.suppliers.name}</TableHead>
               <TableHead>{dict.suppliers.contact}</TableHead>
               <TableHead>{dict.suppliers.category}</TableHead>
-              <TableHead className="w-20 text-center">交期(天)</TableHead>
-              <TableHead className="w-20 text-center">採購單數</TableHead>
+              <TableHead className="w-20 text-center">{dict.suppliersPage.leadTimeDays}</TableHead>
+              <TableHead className="w-20 text-center">{dict.suppliersPage.purchaseCount}</TableHead>
               <TableHead className="w-24">{dict.suppliers.paymentTerms}</TableHead>
               <TableHead className="w-16">{dict.common.status}</TableHead>
               <TableHead className="w-10" />
@@ -148,7 +148,7 @@ export default function SuppliersPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center text-sm">
-                    {s.leadTimeDays != null ? `${s.leadTimeDays} 天` : '—'}
+                    {s.leadTimeDays != null ? `${s.leadTimeDays}${dict.suppliersPage.daysUnit}` : '—'}
                   </TableCell>
                   <TableCell className="text-center">
                     <span className="text-sm font-medium text-blue-600">{s._count.purchaseOrders}</span>

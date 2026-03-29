@@ -41,21 +41,21 @@ interface MarginResult {
 const fmt = (n: number) =>
   new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(n)
 
-const COST_LABELS: { key: keyof CostBreakdown; label: string; color: string }[] = [
-  { key: 'factoryCost',            label: '工廠成本',   color: 'bg-blue-500' },
-  { key: 'packagingCost',          label: '包裝費',     color: 'bg-indigo-500' },
-  { key: 'internationalLogistics', label: '國際物流',   color: 'bg-purple-500' },
-  { key: 'customs',                label: '關稅',       color: 'bg-pink-500' },
-  { key: 'storage',                label: '倉儲費',     color: 'bg-orange-500' },
-  { key: 'domesticDelivery',       label: '國內配送',   color: 'bg-teal-500' },
-]
-
 // ═══════════════════════════════════════════════════════════════════════════
 //  Page
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function MarginCalcPage() {
-  const { t } = useI18n()
+  const { dict } = useI18n()
+  const mc = dict.marginCalc
+  const COST_LABELS: { key: keyof CostBreakdown; label: string; color: string }[] = [
+    { key: 'factoryCost',            label: mc.costLabels.factoryCost,            color: 'bg-blue-500' },
+    { key: 'packagingCost',          label: mc.costLabels.packagingCost,          color: 'bg-indigo-500' },
+    { key: 'internationalLogistics', label: mc.costLabels.internationalLogistics, color: 'bg-purple-500' },
+    { key: 'customs',                label: mc.costLabels.customs,                color: 'bg-pink-500' },
+    { key: 'storage',                label: mc.costLabels.storage,                color: 'bg-orange-500' },
+    { key: 'domesticDelivery',       label: mc.costLabels.domesticDelivery,       color: 'bg-teal-500' },
+  ]
   const [products, setProducts] = useState<Product[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
 
@@ -111,21 +111,19 @@ export default function MarginCalcPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <Calculator className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">
-          {t('margin.title') === 'margin.title' ? '毛利試算' : t('margin.title')}
-        </h1>
+        <h1 className="text-2xl font-bold">{mc.title}</h1>
       </div>
 
       {/* Input Form */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">試算條件</CardTitle>
+          <CardTitle className="text-base">{mc.formTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Product selector */}
             <div className="space-y-1.5">
-              <Label htmlFor="product">產品</Label>
+              <Label htmlFor="product">{mc.productLabel}</Label>
               <select
                 id="product"
                 value={selectedProductId}
@@ -133,7 +131,7 @@ export default function MarginCalcPage() {
                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <option value="">
-                  {loadingProducts ? '載入中...' : '請選擇產品'}
+                  {loadingProducts ? mc.loadingProducts : mc.selectProduct}
                 </option>
                 {products.map(p => (
                   <option key={p.id} value={p.id}>
@@ -145,7 +143,7 @@ export default function MarginCalcPage() {
 
             {/* Unit Price */}
             <div className="space-y-1.5">
-              <Label htmlFor="unitPrice">單價 (TWD)</Label>
+              <Label htmlFor="unitPrice">{mc.unitPriceLabel}</Label>
               <Input
                 id="unitPrice"
                 type="number"
@@ -158,7 +156,7 @@ export default function MarginCalcPage() {
 
             {/* Quantity */}
             <div className="space-y-1.5">
-              <Label htmlFor="qty">數量</Label>
+              <Label htmlFor="qty">{mc.qtyLabel}</Label>
               <Input
                 id="qty"
                 type="number"
@@ -176,7 +174,7 @@ export default function MarginCalcPage() {
               disabled={!selectedProductId || !unitPrice || !qty || calculating}
             >
               {calculating && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-              計算
+              {mc.calculate}
             </Button>
           </div>
         </CardContent>
@@ -209,37 +207,37 @@ export default function MarginCalcPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" /> 產品資訊
+                  <DollarSign className="h-4 w-4" /> {mc.productInfoTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <Row label="SKU" value={result.product.sku} />
-                <Row label="品名" value={result.product.name} />
-                <Row label="建議售價" value={fmt(result.product.sellingPrice)} />
-                <Row label="底價" value={fmt(result.product.floorPrice)} />
+                <Row label={dict.products.name} value={result.product.name} />
+                <Row label={dict.products.sellingPrice} value={fmt(result.product.sellingPrice)} />
+                <Row label={dict.products.minPrice} value={fmt(result.product.floorPrice)} />
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" /> 毛利結果
+                  <TrendingUp className="h-4 w-4" /> {mc.resultTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="text-center py-2">
-                  <p className="text-sm text-muted-foreground">毛利率</p>
+                  <p className="text-sm text-muted-foreground">{mc.marginRateLabel}</p>
                   <p className={`text-4xl font-bold ${marginColor}`}>
                     {result.marginPct.toFixed(1)}%
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="text-center p-2 rounded-md bg-muted/50">
-                    <p className="text-muted-foreground">毛利金額</p>
+                    <p className="text-muted-foreground">{mc.gpAmountLabel}</p>
                     <p className="font-semibold">{fmt(result.grossProfit)}</p>
                   </div>
                   <div className="text-center p-2 rounded-md bg-muted/50">
-                    <p className="text-muted-foreground">每件利潤</p>
+                    <p className="text-muted-foreground">{mc.profitPerUnit}</p>
                     <p className="font-semibold">{fmt(result.profitPerUnit)}</p>
                   </div>
                 </div>
@@ -250,7 +248,7 @@ export default function MarginCalcPage() {
           {/* Cost Breakdown */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">成本明細</CardTitle>
+              <CardTitle className="text-base">{mc.costBreakdownTitle}</CardTitle>
             </CardHeader>
             <CardContent>
               {/* Stacked bar */}
@@ -278,7 +276,7 @@ export default function MarginCalcPage() {
                   </div>
                 ))}
                 <div className="sm:col-span-2 border-t pt-2 flex items-center justify-between font-semibold">
-                  <span>總成本</span>
+                  <span>{mc.totalCost}</span>
                   <span>{fmt(result.costBreakdown.totalCost)}</span>
                 </div>
               </div>
