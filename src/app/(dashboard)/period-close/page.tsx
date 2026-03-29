@@ -130,8 +130,8 @@ export default function PeriodClosePage() {
         }),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
-      toast.success('會計期間已建立')
+      if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
+      toast.success(dict.periodClose.created)
       setShowNewDialog(false)
       fetchPeriods()
     } finally {

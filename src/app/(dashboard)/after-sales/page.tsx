@@ -144,13 +144,13 @@ export default function AfterSalesPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('服務單已建立')
+      toast.success(dict.afterSales.created)
       setCreateOpen(false)
       setNewOrder({ source: 'WARRANTY', priority: 'MEDIUM', contactName: '', contactPhone: '', description: '', scheduledAt: '', notes: '' })
       fetchOrders()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '建立失敗')
+      toast.error(d.error ?? dict.common.createFailed)
     }
   }
 
@@ -181,13 +181,13 @@ export default function AfterSalesPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('服務單已更新')
+      toast.success(dict.afterSales.updated)
       setEditOpen(false)
       fetchOrders()
       if (detail?.id === editingId) refreshDetail(editingId)
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '更新失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -196,12 +196,12 @@ export default function AfterSalesPage() {
     if (!confirm(`確定要刪除服務單 ${order.orderNo}？此操作無法復原。`)) return
     const res = await fetch(`/api/after-sales/${order.id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('服務單已刪除')
+      toast.success(dict.afterSales.deleted)
       if (detail?.id === order.id) setDetail(null)
       fetchOrders()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '刪除失敗')
+      toast.error(d.error ?? dict.common.deleteFailed)
     }
   }
 
@@ -219,7 +219,7 @@ export default function AfterSalesPage() {
       setNewLog({ logType: 'NOTE', content: '' })
       refreshDetail(detail.id)
     } else {
-      toast.error('新增記錄失敗')
+      toast.error(dict.afterSales.recordFailed)
     }
   }
 
@@ -243,7 +243,7 @@ export default function AfterSalesPage() {
       setNewConsumption({ productId: '', quantity: '', unitCost: '', notes: '' })
       refreshDetail(detail.id)
     } else {
-      toast.error('新增消耗失敗')
+      toast.error(dict.afterSales.consumableFailed)
     }
   }
 

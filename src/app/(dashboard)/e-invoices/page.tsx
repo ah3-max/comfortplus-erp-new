@@ -113,7 +113,7 @@ export default function EInvoicesPage() {
       setInvoices(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('電子發票載入失敗')
+      toast.error(dict.eInvoicesPage.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -133,7 +133,7 @@ export default function EInvoicesPage() {
     ]).then(([cRes, siRes]) => {
       setCustomers((cRes.data ?? cRes) || [])
       setSalesInvoices((siRes.data ?? siRes) || [])
-    }).catch(() => toast.error('載入參考資料失敗'))
+    }).catch(() => toast.error(dict.common.refLoadFailed))
   }, [formOpen])
 
   function openCreate() {
@@ -157,8 +157,8 @@ export default function EInvoicesPage() {
   }
 
   async function handleSubmit() {
-    if (!form.customerId) { toast.error('請選擇客戶'); return }
-    if (!form.invoiceType) { toast.error('請選擇發票類型'); return }
+    if (!form.customerId) { toast.error(dict.eInvoicesPage.customerRequired); return }
+    if (!form.invoiceType) { toast.error(dict.eInvoicesPage.typeRequired); return }
 
     setSaving(true)
     try {
@@ -171,11 +171,11 @@ export default function EInvoicesPage() {
         const data = await res.json()
         throw new Error(data.error ?? '儲存失敗')
       }
-      toast.success('電子發票已建立')
+      toast.success(dict.eInvoicesPage.created)
       setFormOpen(false)
       fetchInvoices()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '儲存失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -188,7 +188,7 @@ export default function EInvoicesPage() {
       body: JSON.stringify({ statusOnly: true, status }),
     })
     if (res.ok) { toast.success(`發票已${label}`); fetchInvoices() }
-    else toast.error('更新失敗')
+    else toast.error(dict.common.updateFailed)
   }
 
   async function updateTransmit(id: string, transmitStatus: string, label: string) {
@@ -198,13 +198,13 @@ export default function EInvoicesPage() {
       body: JSON.stringify({ transmitOnly: true, transmitStatus }),
     })
     if (res.ok) { toast.success(`發票已${label}`); fetchInvoices() }
-    else toast.error('更新失敗')
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleVoid(id: string, no: string) {
     if (!confirm(`確定要作廢發票 ${no} 嗎？`)) return
     const res = await fetch(`/api/e-invoices/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('發票已作廢'); fetchInvoices() }
+    if (res.ok) { toast.success(dict.eInvoicesPage.voided); fetchInvoices() }
     else {
       const data = await res.json()
       toast.error(data.error ?? '作廢失敗')

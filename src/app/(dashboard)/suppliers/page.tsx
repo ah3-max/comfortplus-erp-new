@@ -49,7 +49,7 @@ export default function SuppliersPage() {
   async function handleDelete(id: string, name: string) {
     if (!confirm(`確定要停用供應商「${name}」嗎？`)) return
     const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('供應商已停用'); fetchSuppliers() }
+    if (res.ok) { toast.success(dict.suppliersPage.deactivated); fetchSuppliers() }
     else toast.error(dict.common.updateFailed)
   }
 

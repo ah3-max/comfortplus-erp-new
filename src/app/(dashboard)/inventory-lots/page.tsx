@@ -67,7 +67,7 @@ export default function InventoryLotsPage() {
       const res = await fetch(`/api/inventory/lots?${params}`)
       if (!res.ok) throw new Error()
       setLots(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [search, filterWarehouse, filterStatus, expiryAlert])
 
@@ -87,7 +87,7 @@ export default function InventoryLotsPage() {
 
   const handleCreate = async () => {
     if (!form.productId || !form.warehouseId || !form.quantity) {
-      toast.error('請填寫品項、倉庫及數量')
+      toast.error(dict.inventoryLots.fieldsRequired)
       return
     }
     try {
@@ -105,12 +105,12 @@ export default function InventoryLotsPage() {
           notes: form.notes || null,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
-      toast.success('批號已建立')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
+      toast.success(dict.inventoryLots.created)
       setShowCreate(false)
       setForm({ productId: '', warehouseId: '', supplierId: '', quantity: '', category: 'FINISHED_GOODS', location: '', manufactureDate: '', expiryDate: '', factoryLotNo: '', notes: '' })
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
   const now = new Date()

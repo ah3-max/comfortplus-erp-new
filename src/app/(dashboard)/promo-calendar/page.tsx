@@ -78,7 +78,7 @@ export default function PromoCalendarPage() {
       const res = await fetch(`/api/promo-calendar?${params}`)
       if (!res.ok) throw new Error()
       setPromos(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [year, tierFilter])
 
@@ -97,10 +97,10 @@ export default function PromoCalendarPage() {
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
-      toast.success('已建立促銷檔期')
+      toast.success(dict.promoCalendar.created)
       setShowCreate(false)
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
   // Summary

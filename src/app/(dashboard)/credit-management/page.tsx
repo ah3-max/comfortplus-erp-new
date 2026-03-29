@@ -125,7 +125,7 @@ export default function CreditManagementPage() {
       setRows(json.data)
       setSummary(json.summary)
     } catch {
-      toast.error('載入失敗')
+      toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -144,7 +144,7 @@ export default function CreditManagementPage() {
       setDetail(json)
       setEditLimit(json.creditLimit?.toString() ?? '')
     } catch {
-      toast.error('載入失敗')
+      toast.error(dict.common.loadFailed)
     } finally {
       setDetailLoading(false)
     }
@@ -161,12 +161,12 @@ export default function CreditManagementPage() {
         body: JSON.stringify({ creditLimit }),
       })
       if (!res.ok) throw new Error('Failed')
-      toast.success('信用額度已更新')
+      toast.success(dict.creditManagement.creditUpdated)
       setEditingLimit(false)
       await loadDetail(detailId)
       load()
     } catch {
-      toast.error('更新失敗')
+      toast.error(dict.common.updateFailed)
     } finally {
       setSaving(false)
     }

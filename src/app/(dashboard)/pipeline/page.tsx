@@ -110,7 +110,7 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name || !form.type) { toast.error('請填寫客戶名稱與類型'); return }
+    if (!form.name || !form.type) { toast.error(dict.pipelinePage.nameTypeRequired); return }
     setLoading(true)
     const res = await fetch('/api/customers', {
       method: 'POST',

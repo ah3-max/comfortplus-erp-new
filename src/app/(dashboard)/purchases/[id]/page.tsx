@@ -142,8 +142,8 @@ export default function PurchaseDetailPage() {
       body: JSON.stringify({ oemUpdate: true, ...oemForm }),
     })
     setOemSaving(false)
-    if (res.ok) { toast.success('OEM 進度已更新'); setOemOpen(false); fetchOrder() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(dict.purchasesPage.oemUpdated); setOemOpen(false); fetchOrder() }
+    else toast.error(dict.common.updateFailed)
   }
 
   function openReceive() {
@@ -159,7 +159,7 @@ export default function PurchaseDetailPage() {
 
   async function handleReceive() {
     const valid = receiveItems.filter(i => i.quantity > 0)
-    if (valid.length === 0) { toast.error('請設定至少一項到貨數量'); return }
+    if (valid.length === 0) { toast.error(dict.purchasesPage.receiveQtyRequired); return }
     setReceiving(true)
     const res = await fetch(`/api/purchases/${id}/receive`, {
       method: 'POST',
@@ -182,7 +182,7 @@ export default function PurchaseDetailPage() {
     if (!order) return
     const amount = Number(payAmount)
     const unpaid = Number(order.totalAmount) - Number(order.paidAmount)
-    if (isNaN(amount) || amount <= 0) { toast.error('請輸入有效金額'); return }
+    if (isNaN(amount) || amount <= 0) { toast.error(dict.purchasesPage.validAmount); return }
     if (amount > unpaid) { toast.error(`付款金額不可超過欠款 ${fmt(unpaid)}`); return }
     const newPaid = Number(order.paidAmount) + amount
     setPaying(true)
@@ -192,8 +192,8 @@ export default function PurchaseDetailPage() {
       body: JSON.stringify({ paymentOnly: true, paidAmount: newPaid }),
     })
     setPaying(false)
-    if (res.ok) { toast.success('付款已登錄'); setPayOpen(false); setPayAmount(''); fetchOrder() }
-    else toast.error('登錄失敗')
+    if (res.ok) { toast.success(dict.purchasesPage.paymentRecorded); setPayOpen(false); setPayAmount(''); fetchOrder() }
+    else toast.error(dict.purchasesPage.paymentFailed)
   }
 
   if (loading) return (

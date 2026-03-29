@@ -179,14 +179,14 @@ export default function ContractsPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('合約已建立')
+      toast.success(dict.contracts.created)
       setCreateOpen(false)
       setForm({ title: '', contractType: 'SALES', effectiveFrom: '', effectiveTo: '', signedAt: '', totalValue: '', currency: 'TWD', paymentTerms: '', autoRenew: false, notes: '', customerId: '', supplierId: '' })
       setNewSchedules([])
       fetchContracts()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '建立失敗')
+      toast.error(d.error ?? dict.common.createFailed)
     }
   }
 
@@ -215,13 +215,13 @@ export default function ContractsPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('合約已更新')
+      toast.success(dict.contracts.updated)
       setEditOpen(false)
       fetchContracts()
       if (detail?.id === editingId) refreshDetail(editingId)
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '更新失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -229,12 +229,12 @@ export default function ContractsPage() {
     if (!confirm(`確定要刪除合約 ${contractNo}？此操作無法復原。`)) return
     const res = await fetch(`/api/contracts/${id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('合約已刪除')
+      toast.success(dict.contracts.deleted)
       setDetail(null)
       fetchContracts()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '刪除失敗')
+      toast.error(d.error ?? dict.common.deleteFailed)
     }
   }
 
@@ -248,13 +248,13 @@ export default function ContractsPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success('合約已續約')
+      toast.success(dict.contracts.renewed)
       setRenewDialog(false)
       refreshDetail(detail.id)
       fetchContracts()
     } else {
       const d = await res.json().catch(() => ({}))
-      toast.error(d.error ?? '續約失敗')
+      toast.error(d.error ?? dict.common.operationFailed)
     }
   }
 
@@ -266,11 +266,11 @@ export default function ContractsPage() {
       body: JSON.stringify({ action: 'TERMINATE' }),
     })
     if (res.ok) {
-      toast.success('合約已終止')
+      toast.success(dict.contracts.terminated)
       setDetail(null)
       fetchContracts()
     } else {
-      toast.error('操作失敗')
+      toast.error(dict.common.operationFailed)
     }
   }
 

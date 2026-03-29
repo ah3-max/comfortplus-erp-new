@@ -2025,7 +2025,7 @@ function DemandForecastTab({ customerId }: { customerId: string }) {
       setAnalytics(json.analytics)
       setStoredForecast(prev => prev ? { ...prev, ...json.analytics } : json.analytics)
     } else {
-      toast.info('尚無歷史訂單可分析')
+      toast.info(dict.customers.noOrdersToAnalyze)
     }
     setAnalyzing(false)
   }

@@ -382,9 +382,9 @@ export default function InventoryPage() {
   }
 
   async function handleNewTransfer() {
-    if (!trForm.fromWarehouseId || !trForm.toWarehouseId) { toast.error('請選擇出入庫倉庫'); return }
+    if (!trForm.fromWarehouseId || !trForm.toWarehouseId) { toast.error(dict.inventoryPage.fromToRequired); return }
     const validItems = trForm.items.filter(i => i.productId && i.quantity > 0)
-    if (!validItems.length) { toast.error('請新增至少一項商品'); return }
+    if (!validItems.length) { toast.error(dict.inventoryPage.addAtLeastOne); return }
     setTrSaving(true)
     const res = await fetch('/api/inventory/transfer', {
       method: 'POST',
@@ -405,7 +405,7 @@ export default function InventoryPage() {
 
   // ── Count Actions ───────────────────────────────────────────────────────
   async function handleNewCount() {
-    if (!ctForm.warehouseId) { toast.error('請選擇倉庫'); return }
+    if (!ctForm.warehouseId) { toast.error(dict.inventoryPage.warehouseRequired); return }
     setCtSaving(true)
     const res = await fetch('/api/inventory/count', {
       method: 'POST',
@@ -467,7 +467,7 @@ export default function InventoryPage() {
 
   // ── Scrap Actions ───────────────────────────────────────────────────────
   async function handleNewScrap() {
-    if (!scForm.productId || !scForm.warehouseId || !scForm.quantity) { toast.error('請填寫必要欄位'); return }
+    if (!scForm.productId || !scForm.warehouseId || !scForm.quantity) { toast.error(dict.inventoryPage.requiredFields); return }
     setScSaving(true)
     const res = await fetch('/api/inventory/scrap', {
       method: 'POST',

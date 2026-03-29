@@ -204,12 +204,12 @@ export default function ChannelsPage() {
       body: JSON.stringify(body),
     })
     if (res.ok) {
-      toast.success(chEdit ? '通路已更新' : '通路已建立')
+      toast.success(chEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       setChOpen(false)
       loadChannels()
     } else {
       const err = await res.json().catch(() => null)
-      toast.error(err?.error ?? '操作失敗')
+      toast.error(err?.error ?? dict.common.operationFailed)
     }
     setSaving(false)
   }
@@ -221,10 +221,10 @@ export default function ChannelsPage() {
       body: JSON.stringify({ isActive: !ch.isActive }),
     })
     if (res.ok) {
-      toast.success(ch.isActive ? '通路已停用' : '通路已啟用')
+      toast.success(dict.common.statusUpdated)
       loadChannels()
     } else {
-      toast.error('操作失敗')
+      toast.error(dict.common.operationFailed)
     }
   }
 
@@ -232,10 +232,10 @@ export default function ChannelsPage() {
     if (!confirm(`確定要刪除通路「${ch.name}」嗎？`)) return
     const res = await fetch(`/api/channels/${ch.id}`, { method: 'DELETE' })
     if (res.ok) {
-      toast.success('通路已刪除')
+      toast.success(dict.channels.deletedSuccess)
       loadChannels()
     } else {
-      toast.error('刪除失敗，可能有關聯訂單')
+      toast.error(dict.channels.deleteFailedLinked)
     }
   }
 
@@ -307,12 +307,12 @@ export default function ChannelsPage() {
       body: JSON.stringify(body),
     })
     if (res.ok) {
-      toast.success(ordEdit ? '訂單已更新' : '訂單已建立')
+      toast.success(ordEdit ? dict.common.updateSuccess : dict.common.createSuccess)
       setOrdOpen(false)
       loadOrders()
     } else {
       const err = await res.json().catch(() => null)
-      toast.error(err?.error ?? '操作失敗')
+      toast.error(err?.error ?? dict.common.operationFailed)
     }
     setSaving(false)
   }

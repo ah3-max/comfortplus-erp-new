@@ -64,7 +64,7 @@ export default function PurchaseReturnsPage() {
       if (!res.ok) throw new Error()
       setData(await res.json())
       setPage(p)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [search, status])
 
@@ -89,9 +89,9 @@ export default function PurchaseReturnsPage() {
         body: JSON.stringify(patch),
       })
       if (!res.ok) throw new Error()
-      toast.success('狀態已更新')
+      toast.success(dict.common.statusUpdated)
       fetchData(page)
-    } catch { toast.error('更新失敗') }
+    } catch { toast.error(dict.common.updateFailed) }
   }
 
   return (
@@ -213,7 +213,7 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
     ]).then(([sRes, pRes]) => {
       setSuppliers(Array.isArray(sRes) ? sRes : sRes.data ?? [])
       setPurchases(Array.isArray(pRes) ? pRes : pRes.data ?? [])
-    }).catch(() => toast.error('載入參考資料失敗'))
+    }).catch(() => toast.error(dict.common.refLoadFailed))
   }, [open])
 
   // When purchase is selected, auto-fill supplier
@@ -226,7 +226,7 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
   }
 
   async function handleSubmit() {
-    if (!form.purchaseId || !form.supplierId) { toast.error('請選擇採購單與供應商'); return }
+    if (!form.purchaseId || !form.supplierId) { toast.error(dict.purchaseReturns.poSupplierRequired); return }
     setSaving(true)
     try {
       const res = await fetch('/api/purchase-returns', {
@@ -235,9 +235,9 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
         body: JSON.stringify({ ...form, deductAmount: form.deductAmount ? Number(form.deductAmount) : null }),
       })
       if (!res.ok) throw new Error()
-      toast.success('進貨退貨單建立成功')
+      toast.success(dict.purchaseReturns.created)
       onCreated()
-    } catch { toast.error('建立失敗') }
+    } catch { toast.error(dict.common.createFailed) }
     finally { setSaving(false) }
   }
 

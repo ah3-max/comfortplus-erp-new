@@ -100,7 +100,7 @@ export default function AutoJournalPage() {
       const json = await res.json()
       setPending(json.pending)
     } catch {
-      toast.error('載入失敗')
+      toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -114,7 +114,7 @@ export default function AutoJournalPage() {
       const json = await res.json()
       setRecent(json.entries)
     } catch {
-      toast.error('載入失敗')
+      toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -140,7 +140,7 @@ export default function AutoJournalPage() {
       setSelected(new Set())
       loadPending()
     } catch {
-      toast.error('批量建傳票失敗')
+      toast.error(dict.autoJournal.batchFailed)
     } finally {
       setPosting(null)
     }

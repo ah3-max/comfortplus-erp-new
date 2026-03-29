@@ -69,7 +69,7 @@ export default function DispatchPage() {
       const result = await res.json()
       setData(result.data ?? [])
       setPagination(result.pagination ?? null)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [search, filterStatus, page])
 
@@ -81,14 +81,14 @@ export default function DispatchPage() {
       body: JSON.stringify({ statusOnly: true, status }),
     })
     if (res.ok) { toast.success(`派貨單已${label}`); fetchData() }
-    else toast.error('更新失敗')
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
     if (!confirm(`確定要取消派貨單 ${no} 嗎？`)) return
     const res = await fetch(`/api/dispatch-orders/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('已取消'); fetchData() }
-    else { const d = await res.json(); toast.error(d.error ?? '取消失敗') }
+    if (res.ok) { toast.success(dict.common.cancelSuccess); fetchData() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
   }
 
   return (

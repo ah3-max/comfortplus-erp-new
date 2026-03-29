@@ -132,7 +132,7 @@ export default function SalesInvoicesPage() {
       setInvoices(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('銷貨單載入失敗')
+      toast.error(dict.salesInvoicesPage.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -156,7 +156,7 @@ export default function SalesInvoicesPage() {
       setWarehouses((wRes.data ?? wRes) || [])
       setUsers((uRes.data ?? uRes) || [])
       setProducts((pRes.data ?? pRes) || [])
-    }).catch(() => toast.error('載入參考資料失敗'))
+    }).catch(() => toast.error(dict.common.refLoadFailed))
   }, [formOpen])
 
   function openCreate() {
@@ -195,9 +195,9 @@ export default function SalesInvoicesPage() {
   }
 
   async function handleSubmit() {
-    if (!form.customerId) { toast.error('請選擇客戶'); return }
-    if (!form.warehouseId) { toast.error('請選擇倉庫'); return }
-    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error('請確認品項資料'); return }
+    if (!form.customerId) { toast.error(dict.salesInvoicesPage.customerRequired); return }
+    if (!form.warehouseId) { toast.error(dict.salesInvoicesPage.warehouseRequired); return }
+    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error(dict.common.itemsRequired); return }
 
     setSaving(true)
     try {
@@ -216,7 +216,7 @@ export default function SalesInvoicesPage() {
       setFormOpen(false)
       fetchInvoices()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '儲存失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -229,13 +229,13 @@ export default function SalesInvoicesPage() {
       body: JSON.stringify({ statusOnly: true, status }),
     })
     if (res.ok) { toast.success(`銷貨單已${label}`); fetchInvoices() }
-    else toast.error('更新失敗')
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
     if (!confirm(`確定要取消銷貨單 ${no} 嗎？`)) return
     const res = await fetch(`/api/sales-invoices/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('銷貨單已取消'); fetchInvoices() }
+    if (res.ok) { toast.success(dict.salesInvoicesPage.cancelSuccess); fetchInvoices() }
     else {
       const data = await res.json()
       toast.error(data.error ?? '取消失敗')

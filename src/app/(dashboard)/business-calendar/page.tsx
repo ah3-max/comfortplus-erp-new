@@ -185,7 +185,7 @@ function EventForm({ initial, users, onSaved, onCancel }: {
   const isExhibition = ['EXHIBITION_LARGE', 'EXHIBITION_SMALL'].includes(f.eventType)
 
   async function handleSubmit() {
-    if (!f.title || !f.startDate) { toast.error('請填寫標題與開始日期'); return }
+    if (!f.title || !f.startDate) { toast.error(dict.businessCalendar.titleDateRequired); return }
     setSaving(true)
     try {
       const url    = isEdit ? `/api/business-events/${initial!.id}` : '/api/business-events'
@@ -298,6 +298,7 @@ function EventForm({ initial, users, onSaved, onCancel }: {
 function PromoForm({ initial, users, onSaved, onCancel }: {
   initial?: Partial<PromoCalendar>; users: User[]; onSaved: () => void; onCancel: () => void
 }) {
+  const { dict } = useI18n()
   const isEdit = !!initial?.id
   const [f, setF] = useState({
     promoCode:         initial?.promoCode         || '',
@@ -320,7 +321,7 @@ function PromoForm({ initial, users, onSaved, onCancel }: {
   const set = (k: string, v: string | number) => setF(p => ({ ...p, [k]: v }))
 
   async function handleSubmit() {
-    if (!f.promoCode || !f.promoName || !f.eventStartDate) { toast.error('請填寫代碼、名稱、活動日期'); return }
+    if (!f.promoCode || !f.promoName || !f.eventStartDate) { toast.error(dict.businessCalendar.promoFieldsRequired); return }
     setSaving(true)
     try {
       const payload = {
@@ -435,6 +436,7 @@ function PromoForm({ initial, users, onSaved, onCancel }: {
 function MeetingForm({ initial, users, onSaved, onCancel }: {
   initial?: Partial<MeetingRecord>; users: User[]; onSaved: () => void; onCancel: () => void
 }) {
+  const { dict } = useI18n()
   const isEdit = !!initial?.id
   const [tab, setTab] = useState<'basic' | 'minutes' | 'audio'>('basic')
   const [f, setF] = useState({
@@ -457,7 +459,7 @@ function MeetingForm({ initial, users, onSaved, onCancel }: {
   const set = (k: string, v: string) => setF(p => ({ ...p, [k]: v }))
 
   async function handleSubmit() {
-    if (!f.title || !f.meetingDate) { toast.error('請填寫標題與日期'); return }
+    if (!f.title || !f.meetingDate) { toast.error(dict.businessCalendar.meetingFieldsRequired); return }
     setSaving(true)
     try {
       const url    = isEdit ? `/api/meeting-records/${initial!.id}` : '/api/meeting-records'
@@ -653,7 +655,7 @@ export default function BusinessCalendarPage() {
       if (prRes.ok) setPromos(await prRes.json())
       if (mrRes.ok) setMeetings(await mrRes.json())
       if (usRes.ok) { const d = await usRes.json(); setUsers(Array.isArray(d) ? d : (d.users ?? [])) }
-    } catch { toast.error('載入資料失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [year])
 

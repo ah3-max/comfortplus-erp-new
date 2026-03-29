@@ -100,8 +100,8 @@ export default function ChequesPage() {
         body: JSON.stringify({ ...form, amount: Number(form.amount) }),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
-      toast.success('支票已建立')
+      if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
+      toast.success(dict.cheques.created)
       setShowNew(false)
       fetchCheques()
     } finally {
@@ -119,8 +119,8 @@ export default function ChequesPage() {
         body: JSON.stringify(statusForm),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '更新失敗'); return }
-      toast.success('支票狀態已更新')
+      if (!res.ok) { toast.error(json.error ?? dict.common.updateFailed); return }
+      toast.success(dict.cheques.statusUpdated)
       setEditCheque(null)
       fetchCheques()
     } finally {

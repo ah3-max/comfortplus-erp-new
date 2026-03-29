@@ -60,7 +60,7 @@ export default function SupplierPerformancePage() {
       const json = await res.json()
       setData(json.data ?? [])
       setSummary(json.summary)
-    } catch { toast.error('查詢失敗') }
+    } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate])
 

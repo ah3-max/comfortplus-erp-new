@@ -60,7 +60,7 @@ export default function DeliveryPerformancePage() {
       if (view === 'monthly') setMonthly(json.data ?? [])
       if (view === 'provider') setProviders(json.data ?? [])
       if (view === 'customer') setCustomers(json.data ?? [])
-    } catch { toast.error('查詢失敗') }
+    } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [view, startDate, endDate])
 

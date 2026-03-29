@@ -84,7 +84,7 @@ export default function PriceListsPage() {
 
   const handleSave = async () => {
     if (!form.customerId || !form.productId || !form.price) {
-      toast.error('請填寫客戶、商品與特殊價格')
+      toast.error(dict.priceLists.fieldsRequired)
       return
     }
     try {
@@ -101,11 +101,11 @@ export default function PriceListsPage() {
           notes: form.notes || null,
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '儲存失敗')
-      toast.success(editing ? '已更新特殊價格' : '已新增特殊價格')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.saveFailed)
+      toast.success(dict.common.updateSuccess)
       setShowDialog(false)
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '儲存失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.saveFailed) }
   }
 
   const handleDelete = async (id: string, label: string) => {
@@ -113,9 +113,9 @@ export default function PriceListsPage() {
     try {
       const res = await fetch(`/api/special-prices?id=${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
-      toast.success('已刪除')
+      toast.success(dict.common.deleteSuccess)
       load()
-    } catch { toast.error('刪除失敗') }
+    } catch { toast.error(dict.common.deleteFailed) }
   }
 
   const now = new Date()

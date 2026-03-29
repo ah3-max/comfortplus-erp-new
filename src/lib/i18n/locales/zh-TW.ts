@@ -75,6 +75,11 @@ const zhTW = {
     uploadFailed: '上傳失敗',
     cancelSuccess: '已取消',
     requiredFields: '請填寫必填欄位',
+    queryFailed: '查詢失敗',
+    submitFailed: '送出失敗',
+    refLoadFailed: '載入參考資料失敗',
+    itemsRequired: '請確認品項資料',
+    statusUpdated: '狀態已更新',
     phone: '電話',
     email: '電子郵件',
     address: '地址',
@@ -385,6 +390,7 @@ const zhTW = {
     afterSaleCreated: '已新增客訴/售後紀錄',
     resolutionCreated: '已新增處理紀錄',
     quickNameRequired: '請填寫客戶名稱',
+    noOrdersToAnalyze: '尚無歷史訂單可分析',
   },
 
   // ── 商品 ──
@@ -660,6 +666,8 @@ const zhTW = {
       OFFICIAL: '官網',
       OTHER: '其他',
     },
+    deletedSuccess: '通路已刪除',
+    deleteFailedLinked: '刪除失敗，可能有關聯訂單',
   },
 
   // ── 收付款 ──
@@ -900,6 +908,8 @@ const zhTW = {
       RESOLVED: '已解決',
       DISMISSED: '已忽略',
     },
+    loadFailed: '無法載入流失警報',
+    taskCreateFailed: '建立任務失敗',
   },
 
   // ── 稽核 ──
@@ -1247,6 +1257,9 @@ const zhTW = {
     searchProduct: '搜尋商品名稱或 SKU...',
     pickupNotes: '取貨備註...',
     addItems: '請新增取貨商品',
+    alreadyAdded: '已新增此商品',
+    selectAtLeastOne: '請至少選擇一項商品',
+    completed: '取貨登記完成！',
   },
 
   // ── 送達確認 ──
@@ -1585,6 +1598,12 @@ const zhTW = {
       OVERTIME_OFF: '補休',
       OTHER: '其他',
     },
+    employeeSaved: '檔案已儲存',
+    appointmentCreated: '人事任命已建立',
+    attendanceCreated: '出勤記錄已建立',
+    payrollCreated: '薪資記錄已建立',
+    passwordRequired: '新增用戶需設定密碼',
+    cannotDisableSuperAdmin: '無法停用超級管理員帳號',
   },
 
   // ── 費用報銷 ──
@@ -1665,6 +1684,11 @@ const zhTW = {
       SERVICE: '服務合約',
       OTHER: '其他',
     },
+    created: '合約已建立',
+    updated: '合約已更新',
+    deleted: '合約已刪除',
+    renewed: '合約已續約',
+    terminated: '合約已終止',
   },
 
   // ── 電子簽核 ──
@@ -1803,6 +1827,11 @@ const zhTW = {
       INQUIRY: '一般詢問',
       FOLLOW_UP: '追蹤',
     },
+    created: '服務單已建立',
+    updated: '服務單已更新',
+    deleted: '服務單已刪除',
+    recordFailed: '新增記錄失敗',
+    consumableFailed: '新增消耗失敗',
   },
 
   // ── 公告 ──
@@ -1871,6 +1900,7 @@ const zhTW = {
       CONVERTED: '已轉採購單',
       CANCELLED: '已取消',
     },
+    atLeastOneItem: '至少需要一個品項',
   },
 
   // ── 折扣規則 ──
@@ -1960,6 +1990,9 @@ const zhTW = {
       COMPLETED: '已完成',
       CANCELLED: '已取消',
     },
+    warehouseRequired: '請選擇倉庫',
+    noChanges: '無變更',
+    quantitySaved: '已儲存盤點數量',
   },
 
   // ── 內部使用 / 不良品 ──
@@ -2035,6 +2068,8 @@ const zhTW = {
       REFUNDED: '已退款',
       CANCELLED: '已取消',
     },
+    orderCustomerRequired: '請填寫訂單編號與客戶',
+    created: '退貨單建立成功',
   },
 
   // ── 進貨退貨 ──
@@ -2054,6 +2089,8 @@ const zhTW = {
       REFUNDED: '已退款',
       CANCELLED: '已取消',
     },
+    poSupplierRequired: '請選擇採購單與供應商',
+    created: '進貨退貨單建立成功',
   },
 
   // ── 電子發票 ──
@@ -2177,6 +2214,9 @@ const zhTW = {
       ORDERED: '已下單',
       CANCELLED: '已取消',
     },
+    loadFailed: '詢價單載入失敗',
+    cancelSuccess: '詢價單已取消',
+    supplierRequired: '請選擇供應商',
   },
 
   // ── 領料單 ──
@@ -2444,6 +2484,7 @@ const zhTW = {
     notes: '日報說明',
     noReport: '今日尚無日報',
     submitReport: '提交日報',
+    pushFailed: '推送失敗',
   },
 
   // ── CRM 追蹤中心 ──
@@ -2515,6 +2556,8 @@ const zhTW = {
       CANCELLED: 'bg-gray-100 text-gray-500',
       RETURNED: 'bg-red-100 text-red-700',
     },
+    fieldsRequired: '請填寫通路、訂單號，並至少加入一個品項',
+    created: '已新增通路訂單',
   },
 
   // ── 業務行事曆 ──
@@ -2539,6 +2582,9 @@ const zhTW = {
       DONE: '已完成',
       CANCELLED: '已取消',
     },
+    titleDateRequired: '請填寫標題與開始日期',
+    promoFieldsRequired: '請填寫代碼、名稱、活動日期',
+    meetingFieldsRequired: '請填寫標題與日期',
   },
 
   // ── 客訴事件中心 ──
@@ -2557,6 +2603,215 @@ const zhTW = {
     followupRequired: '請填寫跟進摘要',
     networkError: '網路錯誤，請重試',
     customerUpdated: '客戶資料已更新',
+  },
+
+  // ── 銷貨單 ──
+  salesInvoicesPage: {
+    loadFailed: '銷貨單載入失敗',
+    customerRequired: '請選擇客戶',
+    warehouseRequired: '請選擇倉庫',
+    cancelSuccess: '銷貨單已取消',
+  },
+
+  // ── 銀行帳戶 ──
+  bankAccounts: {
+    accountCreated: '銀行帳戶已建立',
+    transactionRecorded: '交易已記錄',
+  },
+
+  // ── 用戶管理 ──
+  usersPage: {
+    passwordRequired: '新增用戶需設定密碼',
+    cannotDisableSuperAdmin: '無法停用超級管理員帳號',
+  },
+
+  // ── 促銷檔期 ──
+  promoCalendar: {
+    created: '已建立促銷檔期',
+  },
+
+  // ── 電子發票 ──
+  eInvoicesPage: {
+    loadFailed: '電子發票載入失敗',
+    customerRequired: '請選擇客戶',
+    typeRequired: '請選擇發票類型',
+    created: '電子發票已建立',
+    voided: '發票已作廢',
+  },
+
+  // ── 出貨 ──
+  shipmentsPage: {
+    loadFailed: '出貨載入失敗，請檢查網路連線',
+    tripDateRequired: '請填寫出車日期',
+    tripCreated: '車次已建立',
+    addedToTrip: '出貨單已加入車次',
+    selectShipment: '請輸入出貨單號或選擇出貨單',
+  },
+
+  // ── 入庫單 ──
+  productionReceiptsPage: {
+    loadFailed: '入庫單載入失敗',
+    factoryRequired: '請選擇工廠',
+    warehouseRequired: '請選擇收貨倉庫',
+    cancelSuccess: '入庫單已取消',
+  },
+
+  // ── 自動傳票 ──
+  autoJournal: {
+    batchFailed: '批量建傳票失敗',
+  },
+
+  // ── 批號 ──
+  inventoryLots: {
+    fieldsRequired: '請填寫品項、倉庫及數量',
+    created: '批號已建立',
+  },
+
+  // ── 支票 ──
+  cheques: {
+    created: '支票已建立',
+    statusUpdated: '支票狀態已更新',
+  },
+
+  // ── 稅務申報 ──
+  vatFilings: {
+    periodRequired: '請先設定期間',
+    autoFilled: '已自動帶入稅務資料',
+    autoCalcFailed: '自動計算失敗',
+    filingCreated: '申報資料已建立',
+    statusUpdated: '申報狀態已更新',
+  },
+
+  // ── 價格表 ──
+  priceLists: {
+    fieldsRequired: '請填寫客戶、商品與特殊價格',
+  },
+
+  // ── 收付款 ──
+  paymentsPage: {
+    validAmount: '請填寫有效金額',
+    validWriteOff: '請填寫有效核銷金額',
+  },
+
+  // ── 對帳單 ──
+  statementsPage: {
+    selectCustomerPeriod: '請選擇客戶與期間',
+  },
+
+  // ── 知識庫 ──
+  knowledgePage: {
+    loadFailed: '無法載入知識庫，請重新整理',
+  },
+
+  // ── 簽核 ──
+  approvalsPage: {
+    subjectRequired: '請填寫申請主旨',
+    submitted: '簽核申請已送出',
+  },
+
+  // ── 會議記錄 ──
+  meetingRecords: {
+    created: '已建立會議記錄',
+  },
+
+  // ── 信用管理 ──
+  creditManagement: {
+    creditUpdated: '信用額度已更新',
+  },
+
+  // ── 會計期間 ──
+  periodClose: {
+    created: '會計期間已建立',
+  },
+
+  // ── 行事曆 ──
+  calendarPage: {
+    loadFailed: '無法載入行事曆資料',
+    titleRequired: '請輸入標題',
+    startDateRequired: '請選擇開始日期',
+    eventUpdated: '事件已更新',
+    eventCreated: '事件已建立',
+    eventDeleted: '事件已刪除',
+  },
+
+  // ── CRM ──
+  crmPage: {
+    feedbackRecorded: '回饋已記錄',
+    markedComplete: '已標記完成',
+  },
+
+  // ── 商品 ──
+  productsPage: {
+    updated: '商品資料已更新',
+    supplierRequired: '請選擇廠商',
+  },
+
+  // ── 包材 ──
+  packagingPage: {
+    codeNameRequired: '請填寫代碼與名稱',
+  },
+
+  // ── 供應商 ──
+  suppliersPage: {
+    deactivated: '供應商已停用',
+    priceItemRequired: '請填寫品項名稱與單價',
+    priceAdded: '採購價格已新增',
+  },
+
+  // ── 不良品 ──
+  defectiveGoodsPage: {
+    fieldsRequired: '請填寫品項、倉庫及數量',
+    registered: '已登錄不良品',
+    dispositionUpdated: '處置方式已更新',
+  },
+
+  // ── 出車記錄 ──
+  deliveryTrips: {
+    dateRequired: '請填寫出車日期',
+    created: '已新增出車記錄',
+  },
+
+  // ── 車輛 ──
+  vehiclesPage: {
+    created: '已新增車輛',
+  },
+
+  // ── 採購 ──
+  purchasesPage: {
+    deleted: '採購單已刪除',
+    oemUpdated: 'OEM 進度已更新',
+    receiveQtyRequired: '請設定至少一項到貨數量',
+    validAmount: '請輸入有效金額',
+    paymentRecorded: '付款已登錄',
+    paymentFailed: '登錄失敗',
+  },
+
+  // ── 庫存調撥 ──
+  inventoryPage: {
+    fromToRequired: '請選擇出入庫倉庫',
+    addAtLeastOne: '請新增至少一項商品',
+    warehouseRequired: '請選擇倉庫',
+    requiredFields: '請填寫必要欄位',
+  },
+
+  // ── 管線 ──
+  pipelinePage: {
+    nameTypeRequired: '請填寫客戶名稱與類型',
+  },
+
+  // ── 總帳 ──
+  generalLedger: {
+    selectAccount: '請先選擇科目',
+  },
+
+  // ── 科目明細 ──
+  accountDetail: {
+    selectAccount: '請選擇科目',
+  },
+
+  // ── 往來對象 ──
+  partyTransactions: {
+    partyIdRequired: '請輸入往來對象 ID',
   },
 } as const
 

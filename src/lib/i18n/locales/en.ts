@@ -74,6 +74,11 @@ const en = {
     uploadFailed: 'Upload failed',
     cancelSuccess: 'Cancelled',
     requiredFields: 'Please fill in all required fields',
+    queryFailed: 'Query failed',
+    submitFailed: 'Submit failed',
+    refLoadFailed: 'Failed to load reference data',
+    itemsRequired: 'Please verify item data',
+    statusUpdated: 'Status updated',
     phone: 'Phone',
     email: 'Email',
     address: 'Address',
@@ -379,6 +384,7 @@ const en = {
     afterSaleCreated: 'After-sale record added',
     resolutionCreated: 'Resolution record added',
     quickNameRequired: 'Please fill in customer name',
+    noOrdersToAnalyze: 'No historical orders to analyze',
   },
 
   products: {
@@ -645,6 +651,8 @@ const en = {
       OFFICIAL: 'Official',
       OTHER: 'Other',
     },
+    deletedSuccess: 'Channel deleted',
+    deleteFailedLinked: 'Delete failed, may have linked orders',
   },
 
   payments: {
@@ -873,6 +881,8 @@ const en = {
       RESOLVED: 'Resolved',
       DISMISSED: 'Dismissed',
     },
+    loadFailed: 'Unable to load churn alerts',
+    taskCreateFailed: 'Failed to create task',
   },
 
   audit: {
@@ -1216,6 +1226,9 @@ const en = {
     searchProduct: 'Search product name or SKU...',
     pickupNotes: 'Pickup notes...',
     addItems: 'Please add pickup items',
+    alreadyAdded: 'This product is already added',
+    selectAtLeastOne: 'Please select at least one product',
+    completed: 'Pickup registration complete!',
   },
 
   // ── Delivery Confirmation ──
@@ -1554,6 +1567,12 @@ const en = {
       OVERTIME_OFF: 'Overtime Off',
       OTHER: 'Other',
     },
+    employeeSaved: 'Employee record saved',
+    appointmentCreated: 'Appointment created',
+    attendanceCreated: 'Attendance record created',
+    payrollCreated: 'Payroll record created',
+    passwordRequired: 'Password is required for new users',
+    cannotDisableSuperAdmin: 'Cannot disable super admin account',
   },
 
   // ── Expenses ──
@@ -1634,6 +1653,11 @@ const en = {
       SERVICE: 'Service Contract',
       OTHER: 'Other',
     },
+    created: 'Contract created',
+    updated: 'Contract updated',
+    deleted: 'Contract deleted',
+    renewed: 'Contract renewed',
+    terminated: 'Contract terminated',
   },
 
   // ── Approvals ──
@@ -1772,6 +1796,11 @@ const en = {
       INQUIRY: 'General Inquiry',
       FOLLOW_UP: 'Follow-up',
     },
+    created: 'Service order created',
+    updated: 'Service order updated',
+    deleted: 'Service order deleted',
+    recordFailed: 'Failed to add record',
+    consumableFailed: 'Failed to add consumable',
   },
 
   // ── Announcements ──
@@ -1840,6 +1869,7 @@ const en = {
       CONVERTED: 'Converted to PO',
       CANCELLED: 'Cancelled',
     },
+    atLeastOneItem: 'At least one item is required',
   },
 
   // ── Discount Rules ──
@@ -1929,6 +1959,9 @@ const en = {
       COMPLETED: 'Completed',
       CANCELLED: 'Cancelled',
     },
+    warehouseRequired: 'Please select warehouse',
+    noChanges: 'No changes',
+    quantitySaved: 'Count quantities saved',
   },
 
   // ── Internal Use / Defective ──
@@ -2004,6 +2037,8 @@ const en = {
       REFUNDED: 'Refunded',
       CANCELLED: 'Cancelled',
     },
+    orderCustomerRequired: 'Please fill in order number and customer',
+    created: 'Sales return created',
   },
 
   // ── Purchase Returns ──
@@ -2023,6 +2058,8 @@ const en = {
       REFUNDED: 'Refunded',
       CANCELLED: 'Cancelled',
     },
+    poSupplierRequired: 'Please select PO and supplier',
+    created: 'Purchase return created',
   },
 
   // ── E-Invoices ──
@@ -2146,6 +2183,9 @@ const en = {
       ORDERED: 'Ordered',
       CANCELLED: 'Cancelled',
     },
+    loadFailed: 'Failed to load RFQs',
+    cancelSuccess: 'RFQ cancelled',
+    supplierRequired: 'Please select supplier',
   },
 
   // ── Material Requisitions ──
@@ -2413,6 +2453,7 @@ const en = {
     notes: 'Notes',
     noReport: 'No report today',
     submitReport: 'Submit Report',
+    pushFailed: 'Push failed',
   },
 
   // ── CRM ──
@@ -2484,6 +2525,8 @@ const en = {
       CANCELLED: 'bg-gray-100 text-gray-500',
       RETURNED: 'bg-red-100 text-red-700',
     },
+    fieldsRequired: 'Please fill in channel, order number, and at least one item',
+    created: 'Channel order created',
   },
 
   // ── Business Calendar ──
@@ -2508,6 +2551,9 @@ const en = {
       DONE: 'Done',
       CANCELLED: 'Cancelled',
     },
+    titleDateRequired: 'Please fill in title and start date',
+    promoFieldsRequired: 'Please fill in code, name, and event date',
+    meetingFieldsRequired: 'Please fill in title and date',
   },
 
   // ── Incident Center ──
@@ -2526,6 +2572,182 @@ const en = {
     followupRequired: 'Please fill in follow-up summary',
     networkError: 'Network error, please try again',
     customerUpdated: 'Customer updated',
+  },
+
+  salesInvoicesPage: {
+    loadFailed: 'Failed to load sales invoices',
+    customerRequired: 'Please select customer',
+    warehouseRequired: 'Please select warehouse',
+    cancelSuccess: 'Sales invoice cancelled',
+  },
+
+  bankAccounts: {
+    accountCreated: 'Bank account created',
+    transactionRecorded: 'Transaction recorded',
+  },
+
+  usersPage: {
+    passwordRequired: 'Password is required for new users',
+    cannotDisableSuperAdmin: 'Cannot disable super admin account',
+  },
+
+  promoCalendar: {
+    created: 'Promo calendar created',
+  },
+
+  eInvoicesPage: {
+    loadFailed: 'Failed to load e-invoices',
+    customerRequired: 'Please select customer',
+    typeRequired: 'Please select invoice type',
+    created: 'E-invoice created',
+    voided: 'Invoice voided',
+  },
+
+  shipmentsPage: {
+    loadFailed: 'Failed to load shipments, please check connection',
+    tripDateRequired: 'Please fill in trip date',
+    tripCreated: 'Trip created',
+    addedToTrip: 'Shipment added to trip',
+    selectShipment: 'Please enter shipment number or select a shipment',
+  },
+
+  productionReceiptsPage: {
+    loadFailed: 'Failed to load production receipts',
+    factoryRequired: 'Please select factory',
+    warehouseRequired: 'Please select receiving warehouse',
+    cancelSuccess: 'Production receipt cancelled',
+  },
+
+  autoJournal: {
+    batchFailed: 'Batch journal entry failed',
+  },
+
+  inventoryLots: {
+    fieldsRequired: 'Please fill in product, warehouse, and quantity',
+    created: 'Lot created',
+  },
+
+  cheques: {
+    created: 'Cheque created',
+    statusUpdated: 'Cheque status updated',
+  },
+
+  vatFilings: {
+    periodRequired: 'Please set the period first',
+    autoFilled: 'Tax data auto-filled',
+    autoCalcFailed: 'Auto calculation failed',
+    filingCreated: 'Filing created',
+    statusUpdated: 'Filing status updated',
+  },
+
+  priceLists: {
+    fieldsRequired: 'Please fill in customer, product, and special price',
+  },
+
+  paymentsPage: {
+    validAmount: 'Please enter a valid amount',
+    validWriteOff: 'Please enter a valid write-off amount',
+  },
+
+  statementsPage: {
+    selectCustomerPeriod: 'Please select customer and period',
+  },
+
+  knowledgePage: {
+    loadFailed: 'Unable to load knowledge base, please refresh',
+  },
+
+  approvalsPage: {
+    subjectRequired: 'Please fill in the subject',
+    submitted: 'Approval request submitted',
+  },
+
+  meetingRecords: {
+    created: 'Meeting record created',
+  },
+
+  creditManagement: {
+    creditUpdated: 'Credit limit updated',
+  },
+
+  periodClose: {
+    created: 'Accounting period created',
+  },
+
+  calendarPage: {
+    loadFailed: 'Unable to load calendar data',
+    titleRequired: 'Please enter a title',
+    startDateRequired: 'Please select a start date',
+    eventUpdated: 'Event updated',
+    eventCreated: 'Event created',
+    eventDeleted: 'Event deleted',
+  },
+
+  crmPage: {
+    feedbackRecorded: 'Feedback recorded',
+    markedComplete: 'Marked as complete',
+  },
+
+  productsPage: {
+    updated: 'Product updated',
+    supplierRequired: 'Please select supplier',
+  },
+
+  packagingPage: {
+    codeNameRequired: 'Please fill in code and name',
+  },
+
+  suppliersPage: {
+    deactivated: 'Supplier deactivated',
+    priceItemRequired: 'Please fill in item name and unit cost',
+    priceAdded: 'Purchase price added',
+  },
+
+  defectiveGoodsPage: {
+    fieldsRequired: 'Please fill in product, warehouse, and quantity',
+    registered: 'Defective goods registered',
+    dispositionUpdated: 'Disposition updated',
+  },
+
+  deliveryTrips: {
+    dateRequired: 'Please fill in trip date',
+    created: 'Delivery trip created',
+  },
+
+  vehiclesPage: {
+    created: 'Vehicle added',
+  },
+
+  purchasesPage: {
+    deleted: 'Purchase order deleted',
+    oemUpdated: 'OEM progress updated',
+    receiveQtyRequired: 'Please set at least one receiving quantity',
+    validAmount: 'Please enter a valid amount',
+    paymentRecorded: 'Payment recorded',
+    paymentFailed: 'Payment recording failed',
+  },
+
+  inventoryPage: {
+    fromToRequired: 'Please select from/to warehouse',
+    addAtLeastOne: 'Please add at least one product',
+    warehouseRequired: 'Please select warehouse',
+    requiredFields: 'Please fill in required fields',
+  },
+
+  pipelinePage: {
+    nameTypeRequired: 'Please fill in customer name and type',
+  },
+
+  generalLedger: {
+    selectAccount: 'Please select an account first',
+  },
+
+  accountDetail: {
+    selectAccount: 'Please select account(s)',
+  },
+
+  partyTransactions: {
+    partyIdRequired: 'Please enter party ID',
   },
 } as const
 

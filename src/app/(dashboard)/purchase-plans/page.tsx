@@ -83,7 +83,7 @@ export default function PurchasePlansPage() {
   }
 
   async function doCreate() {
-    if (!items.some(i => i.productId)) { toast.error('至少需要一個品項'); return }
+    if (!items.some(i => i.productId)) { toast.error(dict.purchasePlans.atLeastOneItem); return }
     setSaving(true)
     const res = await fetch('/api/purchase-plans', {
       method: 'POST',

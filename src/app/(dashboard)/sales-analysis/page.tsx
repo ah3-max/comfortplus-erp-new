@@ -45,7 +45,7 @@ export default function SalesAnalysisPage() {
       if (view === 'monthly') setMonthly(json.data ?? [])
       if (view === 'customer') { setCustomers(json.data ?? []); setTotal(json.total ?? 0) }
       if (view === 'product') setProducts(json.data ?? [])
-    } catch { toast.error('查詢失敗') }
+    } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [view, startDate, endDate])
 

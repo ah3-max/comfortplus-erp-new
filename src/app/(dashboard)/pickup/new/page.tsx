@@ -77,7 +77,7 @@ export default function NewPickupPage() {
 
   function addProduct(product: Product) {
     if (items.some(i => i.productId === product.id)) {
-      toast.error('已新增此商品')
+      toast.error(dict.pickup.alreadyAdded)
       return
     }
     setItems(prev => [...prev, {
@@ -120,7 +120,7 @@ export default function NewPickupPage() {
 
   async function handleSubmit() {
     if (items.length === 0) {
-      toast.error('請至少選擇一項商品')
+      toast.error(dict.pickup.selectAtLeastOne)
       return
     }
 
@@ -182,7 +182,7 @@ export default function NewPickupPage() {
         }
       }
 
-      toast.success('取貨登記完成！')
+      toast.success(dict.pickup.completed)
       router.push('/pickup')
     } catch (e) {
       toast.error((e as Error).message)

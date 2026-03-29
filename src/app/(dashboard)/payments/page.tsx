@@ -202,7 +202,7 @@ export default function PaymentsPage() {
 
   async function handleCreate() {
     if (!createForm.amount || Number(createForm.amount) <= 0) {
-      toast.error('請填寫有效金額'); return
+      toast.error(dict.paymentsPage.validAmount); return
     }
     if (!createForm.paymentDate) {
       toast.error(`請選擇${dict.payments.paymentDate}`); return
@@ -306,7 +306,7 @@ export default function PaymentsPage() {
   async function handleWriteOff() {
     if (!writeOffTarget) return
     if (!writeOffForm.amount || Number(writeOffForm.amount) <= 0) {
-      toast.error('請填寫有效核銷金額'); return
+      toast.error(dict.paymentsPage.validWriteOff); return
     }
     setWritingOff(true)
     const body = {

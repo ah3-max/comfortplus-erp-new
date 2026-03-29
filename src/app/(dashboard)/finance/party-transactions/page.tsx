@@ -50,7 +50,7 @@ export default function PartyTransactionsPage() {
   const [loading, setLoading] = useState(false)
 
   const fetchData = useCallback(async () => {
-    if (!partyId) { toast.error('請輸入往來對象 ID'); return }
+    if (!partyId) { toast.error(dict.partyTransactions.partyIdRequired); return }
     setLoading(true)
     try {
       const params = new URLSearchParams({ partyType, partyId, startDate, endDate })

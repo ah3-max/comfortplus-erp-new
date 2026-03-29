@@ -56,7 +56,7 @@ export default function AccountDetailPage() {
   }, [])
 
   const fetchData = useCallback(async () => {
-    if (!selectedIds.length) { toast.error('請選擇科目'); return }
+    if (!selectedIds.length) { toast.error(dict.accountDetail.selectAccount); return }
     setLoading(true)
     try {
       const params = new URLSearchParams({ startDate, endDate })

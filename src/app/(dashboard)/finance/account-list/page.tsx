@@ -48,7 +48,7 @@ export default function AccountListPage() {
       const res = await fetch(`/api/finance/account-list?${params}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [type, includeBalance])
 

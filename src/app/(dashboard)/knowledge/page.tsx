@@ -483,7 +483,7 @@ export default function KnowledgePage() {
       setTotal(data.total ?? 0)
       setStats(data.stats ?? [])
     } catch {
-      toast.error('無法載入知識庫，請重新整理')
+      toast.error(dict.knowledgePage.loadFailed)
     } finally {
       setLoading(false)
     }

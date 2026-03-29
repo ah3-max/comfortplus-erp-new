@@ -50,7 +50,7 @@ export default function SalespersonPerformancePage() {
       setData(json.data ?? [])
       setSummary(json.summary ?? null)
       setSelected(null)
-    } catch { toast.error('查詢失敗') }
+    } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [month])
 

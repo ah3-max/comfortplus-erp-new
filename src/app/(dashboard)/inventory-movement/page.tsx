@@ -68,7 +68,7 @@ export default function InventoryMovementPage() {
       setRows(json.data ?? [])
       setSummary(json.summary)
     } catch {
-      toast.error('查詢失敗')
+      toast.error(dict.common.queryFailed)
     } finally {
       setLoading(false)
     }

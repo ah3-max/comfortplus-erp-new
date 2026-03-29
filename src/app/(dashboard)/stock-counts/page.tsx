@@ -105,7 +105,7 @@ export default function StockCountsPage() {
       const result = await res.json()
       setData(result.data ?? [])
       setPagination(result.pagination ?? null)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [search, filterStatus, page])
 
@@ -127,12 +127,12 @@ export default function StockCountsPage() {
     fetch(`/api/stock-counts/${selectedId}`)
       .then(r => r.json())
       .then(d => setCountDetail(d))
-      .catch(() => toast.error('載入失敗'))
+      .catch(() => toast.error(dict.common.loadFailed))
       .finally(() => setLoadingDetail(false))
   }, [selectedId])
 
   async function createCount() {
-    if (!createForm.warehouseId) { toast.error('請選擇倉庫'); return }
+    if (!createForm.warehouseId) { toast.error(dict.stockCounts.warehouseRequired); return }
     setCreating(true)
     try {
       const res = await fetch('/api/stock-counts', {
@@ -146,7 +146,7 @@ export default function StockCountsPage() {
       setCreateForm({ warehouseId: '', countType: 'FULL', plannedDate: '', notes: '' })
       fetchData()
       setSelectedId(result.id)
-    } catch { toast.error('建立失敗') }
+    } catch { toast.error(dict.common.createFailed) }
     finally { setCreating(false) }
   }
 
@@ -157,12 +157,12 @@ export default function StockCountsPage() {
     })
     if (res.ok) {
       const labels: Record<string, string> = { COUNTING: '開始盤點', REVIEWING: '送交複核', COMPLETED: '盤點完成', CANCELLED: '已取消' }
-      toast.success(labels[status] ?? '已更新')
+      toast.success(labels[status] ?? dict.common.updateSuccess)
       fetchData()
       if (selectedId) setSelectedId(selectedId) // refresh detail
     } else {
       const d = await res.json()
-      toast.error(d.error ?? '更新失敗')
+      toast.error(d.error ?? dict.common.updateFailed)
     }
   }
 
@@ -173,7 +173,7 @@ export default function StockCountsPage() {
       countedQty: parseInt(vals.countedQty) || 0,
       varianceReason: vals.varianceReason || undefined,
     }))
-    if (!items.length) { toast.info('無變更'); return }
+    if (!items.length) { toast.info(dict.stockCounts.noChanges); return }
     setSavingItems(true)
     try {
       const res = await fetch(`/api/stock-counts/${countDetail.id}`, {
@@ -181,17 +181,17 @@ export default function StockCountsPage() {
         body: JSON.stringify({ items }),
       })
       if (!res.ok) throw new Error()
-      toast.success('已儲存盤點數量')
+      toast.success(dict.stockCounts.quantitySaved)
       setSelectedId(countDetail.id) // refresh
-    } catch { toast.error('儲存失敗') }
+    } catch { toast.error(dict.common.saveFailed) }
     finally { setSavingItems(false) }
   }
 
   async function handleCancel(id: string, no: string) {
     if (!confirm(`確定要取消盤點單 ${no} 嗎？`)) return
     const res = await fetch(`/api/stock-counts/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('已取消'); fetchData() }
-    else { const d = await res.json(); toast.error(d.error ?? '取消失敗') }
+    if (res.ok) { toast.success(dict.common.cancelSuccess); fetchData() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
   }
 
   function getItemCountedQty(item: CountItem): string {

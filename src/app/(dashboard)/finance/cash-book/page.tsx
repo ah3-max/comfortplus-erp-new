@@ -43,7 +43,7 @@ export default function CashBookPage() {
       const res = await fetch(`/api/finance/cash-book?${params}`)
       if (!res.ok) throw new Error()
       setData(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate, method])
 

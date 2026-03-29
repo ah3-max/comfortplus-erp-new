@@ -196,6 +196,7 @@ interface EditForm {
 }
 
 function EditDialog({ open, product, onClose, onSuccess }: EditDialogProps) {
+  const { dict } = useI18n()
   const [form, setForm] = useState<EditForm>({
     name:           product.name,
     category:       product.category,
@@ -259,12 +260,12 @@ function EditDialog({ open, product, onClose, onSuccess }: EditDialogProps) {
         body: JSON.stringify(body),
       })
       if (res.ok) {
-        toast.success('商品資料已更新')
+        toast.success(dict.productsPage.updated)
         onSuccess()
         onClose()
       } else {
         const err = await res.json().catch(() => ({}))
-        toast.error(err?.error ?? '更新失敗')
+        toast.error(err?.error ?? dict.common.updateFailed)
       }
     } finally {
       setSaving(false)
@@ -369,6 +370,7 @@ function SupplierForm({ productId, initial, supplierOptions, onSaved, onCancel }
   onSaved: () => void
   onCancel: () => void
 }) {
+  const { dict } = useI18n()
   const isEdit = !!initial
   const [f, setF] = useState({
     supplierId:         initial?.supplierId         || '',
@@ -392,7 +394,7 @@ function SupplierForm({ productId, initial, supplierOptions, onSaved, onCancel }
   const set = (k: string, v: string | boolean | number) => setF(prev => ({ ...prev, [k]: v }))
 
   async function handleSubmit() {
-    if (!f.supplierId) { toast.error('請選擇廠商'); return }
+    if (!f.supplierId) { toast.error(dict.productsPage.supplierRequired); return }
     setSaving(true)
     try {
       const res = await fetch(`/api/products/${productId}/suppliers`, {
@@ -570,7 +572,7 @@ export default function ProductDetailPage() {
         toast.success(product.isActive ? '商品已停用' : '商品已啟用')
         fetchAll()
       } else {
-        toast.error('操作失敗')
+        toast.error(dict.common.operationFailed)
       }
     } finally {
       setToggling(false)

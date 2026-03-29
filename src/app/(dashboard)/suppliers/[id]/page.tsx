@@ -84,7 +84,7 @@ export default function SupplierDetailPage() {
 
   async function handleAddPrice(e: React.FormEvent) {
     e.preventDefault()
-    if (!pItemName || !pUnitCost) { toast.error('請填寫品項名稱與單價'); return }
+    if (!pItemName || !pUnitCost) { toast.error(dict.suppliersPage.priceItemRequired); return }
     setPSaving(true)
     const res = await fetch(`/api/suppliers/${id}/price-history`, {
       method: 'POST',
@@ -93,21 +93,21 @@ export default function SupplierDetailPage() {
     })
     setPSaving(false)
     if (res.ok) {
-      toast.success('採購價格已新增')
+      toast.success(dict.suppliersPage.priceAdded)
       setPriceOpen(false)
       setPItemName(''); setPUnitCost(''); setPNotes('')
       setPDate(new Date().toISOString().slice(0, 10))
       fetchSupplier()
     } else {
-      const d = await res.json(); toast.error(d.error ?? '新增失敗')
+      const d = await res.json(); toast.error(d.error ?? dict.common.createFailed)
     }
   }
 
   async function handleDeletePrice(recordId: string) {
     if (!confirm('確定刪除此價格紀錄？')) return
     const res = await fetch(`/api/suppliers/${id}/price-history?recordId=${recordId}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('已刪除'); fetchSupplier() }
-    else toast.error('刪除失敗')
+    if (res.ok) { toast.success(dict.common.deleteSuccess); fetchSupplier() }
+    else toast.error(dict.common.deleteFailed)
   }
 
   if (loading) return (

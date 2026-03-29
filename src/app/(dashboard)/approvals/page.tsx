@@ -153,7 +153,7 @@ export default function ApprovalsPage() {
 
   async function handleSubmitNewReq() {
     if (!newReqForm.subject.trim()) {
-      toast.error('請填寫申請主旨')
+      toast.error(dict.approvalsPage.subjectRequired)
       return
     }
     const selectedTemplate = newReqTemplates.find(t => t.id === newReqForm.templateId)
@@ -177,16 +177,16 @@ export default function ApprovalsPage() {
         }),
       })
       if (res.ok) {
-        toast.success('簽核申請已送出')
+        toast.success(dict.approvalsPage.submitted)
         setNewReqDialog(false)
         setNewReqForm({ templateId: '', subject: '', description: '', refDoc: '' })
         fetchRequests()
       } else {
         const d = await res.json().catch(() => ({}))
-        toast.error(d.error ?? '送出失敗')
+        toast.error(d.error ?? dict.common.submitFailed)
       }
     } catch {
-      toast.error('送出失敗')
+      toast.error(dict.common.submitFailed)
     } finally {
       setNewReqSaving(false)
     }

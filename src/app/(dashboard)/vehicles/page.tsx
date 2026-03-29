@@ -54,7 +54,7 @@ export default function VehiclesPage() {
       const res = await fetch('/api/vehicles')
       if (!res.ok) throw new Error()
       setVehicles(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [])
 
@@ -74,7 +74,7 @@ export default function VehiclesPage() {
         }),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
-      toast.success('已新增車輛')
+      toast.success(dict.vehiclesPage.created)
       setShowCreate(false)
       setForm({ plateNo: '', vehicleType: '', brand: '', model: '', year: '', fuelType: 'DIESEL', insuranceExpiry: '', inspectionExpiry: '', licenseTaxExpiry: '', notes: '' })
       load()

@@ -49,7 +49,7 @@ export default function AccountMovementPage() {
       const d = await res.json()
       setRows(d.rows)
       setPeriod(d.period)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate, typeFilter])
 

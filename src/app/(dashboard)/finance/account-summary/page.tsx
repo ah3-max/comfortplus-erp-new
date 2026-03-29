@@ -61,7 +61,7 @@ export default function AccountSummaryPage() {
       const d = await res.json()
       setGroups(d.groups)
       setExpanded(new Set(d.groups.map((g: AccountGroup) => g.accountId)))
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [selectedId, startDate, endDate])
 

@@ -71,7 +71,7 @@ function MaterialForm({
 
   async function handleSubmit() {
     if (!code.trim() || !name.trim()) {
-      toast.error('請填寫代碼與名稱')
+      toast.error(dict.packagingPage.codeNameRequired)
       return
     }
     setSaving(true)

@@ -62,14 +62,14 @@ export default function DeliveryTripsPage() {
       const res = await fetch(`/api/delivery/trips?${params}`)
       if (!res.ok) throw new Error()
       setTrips(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [dateFrom, dateTo, filterStatus])
 
   useEffect(() => { load() }, [load])
 
   const handleCreate = async () => {
-    if (!form.tripDate) { toast.error('請填寫出車日期'); return }
+    if (!form.tripDate) { toast.error(dict.deliveryTrips.dateRequired); return }
     try {
       const res = await fetch('/api/delivery/trips', {
         method: 'POST',
@@ -77,7 +77,7 @@ export default function DeliveryTripsPage() {
         body: JSON.stringify(form),
       })
       if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
-      toast.success('已新增出車記錄')
+      toast.success(dict.deliveryTrips.created)
       setShowCreate(false)
       setForm({ tripDate: new Date().toISOString().slice(0, 10), vehicleNo: '', driverName: '', driverPhone: '', region: '', notes: '' })
       load()
@@ -92,10 +92,10 @@ export default function DeliveryTripsPage() {
         body: JSON.stringify({ status }),
       })
       if (!res.ok) throw new Error()
-      toast.success('狀態已更新')
+      toast.success(dict.common.statusUpdated)
       setSelected(null)
       load()
-    } catch { toast.error('更新失敗') }
+    } catch { toast.error(dict.common.updateFailed) }
   }
 
   const totalCost = trips.reduce((s, t) => s + Number(t.totalTripCost ?? 0), 0)

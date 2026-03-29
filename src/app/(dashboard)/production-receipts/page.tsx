@@ -121,7 +121,7 @@ export default function ProductionReceiptsPage() {
       setReceipts(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('入庫單載入失敗')
+      toast.error(dict.productionReceiptsPage.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -147,7 +147,7 @@ export default function ProductionReceiptsPage() {
       setProducts((pRes.data ?? pRes) || [])
       setSuppliers((sRes.data ?? sRes) || [])
       setProductionOrders((poRes.data ?? poRes) || [])
-    }).catch(() => toast.error('載入參考資料失敗'))
+    }).catch(() => toast.error(dict.common.refLoadFailed))
   }, [formOpen])
 
   function openCreate() {
@@ -179,9 +179,9 @@ export default function ProductionReceiptsPage() {
   }
 
   async function handleSubmit() {
-    if (!form.factoryId) { toast.error('請選擇工廠'); return }
-    if (!form.receivingWarehouseId) { toast.error('請選擇收貨倉庫'); return }
-    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error('請確認品項資料'); return }
+    if (!form.factoryId) { toast.error(dict.productionReceiptsPage.factoryRequired); return }
+    if (!form.receivingWarehouseId) { toast.error(dict.productionReceiptsPage.warehouseRequired); return }
+    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error(dict.common.itemsRequired); return }
 
     setSaving(true)
     try {
@@ -194,13 +194,13 @@ export default function ProductionReceiptsPage() {
       })
       if (!res.ok) {
         const data = await res.json()
-        throw new Error(data.error ?? '儲存失敗')
+        throw new Error(data.error ?? dict.common.saveFailed)
       }
-      toast.success(editTarget ? '入庫單已更新' : '入庫單已建立')
+      toast.success(editTarget ? dict.common.updateSuccess : dict.common.success)
       setFormOpen(false)
       fetchReceipts()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '儲存失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -212,17 +212,17 @@ export default function ProductionReceiptsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statusOnly: true, status }),
     })
-    if (res.ok) { toast.success(`入庫單已${label}`); fetchReceipts() }
-    else toast.error('更新失敗')
+    if (res.ok) { toast.success(dict.common.statusUpdated); fetchReceipts() }
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
     if (!confirm(`確定要取消入庫單 ${no} 嗎？`)) return
     const res = await fetch(`/api/production-receipts/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('入庫單已取消'); fetchReceipts() }
+    if (res.ok) { toast.success(dict.productionReceiptsPage.cancelSuccess); fetchReceipts() }
     else {
       const data = await res.json()
-      toast.error(data.error ?? '取消失敗')
+      toast.error(data.error ?? dict.common.operationFailed)
     }
   }
 

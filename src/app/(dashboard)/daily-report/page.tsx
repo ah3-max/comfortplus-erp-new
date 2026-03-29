@@ -173,7 +173,7 @@ export default function DailyReportPage() {
     try {
       const res = await fetch(`/api/reports/daily?date=${date}`)
       if (res.ok) setReport(await res.json())
-      else toast.error('載入失敗')
+      else toast.error(dict.common.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -189,7 +189,7 @@ export default function DailyReportPage() {
         const d = await res.json()
         toast.success(`日報已推送給 ${d.notifiedCount} 位主管`)
       } else {
-        toast.error('推送失敗')
+        toast.error(dict.dailyReport.pushFailed)
       }
     } finally {
       setSending(false)

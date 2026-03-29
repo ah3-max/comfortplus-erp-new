@@ -90,7 +90,7 @@ export default function StatementsPage() {
       if (!res.ok) throw new Error()
       const json = await res.json()
       setRows(json.data)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [statusFilter, customerFilter])
 
@@ -112,7 +112,7 @@ export default function StatementsPage() {
       const res = await fetch(`/api/statements/${id}`)
       if (!res.ok) throw new Error()
       setDetail(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setDetailLoading(false) }
   }, [])
 
@@ -126,16 +126,16 @@ export default function StatementsPage() {
         body: JSON.stringify({ action, ...extra }),
       })
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
-      toast.success('操作成功')
+      toast.success(dict.common.updateSuccess)
       loadDetail(detailId)
       load()
-    } catch (e) { toast.error(String(e instanceof Error ? e.message : '操作失敗')) }
+    } catch (e) { toast.error(String(e instanceof Error ? e.message : dict.common.operationFailed)) }
     finally { setActionLoading(false) }
   }
 
   const generate = async () => {
     if (!genCustomerId || !genPeriodStart || !genPeriodEnd) {
-      toast.error('請選擇客戶與期間')
+      toast.error(dict.statementsPage.selectCustomerPeriod)
       return
     }
     setGenerating(true)
@@ -150,7 +150,7 @@ export default function StatementsPage() {
       toast.success(`對帳單 ${stmt.statementNo} 已建立`)
       setShowGenerate(false)
       load()
-    } catch (e) { toast.error(String(e instanceof Error ? e.message : '建立失敗')) }
+    } catch (e) { toast.error(String(e instanceof Error ? e.message : dict.common.createFailed)) }
     finally { setGenerating(false) }
   }
 

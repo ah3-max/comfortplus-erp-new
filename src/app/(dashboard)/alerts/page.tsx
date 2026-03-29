@@ -48,7 +48,7 @@ const LEVEL_BAR: Record<string, string> = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function AlertsPage() {
-  const { t } = useI18n()
+  const { dict } = useI18n()
   const [alerts, setAlerts] = useState<ChurnAlert[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -63,7 +63,7 @@ export default function AlertsPage() {
       list.sort((a, b) => b.riskScore - a.riskScore)
       setAlerts(list)
     } catch {
-      toast.error('無法載入流失警報')
+      toast.error(dict.alerts.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -82,7 +82,7 @@ export default function AlertsPage() {
       if (!res.ok) throw new Error('Failed')
       toast.success(`已為 ${alert.customerName} 建立追蹤任務`)
     } catch {
-      toast.error('建立任務失敗')
+      toast.error(dict.alerts.taskCreateFailed)
     } finally {
       setActionLoading(null)
     }

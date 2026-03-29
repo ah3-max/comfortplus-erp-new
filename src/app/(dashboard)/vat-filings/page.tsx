@@ -109,7 +109,7 @@ export default function VatFilingsPage() {
   }, [form.periodType, form.year, form.month])
 
   async function autoCalc() {
-    if (!form.startDate || !form.endDate) { toast.error('請先設定期間'); return }
+    if (!form.startDate || !form.endDate) { toast.error(dict.vatFilings.periodRequired); return }
     setCalculating(true)
     try {
       const [outputRes, inputRes] = await Promise.all([
@@ -134,9 +134,9 @@ export default function VatFilingsPage() {
         inputTaxBase: String(Math.round(inputBase)),
         inputTax: String(Math.round(inputTax)),
       }))
-      toast.success('已自動帶入稅務資料')
+      toast.success(dict.vatFilings.autoFilled)
     } catch {
-      toast.error('自動計算失敗')
+      toast.error(dict.vatFilings.autoCalcFailed)
     } finally {
       setCalculating(false)
     }
@@ -155,8 +155,8 @@ export default function VatFilingsPage() {
         body: JSON.stringify({ ...form, periodCode }),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
-      toast.success('申報資料已建立')
+      if (!res.ok) { toast.error(json.error ?? dict.common.createFailed); return }
+      toast.success(dict.vatFilings.filingCreated)
       setShowNew(false)
       fetchFilings()
     } finally {
@@ -174,8 +174,8 @@ export default function VatFilingsPage() {
         body: JSON.stringify(updateForm),
       })
       const json = await res.json()
-      if (!res.ok) { toast.error(json.error ?? '更新失敗'); return }
-      toast.success('申報狀態已更新')
+      if (!res.ok) { toast.error(json.error ?? dict.common.updateFailed); return }
+      toast.success(dict.vatFilings.statusUpdated)
       setEditFiling(null)
       fetchFilings()
     } finally {

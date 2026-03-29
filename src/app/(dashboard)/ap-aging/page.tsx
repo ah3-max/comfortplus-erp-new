@@ -90,7 +90,7 @@ export default function ApAgingPage() {
       setRows(result.rows ?? [])
       setSummary(result.summary ?? null)
       setAsOf(result.asOf ?? null)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [])
 

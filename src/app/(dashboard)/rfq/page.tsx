@@ -119,7 +119,7 @@ export default function RFQPage() {
       setRfqs(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('詢價單載入失敗')
+      toast.error(dict.rfq.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -141,7 +141,7 @@ export default function RFQPage() {
       setUsers(Array.isArray(uRes) ? uRes : (uRes.data ?? []))
       setProducts(Array.isArray(pRes) ? pRes : (pRes.data ?? []))
       setSuppliers(Array.isArray(sRes) ? sRes : (sRes.data ?? []))
-    }).catch(() => toast.error('載入參考資料失敗'))
+    }).catch(() => toast.error(dict.common.refLoadFailed))
   }, [formOpen])
 
   function openCreate() {
@@ -167,7 +167,7 @@ export default function RFQPage() {
   }
 
   async function handleSubmit() {
-    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error('請確認品項資料'); return }
+    if (form.items.some(i => !i.productId || i.quantity <= 0)) { toast.error(dict.common.itemsRequired); return }
 
     setSaving(true)
     try {
@@ -186,7 +186,7 @@ export default function RFQPage() {
       setFormOpen(false)
       fetchRfqs()
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : '儲存失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.saveFailed)
     } finally {
       setSaving(false)
     }
@@ -199,13 +199,13 @@ export default function RFQPage() {
       body: JSON.stringify({ statusOnly: true, status }),
     })
     if (res.ok) { toast.success(`詢價單已${label}`); fetchRfqs() }
-    else toast.error('更新失敗')
+    else toast.error(dict.common.updateFailed)
   }
 
   async function handleCancel(id: string, no: string) {
     if (!confirm(`確定要取消詢價單 ${no} 嗎？`)) return
     const res = await fetch(`/api/rfq/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('詢價單已取消'); fetchRfqs() }
+    if (res.ok) { toast.success(dict.rfq.cancelSuccess); fetchRfqs() }
     else {
       const data = await res.json()
       toast.error(data.error ?? '取消失敗')
@@ -221,7 +221,7 @@ export default function RFQPage() {
   }
 
   async function handleConvertToPO() {
-    if (!convertTarget || !convertSupplierId) { toast.error('請選擇供應商'); return }
+    if (!convertTarget || !convertSupplierId) { toast.error(dict.rfq.supplierRequired); return }
     setConverting(true)
     try {
       const res = await fetch('/api/purchases', {

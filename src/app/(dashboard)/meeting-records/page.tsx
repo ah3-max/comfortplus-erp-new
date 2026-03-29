@@ -76,7 +76,7 @@ export default function MeetingRecordsPage() {
       const res = await fetch(`/api/meeting-records?${params}`)
       if (!res.ok) throw new Error()
       setRecords(await res.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [search, typeFilter, statusFilter])
 
@@ -94,12 +94,12 @@ export default function MeetingRecordsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, meetingDate: form.meetingDate }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
-      toast.success('已建立會議記錄')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
+      toast.success(dict.meetingRecords.created)
       setShowCreate(false)
       setForm({ title: '', meetingType: 'INTERNAL', status: 'SCHEDULED', meetingDate: new Date().toISOString().slice(0, 10), location: '', isOnline: false, customerId: '', agenda: '', summary: '', decisions: '' })
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
   return (

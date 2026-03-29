@@ -50,7 +50,7 @@ export default function ReturnAnalysisPage() {
       if (view === 'product') setProducts(json.data ?? [])
       if (view === 'customer') setCustomers(json.data ?? [])
       if (view === 'reason') setReasons(json.data ?? [])
-    } catch { toast.error('查詢失敗') }
+    } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [view, startDate, endDate])
 

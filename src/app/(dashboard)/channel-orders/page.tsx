@@ -90,7 +90,7 @@ export default function ChannelOrdersPage() {
   const handleCreate = async () => {
     const items = formItems.filter(i => i.productId && i.quantity && i.unitPrice)
     if (!form.channelId || !form.channelOrderNo || items.length === 0) {
-      toast.error('請填寫通路、訂單號，並至少加入一個品項')
+      toast.error(dict.channelOrders.fieldsRequired)
       return
     }
     try {
@@ -104,13 +104,13 @@ export default function ChannelOrdersPage() {
           items: items.map(i => ({ productId: i.productId, quantity: Number(i.quantity), unitPrice: Number(i.unitPrice) })),
         }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
-      toast.success('已新增通路訂單')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
+      toast.success(dict.channelOrders.created)
       setShowCreate(false)
       setForm({ channelId: '', channelOrderNo: '', buyerName: '', buyerPhone: '', buyerAddress: '', platformFee: '', shippingFee: '', orderedAt: new Date().toISOString().slice(0, 10), notes: '' })
       setFormItems([{ productId: '', quantity: '1', unitPrice: '' }])
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
   const handleStatusUpdate = async (id: string, status: string) => {
@@ -121,10 +121,10 @@ export default function ChannelOrdersPage() {
         body: JSON.stringify({ status }),
       })
       if (!res.ok) throw new Error()
-      toast.success('狀態已更新')
+      toast.success(dict.common.statusUpdated)
       setSelected(null)
       load()
-    } catch { toast.error('更新失敗') }
+    } catch { toast.error(dict.common.updateFailed) }
   }
 
   const filtered = orders.filter(o =>

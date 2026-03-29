@@ -175,7 +175,7 @@ export default function CalendarPage() {
       const data = await res.json()
       setEvents(Array.isArray(data) ? data : [])
     } catch {
-      toast.error('無法載入行事曆資料')
+      toast.error(dict.calendarPage.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -269,8 +269,8 @@ export default function CalendarPage() {
   // ---------------------------------------------------------------------------
 
   async function handleSave() {
-    if (!form.title.trim()) { toast.error('請輸入標題'); return }
-    if (!form.startDate)    { toast.error('請選擇開始日期'); return }
+    if (!form.title.trim()) { toast.error(dict.calendarPage.titleRequired); return }
+    if (!form.startDate)    { toast.error(dict.calendarPage.startDateRequired); return }
 
     setSaving(true)
     try {
@@ -293,9 +293,9 @@ export default function CalendarPage() {
         })
         if (!res.ok) {
           const err = await res.json()
-          throw new Error(err.error ?? '更新失敗')
+          throw new Error(err.error ?? dict.common.updateFailed)
         }
-        toast.success('事件已更新')
+        toast.success(dict.calendarPage.eventUpdated)
       } else {
         const res = await fetch('/api/calendar', {
           method:  'POST',
@@ -304,15 +304,15 @@ export default function CalendarPage() {
         })
         if (!res.ok) {
           const err = await res.json()
-          throw new Error(err.error ?? '建立失敗')
+          throw new Error(err.error ?? dict.common.createFailed)
         }
-        toast.success('事件已建立')
+        toast.success(dict.calendarPage.eventCreated)
       }
 
       setDialogOpen(false)
       await load(year, month)
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : '操作失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.operationFailed)
     } finally {
       setSaving(false)
     }
@@ -330,9 +330,9 @@ export default function CalendarPage() {
       const res = await fetch(`/api/calendar/${deleteTarget.id}`, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '刪除失敗')
+        throw new Error(err.error ?? dict.common.deleteFailed)
       }
-      toast.success('事件已刪除')
+      toast.success(dict.calendarPage.eventDeleted)
       setDeleteOpen(false)
       setDeleteTarget(null)
       if (selected) {
@@ -341,7 +341,7 @@ export default function CalendarPage() {
       }
       await load(year, month)
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : '刪除失敗')
+      toast.error(err instanceof Error ? err.message : dict.common.deleteFailed)
     } finally {
       setDeleting(false)
     }

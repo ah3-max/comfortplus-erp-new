@@ -168,8 +168,8 @@ export default function UsersPage() {
   }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!form.name || !form.role) { toast.error('請填寫必填欄位'); return }
-    if (!editTarget && !form.password) { toast.error('新增用戶需設定密碼'); return }
+    if (!form.name || !form.role) { toast.error(dict.common.requiredFields); return }
+    if (!editTarget && !form.password) { toast.error(dict.usersPage.passwordRequired); return }
     setSaving(true)
     const url = editTarget ? `/api/users/${editTarget.id}` : '/api/users'
     const method = editTarget ? 'PUT' : 'POST'
@@ -184,7 +184,7 @@ export default function UsersPage() {
 
   async function handleDeleteUser(u: User) {
     if (u.role === 'SUPER_ADMIN') {
-      toast.error('無法停用超級管理員帳號')
+      toast.error(dict.usersPage.cannotDisableSuperAdmin)
       return
     }
     if (!confirm('確定停用此使用者帳號？此操作無法復原')) return

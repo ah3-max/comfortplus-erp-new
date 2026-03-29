@@ -281,10 +281,10 @@ export default function QcDetailPage() {
         }),
       })
       if (!res.ok) throw new Error()
-      toast.success('已更新')
+      toast.success(dict.common.updateSuccess)
       await load()
     } catch {
-      toast.error('更新失敗')
+      toast.error(dict.common.updateFailed)
     } finally {
       setSaving(false)
     }

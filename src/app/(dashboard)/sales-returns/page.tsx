@@ -65,7 +65,7 @@ export default function SalesReturnsPage() {
       if (!res.ok) throw new Error()
       setData(await res.json())
       setPage(p)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [search, status])
 
@@ -87,9 +87,9 @@ export default function SalesReturnsPage() {
         body: JSON.stringify({ status: newStatus, ...(newStatus === 'APPROVED' ? { approvedAt: new Date().toISOString() } : {}) }),
       })
       if (!res.ok) throw new Error()
-      toast.success('狀態已更新')
+      toast.success(dict.common.statusUpdated)
       fetchData(page)
-    } catch { toast.error('更新失敗') }
+    } catch { toast.error(dict.common.updateFailed) }
   }
 
   return (
@@ -196,7 +196,7 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
   const [form, setForm] = useState({ orderId: '', customerId: '', returnType: 'RETURN', reason: '', refundAmount: '', notes: '' })
 
   async function handleSubmit() {
-    if (!form.orderId || !form.customerId) { toast.error('請填寫訂單編號與客戶'); return }
+    if (!form.orderId || !form.customerId) { toast.error(dict.salesReturns.orderCustomerRequired); return }
     setSaving(true)
     try {
       const res = await fetch('/api/sales-returns', {
@@ -205,9 +205,9 @@ function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose:
         body: JSON.stringify({ ...form, refundAmount: form.refundAmount ? Number(form.refundAmount) : null }),
       })
       if (!res.ok) throw new Error()
-      toast.success('退貨單建立成功')
+      toast.success(dict.salesReturns.created)
       onCreated()
-    } catch { toast.error('建立失敗') }
+    } catch { toast.error(dict.common.createFailed) }
     finally { setSaving(false) }
   }
 

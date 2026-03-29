@@ -78,7 +78,7 @@ export default function GeneralLedgerPage() {
   }, [])
 
   const fetchLedger = useCallback(async () => {
-    if (!selectedId) { toast.error('請先選擇科目'); return }
+    if (!selectedId) { toast.error(dict.generalLedger.selectAccount); return }
     setLoading(true)
     try {
       const params = new URLSearchParams({ accountId: selectedId, startDate, endDate })

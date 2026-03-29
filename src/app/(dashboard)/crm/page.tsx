@@ -190,6 +190,7 @@ function AlertSection({ title, icon, count, color, children, emptyMsg }: {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
+  const { dict } = useI18n()
   const [samples, setSamples] = useState<(AlertSample & { feedbackResult?: string })[]>(allSamples)
   const [feedbackId, setFeedbackId] = useState<string | null>(null)
   const [feedbackText, setFeedbackText] = useState('')
@@ -209,8 +210,8 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
       if (!res.ok) throw new Error('儲存失敗')
       setSamples(prev => prev.filter(s => s.id !== sampleId))
       setFeedbackId(null); setFeedbackText('')
-      toast.success('回饋已記錄')
-    } catch { toast.error('儲存失敗') } finally { setSaving(false) }
+      toast.success(dict.crmPage.feedbackRecorded)
+    } catch { toast.error(dict.common.saveFailed) } finally { setSaving(false) }
   }
 
   if (samples.length === 0) {
@@ -288,6 +289,7 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ScheduleManagementTab() {
+  const { dict } = useI18n()
   const [schedules, setSchedules] = useState<AlertSchedule[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'upcoming' | 'all'>('upcoming')
@@ -313,7 +315,7 @@ function ScheduleManagementTab() {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isCompleted: true }),
     })
-    toast.success('已標記完成')
+    toast.success(dict.crmPage.markedComplete)
     load()
   }
 

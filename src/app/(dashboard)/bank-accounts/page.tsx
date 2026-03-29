@@ -129,7 +129,7 @@ export default function BankAccountsPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
-      toast.success('銀行帳戶已建立')
+      toast.success(dict.bankAccounts.accountCreated)
       setShowNewAccount(false)
       fetchAccounts()
     } finally {
@@ -148,7 +148,7 @@ export default function BankAccountsPage() {
       })
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
-      toast.success('交易已記錄')
+      toast.success(dict.bankAccounts.transactionRecorded)
       setShowNewTx(null)
       // Refresh account list + transactions
       fetchAccounts()

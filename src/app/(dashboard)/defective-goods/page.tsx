@@ -81,7 +81,7 @@ export default function DefectiveGoodsPage() {
       setRecords(d.data)
       setTotal(d.pagination.total)
       setTotalPages(d.pagination.totalPages)
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [page, search, filterStatus, filterSource])
 
@@ -97,7 +97,7 @@ export default function DefectiveGoodsPage() {
 
   const handleCreate = async () => {
     if (!form.productId || !form.warehouseId || !form.quantity) {
-      toast.error('請填寫品項、倉庫及數量')
+      toast.error(dict.defectiveGoodsPage.fieldsRequired)
       return
     }
     try {
@@ -106,12 +106,12 @@ export default function DefectiveGoodsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, quantity: Number(form.quantity) }),
       })
-      if (!res.ok) throw new Error((await res.json()).error ?? '建立失敗')
-      toast.success('已登錄不良品')
+      if (!res.ok) throw new Error((await res.json()).error ?? dict.common.createFailed)
+      toast.success(dict.defectiveGoodsPage.registered)
       setShowCreate(false)
       setForm({ productId: '', warehouseId: '', source: 'QC_FAIL', quantity: '', defectType: '', severity: 'MINOR', description: '', batchNo: '' })
       load()
-    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '建立失敗') }
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
   const handleDispose = async () => {
@@ -123,10 +123,10 @@ export default function DefectiveGoodsPage() {
         body: JSON.stringify({ ...dispForm, status: 'RESOLVED' }),
       })
       if (!res.ok) throw new Error()
-      toast.success('處置方式已更新')
+      toast.success(dict.defectiveGoodsPage.dispositionUpdated)
       setSelected(null)
       load()
-    } catch { toast.error('更新失敗') }
+    } catch { toast.error(dict.common.updateFailed) }
   }
 
   const totalLossSum = records.reduce((s, r) => s + Number(r.totalLoss ?? 0), 0)

@@ -42,7 +42,7 @@ export default function PurchaseAnalysisPage() {
       if (view === 'monthly') setMonthly(json.data ?? [])
       if (view === 'supplier') { setSuppliers(json.data ?? []); setTotal(json.total ?? 0) }
       if (view === 'product') setProducts(json.data ?? [])
-    } catch { toast.error('查詢失敗') }
+    } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [view, startDate, endDate])
 

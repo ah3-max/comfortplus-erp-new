@@ -51,7 +51,7 @@ export default function VatLedgerPage() {
       if (!outRes.ok || !inRes.ok) throw new Error()
       setOutputData(await outRes.json())
       setInputData(await inRes.json())
-    } catch { toast.error('載入失敗') }
+    } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate])
 

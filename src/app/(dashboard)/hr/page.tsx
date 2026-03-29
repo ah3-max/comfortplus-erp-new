@@ -141,8 +141,8 @@ export default function HRPage() {
       body: JSON.stringify({ userId: empDetail.id, ...profileForm }),
     })
     setSavingProfile(false)
-    if (res.ok) { toast.success('檔案已儲存'); setEmpDetail(null); loadEmployees() }
-    else toast.error('儲存失敗')
+    if (res.ok) { toast.success(dict.hr.employeeSaved); setEmpDetail(null); loadEmployees() }
+    else toast.error(dict.common.saveFailed)
   }
 
   async function createAppointment() {
@@ -151,8 +151,8 @@ export default function HRPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(apptForm),
     })
-    if (res.ok) { toast.success('人事任命已建立'); setApptDialog(false); loadAppointments() }
-    else toast.error('建立失敗')
+    if (res.ok) { toast.success(dict.hr.appointmentCreated); setApptDialog(false); loadAppointments() }
+    else toast.error(dict.common.createFailed)
   }
 
   async function createAttendance() {
@@ -169,12 +169,12 @@ export default function HRPage() {
         overtime: attForm.overtime ? Number(attForm.overtime) : undefined,
       }),
     })
-    if (res.ok) { toast.success('出勤記錄已建立'); setAttDialog(false); loadAttendance() }
-    else toast.error('建立失敗')
+    if (res.ok) { toast.success(dict.hr.attendanceCreated); setAttDialog(false); loadAttendance() }
+    else toast.error(dict.common.createFailed)
   }
 
   async function createPayroll() {
-    if (!payForm.userId || !payForm.baseSalary) { toast.error('請填寫必填欄位'); return }
+    if (!payForm.userId || !payForm.baseSalary) { toast.error(dict.common.requiredFields); return }
     setSavingPay(true)
     const n = (v: string) => Number(v) || 0
     const base = n(payForm.baseSalary), allow = n(payForm.allowances), ot = n(payForm.overtimePay)
@@ -187,8 +187,8 @@ export default function HRPage() {
       body: JSON.stringify({ userId: payForm.userId, periodYear: payYear, periodMonth: payMonth, baseSalary: base, allowances: allow, overtimePay: ot, bonus, deductions: ded, laborInsurance: labor, healthInsurance: health, tax, netPay }),
     })
     setSavingPay(false)
-    if (res.ok) { toast.success('薪資記錄已建立'); setPayDialog(false); loadPayroll() }
-    else { const d = await res.json(); toast.error(d.error ?? '建立失敗') }
+    if (res.ok) { toast.success(dict.hr.payrollCreated); setPayDialog(false); loadPayroll() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.createFailed) }
   }
 
   if (!canView) {

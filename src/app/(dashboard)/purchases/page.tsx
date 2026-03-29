@@ -89,7 +89,7 @@ export default function PurchasesPage() {
   async function handleDelete(id: string, no: string) {
     if (!confirm(`確定要刪除採購單 ${no} 嗎？`)) return
     const res = await fetch(`/api/purchases/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success('採購單已刪除'); fetchOrders() }
+    if (res.ok) { toast.success(dict.purchasesPage.deleted); fetchOrders() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.deleteFailed) }
   }
 

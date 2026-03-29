@@ -148,7 +148,7 @@ export default function ShipmentsPage() {
       setShipments(Array.isArray(result) ? result : result.data ?? [])
       setPagination(result.pagination ?? null)
     } catch {
-      toast.error('出貨載入失敗，請檢查網路連線')
+      toast.error(dict.shipmentsPage.loadFailed)
     } finally {
       setLoading(false)
     }
@@ -230,7 +230,7 @@ export default function ShipmentsPage() {
 
   // ── Trip actions ─────────────────────────────────────────────────────────────
   async function handleCreateTrip() {
-    if (!tripForm.tripDate) { toast.error('請填寫出車日期'); return }
+    if (!tripForm.tripDate) { toast.error(dict.shipmentsPage.tripDateRequired); return }
     setTripSaving(true)
     const res = await fetch('/api/delivery/trips', {
       method: 'POST',
@@ -238,7 +238,7 @@ export default function ShipmentsPage() {
       body: JSON.stringify(tripForm),
     })
     setTripSaving(false)
-    if (res.ok) { toast.success('車次已建立'); setTripNewOpen(false); fetchTrips() }
+    if (res.ok) { toast.success(dict.shipmentsPage.tripCreated); setTripNewOpen(false); fetchTrips() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
   }
 
@@ -258,7 +258,7 @@ export default function ShipmentsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'addShipment', shipmentId }),
     })
-    if (res.ok) { toast.success('出貨單已加入車次'); fetchTrips(); fetchShipments() }
+    if (res.ok) { toast.success(dict.shipmentsPage.addedToTrip); fetchTrips(); fetchShipments() }
     else toast.error(dict.common.updateFailed)
   }
 
@@ -274,7 +274,7 @@ export default function ShipmentsPage() {
 
   // ── Picking list ─────────────────────────────────────────────────────────────
   async function loadPickingList() {
-    if (!pickShipmentId.trim()) { toast.error('請輸入出貨單號或選擇出貨單'); return }
+    if (!pickShipmentId.trim()) { toast.error(dict.shipmentsPage.selectShipment); return }
     setPickLoading(true)
     // Try by shipmentNo search
     const res = await fetch(`/api/shipments?search=${encodeURIComponent(pickShipmentId.trim())}`)
