@@ -4,49 +4,42 @@ import { generateSequenceNo } from '@/lib/sequence'
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
-import crypto from 'crypto'
+import { validateUpload, isUploadError, type UploadCategory } from '@/lib/upload'
 
 const UPLOAD_BASE = path.join(process.cwd(), 'public', 'uploads')
 
 type QuickInputType = 'visit-note' | 'complaint' | 'audio-upload' | 'photo-upload'
 
 /**
- * Generate a unique filename: {timestamp}-{random}. preserving the original extension.
+ * Validate and save a single File to the given subdirectory under /public/uploads/.
+ * Returns the public URL path on success, or throws with a user-friendly message.
  */
-function uniqueFilename(originalName: string): string {
-  const ext = path.extname(originalName) || ''
-  const ts = Date.now()
-  const rand = crypto.randomBytes(6).toString('hex')
-  return `${ts}-${rand}${ext}`
-}
+async function saveValidatedFile(
+  file: File,
+  subdir: string,
+  categories: UploadCategory[],
+  maxBytes?: number,
+): Promise<{ url: string; fileName: string; size: number; mimeType: string }> {
+  const result = await validateUpload(file, categories, maxBytes)
+  if (isUploadError(result)) throw new Error(result.message)
 
-/**
- * Save a single File to the given subdirectory under /public/uploads/.
- * Returns the public URL path (e.g. /uploads/photos/1234-abc.jpg).
- */
-async function saveFile(file: File, subdir: string): Promise<{ url: string; fileName: string; size: number; mimeType: string }> {
   const dir = path.join(UPLOAD_BASE, subdir)
   await mkdir(dir, { recursive: true })
-
-  const fileName = uniqueFilename(file.name)
-  const filePath = path.join(dir, fileName)
-
-  const buffer = Buffer.from(await file.arrayBuffer())
-  await writeFile(filePath, buffer)
+  await writeFile(path.join(dir, result.safeName), result.buffer)
 
   return {
-    url: `/uploads/${subdir}/${fileName}`,
+    url: `/uploads/${subdir}/${result.safeName}`,
     fileName: file.name,
-    size: buffer.length,
+    size: result.buffer.length,
     mimeType: file.type,
   }
 }
 
 /**
- * Save multiple files from FormData to a subdirectory.
+ * Validate and save multiple files from FormData to a subdirectory.
  */
-async function saveFiles(files: File[], subdir: string) {
-  return Promise.all(files.map((f) => saveFile(f, subdir)))
+async function saveFiles(files: File[], subdir: string, categories: UploadCategory[], maxBytes?: number) {
+  return Promise.all(files.map((f) => saveValidatedFile(f, subdir, categories, maxBytes)))
 }
 
 /**
@@ -119,8 +112,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'content is required for visit notes' }, { status: 400 })
         }
 
-        // Save attached files
-        const savedFiles = files.length > 0 ? await saveFiles(files, 'attachments') : []
+        // Save attached files (images + documents, 10MB each)
+        const savedFiles = files.length > 0 ? await saveFiles(files, 'attachments', ['image', 'document']) : []
 
         const followUpLog = await prisma.followUpLog.create({
           data: {
@@ -153,8 +146,8 @@ export async function POST(request: NextRequest) {
         // Generate incident number
         const incidentNo = await generateSequenceNo('INCIDENT')
 
-        // Save photo attachments
-        const savedPhotos = files.length > 0 ? await saveFiles(files, 'photos') : []
+        // Save photo attachments (complaint category: images + PDF)
+        const savedPhotos = files.length > 0 ? await saveFiles(files, 'photos', ['complaint']) : []
 
         const incident = await prisma.careIncident.create({
           data: {
@@ -196,15 +189,13 @@ export async function POST(request: NextRequest) {
       }
 
       case 'audio-upload': {
-        const audioFiles = files.filter((f) =>
-          f.type.startsWith('audio/') || f.name.endsWith('.webm') || f.name.endsWith('.m4a') || f.name.endsWith('.mp3') || f.name.endsWith('.wav')
-        )
+        const audioFiles = files
 
         if (audioFiles.length === 0) {
           return NextResponse.json({ error: 'No audio files provided' }, { status: 400 })
         }
 
-        const savedAudio = await saveFiles(audioFiles, 'audio')
+        const savedAudio = await saveFiles(audioFiles, 'audio', ['audio'], 50 * 1024 * 1024)
 
         // If linked to an incident (via customerId lookup of open incidents),
         // create IncidentAudioRecord entries. Otherwise return standalone URLs.
@@ -250,7 +241,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'No files provided' }, { status: 400 })
         }
 
-        const savedPhotos = await saveFiles(files, 'photos')
+        const savedPhotos = await saveFiles(files, 'photos', ['complaint'])
 
         return NextResponse.json({
           success: true,

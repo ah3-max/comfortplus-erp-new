@@ -2,14 +2,16 @@ import { auth } from '@/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
-import crypto from 'crypto'
+import { validateUpload, isUploadError, type UploadCategory } from '@/lib/upload'
 
 const ALLOWED_TYPES = ['image', 'audio', 'document'] as const
 type UploadType = (typeof ALLOWED_TYPES)[number]
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
-const ALLOWED_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp3', '.m4a', '.wav', '.pdf', '.doc', '.docx', '.xls', '.xlsx']
+const TYPE_TO_CATEGORY: Record<UploadType, UploadCategory[]> = {
+  image:    ['image'],
+  audio:    ['audio'],
+  document: ['document'],
+}
 
 function getSubDir(type: UploadType): string {
   return type === 'audio' ? 'audio' : `${type}s`
@@ -36,48 +38,23 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // File size check
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json(
-      { error: `檔案過大，上限 ${MAX_FILE_SIZE / 1024 / 1024}MB（目前 ${(file.size / 1024 / 1024).toFixed(1)}MB）` },
-      { status: 400 }
-    )
-  }
-
-  // Image MIME type check
-  if (type === 'image' && file.type && !ALLOWED_IMAGE_MIMES.includes(file.type)) {
-    return NextResponse.json(
-      { error: `不支援的圖片格式（${file.type}）。支援：JPEG、PNG、WebP、HEIC` },
-      { status: 400 }
-    )
-  }
-
-  // Extension check
-  const ext = path.extname(file.name).toLowerCase() || '.bin'
-  if (!ALLOWED_EXTS.includes(ext)) {
-    return NextResponse.json(
-      { error: `不支援的檔案類型（${ext}）` },
-      { status: 400 }
-    )
+  const categories = TYPE_TO_CATEGORY[type as UploadType]
+  const result = await validateUpload(file, categories)
+  if (isUploadError(result)) {
+    return NextResponse.json({ error: result.message }, { status: 400 })
   }
 
   const subDir = getSubDir(type as UploadType)
   const uploadDir = path.join(process.cwd(), 'public', 'uploads', subDir)
   await mkdir(uploadDir, { recursive: true })
+  await writeFile(path.join(uploadDir, result.safeName), result.buffer)
 
-  const uniqueName = `${Date.now()}_${crypto.randomBytes(8).toString('hex')}${ext}`
-  const filePath = path.join(uploadDir, uniqueName)
-
-  const buffer = Buffer.from(await file.arrayBuffer())
-  await writeFile(filePath, buffer)
-
-  const url = `/uploads/${subDir}/${uniqueName}`
-
+  const { randomUUID } = await import('crypto')
   return NextResponse.json(
     {
-      id: crypto.randomUUID(),
-      url,
-      fileName: uniqueName,
+      id: randomUUID(),
+      url: `/uploads/${subDir}/${result.safeName}`,
+      fileName: result.safeName,
       size: file.size,
       mimeType: file.type || 'application/octet-stream',
     },

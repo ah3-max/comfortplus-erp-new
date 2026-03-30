@@ -10,6 +10,10 @@ import { handleApiError } from '@/lib/api-error'
 export async function GET(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const FINANCE_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
+  if (!FINANCE_ROLES.includes(session.user.role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const role = (session.user as { role?: string }).role ?? ''
   if (!['SUPER_ADMIN', 'GM', 'FINANCE', 'PROCUREMENT', 'SALES_MANAGER'].includes(role)) {

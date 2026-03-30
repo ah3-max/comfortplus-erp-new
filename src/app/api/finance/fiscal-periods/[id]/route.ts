@@ -7,6 +7,10 @@ import { handleApiError } from '@/lib/api-error'
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const FINANCE_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
+  if (!FINANCE_ROLES.includes(session.user.role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   try {
     const { id } = await params
@@ -29,6 +33,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const FINANCE_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
+  if (!FINANCE_ROLES.includes(session.user.role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const role = (session.user as { role?: string }).role ?? ''
   if (!['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)) {
@@ -117,6 +125,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const FINANCE_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
+  if (!FINANCE_ROLES.includes(session.user.role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const role = (session.user as { role?: string }).role ?? ''
   if (!['SUPER_ADMIN'].includes(role)) {

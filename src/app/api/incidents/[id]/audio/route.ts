@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
+import { validateUpload, isUploadError } from '@/lib/upload'
+
+const MAX_AUDIO_SIZE = 50 * 1024 * 1024 // 50MB for audio recordings
 
 // GET — list audio records for incident
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -25,8 +28,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const formData = await req.formData()
-  const file     = formData.get('file') as File | null
+  const formData   = await req.formData()
+  const file       = formData.get('file') as File | null
   const transcript = formData.get('transcript') as string | null  // manual transcript
 
   if (!file && !transcript) return NextResponse.json({ error: '請上傳錄音檔或提供逐字稿' }, { status: 400 })
@@ -35,23 +38,26 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   let durationSec: number | null = null
 
   if (file) {
-    const ext      = path.extname(file.name).replace('.', '').toLowerCase() || 'mp3'
-    const safeName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const result = await validateUpload(file, ['audio'], MAX_AUDIO_SIZE)
+    if (isUploadError(result)) {
+      return NextResponse.json({ error: result.message }, { status: 400 })
+    }
+
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'incidents', 'audio')
     await mkdir(uploadDir, { recursive: true })
-    await writeFile(path.join(uploadDir, safeName), Buffer.from(await file.arrayBuffer()))
-    fileUrl = `/uploads/incidents/audio/${safeName}`
+    await writeFile(path.join(uploadDir, result.safeName), result.buffer)
+    fileUrl = `/uploads/incidents/audio/${result.safeName}`
     durationSec = file.size ? Math.round(file.size / 16000) : null  // rough estimate
   }
 
   const record = await prisma.incidentAudioRecord.create({
     data: {
-      incidentId:      id,
-      audioFileUrl:    fileUrl ?? '',
+      incidentId:       id,
+      audioFileUrl:     fileUrl ?? '',
       audioDurationSec: durationSec,
-      transcriptText:  transcript || null,
+      transcriptText:   transcript || null,
       transcriptStatus: transcript ? 'COMPLETED' : 'PENDING',
-      uploadedById:    session.user.id,
+      uploadedById:     session.user.id,
     },
     include: { uploadedBy: { select: { id: true, name: true } } },
   })

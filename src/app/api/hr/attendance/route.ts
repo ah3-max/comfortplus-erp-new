@@ -7,6 +7,10 @@ export async function GET(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const HR_ROLES = ['SUPER_ADMIN', 'GM']
+  if (!HR_ROLES.includes(session.user.role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
     const { searchParams } = new URL(req.url)
     const userId = searchParams.get('userId')
@@ -39,6 +43,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const HR_ROLES = ['SUPER_ADMIN', 'GM']
+  if (!HR_ROLES.includes(session.user.role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
     const body = await req.json()
     const { userId, date, clockIn, clockOut, status, leaveType, overtime, notes } = body
