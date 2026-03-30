@@ -34,6 +34,10 @@ model InventoryTransaction {
   notes         String?
   createdById   String?
   createdAt     DateTime           @default(now())
+
+  @@index([productId, createdAt(sort: Desc)])
+  @@index([type, createdAt(sort: Desc)])
+  @@index([referenceType, referenceId])
 }
 
 // ========== 倉庫管理 ==========

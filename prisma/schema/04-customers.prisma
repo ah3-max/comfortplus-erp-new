@@ -169,6 +169,13 @@ model Customer {
 
   // ── P3-4 售後管理 ────────────────────────────────────
   afterSalesOrders     AfterSalesOrder[]      @relation("AfterSalesCustomer")
+
+  @@index([salesRepId, isActive])
+  @@index([devStatus, isActive])
+  @@index([type, isActive])
+  @@index([region, isActive])
+  @@index([isKeyAccount, isActive])
+  @@index([nextFollowUpDate])
 }
 
 // ── 客戶聯絡人 ──────────────────────────────────────

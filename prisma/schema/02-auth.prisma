@@ -192,6 +192,9 @@ model User {
   // ── 業務日報 ────────────────────────────────────────
   dailyReports         SalesDailyReport[]   @relation("SalesRepDailyReport")
   reviewedDailyReports SalesDailyReport[]   @relation("DailyReportReviewer")
+
+  @@index([role, isActive])
+  @@index([departmentId, isActive])
 }
 
 // ========== 部門設定 ==========

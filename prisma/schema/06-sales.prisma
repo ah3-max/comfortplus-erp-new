@@ -65,6 +65,10 @@ model Quotation {
   items       QuotationItem[]
   salesOrders SalesOrder[]
   approvals   QuotationApproval[]
+
+  @@index([customerId, status])
+  @@index([createdById, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 model QuotationItem {
@@ -176,6 +180,12 @@ model SalesOrder {
   billingRequests BillingRequest[]
   warehousePickups WarehousePickup[]
   salesInvoices    SalesInvoice[]   @relation("InvoiceFromOrder")
+
+  @@index([customerId, status])
+  @@index([customerId, orderDate(sort: Desc)])
+  @@index([createdById, orderDate(sort: Desc)])
+  @@index([status, orderDate(sort: Desc)])
+  @@index([warehouseId, status])
 }
 
 model SalesOrderItem {
