@@ -6,6 +6,7 @@ import { orderScope, buildScopeContext } from '@/lib/scope'
 import { checkKpiMilestone } from '@/lib/kpi-check'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
+import { logger } from '@/lib/logger'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -179,10 +180,10 @@ export async function POST(req: NextRequest) {
   prisma.customer.update({
     where: { id: body.customerId },
     data: { lastOrderDate: new Date(), lastContactDate: new Date() },
-  }).catch(console.error)
+  }).catch((e: unknown) => logger.error('orders', 'Failed to update customer lastOrderDate', e))
 
   // KPI milestone check (async, non-blocking)
-  checkKpiMilestone(session.user.id).catch(console.error)
+  checkKpiMilestone(session.user.id).catch((e: unknown) => logger.error('orders', 'KPI milestone check failed', e))
 
   // Audit log
   logAudit({

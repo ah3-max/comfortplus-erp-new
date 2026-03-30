@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { SignJWT } from 'jose'
 import { checkLoginRateLimit, getClientIp } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req)
@@ -48,11 +49,11 @@ export async function POST(req: NextRequest) {
           html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto"><h2 style="color:#1e293b">密碼重設</h2><p>您好 ${user.name}，</p><p>請點擊下方連結重設密碼（連結 5 分鐘內有效）：</p><p><a href="${resetUrl}" style="background:#2563eb;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;display:inline-block">重設密碼</a></p><p style="color:#64748b;font-size:12px">如非本人操作，請忽略此郵件。</p></div>`,
         })
       } catch (e) {
-        console.error('Failed to send reset email:', e)
+        logger.error('forgot-password', 'Failed to send reset email', e, { userId: user.id })
       }
     } else {
       // Dev mode: log the reset URL to server console
-      console.log(`[DEV] Password reset URL for ${user.email}: ${resetUrl}`)
+      logger.info('forgot-password', '[DEV] Password reset URL', { email: user.email, resetUrl })
     }
   }
 

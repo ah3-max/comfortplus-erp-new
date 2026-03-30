@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { validateUpload, isUploadError, type UploadCategory } from '@/lib/upload'
+import { logger } from '@/lib/logger'
 
 const UPLOAD_BASE = path.join(process.cwd(), 'public', 'uploads')
 
@@ -259,7 +260,7 @@ export async function POST(request: NextRequest) {
         )
     }
   } catch (error) {
-    console.error('[quick-input] Error:', error)
+    logger.error('quick-input', 'Unhandled error', error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
