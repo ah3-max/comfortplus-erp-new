@@ -55,9 +55,27 @@ model ChannelOrderItem {
   id              String       @id @default(cuid())
   channelOrderId  String
   channelOrder    ChannelOrder @relation(fields: [channelOrderId], references: [id], onDelete: Cascade)
-  productId       String
-  product         Product      @relation(fields: [productId], references: [id])
+  productId       String?
+  product         Product?     @relation(fields: [productId], references: [id])
+  platformSku     String?      // 平台原始 SKU（保留用於人工核對）
   quantity        Int
   unitPrice       Decimal      @db.Decimal(10, 2)
   subtotal        Decimal      @db.Decimal(12, 2)
+}
+
+// ── 電商平台 SKU 對照表 ──────────────────────────────
+model ProductSkuMapping {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platform    String   // SHOPEE / MOMO / LAZADA etc.
+  platformSku String   // 平台上的 SKU（可能與系統 SKU 不同）
+  channelId   String?  // null = 全通路適用；有值 = 特定通路覆蓋
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([platform, platformSku])
 }

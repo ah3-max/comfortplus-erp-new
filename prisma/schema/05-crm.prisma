@@ -228,3 +228,39 @@ model SalesTarget {
   updatedAt       DateTime @updatedAt
   @@unique([userId, targetMonth])
 }
+
+// ── 業務日報 ──────────────────────────────────────────
+model SalesDailyReport {
+  id              String   @id @default(cuid())
+  reportDate      DateTime // date only, normalized to midnight UTC
+  salesRepId      String
+  salesRep        User     @relation("SalesRepDailyReport", fields: [salesRepId], references: [id])
+
+  // Auto-pulled stats (snapshotted at submit time)
+  visitCount       Int     @default(0)
+  callCount        Int     @default(0)
+  orderCount       Int     @default(0)
+  orderAmount      Decimal @default(0) @db.Decimal(12,2)
+  newCustomerCount Int     @default(0)
+  quoteCount       Int     @default(0)
+
+  // Manual fields
+  highlights      String?  // 今日重點/亮點
+  obstacles       String?  // 遭遇困難
+  tomorrowPlan    String?  // 明日計畫
+  needsHelp       String?  // 需要協助
+
+  status          String   @default("DRAFT")  // DRAFT / SUBMITTED
+  submittedAt     DateTime?
+
+  // Manager review
+  managerComment  String?
+  reviewedById    String?
+  reviewedBy      User?    @relation("DailyReportReviewer", fields: [reviewedById], references: [id])
+  reviewedAt      DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([salesRepId, reportDate])
+}

@@ -86,6 +86,11 @@ model Vehicle {
   fuelTaxExpiry        DateTime?  // 燃料稅到期日
   tachoCalibrationDate DateTime?  // 行車紀錄器校正日
 
+  // ── GPS 整合預留 ──────────────────────────────────
+  gpsDeviceId  String?  // GPS 設備序號（未來啟用）
+  gpsProvider  String?  // GPS 供應商（如：鴻勝/遠傳/中華）
+  gpsImei      String?  // IMEI / 設備識別碼
+
   isActive    Boolean  @default(true)
   notes       String?
   createdAt   DateTime @default(now())
@@ -94,6 +99,7 @@ model Vehicle {
   trips          DeliveryTrip[]
   drivers        Driver[]
   maintenances   VehicleMaintenance[]
+  checkRecords   VehicleCheckRecord[]
 }
 
 // ========== 車輛保養/維修紀錄 ==========
@@ -121,7 +127,34 @@ model VehicleMaintenance {
   items       String?     // 保養項目明細（JSON: [{name, qty, cost}]）
   notes       String?
 
+  // 照片附件（JSON: [{ url, label, category }]）
+  // category: BEFORE / AFTER / RECEIPT / PART / OTHER
+  photoUrls   Json?
+
   createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ========== 車輛定期檢查記錄 ==========
+// 每月/每季定期檢查：電池、滅火器、照明、保險、驗車等
+model VehicleCheckRecord {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+
+  checkDate   DateTime @default(now())  // 檢查日期
+  checkType   String                    // MONTHLY / QUARTERLY / ANNUAL / AD_HOC
+
+  // 各項目檢查結果（JSON: [{item, status, note, nextDue}]）
+  // item examples: BATTERY / FIRE_EXTINGUISHER / LIGHTING / TIRE / OIL / COOLANT / WIPER / BRAKE / INSURANCE / INSPECTION / LICENSE_TAX / FUEL_TAX
+  checkItems  Json
+
+  overallResult String  @default("PASS") // PASS / NEEDS_ATTENTION / FAIL
+  notes       String?
+  photoUrls   Json?    // 檢查照片
+
+  checkedById String?  // 檢查人 User.id（無反向關聯）
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

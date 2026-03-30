@@ -50,6 +50,7 @@ model Product {
   countItems         StockCountItem[]
   scrapRecords       StockScrap[]
   channelOrderItems  ChannelOrderItem[]
+  skuMappings        ProductSkuMapping[]
   qualityChecks      QualityCheck[]
   priceListItems     PriceListItem[]
   recurringItems     RecurringOrderItem[]

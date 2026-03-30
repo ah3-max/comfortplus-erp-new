@@ -188,6 +188,19 @@ model CustomerContact {
   isPrimary            Boolean          @default(false) // 是否主要聯絡人
   preferredContactTime ContactTimeSlot? // 建議聯絡時段
   notes                String?
+
+  // ── 業務拜訪用個人資料 ────────────────────────────
+  gender           String?   // M / F / OTHER
+  birthday         DateTime? // 生日（可只填月日，年用1900代替）
+  birthdayNote     String?   // 生日備注（如：農曆）
+  hasChildren      Boolean?  // 是否有小孩
+  childrenInfo     String?   // 孩子資訊（幾個、年齡等）
+  preferences      String?   // 喜好（食物/飲料/興趣/運動）
+  taboos           String?   // 禁忌/不喜歡/過敏（禮物禁忌等）
+  favoriteThings   String?   // 喜歡的東西（品牌/禮物偏好）
+  personalNotes    String?   // 業務備注（溫馨小事）
+  lifeEvents       String?   // 重要生活事件（升遷/結婚/搬家）
+
   isActive        Boolean  @default(true)
   startDate       DateTime @default(now())
   endDate         DateTime?
@@ -291,7 +304,14 @@ model CustomerDeliveryProfile {
   receivingHours       String?  // 收貨時段（如：週一至週五 09:00-17:00）
   suggestedDeliveryTime String? // 建議送貨時段
   parkingNotes         String?  // 停車注意事項
+  parkingSpot          String?  // 指定停車位（如：B2-25）
+  parkingFee           String?  // 停車費說明（免費/自費/代碼）
+  elevatorHasElevator  Boolean? // 確認有電梯（細分）
+  elevatorDimensions   String?  // 電梯內尺寸（如：寬100×深130×高220cm）
+  elevatorMaxWeight    Int?     // 電梯限重（kg）
+  elevatorNotes        String?  // 電梯使用注意事項
   routeNotes           String?  // 動線說明
+  driverNotes          String?  // 司機/倉儲專屬注意事項（自動帶入出貨單）
   receiverName         String?  // 簽收窗口
   receiverPhone        String?  // 簽收電話
   deliveryNotes        String?  // 配送備註
