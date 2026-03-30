@@ -1,0 +1,5 @@
+# SSL 憑證目錄
+# 部署前請執行: ./deploy.sh ssl-init
+# 或手動放置:
+#   fullchain.pem  — 憑證鏈（Let's Encrypt 或自簽）
+#   privkey.pem    — 私鑰
