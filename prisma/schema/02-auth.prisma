@@ -16,6 +16,7 @@ model User {
   hireDate     DateTime?          // 到職日
   resignDate   DateTime?          // 離職日
   isActive     Boolean   @default(true)
+  tokenVersion Int       @default(0)  // 遞增此值可立即撤銷所有 session
   notes        String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -165,6 +166,9 @@ model User {
   expensesSubmitted        ExpenseReport[]      @relation("ExpenseSubmittedBy")
   expensesApproved         ExpenseReport[]      @relation("ExpenseApprovedBy")
 
+  // ── 零用金 ──────────────────────────────────────────
+  pettyCashRecords         PettyCashRecord[]    @relation("PettyCashSubmitter")
+
   // ── 人事管理 ────────────────────────────────────────
   employeeProfile          EmployeeProfile?     @relation("EmployeeProfile")
   appointments             Appointment[]        @relation("AppointmentUser")
@@ -184,6 +188,10 @@ model User {
 
   // ── 進貨退貨 ────────────────────────────────────────
   purchaseReturnsCreated   PurchaseReturn[]     @relation("PurchaseReturnCreatedBy")
+
+  // ── 業務日報 ────────────────────────────────────────
+  dailyReports         SalesDailyReport[]   @relation("SalesRepDailyReport")
+  reviewedDailyReports SalesDailyReport[]   @relation("DailyReportReviewer")
 }
 
 // ========== 部門設定 ==========

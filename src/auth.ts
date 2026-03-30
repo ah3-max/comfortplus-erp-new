@@ -3,6 +3,24 @@ import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
+/**
+ * Token Rotation 策略（鏡像玉米筍 ERP 的 Refresh Token 設計）
+ *
+ * - Access JWT 有效期 15 分鐘（短期）
+ * - JWT callback 每次觸發時自動檢查：若距到期不足 5 分鐘 → 自動延展（sliding window）
+ * - 最大 session 壽命 8 小時（工作日上限）
+ * - tokenVersion：每次 user 改密碼或管理員強制登出時遞增，
+ *   所有既存 JWT 在下次 jwt callback 時失效
+ *
+ * 撤銷方式：
+ *   await prisma.user.update({ where: { id }, data: { tokenVersion: { increment: 1 } } })
+ *   → 該用戶所有 session 於 ≤15 分鐘內失效
+ */
+
+const ACCESS_TOKEN_MAX_AGE = 15 * 60          // 15 min
+const SESSION_ABSOLUTE_MAX_AGE = 8 * 60 * 60  // 8 hours
+const REFRESH_WINDOW = 5 * 60                  // Refresh if < 5 min remaining
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
@@ -31,19 +49,63 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
-        }
+          tokenVersion: user.tokenVersion,
+        } as any // eslint-disable-line @typescript-eslint/no-explicit-any
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
+      const now = Math.floor(Date.now() / 1000)
+
+      // Initial sign-in: populate token
       if (user) {
         token.id = user.id
-        token.role = (user as { role: string }).role
+        token.role = (user as any).role
+        token.tokenVersion = (user as any).tokenVersion ?? 0
+        token.issuedAt = now
+        token.absoluteExpiry = now + SESSION_ABSOLUTE_MAX_AGE
+        token.accessExpiry = now + ACCESS_TOKEN_MAX_AGE
+        return token
       }
+
+      // Subsequent requests: check revocation + sliding window refresh
+      const absoluteExpiry = (token.absoluteExpiry as number) ?? 0
+      const accessExpiry = (token.accessExpiry as number) ?? 0
+
+      // 1. Absolute session expired (8hr hard limit)
+      if (now >= absoluteExpiry) {
+        return { ...token, error: 'SessionExpired' }
+      }
+
+      // 2. Access token expired — verify tokenVersion from DB before refreshing
+      if (now >= accessExpiry - REFRESH_WINDOW) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { tokenVersion: true, isActive: true, role: true },
+          })
+
+          // User deleted, deactivated, or tokenVersion bumped → revoke
+          if (!dbUser || !dbUser.isActive || dbUser.tokenVersion !== token.tokenVersion) {
+            return { ...token, error: 'TokenRevoked' }
+          }
+
+          // Refresh: extend access window, update role if changed
+          token.accessExpiry = now + ACCESS_TOKEN_MAX_AGE
+          token.role = dbUser.role
+        } catch {
+          // DB unavailable — allow current token to finish its window
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
+      if (token.error === 'SessionExpired' || token.error === 'TokenRevoked') {
+        // Signal client to re-authenticate
+        return { ...session, error: token.error as string }
+      }
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as string
@@ -56,6 +118,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: 'jwt',
-    maxAge: 8 * 60 * 60, // 8 hours — auto logout after workday
+    maxAge: SESSION_ABSOLUTE_MAX_AGE,
   },
 })
