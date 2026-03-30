@@ -121,6 +121,28 @@ export default function SettingsPage() {
   const [loadingAudit, setLoadingAudit] = useState(false)
   const [auditModule, setAuditModule] = useState('')
 
+  // ── notify test ──
+  const [testingNotify, setTestingNotify] = useState<'line' | 'email' | null>(null)
+  async function testNotify(channel: 'line' | 'email') {
+    setTestingNotify(channel)
+    try {
+      const body: Record<string, string> = { channel }
+      if (channel === 'email') body.email = configs['smtp_user'] ?? ''
+      const res = await fetch('/api/settings/test-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (data.ok) toast.success(data.message)
+      else toast.error(data.error ?? '測試失敗')
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setTestingNotify(null)
+    }
+  }
+
   // ───────── load config ─────────
   useEffect(() => {
     fetch('/api/settings')
@@ -537,6 +559,20 @@ export default function SettingsPage() {
                   </div>
                 </div>
               ))}
+              {isAdmin && (
+                <div className="flex items-center gap-2 pt-1 border-t">
+                  <Button variant="outline" size="sm" disabled={testingNotify === 'line'}
+                    onClick={() => testNotify('line')}>
+                    {testingNotify === 'line' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />}
+                    {dict.settingsExt.testLine}
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={testingNotify === 'email'}
+                    onClick={() => testNotify('email')}>
+                    {testingNotify === 'email' ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />}
+                    {dict.settingsExt.testEmail}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -31,6 +31,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       isPrimary:           body.isPrimary           ?? false,
       preferredContactTime: body.preferredContactTime || null,
       notes:               body.notes               || null,
+      gender:              body.gender              || null,
+      birthday:            body.birthday            ? new Date(body.birthday) : null,
+      birthdayNote:        body.birthdayNote        || null,
+      hasChildren:         body.hasChildren != null && body.hasChildren !== '' ? body.hasChildren === 'true' || body.hasChildren === true : null,
+      childrenInfo:        body.childrenInfo        || null,
+      preferences:         body.preferences         || null,
+      taboos:              body.taboos              || null,
+      favoriteThings:      body.favoriteThings      || null,
+      personalNotes:       body.personalNotes       || null,
+      lifeEvents:          body.lifeEvents          || null,
     },
   })
   return NextResponse.json(contact, { status: 201 })
@@ -68,6 +78,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       isPrimary:           body.isPrimary           ?? false,
       preferredContactTime: body.preferredContactTime || null,
       notes:               body.notes               || null,
+      // personal care fields
+      gender:              body.gender              || null,
+      birthday:            body.birthday            ? new Date(body.birthday) : null,
+      birthdayNote:        body.birthdayNote        || null,
+      hasChildren:         body.hasChildren != null && body.hasChildren !== '' ? body.hasChildren === 'true' || body.hasChildren === true : null,
+      childrenInfo:        body.childrenInfo        || null,
+      preferences:         body.preferences         || null,
+      taboos:              body.taboos              || null,
+      favoriteThings:      body.favoriteThings      || null,
+      personalNotes:       body.personalNotes       || null,
+      lifeEvents:          body.lifeEvents          || null,
     },
   })
   return NextResponse.json(contact)

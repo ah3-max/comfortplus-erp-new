@@ -122,12 +122,18 @@ interface CustomerContact {
   department: string | null; mobile: string | null; phone: string | null
   phoneExt: string | null; email: string | null; lineId: string | null
   isPrimary: boolean; preferredContactTime: string | null; notes: string | null
+  // personal care fields
+  gender: string | null; birthday: string | null; birthdayNote: string | null
+  hasChildren: boolean | null; childrenInfo: string | null
+  preferences: string | null; taboos: string | null; favoriteThings: string | null
+  personalNotes: string | null; lifeEvents: string | null
 }
 interface Customer {
   id: string; code: string; name: string; type: string; contactPerson: string | null
   phone: string | null; lineId: string | null; email: string | null
   address: string | null; region: string | null; taxId: string | null
   paymentTerms: string | null; creditLimit: string | null; grade: string | null
+  healthScore: number | null; healthLevel: string | null; healthUpdatedAt: string | null
   devStatus: string; source: string | null; salesRepId: string | null
   salesRep: { id: string; name: string } | null
   winRate: number | null; estimatedMonthlyVolume: string | null
@@ -182,7 +188,13 @@ const OPP_STAGE_COLOR: Record<string, string> = {
   NEGOTIATING: 'bg-orange-100 text-orange-700', REGULAR_ORDER: 'bg-green-100 text-green-700',
   LOST: 'bg-red-100 text-red-600', INACTIVE: 'bg-slate-100 text-slate-400',
 }
-type ContactFormData = { name: string; role: string; title: string; department: string; mobile: string; phone: string; phoneExt: string; email: string; lineId: string; isPrimary: boolean; preferredContactTime: string; notes: string }
+type ContactFormData = {
+  name: string; role: string; title: string; department: string; mobile: string; phone: string
+  phoneExt: string; email: string; lineId: string; isPrimary: boolean; preferredContactTime: string; notes: string
+  // personal care fields
+  gender: string; birthday: string; birthdayNote: string; hasChildren: string; childrenInfo: string
+  preferences: string; taboos: string; favoriteThings: string; personalNotes: string; lifeEvents: string
+}
 
 interface TimelineEvent {
   id: string; eventType: string; date: string
@@ -228,7 +240,12 @@ export default function CustomerDetailPage() {
   const [visitForm, setVisitForm] = useState({ visitDate: new Date().toISOString().slice(0,10), purpose: '', content: '', result: '', nextAction: '', nextVisitDate: '' })
   const [callForm,  setCallForm]  = useState({ callDate: new Date().toISOString().slice(0,10), duration: '', purpose: '', content: '', result: '' })
   const [sampleForm, setSampleForm] = useState({ sentDate: new Date().toISOString().slice(0,10), items: '', trackingNo: '', recipient: '', followUpDate: '', notes: '' })
-  const emptyContactForm = (): ContactFormData => ({ name: '', role: '', title: '', department: '', mobile: '', phone: '', phoneExt: '', email: '', lineId: '', isPrimary: false, preferredContactTime: '', notes: '' })
+  const emptyContactForm = (): ContactFormData => ({
+    name: '', role: '', title: '', department: '', mobile: '', phone: '', phoneExt: '', email: '',
+    lineId: '', isPrimary: false, preferredContactTime: '', notes: '',
+    gender: '', birthday: '', birthdayNote: '', hasChildren: '', childrenInfo: '',
+    preferences: '', taboos: '', favoriteThings: '', personalNotes: '', lifeEvents: '',
+  })
   const [contactForm, setContactForm] = useState<ContactFormData>(emptyContactForm())
 
   // Opportunity state
@@ -249,6 +266,21 @@ export default function CustomerDetailPage() {
   const [editKaNote,    setEditKaNote]    = useState('')
   const [savingKa,      setSavingKa]      = useState(false)
   const [usersForKa,    setUsersForKa]    = useState<{id:string;name:string}[]>([])
+  const [healthCalcing, setHealthCalcing] = useState(false)
+
+  async function recalcHealth() {
+    if (!id) return
+    setHealthCalcing(true)
+    const res = await fetch(`/api/customers/${id}/health-score`, { method: 'POST' })
+    setHealthCalcing(false)
+    if (res.ok) {
+      const { score, level } = await res.json()
+      setCustomer(prev => prev ? { ...prev, healthScore: score, healthLevel: level, healthUpdatedAt: new Date().toISOString() } : prev)
+      toast.success(`健康分數已更新：${score}分`)
+    } else {
+      toast.error(dict.common.updateFailed)
+    }
+  }
 
   async function load() {
     setLoading(true)
@@ -465,7 +497,7 @@ export default function CustomerDetailPage() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         <div className="rounded-lg border bg-white p-4">
           <p className="text-xs text-muted-foreground">{cd.summary.winRate}</p>
           {customer.winRate != null ? (
@@ -497,6 +529,32 @@ export default function CustomerDetailPage() {
           <p className="text-xs text-muted-foreground">{dict.customers.salesRep}</p>
           <p className="mt-1 text-sm font-bold text-slate-700">{customer.salesRep?.name ?? dict.common.unassigned}</p>
           {customer.region && <p className="text-xs text-muted-foreground mt-0.5">{regionName}</p>}
+        </div>
+        {/* Health score card */}
+        <div className="rounded-lg border bg-white p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">客戶健康分數</p>
+            <button onClick={recalcHealth} disabled={healthCalcing}
+              className="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50">
+              {healthCalcing ? '計算中…' : '重算'}
+            </button>
+          </div>
+          {customer.healthScore != null ? (() => {
+            const lvl = customer.healthLevel
+            const color = lvl === 'GREEN' ? '#22c55e' : lvl === 'YELLOW' ? '#f59e0b' : lvl === 'ORANGE' ? '#f97316' : lvl === 'RED' ? '#ef4444' : '#94a3b8'
+            const label = lvl === 'GREEN' ? '健康' : lvl === 'YELLOW' ? '觀察' : lvl === 'ORANGE' ? '警示' : lvl === 'RED' ? '危險' : '—'
+            return (
+              <>
+                <p className="mt-1 text-xl font-bold" style={{ color }}>{customer.healthScore}</p>
+                <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-100">
+                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${customer.healthScore}%`, backgroundColor: color }} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{label}</p>
+              </>
+            )
+          })() : (
+            <p className="mt-1 text-sm text-muted-foreground">尚未計算</p>
+          )}
         </div>
       </div>
 
@@ -1494,6 +1552,47 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
   const CONTACT_ROLE_LABEL = cd.contacts.roleLabels as Record<string, string>
   const CONTACT_TIME_LABEL = cd.contacts.timeLabels as Record<string, string>
 
+  // ── 溫馨備注 dialog state ──
+  type WarmNoteForm = {
+    gender: string; birthday: string; birthdayNote: string
+    hasChildren: string; childrenInfo: string; preferences: string
+    taboos: string; favoriteThings: string; personalNotes: string; lifeEvents: string
+  }
+  const [warmEditContact, setWarmEditContact] = useState<CustomerContact | null>(null)
+  const [warmForm, setWarmForm] = useState<WarmNoteForm>({ gender: '', birthday: '', birthdayNote: '', hasChildren: '', childrenInfo: '', preferences: '', taboos: '', favoriteThings: '', personalNotes: '', lifeEvents: '' })
+  const [savingWarm, setSavingWarm] = useState(false)
+
+  function openWarmEdit(c: CustomerContact) {
+    setWarmEditContact(c)
+    setWarmForm({
+      gender: c.gender ?? '', birthday: c.birthday ? c.birthday.slice(0, 10) : '',
+      birthdayNote: c.birthdayNote ?? '',
+      hasChildren: c.hasChildren == null ? '' : c.hasChildren ? 'true' : 'false',
+      childrenInfo: c.childrenInfo ?? '', preferences: c.preferences ?? '',
+      taboos: c.taboos ?? '', favoriteThings: c.favoriteThings ?? '',
+      personalNotes: c.personalNotes ?? '', lifeEvents: c.lifeEvents ?? '',
+    })
+  }
+
+  async function saveWarmNote(e: React.FormEvent) {
+    e.preventDefault()
+    if (!warmEditContact) return
+    setSavingWarm(true)
+    const res = await fetch(`/api/customers/${customerId}/contacts/${warmEditContact.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        gender: warmForm.gender || null, birthday: warmForm.birthday || null,
+        birthdayNote: warmForm.birthdayNote || null, hasChildren: warmForm.hasChildren,
+        childrenInfo: warmForm.childrenInfo || null, preferences: warmForm.preferences || null,
+        taboos: warmForm.taboos || null, favoriteThings: warmForm.favoriteThings || null,
+        personalNotes: warmForm.personalNotes || null, lifeEvents: warmForm.lifeEvents || null,
+      }),
+    })
+    setSavingWarm(false)
+    if (res.ok) { toast.success('溫馨備注已儲存'); setWarmEditContact(null); reload() }
+    else toast.error('儲存失敗')
+  }
+
   function openNew() { setEditContact(null); setContactForm(emptyContactForm()); setContactOpen(true) }
   function openEdit(c: CustomerContact) {
     setEditContact(c)
@@ -1503,6 +1602,12 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
       phone: c.phone ?? '', phoneExt: c.phoneExt ?? '',
       email: c.email ?? '', lineId: c.lineId ?? '',
       isPrimary: c.isPrimary, preferredContactTime: c.preferredContactTime ?? '', notes: c.notes ?? '',
+      gender: c.gender ?? '', birthday: c.birthday ? c.birthday.slice(0, 10) : '',
+      birthdayNote: c.birthdayNote ?? '',
+      hasChildren: c.hasChildren === true ? 'true' : c.hasChildren === false ? 'false' : '',
+      childrenInfo: c.childrenInfo ?? '', preferences: c.preferences ?? '',
+      taboos: c.taboos ?? '', favoriteThings: c.favoriteThings ?? '',
+      personalNotes: c.personalNotes ?? '', lifeEvents: c.lifeEvents ?? '',
     })
     setContactOpen(true)
   }
@@ -1581,6 +1686,29 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
                 <button onClick={() => openEdit(c)} className="text-slate-400 hover:text-slate-600"><Pencil className="h-3.5 w-3.5" /></button>
                 <button onClick={() => remove(c.id)} className="text-slate-400 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
+              {/* 溫馨備注 */}
+              <details className="mt-3 border-t border-dashed border-pink-100 pt-2">
+                <summary className="text-xs text-pink-500 cursor-pointer select-none font-medium hover:text-pink-700">
+                  溫馨備注 ▼{(c.gender || c.birthday || c.preferences || c.taboos || c.favoriteThings || c.personalNotes || c.lifeEvents || c.hasChildren != null) && <span className="ml-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-pink-400 align-middle" />}
+                </summary>
+                <div className="mt-2 space-y-1">
+                  {c.gender     && <p className="text-xs text-slate-600">性別：{c.gender === 'M' ? '男' : c.gender === 'F' ? '女' : '其他'}</p>}
+                  {c.birthday   && <p className="text-xs text-slate-600">生日：{c.birthday.slice(5, 10)}{c.birthdayNote && `（${c.birthdayNote}）`}</p>}
+                  {c.hasChildren != null && <p className="text-xs text-slate-600">小孩：{c.hasChildren ? `有${c.childrenInfo ? `（${c.childrenInfo}）` : ''}` : '無'}</p>}
+                  {c.preferences    && <p className="text-xs text-slate-600">喜好：{c.preferences}</p>}
+                  {c.taboos         && <p className="text-xs text-red-500">禁忌：{c.taboos}</p>}
+                  {c.favoriteThings && <p className="text-xs text-slate-600">喜歡：{c.favoriteThings}</p>}
+                  {c.personalNotes  && <p className="text-xs text-pink-700 italic">備注：{c.personalNotes}</p>}
+                  {c.lifeEvents     && <p className="text-xs text-slate-500">大事：{c.lifeEvents}</p>}
+                  {!(c.gender || c.birthday || c.preferences || c.taboos || c.favoriteThings || c.personalNotes || c.lifeEvents || c.hasChildren != null) && (
+                    <p className="text-xs text-muted-foreground">尚無備注，點選「編輯」新增</p>
+                  )}
+                  <button type="button" onClick={() => openWarmEdit(c)}
+                    className="mt-1 inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-pink-50 text-pink-600 hover:bg-pink-100 border border-pink-200">
+                    <Pencil className="h-3 w-3" />編輯
+                  </button>
+                </div>
+              </details>
             </div>
           ))}
         </div>
@@ -1650,11 +1778,131 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
                 <Label>{cd.contacts.notesLabel}</Label>
                 <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={contactForm.notes as string} onChange={e => setContactForm({ ...contactForm, notes: e.target.value })} placeholder={cd.contacts.notesPlaceholder} />
               </div>
+              {/* ── 溫馨備注（業務拜訪用） ── */}
+              <div className="col-span-2">
+                <p className="text-xs font-semibold text-pink-600 mb-2 mt-1 border-t pt-3">溫馨備注（業務拜訪用）</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>性別</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={contactForm.gender} onChange={e => setContactForm({ ...contactForm, gender: e.target.value })}>
+                  <option value="">未填</option>
+                  <option value="M">男</option>
+                  <option value="F">女</option>
+                  <option value="OTHER">其他</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>生日</Label>
+                <Input type="date" value={contactForm.birthday} onChange={e => setContactForm({ ...contactForm, birthday: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>生日備注</Label>
+                <Input value={contactForm.birthdayNote} onChange={e => setContactForm({ ...contactForm, birthdayNote: e.target.value })} placeholder="例：農曆" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>有無小孩</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={contactForm.hasChildren} onChange={e => setContactForm({ ...contactForm, hasChildren: e.target.value })}>
+                  <option value="">未填</option>
+                  <option value="true">有</option>
+                  <option value="false">無</option>
+                </select>
+              </div>
+              {contactForm.hasChildren === 'true' && (
+                <div className="col-span-2 space-y-1.5">
+                  <Label>小孩資訊</Label>
+                  <Input value={contactForm.childrenInfo} onChange={e => setContactForm({ ...contactForm, childrenInfo: e.target.value })} placeholder="例：2個，5歲和8歲" />
+                </div>
+              )}
+              <div className="col-span-2 space-y-1.5">
+                <Label>喜好（食物/飲料/興趣）</Label>
+                <Input value={contactForm.preferences} onChange={e => setContactForm({ ...contactForm, preferences: e.target.value })} placeholder="例：愛喝咖啡、喜歡健身" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>禁忌/不喜歡的東西</Label>
+                <Input value={contactForm.taboos} onChange={e => setContactForm({ ...contactForm, taboos: e.target.value })} placeholder="例：對花生過敏、不喜歡花束" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>喜歡的東西（送禮參考）</Label>
+                <Input value={contactForm.favoriteThings} onChange={e => setContactForm({ ...contactForm, favoriteThings: e.target.value })} placeholder="例：星巴克禮卡、頂好超市禮券" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>業務備注（溫馨小事）</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={contactForm.personalNotes} onChange={e => setContactForm({ ...contactForm, personalNotes: e.target.value })} placeholder="例：每次拜訪帶手搖飲料會很開心" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>重要生活事件</Label>
+                <Input value={contactForm.lifeEvents} onChange={e => setContactForm({ ...contactForm, lifeEvents: e.target.value })} placeholder="例：2024/03 剛升主任、2024/01 生第二胎" />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setContactOpen(false)} disabled={saving}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={saving || !contactForm.name}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── 溫馨備注 edit Dialog ── */}
+      <Dialog open={!!warmEditContact} onOpenChange={o => !o && setWarmEditContact(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>溫馨備注 — {warmEditContact?.name}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={saveWarmNote} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">性別</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={warmForm.gender} onChange={e => setWarmForm({ ...warmForm, gender: e.target.value })}>
+                  <option value="">未填</option><option value="M">男</option><option value="F">女</option><option value="OTHER">其他</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">有無小孩</Label>
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={warmForm.hasChildren} onChange={e => setWarmForm({ ...warmForm, hasChildren: e.target.value })}>
+                  <option value="">未填</option><option value="true">有</option><option value="false">無</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">生日</Label>
+                <Input type="date" className="text-sm" value={warmForm.birthday} onChange={e => setWarmForm({ ...warmForm, birthday: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">生日備注（如：農曆）</Label>
+                <Input className="text-sm" placeholder="農曆、舊曆…" value={warmForm.birthdayNote} onChange={e => setWarmForm({ ...warmForm, birthdayNote: e.target.value })} />
+              </div>
+              {warmForm.hasChildren === 'true' && (
+                <div className="col-span-2 space-y-1.5">
+                  <Label className="text-xs">孩子資訊（幾個、年齡等）</Label>
+                  <Input className="text-sm" placeholder="例：2個，國小和幼稚園" value={warmForm.childrenInfo} onChange={e => setWarmForm({ ...warmForm, childrenInfo: e.target.value })} />
+                </div>
+              )}
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs">喜好（食物 / 飲料 / 興趣）</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：喜歡珍珠奶茶、愛打羽球" value={warmForm.preferences} onChange={e => setWarmForm({ ...warmForm, preferences: e.target.value })} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs">禁忌 / 不喜歡 / 過敏</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：不喝咖啡、對花粉過敏" value={warmForm.taboos} onChange={e => setWarmForm({ ...warmForm, taboos: e.target.value })} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs">喜歡的東西（品牌 / 禮物偏好）</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：喜歡 7-11 禮券、偏好實用品" value={warmForm.favoriteThings} onChange={e => setWarmForm({ ...warmForm, favoriteThings: e.target.value })} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs">重要生活事件（升遷 / 結婚 / 搬家）</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：2024年升任主任、剛搬新家" value={warmForm.lifeEvents} onChange={e => setWarmForm({ ...warmForm, lifeEvents: e.target.value })} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs">業務備注（溫馨小事）</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={3} placeholder="例：很喜歡聊孩子的事，送禮記得附小卡" value={warmForm.personalNotes} onChange={e => setWarmForm({ ...warmForm, personalNotes: e.target.value })} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setWarmEditContact(null)} disabled={savingWarm}>取消</Button>
+              <Button type="submit" disabled={savingWarm}>
+                {savingWarm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存
               </Button>
             </DialogFooter>
           </form>
@@ -1673,7 +1921,9 @@ type DeliveryForm = {
   deliveryAddress: string; unloadingLocation: string; unloadingFloor: string
   hasElevator: string; needsCart: string; hasReception: string
   receivingHours: string; suggestedDeliveryTime: string
-  parkingNotes: string; routeNotes: string
+  parkingNotes: string; parkingSpot: string; parkingFee: string
+  elevatorDimensions: string; elevatorMaxWeight: string; elevatorNotes: string
+  routeNotes: string; driverNotes: string
   receiverName: string; receiverPhone: string; deliveryNotes: string
   photoUrls: PhotoEntry[]
 }
@@ -1684,7 +1934,9 @@ function emptyDeliveryForm(): DeliveryForm {
     deliveryAddress: '', unloadingLocation: '', unloadingFloor: '',
     hasElevator: '', needsCart: '', hasReception: '',
     receivingHours: '', suggestedDeliveryTime: '',
-    parkingNotes: '', routeNotes: '',
+    parkingNotes: '', parkingSpot: '', parkingFee: '',
+    elevatorDimensions: '', elevatorMaxWeight: '', elevatorNotes: '',
+    routeNotes: '', driverNotes: '',
     receiverName: '', receiverPhone: '', deliveryNotes: '',
     photoUrls: [],
   }
@@ -1699,7 +1951,9 @@ function deliveryProfileToForm(p: any): DeliveryForm {
     unloadingFloor: s(p.unloadingFloor), hasElevator: b(p.hasElevator),
     needsCart: b(p.needsCart), hasReception: b(p.hasReception),
     receivingHours: s(p.receivingHours), suggestedDeliveryTime: s(p.suggestedDeliveryTime),
-    parkingNotes: s(p.parkingNotes), routeNotes: s(p.routeNotes),
+    parkingNotes: s(p.parkingNotes), parkingSpot: s(p.parkingSpot), parkingFee: s(p.parkingFee),
+    elevatorDimensions: s(p.elevatorDimensions), elevatorMaxWeight: s(p.elevatorMaxWeight),
+    elevatorNotes: s(p.elevatorNotes), routeNotes: s(p.routeNotes), driverNotes: s(p.driverNotes),
     receiverName: s(p.receiverName), receiverPhone: s(p.receiverPhone),
     deliveryNotes: s(p.deliveryNotes),
     photoUrls: Array.isArray(p.photoUrls) ? p.photoUrls : [],
@@ -1738,10 +1992,11 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
     setSaving(true)
     const body = {
       ...form,
-      unloadingFloor: form.unloadingFloor ? Number(form.unloadingFloor) : null,
-      hasElevator:    form.hasElevator === 'true' ? true : form.hasElevator === 'false' ? false : null,
-      needsCart:      form.needsCart   === 'true' ? true : form.needsCart   === 'false' ? false : null,
-      hasReception:   form.hasReception === 'true' ? true : form.hasReception === 'false' ? false : null,
+      unloadingFloor:    form.unloadingFloor ? Number(form.unloadingFloor) : null,
+      hasElevator:       form.hasElevator === 'true' ? true : form.hasElevator === 'false' ? false : null,
+      needsCart:         form.needsCart   === 'true' ? true : form.needsCart   === 'false' ? false : null,
+      hasReception:      form.hasReception === 'true' ? true : form.hasReception === 'false' ? false : null,
+      elevatorMaxWeight: form.elevatorMaxWeight ? Number(form.elevatorMaxWeight) : null,
     }
     const res = await fetch(`/api/customers/${customerId}/delivery-profile`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
@@ -1835,8 +2090,33 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.parkingNotes} onChange={e => setField('parkingNotes', e.target.value)} placeholder={cd.delivery.parkingNotesPlaceholder} />
           </div>
           <div className="space-y-1.5">
+            <Label>指定停車位</Label>
+            <Input value={form.parkingSpot} onChange={e => setField('parkingSpot', e.target.value)} placeholder="例：B2-25號、地下室進門右轉" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>停車費說明</Label>
+            <Input value={form.parkingFee} onChange={e => setField('parkingFee', e.target.value)} placeholder="例：免費/自費/憑單免費2小時" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>電梯內尺寸</Label>
+            <Input value={form.elevatorDimensions} onChange={e => setField('elevatorDimensions', e.target.value)} placeholder="例：寬100×深130×高220cm" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>電梯限重（kg）</Label>
+            <Input type="number" value={form.elevatorMaxWeight} onChange={e => setField('elevatorMaxWeight', e.target.value)} placeholder="例：630" />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>電梯使用注意事項</Label>
+            <Input value={form.elevatorNotes} onChange={e => setField('elevatorNotes', e.target.value)} placeholder="例：需刷卡、貨梯在後門、需提前預約" />
+          </div>
+          <div className="space-y-1.5">
             <Label>{cd.delivery.routeNotes}</Label>
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.routeNotes} onChange={e => setField('routeNotes', e.target.value)} placeholder={cd.delivery.routeNotesPlaceholder} />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label className="text-amber-700 font-semibold">司機/倉儲專屬注意事項</Label>
+            <textarea className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm resize-none" rows={3} value={form.driverNotes} onChange={e => setField('driverNotes', e.target.value)} placeholder="例：進倉需著安全鞋、禁止停路邊、需通知護理長再上樓（自動帶入出貨備注）" />
+            <p className="text-xs text-amber-600">此欄位內容會自動帶入新建出貨單的備注欄位</p>
           </div>
           <div className="col-span-2 space-y-1.5">
             <Label>{cd.delivery.deliveryNotes}</Label>

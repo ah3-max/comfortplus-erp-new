@@ -33,9 +33,16 @@ interface TeamTargetData {
   hasTarget: boolean
 }
 
+interface ReportSummary {
+  submittedCount: number
+  totalCount: number
+  reps: { rep: { id: string; name: string; role: string }; report: { visitCount: number; callCount: number; orderCount: number; orderAmount: string; submittedAt: string } | null; submitted: boolean }[]
+}
+
 export function SalesManagerDashboard() {
   const [data, setData] = useState<SalesManagerData | null>(null)
   const [targets, setTargets] = useState<TeamTargetData[]>([])
+  const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const { dict } = useI18n()
 
@@ -43,9 +50,11 @@ export function SalesManagerDashboard() {
     Promise.all([
       fetch('/api/dashboard/sales-manager').then(r => r.json()),
       fetch('/api/sales-targets?team=true').then(r => r.json()),
-    ]).then(([managerData, targetData]) => {
+      fetch('/api/sales-daily-report/summary').then(r => r.ok ? r.json() : null),
+    ]).then(([managerData, targetData, summaryData]) => {
       setData(managerData)
       setTargets(Array.isArray(targetData) ? targetData : [])
+      setReportSummary(summaryData)
     }).finally(() => setLoading(false))
   }, [])
 
@@ -160,6 +169,59 @@ export function SalesManagerDashboard() {
                   {targets.filter(t => !t.hasTarget).length} {dict.roleDashboard.notSetCount}
                 </p>
               )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Daily Report Summary ── */}
+      {reportSummary && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-500" />
+                今日日報
+                <span className={`text-xs font-normal px-2 py-0.5 rounded-full ${
+                  reportSummary.submittedCount === reportSummary.totalCount
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {reportSummary.submittedCount} / {reportSummary.totalCount} 人已提交
+                </span>
+              </CardTitle>
+              <Link href="/sales-daily-report" className="text-xs text-blue-600 hover:underline">查看全部 →</Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {reportSummary.reps.map(({ rep, report, submitted }) => (
+                <Link key={rep.id} href={`/sales-daily-report?repId=${rep.id}`}
+                  className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700">
+                      {rep.name.slice(0, 1)}
+                    </div>
+                    <span className="text-sm font-medium">{rep.name}</span>
+                    {submitted ? (
+                      <span className="flex items-center gap-0.5 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                        <CheckCircle2 className="h-3 w-3" />已提交
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-0.5 text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">
+                        <Clock className="h-3 w-3" />未提交
+                      </span>
+                    )}
+                  </div>
+                  {submitted && report && (
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{report.visitCount}</span>
+                      <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{report.callCount}</span>
+                      <span className="flex items-center gap-1"><ShoppingCart className="h-3 w-3" />{report.orderCount}</span>
+                    </div>
+                  )}
+                </Link>
+              ))}
             </div>
           </CardContent>
         </Card>

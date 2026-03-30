@@ -117,6 +117,7 @@ const zhTW = {
   nav: {
     dashboard: '總覽',
     dailyReport: '業務日報',
+    salesDailyReport: '業務日報',
     quickInput: '快速輸入',
     crm: '追蹤中心',
     customers: '客戶管理',
@@ -194,6 +195,7 @@ const zhTW = {
     deliveryTrips: '出車記錄',
     inventoryLots: '批號管理',
     arAging: '應收帳齡',
+    pettyCash: '零用金管理',
     finance: '財務報表',
     apAging: '應付帳齡',
     generalLedger: '總分類帳',
@@ -1496,6 +1498,9 @@ const zhTW = {
     daysAgo: '天前',
     // warehouse extra
     needsAttention: '需要處理',
+    alertUrgent: '緊急',
+    alertWarning: '注意',
+    alertPending: '待辦',
     teamVisits: '團隊拜訪',
     teamCalls: '團隊電訪',
     quickOrder: '快速建單',
@@ -4008,6 +4013,8 @@ const zhTW = {
     smtpUser: 'SMTP 帳號',
     smtpPassword: 'SMTP 密碼',
     notifyFromName: '寄件人名稱',
+    testLine: '測試 LINE',
+    testEmail: '測試 Email',
   },
 
   // ── 組織圖 ──

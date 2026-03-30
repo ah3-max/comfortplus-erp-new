@@ -38,6 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       odometerAtService: body.odometerAtService ? Number(body.odometerAtService) : null,
       items: body.items ?? null,
       notes: body.notes ?? null,
+      photoUrls: body.photoUrls ?? null,
       createdById: session.user.id,
     },
   })

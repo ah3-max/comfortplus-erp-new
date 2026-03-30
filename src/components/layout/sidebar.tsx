@@ -16,7 +16,7 @@ import {
   PackageX, GitPullRequestArrow, ShipIcon, UserSquare2, ClipboardList,
   MapPinned, ReceiptText, BriefcaseBusiness, HandCoins, Megaphone,
   Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp,
-  Clock, DollarSign, CheckCircle2, Tag,
+  Clock, DollarSign, CheckCircle2, Tag, Send,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
           { href: '/sales-opportunities', key: 'opportunities',  icon: Briefcase },
           { href: '/kpi',                 key: 'kpi',            icon: Zap },
           { href: '/tasks',               key: 'tasks',          icon: ListTodo },
+          { href: '/sales-daily-report',  key: 'salesDailyReport', icon: Send },
           { href: '/meeting-records',     key: 'meetingRecords', icon: CalendarDays },
           { href: '/business-calendar',   key: 'businessCalendar', icon: CalendarDays },
           { href: '/promo-calendar',      key: 'promoCalendar',  icon: CalendarDays },
@@ -160,6 +161,7 @@ const navGroups: NavGroup[] = [
         items: [
           { href: '/finance',       key: 'finance',    icon: BarChart3 },
           { href: '/payments',      key: 'payments',   icon: CreditCard },
+          { href: '/petty-cash',    key: 'pettyCash',  icon: Wallet },
           { href: '/contracts',     key: 'contracts',  icon: FileArchive },
           { href: '/expenses',      key: 'expenses',   icon: ReceiptText },
           { href: '/fixed-assets',  key: 'fixedAssets', icon: Landmark },

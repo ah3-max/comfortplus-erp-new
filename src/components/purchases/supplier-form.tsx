@@ -159,7 +159,7 @@ export function SupplierForm({ open, onClose, onSuccess, supplier }: Props) {
                 </div>
                 <div className="space-y-1.5">
                   <Label>{fl.supplierPhone}</Label>
-                  <Input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="02-XXXX-XXXX" />
+                  <Input value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="0912-345-678" />
                 </div>
                 <div className="space-y-1.5">
                   <Label>{fl.supplierEmail}</Label>

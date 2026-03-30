@@ -24,7 +24,8 @@ import { ShipmentForm } from '@/components/shipments/shipment-form'
 import {
   Plus, Search, MoreHorizontal, Truck, PackageCheck, Loader2,
   Printer, AlertTriangle, CheckCircle2, ClipboardList, Car, MapPin,
-  Calendar, Phone, Package, Camera,
+  Calendar, Phone, Package, Camera, CheckSquare, Square, Download, X,
+  Route, GripVertical, ChevronUp, ChevronDown, Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
@@ -59,6 +60,7 @@ interface DeliveryTrip {
   id: string; tripNo: string; vehicleNo: string | null; driverName: string | null
   driverPhone: string | null; region: string | null; tripDate: string; status: TripStatus
   notes: string | null
+  routeStops: unknown
   shipments: Shipment[]
   _count: { shipments: number }
 }
@@ -126,6 +128,19 @@ export default function ShipmentsPage() {
   // Logistics providers (for selects)
   const [providers, setProviders]   = useState<Provider[]>([])
 
+  // Batch operations state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [batchLoading, setBatchLoading] = useState(false)
+  const [batchConfirmOpen, setBatchConfirmOpen] = useState(false)
+
+  // Route planning state
+  type RouteStop = { stopNo: number; shipmentId: string; shipmentNo: string; customerName: string; address: string }
+  const [routeOpen, setRouteOpen]       = useState(false)
+  const [routeTrip, setRouteTrip]       = useState<DeliveryTrip | null>(null)
+  const [routeStops, setRouteStops]     = useState<RouteStop[]>([])
+  const [routeSaving, setRouteSaving]   = useState(false)
+  const [dragIdx, setDragIdx]           = useState<number | null>(null)
+
   // Picking list state
   const [pickShipmentId, setPickShipmentId] = useState('')
   const [pickData, setPickData]             = useState<Shipment | null>(null)
@@ -167,6 +182,9 @@ export default function ShipmentsPage() {
     setProviders(await res.json())
   }, [])
 
+  // Clear selection when filters or page change
+  useEffect(() => { setSelectedIds(new Set()) }, [search, filterStatus, filterMethod, anomalyOnly, page])
+
   useEffect(() => {
     const t = setTimeout(fetchShipments, 300)
     return () => clearTimeout(t)
@@ -177,6 +195,69 @@ export default function ShipmentsPage() {
   }, [tab, fetchTrips])
 
   useEffect(() => { fetchProviders() }, [fetchProviders])
+
+  // ── Batch operations ─────────────────────────────────────────────────────────
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (selectedIds.size === shipments.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(shipments.map(s => s.id)))
+    }
+  }
+
+  async function batchConfirm() {
+    if (selectedIds.size === 0) return
+    setBatchConfirmOpen(false)
+    setBatchLoading(true)
+    const results = await Promise.allSettled(
+      Array.from(selectedIds).map(id =>
+        fetch(`/api/shipments/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'SHIPPED' }),
+        })
+      )
+    )
+    setBatchLoading(false)
+    const responses = results.map(r => r.status === 'fulfilled' ? (r.value as Response) : null)
+    const ok      = responses.filter(r => r?.ok).length
+    const skipped = responses.filter(r => r?.status === 409).length
+    if (ok > 0) {
+      const msg = skipped > 0 ? `${ok} 筆已出貨，${skipped} 筆狀態不符已略過` : `${ok} 筆已標記為已出貨`
+      toast.success(msg)
+      setSelectedIds(new Set())
+      fetchShipments()
+    } else if (skipped > 0) {
+      toast.warning(`${skipped} 筆狀態不符，無法標記`)
+      setSelectedIds(new Set())
+      fetchShipments()
+    } else {
+      toast.error(dict.common.updateFailed)
+    }
+  }
+
+  async function batchExport() {
+    if (selectedIds.size === 0) return
+    const params = new URLSearchParams()
+    Array.from(selectedIds).forEach(id => params.append('ids', id))
+    const res = await fetch(`/api/shipments/export?${params}`)
+    if (!res.ok) { toast.error(dict.common.loadFailed); return }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `shipments-${new Date().toISOString().slice(0, 10)}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   // ── Shipment actions ─────────────────────────────────────────────────────────
   async function updateStatus(id: string, status: ShipmentStatus) {
@@ -271,6 +352,73 @@ export default function ShipmentsPage() {
     })
     if (res.ok) { toast.success(dict.common.deleteSuccess); fetchTrips(); fetchShipments() }
     else toast.error(dict.common.updateFailed)
+  }
+
+  // ── Route planning ────────────────────────────────────────────────────────────
+  function openRoutePlanner(trip: DeliveryTrip) {
+    // Use existing routeStops order if saved, otherwise use current shipments order
+    const saved = trip.routeStops as RouteStop[] | null
+    let stops: RouteStop[]
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      // Merge: keep saved order, append any new shipments not yet in saved
+      const savedIds = new Set(saved.map(s => s.shipmentId))
+      const extra = trip.shipments
+        .filter(s => !savedIds.has(s.id))
+        .map((s, i) => ({
+          stopNo: saved.length + i + 1,
+          shipmentId: s.id,
+          shipmentNo: s.shipmentNo,
+          customerName: s.order.customer.name,
+          address: s.order.customer.address ?? '',
+        }))
+      stops = [...saved, ...extra].map((s, i) => ({ ...s, stopNo: i + 1 }))
+    } else {
+      stops = trip.shipments.map((s, i) => ({
+        stopNo: i + 1,
+        shipmentId: s.id,
+        shipmentNo: s.shipmentNo,
+        customerName: s.order.customer.name,
+        address: s.order.customer.address ?? '',
+      }))
+    }
+    setRouteTrip(trip)
+    setRouteStops(stops)
+    setRouteOpen(true)
+  }
+
+  function moveStop(from: number, to: number) {
+    if (to < 0 || to >= routeStops.length) return
+    const next = [...routeStops]
+    const [item] = next.splice(from, 1)
+    next.splice(to, 0, item)
+    setRouteStops(next.map((s, i) => ({ ...s, stopNo: i + 1 })))
+  }
+
+  function onDragStart(idx: number) { setDragIdx(idx) }
+  function onDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault()
+    if (dragIdx === null || dragIdx === idx) return
+    moveStop(dragIdx, idx)
+    setDragIdx(idx)
+  }
+  function onDragEnd() { setDragIdx(null) }
+
+  async function saveRoute() {
+    if (!routeTrip) return
+    setRouteSaving(true)
+    const res = await fetch(`/api/delivery/trips/${routeTrip.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'saveRoute', stops: routeStops }),
+    })
+    setRouteSaving(false)
+    if (res.ok) {
+      toast.success('路線順序已儲存')
+      setRouteOpen(false)
+      fetchTrips()
+    } else {
+      toast.error(dict.common.saveFailed)
+    }
   }
 
   // ── Picking list ─────────────────────────────────────────────────────────────
@@ -407,10 +555,38 @@ export default function ShipmentsPage() {
             </label>
           </div>
 
+          {/* Batch action bar */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-3 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2.5">
+              <span className="text-sm font-medium text-blue-700">已選 {selectedIds.size} 筆</span>
+              <div className="flex gap-2 ml-auto">
+                <Button size="sm" variant="outline" onClick={batchExport} disabled={batchLoading}
+                  className="border-blue-300 text-blue-700 hover:bg-blue-100">
+                  <Download className="mr-1.5 h-3.5 w-3.5" />匯出選取
+                </Button>
+                <Button size="sm" onClick={() => setBatchConfirmOpen(true)} disabled={batchLoading}
+                  className="bg-blue-600 hover:bg-blue-700">
+                  {batchLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Truck className="mr-1.5 h-3.5 w-3.5" />}
+                  批次標記已出貨
+                </Button>
+                <button onClick={() => setSelectedIds(new Set())} className="ml-1 text-slate-400 hover:text-slate-600">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border bg-white overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10 pr-0">
+                    <button onClick={toggleAll} className="flex items-center justify-center w-full">
+                      {selectedIds.size === shipments.length && shipments.length > 0
+                        ? <CheckSquare className="h-4 w-4 text-blue-600" />
+                        : <Square className="h-4 w-4 text-slate-400" />}
+                    </button>
+                  </TableHead>
                   <TableHead className="w-36">{dict.shipments.shipmentNo}</TableHead>
                   <TableHead>{se.colOrderCustomer}</TableHead>
                   <TableHead className="w-24">{dict.common.status}</TableHead>
@@ -428,20 +604,28 @@ export default function ShipmentsPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="py-16 text-center">
+                    <TableCell colSpan={13} className="py-16 text-center">
                       <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : shipments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="py-16 text-center text-muted-foreground">
+                    <TableCell colSpan={13} className="py-16 text-center text-muted-foreground">
                       {search || filterStatus ? dict.shipmentsExt.noResults : dict.shipmentsExt.noShipments}
                     </TableCell>
                   </TableRow>
                 ) : shipments.map(s => {
                   const sc = statusConfig[s.status]
+                  const isSelected = selectedIds.has(s.id)
                   return (
-                    <TableRow key={s.id} className="group">
+                    <TableRow key={s.id} className={`group ${isSelected ? 'bg-blue-50' : ''}`}>
+                      <TableCell className="pr-0">
+                        <button onClick={() => toggleSelect(s.id)} className="flex items-center justify-center w-full">
+                          {isSelected
+                            ? <CheckSquare className="h-4 w-4 text-blue-600" />
+                            : <Square className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                        </button>
+                      </TableCell>
                       <TableCell className="font-mono text-sm font-medium">{s.shipmentNo}</TableCell>
                       <TableCell>
                         <div className="font-medium text-sm">{s.order.customer.name}</div>
@@ -583,18 +767,31 @@ export default function ShipmentsPage() {
 
                       {t.shipments.length > 0 && (
                         <div className="mt-3 border-t pt-3 space-y-1">
-                          {t.shipments.map(s => (
-                            <div key={s.id} className="flex items-center justify-between text-xs">
-                              <div>
-                                <span className="font-mono font-medium">{s.shipmentNo}</span>
-                                <span className="ml-2 text-muted-foreground">{s.order.customer.name}</span>
+                          {(() => {
+                            // Determine stop order from routeStops if available
+                            const saved = t.routeStops as { stopNo: number; shipmentId: string }[] | null
+                            const orderMap = saved && Array.isArray(saved)
+                              ? new Map(saved.map(s => [s.shipmentId, s.stopNo]))
+                              : null
+                            const sorted = orderMap
+                              ? [...t.shipments].sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999))
+                              : t.shipments
+                            return sorted.map((s, idx) => (
+                              <div key={s.id} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600 font-bold text-[10px]">
+                                    {orderMap ? (orderMap.get(s.id) ?? idx + 1) : idx + 1}
+                                  </span>
+                                  <span className="font-mono font-medium">{s.shipmentNo}</span>
+                                  <span className="text-muted-foreground truncate">{s.order.customer.name}</span>
+                                </div>
+                                {t.status === 'PLANNED' && (
+                                  <button onClick={() => removeShipmentFromTrip(t.id, s.id)}
+                                    className="ml-2 shrink-0 text-red-500 hover:text-red-700">{se.remove}</button>
+                                )}
                               </div>
-                              {t.status === 'PLANNED' && (
-                                <button onClick={() => removeShipmentFromTrip(t.id, s.id)}
-                                  className="text-red-500 hover:text-red-700">{se.remove}</button>
-                              )}
-                            </div>
-                          ))}
+                            ))
+                          })()}
                         </div>
                       )}
 
@@ -605,6 +802,12 @@ export default function ShipmentsPage() {
                               onClick={() => { setTripTarget(t); setTripDetailOpen(true) }}>
                               {se.assignShipment}
                             </Button>
+                            {t.shipments.length > 1 && (
+                              <Button size="sm" variant="outline"
+                                onClick={() => openRoutePlanner(t)}>
+                                <Route className="mr-1 h-3 w-3" />規劃路線
+                              </Button>
+                            )}
                             <Button size="sm" onClick={() => tripAction(t.id, 'depart')}>
                               <Car className="mr-1 h-3 w-3" />{se.depart}
                             </Button>
@@ -1011,8 +1214,104 @@ export default function ShipmentsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Route Planning Dialog */}
+      <Dialog open={routeOpen} onOpenChange={o => !o && setRouteOpen(false)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Route className="h-4 w-4 text-blue-600" />
+              規劃配送路線
+              {routeTrip && <span className="text-sm font-normal text-muted-foreground ml-1">· {routeTrip.tripNo}</span>}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-1 space-y-1">
+            <p className="text-xs text-muted-foreground mb-3">拖曳或使用上下箭頭調整停靠順序，完成後儲存。</p>
+
+            {routeStops.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">尚無出貨單</p>
+            ) : (
+              <div className="space-y-2">
+                {routeStops.map((stop, idx) => (
+                  <div
+                    key={stop.shipmentId}
+                    draggable
+                    onDragStart={() => onDragStart(idx)}
+                    onDragOver={e => onDragOver(e, idx)}
+                    onDragEnd={onDragEnd}
+                    className={`flex items-center gap-3 rounded-lg border bg-white px-3 py-2.5 transition-all cursor-grab active:cursor-grabbing select-none ${
+                      dragIdx === idx ? 'opacity-50 scale-[0.98] border-blue-300 shadow-md' : 'hover:border-slate-300 hover:shadow-sm'
+                    }`}
+                  >
+                    {/* Drag handle */}
+                    <GripVertical className="h-4 w-4 shrink-0 text-slate-300" />
+
+                    {/* Stop number badge */}
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">
+                      {stop.stopNo}
+                    </span>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-medium text-slate-700">{stop.shipmentNo}</span>
+                        <span className="font-medium text-sm truncate">{stop.customerName}</span>
+                      </div>
+                      {stop.address && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" />{stop.address}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Up/Down buttons for non-drag devices */}
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <button onClick={() => moveStop(idx, idx - 1)} disabled={idx === 0}
+                        className="rounded p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 hover:bg-slate-100">
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => moveStop(idx, idx + 1)} disabled={idx === routeStops.length - 1}
+                        className="rounded p-0.5 text-slate-400 hover:text-slate-700 disabled:opacity-20 hover:bg-slate-100">
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRouteOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={saveRoute} disabled={routeSaving || routeStops.length === 0}>
+              {routeSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              儲存路線
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Original ShipmentForm */}
       <ShipmentForm open={formOpen} onClose={() => setFormOpen(false)} onSuccess={fetchShipments} />
+
+      {/* Batch confirm dialog */}
+      <Dialog open={batchConfirmOpen} onOpenChange={setBatchConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              確認批次出貨
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            確定要將 <span className="font-semibold text-foreground">{selectedIds.size}</span> 筆出貨單標記為已出貨？此操作無法復原。
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchConfirmOpen(false)}>取消</Button>
+            <Button onClick={batchConfirm} className="bg-blue-600 hover:bg-blue-700">確認出貨</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

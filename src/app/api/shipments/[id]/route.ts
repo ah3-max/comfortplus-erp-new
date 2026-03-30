@@ -42,6 +42,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json()
   const now = new Date()
 
+  // Guard status transitions: SHIPPED only from PREPARING/PACKED; DELIVERED only from SHIPPED
+  if (body.status === 'SHIPPED') {
+    const current = await prisma.shipment.findUnique({ where: { id }, select: { status: true } })
+    if (!current) return NextResponse.json({ error: '找不到出貨單' }, { status: 404 })
+    if (!['PREPARING', 'PACKED'].includes(current.status)) {
+      return NextResponse.json({ error: `出貨單目前狀態為 ${current.status}，無法標記為已出貨`, status: current.status }, { status: 409 })
+    }
+  }
+  if (body.status === 'DELIVERED') {
+    const current = await prisma.shipment.findUnique({ where: { id }, select: { status: true } })
+    if (!current) return NextResponse.json({ error: '找不到出貨單' }, { status: 404 })
+    if (current.status !== 'SHIPPED') {
+      return NextResponse.json({ error: `出貨單目前狀態為 ${current.status}，無法標記為已送達`, status: current.status }, { status: 409 })
+    }
+  }
+
   const shipment = await prisma.shipment.update({
     where: { id },
     data: {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { notify, notifyManagers } from '@/lib/notify'
 import { refreshExpiryStatus } from '@/app/api/inventory/lots/refresh-expiry/route'
+import { updateOrderPrediction } from '@/lib/order-prediction'
 
 /**
  * GET /api/cron — Scheduled tasks runner
@@ -316,6 +317,26 @@ export async function GET(req: NextRequest) {
     results.inventoryReconcile = { status: 'ok', data: { discrepancies: discrepancies.length } }
   } catch (e) {
     results.inventoryReconcile = { status: 'error', error: (e as Error).message }
+  }
+
+  // ── Task: Order frequency prediction (incremental — process oldest-updated first) ──
+  try {
+    const customers = await prisma.customer.findMany({
+      where: { isActive: true },
+      select: { id: true },
+      orderBy: { updatedAt: 'asc' },
+      take: 100,  // process at most 100 per cron run to stay within timeout
+    })
+
+    const deadline = Date.now() + 40_000
+    let updated = 0; let failed = 0
+    for (const c of customers) {
+      if (Date.now() >= deadline) break
+      try { await updateOrderPrediction(c.id); updated++ } catch { failed++ }
+    }
+    results.orderPrediction = { status: 'ok', data: { updated, failed } }
+  } catch (e) {
+    results.orderPrediction = { status: 'error', error: (e as Error).message }
   }
 
   return NextResponse.json({

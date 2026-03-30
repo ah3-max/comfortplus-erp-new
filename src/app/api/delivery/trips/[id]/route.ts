@@ -82,6 +82,32 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json(trip)
   }
 
+  if (body.action === 'saveRoute') {
+    // Validate stops structure before saving
+    const stops = body.stops
+    if (!Array.isArray(stops)) {
+      return NextResponse.json({ error: 'stops 必須是陣列' }, { status: 400 })
+    }
+    for (const stop of stops) {
+      if (
+        typeof stop !== 'object' || stop === null ||
+        typeof stop.stopNo !== 'number' ||
+        typeof stop.shipmentId !== 'string' ||
+        typeof stop.shipmentNo !== 'string'
+      ) {
+        return NextResponse.json(
+          { error: '每個停靠點必須包含 stopNo（數字）、shipmentId（字串）、shipmentNo（字串）' },
+          { status: 400 }
+        )
+      }
+    }
+    const trip = await prisma.deliveryTrip.update({
+      where: { id },
+      data: { routeStops: stops },
+    })
+    return NextResponse.json(trip)
+  }
+
   // General update
   const trip = await prisma.deliveryTrip.update({
     where: { id },

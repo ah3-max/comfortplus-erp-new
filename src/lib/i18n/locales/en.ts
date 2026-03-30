@@ -113,6 +113,7 @@ const en = {
   nav: {
     dashboard: 'Dashboard',
     dailyReport: 'Daily Report',
+    salesDailyReport: 'Daily Report',
     quickInput: 'Quick Input',
     crm: 'CRM Hub',
     customers: 'Customers',
@@ -190,6 +191,7 @@ const en = {
     deliveryTrips: 'Delivery Trips',
     inventoryLots: 'Lot Management',
     arAging: 'AR Aging',
+    pettyCash: 'Petty Cash',
     finance: 'Financials',
     apAging: 'AP Aging',
     generalLedger: 'General Ledger',
@@ -1463,6 +1465,9 @@ const en = {
     daysAgo: 'days ago',
     // warehouse extra
     needsAttention: 'Needs Attention',
+    alertUrgent: 'Urgent',
+    alertWarning: 'Warning',
+    alertPending: 'Pending',
     teamVisits: 'Team Visits',
     teamCalls: 'Team Calls',
     quickOrder: 'Quick Order',
@@ -3976,6 +3981,8 @@ const en = {
     smtpUser: 'SMTP Username',
     smtpPassword: 'SMTP Password',
     notifyFromName: 'Sender Name',
+    testLine: 'Test LINE',
+    testEmail: 'Test Email',
   },
 
   // ── Org Chart ──

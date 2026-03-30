@@ -329,7 +329,7 @@ export function CustomerForm({ open, onClose, onSuccess, customer }: Props) {
               <div className="space-y-1.5"><Label>{fl.mainContact}</Label>
                 <Input value={form.contactPerson} onChange={e => set('contactPerson', e.target.value)} placeholder={fl.mainContactPlaceholder} /></div>
               <div className="space-y-1.5"><Label>{fl.phone}</Label>
-                <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="02-XXXX-XXXX" /></div>
+                <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="0912-345-678" /></div>
               <div className="space-y-1.5"><Label>{fl.lineId}</Label>
                 <Input value={form.lineId} onChange={e => set('lineId', e.target.value)} placeholder="@line_id" /></div>
               <div className="space-y-1.5"><Label>{fl.email}</Label>

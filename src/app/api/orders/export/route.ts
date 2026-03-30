@@ -15,19 +15,24 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const search = searchParams.get('search') ?? ''
   const status = searchParams.get('status') ?? ''
+  const ids = searchParams.getAll('ids')
 
   const scope = orderScope(buildScopeContext(session as { user: { id: string; role: string } }))
 
   const orders = await prisma.salesOrder.findMany({
     where: {
       ...scope,
-      ...(search && {
-        OR: [
-          { orderNo: { contains: search, mode: 'insensitive' } },
-          { customer: { name: { contains: search, mode: 'insensitive' } } },
-        ],
-      }),
-      ...(status && { status: status as never }),
+      ...(ids.length > 0
+        ? { id: { in: ids } }
+        : {
+            ...(search && {
+              OR: [
+                { orderNo: { contains: search, mode: 'insensitive' } },
+                { customer: { name: { contains: search, mode: 'insensitive' } } },
+              ],
+            }),
+            ...(status && { status: status as never }),
+          }),
     },
     include: {
       customer: { select: { name: true, code: true } },

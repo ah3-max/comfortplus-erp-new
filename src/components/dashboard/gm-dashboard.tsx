@@ -89,15 +89,24 @@ export function GmDashboard() {
     revenueTrend, recentOrders, salesMix, platformSales, regionSales,
     purchaseTrend, repurchaseRate } = data
 
-  const alertItems = [
-    pending.orders    > 0 && { label: `${pending.orders} ${dict.roleDashboard.pendingOrdersAlert}`,   href: '/orders?status=PENDING',   icon: Clock,         cls: 'border-amber-300 bg-amber-50 text-amber-700' },
-    pending.shipments > 0 && { label: `${pending.shipments} ${dict.roleDashboard.pendingShipmentsAlert}`, href: '/shipments',               icon: Truck,         cls: 'border-blue-300 bg-blue-50 text-blue-700' },
-    complaints.count  > 0 && { label: `${complaints.count} ${dict.roleDashboard.complaintsAlert}`,  href: '/incidents',               icon: AlertOctagon,  cls: 'border-red-300 bg-red-50 text-red-700' },
-    outOfStock.count  > 0 && { label: `${outOfStock.count} ${dict.roleDashboard.outOfStockAlert}`,    href: '/inventory',               icon: Ban,           cls: 'border-red-300 bg-red-50 text-red-700' },
-    lowStock.count    > 0 && { label: `${lowStock.count} ${dict.roleDashboard.lowStockAlert}`,    href: '/inventory',               icon: AlertTriangle, cls: 'border-amber-300 bg-amber-50 text-amber-700' },
-    deliveryAnomalies.count > 0 && { label: `${deliveryAnomalies.count} ${dict.roleDashboard.deliveryAnomalyAlert}`, href: '/shipments',    icon: Truck,         cls: 'border-orange-300 bg-orange-50 text-orange-700' },
-    oemAnomalies.count > 0 && { label: `${oemAnomalies.count} ${dict.roleDashboard.oemAnomalyAlert}`, href: '/production',              icon: Factory,       cls: 'border-orange-300 bg-orange-50 text-orange-700' },
-  ].filter(Boolean) as { label: string; href: string; icon: typeof Clock; cls: string }[]
+  type AlertItem = { label: string; href: string; icon: typeof Clock; cls: string }
+  const redAlerts = [
+    complaints.count > 0  && { label: `${complaints.count} ${dict.roleDashboard.complaintsAlert}`,  href: '/incidents',  icon: AlertOctagon,  cls: 'border-red-300 bg-red-50 text-red-700' },
+    outOfStock.count > 0  && { label: `${outOfStock.count} ${dict.roleDashboard.outOfStockAlert}`,  href: '/inventory',  icon: Ban,           cls: 'border-red-300 bg-red-50 text-red-700' },
+  ].filter(Boolean) as AlertItem[]
+
+  const orangeAlerts = [
+    deliveryAnomalies.count > 0 && { label: `${deliveryAnomalies.count} ${dict.roleDashboard.deliveryAnomalyAlert}`, href: '/shipments',   icon: Truck,   cls: 'border-orange-300 bg-orange-50 text-orange-700' },
+    oemAnomalies.count > 0      && { label: `${oemAnomalies.count} ${dict.roleDashboard.oemAnomalyAlert}`,           href: '/production',  icon: Factory, cls: 'border-orange-300 bg-orange-50 text-orange-700' },
+  ].filter(Boolean) as AlertItem[]
+
+  const yellowAlerts = [
+    pending.orders > 0    && { label: `${pending.orders} ${dict.roleDashboard.pendingOrdersAlert}`,      href: '/orders?status=PENDING', icon: Clock,         cls: 'border-amber-300 bg-amber-50 text-amber-700' },
+    pending.shipments > 0 && { label: `${pending.shipments} ${dict.roleDashboard.pendingShipmentsAlert}`, href: '/shipments',             icon: Truck,         cls: 'border-amber-300 bg-amber-50 text-amber-700' },
+    lowStock.count > 0    && { label: `${lowStock.count} ${dict.roleDashboard.lowStockAlert}`,            href: '/inventory',             icon: AlertTriangle, cls: 'border-amber-300 bg-amber-50 text-amber-700' },
+  ].filter(Boolean) as AlertItem[]
+
+  const hasAlerts = redAlerts.length > 0 || orangeAlerts.length > 0 || yellowAlerts.length > 0
 
   return (
     <div className="space-y-5">
@@ -140,14 +149,43 @@ export function GmDashboard() {
         </div>
       </div>
 
-      {/* Alerts */}
-      {alertItems.length > 0 && (
-        <div className="space-y-2">
+      {/* Alerts — categorized by priority */}
+      {hasAlerts && (
+        <div className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             {dict.roleDashboard.needsAttention}
           </h2>
-          <AlertBanner items={alertItems} />
+
+          {redAlerts.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-red-600 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-500" />
+                {dict.roleDashboard.alertUrgent}
+              </p>
+              <AlertBanner items={redAlerts} />
+            </div>
+          )}
+
+          {orangeAlerts.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-orange-600 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-orange-500" />
+                {dict.roleDashboard.alertWarning}
+              </p>
+              <AlertBanner items={orangeAlerts} />
+            </div>
+          )}
+
+          {yellowAlerts.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-amber-600 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />
+                {dict.roleDashboard.alertPending}
+              </p>
+              <AlertBanner items={yellowAlerts} />
+            </div>
+          )}
         </div>
       )}
 

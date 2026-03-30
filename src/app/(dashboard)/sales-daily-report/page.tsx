@@ -1,0 +1,289 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import {
+  CheckCircle2, Clock, FileText, Send, Save, Loader2,
+  Phone, MapPin, ShoppingCart, FileSearch, Users, RefreshCw,
+  AlertTriangle,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import { useI18n } from '@/lib/i18n/context'
+
+interface DailyReport {
+  id: string | null
+  reportDate: string
+  visitCount: number
+  callCount: number
+  orderCount: number
+  orderAmount: number
+  newCustomerCount: number
+  quoteCount: number
+  highlights: string
+  obstacles: string
+  tomorrowPlan: string
+  needsHelp: string
+  status: string
+  submittedAt: string | null
+  managerComment: string | null
+  reviewedBy: { name: string } | null
+  reviewedAt: string | null
+}
+
+export default function SalesDailyReportPage() {
+  const { dict } = useI18n()
+  const [report, setReport] = useState<DailyReport | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    visitCount: '0', callCount: '0', orderCount: '0', orderAmount: '0',
+    newCustomerCount: '0', quoteCount: '0',
+    highlights: '', obstacles: '', tomorrowPlan: '', needsHelp: '',
+  })
+
+  const loadToday = useCallback(async () => {
+    setLoading(true)
+    const res = await fetch('/api/sales-daily-report/today')
+    if (res.ok) {
+      const data: DailyReport = await res.json()
+      setReport(data)
+      setForm({
+        visitCount:       String(data.visitCount),
+        callCount:        String(data.callCount),
+        orderCount:       String(data.orderCount),
+        orderAmount:      String(data.orderAmount),
+        newCustomerCount: String(data.newCustomerCount),
+        quoteCount:       String(data.quoteCount),
+        highlights:       data.highlights ?? '',
+        obstacles:        data.obstacles ?? '',
+        tomorrowPlan:     data.tomorrowPlan ?? '',
+        needsHelp:        data.needsHelp ?? '',
+      })
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { loadToday() }, [loadToday])
+
+  async function handleSave(submit = false) {
+    setSaving(true)
+    const res = await fetch('/api/sales-daily-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, submit }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      toast.success(submit ? '日報已提交' : '草稿已儲存')
+      loadToday()
+    } else {
+      toast.error(dict.common.saveFailed)
+    }
+  }
+
+  const isLocked = report?.status === 'SUBMITTED' || report?.status === 'APPROVED'
+  const isNeedsRevision = report?.status === 'NEEDS_REVISION'
+  const isApproved = report?.status === 'APPROVED'
+  const today = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+
+  // After 5pm show urgency reminder
+  const isAfternoon = new Date().getHours() >= 17
+  const showReminder = isAfternoon && !isLocked && !isNeedsRevision
+
+  const statFields = [
+    { key: 'visitCount',       label: '拜訪次數',   icon: MapPin,       color: 'text-violet-600' },
+    { key: 'callCount',        label: '電話聯絡',   icon: Phone,        color: 'text-blue-600' },
+    { key: 'orderCount',       label: '成交訂單',   icon: ShoppingCart, color: 'text-emerald-600' },
+    { key: 'quoteCount',       label: '報價單',     icon: FileSearch,   color: 'text-amber-600' },
+    { key: 'newCustomerCount', label: '新開發客戶', icon: Users,        color: 'text-rose-600' },
+  ] as const
+
+  if (loading) return (
+    <div className="flex h-64 items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  )
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <FileText className="h-6 w-6 text-blue-600" />業務日報
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isApproved ? (
+            <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />已核准
+            </Badge>
+          ) : report?.status === 'SUBMITTED' ? (
+            <Badge className="bg-blue-100 text-blue-700 border-blue-300 gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />已提交
+            </Badge>
+          ) : isNeedsRevision ? (
+            <Badge className="bg-amber-100 text-amber-700 border-amber-300 gap-1">
+              <AlertTriangle className="h-3.5 w-3.5" />需修正
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-slate-500 border-slate-300 gap-1">
+              <Clock className="h-3.5 w-3.5" />草稿
+            </Badge>
+          )}
+          <Button variant="ghost" size="icon" onClick={loadToday}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* End-of-day reminder banner */}
+      {showReminder && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-center gap-3">
+          <Clock className="h-5 w-5 shrink-0 text-amber-500" />
+          <p className="text-sm text-amber-800 font-medium">下班前記得提交今日日報！主管在等候您的回報。</p>
+        </div>
+      )}
+
+      {/* NEEDS_REVISION feedback banner */}
+      {isNeedsRevision && report?.managerComment && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 space-y-1">
+          <div className="flex items-center gap-2 text-red-700 font-medium text-sm">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            主管退回，請修正後重新提交
+          </div>
+          <p className="text-sm text-red-800 pl-6">{report.managerComment}</p>
+          {report.reviewedBy && (
+            <p className="text-xs text-red-500 pl-6">
+              — {report.reviewedBy.name}，{report.reviewedAt ? new Date(report.reviewedAt).toLocaleString('zh-TW') : ''}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* APPROVED feedback */}
+      {isApproved && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-center gap-2 text-emerald-700 text-sm">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>
+            日報已由 {report?.reviewedBy?.name ?? '主管'} 核准
+            {report?.reviewedAt ? `（${new Date(report.reviewedAt).toLocaleString('zh-TW')}）` : ''}
+            {report?.managerComment && `：${report.managerComment}`}
+          </span>
+        </div>
+      )}
+
+      {/* Stats — editable numbers */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">今日工作統計
+            <span className="ml-2 text-xs font-normal text-muted-foreground">（系統自動帶入，可手動調整）</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {statFields.map(({ key, label, icon: Icon, color }) => (
+              <div key={key} className="text-center space-y-1.5">
+                <Icon className={`h-5 w-5 mx-auto ${color}`} />
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <Input
+                  type="number"
+                  min="0"
+                  className="h-9 text-center font-bold text-lg"
+                  value={form[key]}
+                  disabled={isLocked}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 space-y-1">
+            <Label className="text-xs text-muted-foreground">訂單金額（元）</Label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="0"
+              value={form.orderAmount}
+              disabled={isLocked}
+              onChange={e => setForm(f => ({ ...f, orderAmount: e.target.value }))}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Qualitative fields */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">日報內容</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>今日重點 / 亮點 <span className="text-muted-foreground text-xs">（成交、突破、好消息）</span></Label>
+            <Textarea
+              rows={3}
+              placeholder="例：拜訪XX護理之家，院長有意願簽年約，預計下週報價…"
+              value={form.highlights}
+              disabled={isLocked}
+              onChange={e => setForm(f => ({ ...f, highlights: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>遭遇困難 / 障礙 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+            <Textarea
+              rows={2}
+              placeholder="例：某客戶提出競品更低價格，需要支援報價策略…"
+              value={form.obstacles}
+              disabled={isLocked}
+              onChange={e => setForm(f => ({ ...f, obstacles: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>明日計畫</Label>
+            <Textarea
+              rows={3}
+              placeholder="例：上午拜訪A客戶，下午跟進B客戶報價，傍晚回訪C護理之家…"
+              value={form.tomorrowPlan}
+              disabled={isLocked}
+              onChange={e => setForm(f => ({ ...f, tomorrowPlan: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>需要協助 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+            <Input
+              placeholder="例：需要主管協助陪訪、需要更多樣品支援…"
+              value={form.needsHelp}
+              disabled={isLocked}
+              onChange={e => setForm(f => ({ ...f, needsHelp: e.target.value }))}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Actions */}
+      {!isLocked && (
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            儲存草稿
+          </Button>
+          <Button onClick={() => handleSave(true)} disabled={saving} className="flex-1">
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            {isNeedsRevision ? '修正並重新提交' : '提交日報'}
+          </Button>
+        </div>
+      )}
+
+      {report?.status === 'SUBMITTED' && report?.submittedAt && (
+        <p className="text-center text-sm text-muted-foreground">
+          已於 {new Date(report.submittedAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })} 提交，等待主管審核
+        </p>
+      )}
+    </div>
+  )
+}

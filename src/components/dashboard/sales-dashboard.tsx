@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge'
 import {
   TrendingUp, TrendingDown, FileText, ShoppingCart, Users,
   Clock, Phone, MapPin, Award, Target,
-  Plus,
+  Plus, Send, CheckCircle2, AlertTriangle, Calendar,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
 import {
   fmt, DashboardLoading, DashboardHeader, QuickAction,
-  RankingCard, OrderRow, SectionHeader,
+  RankingCard, OrderRow,
 } from './shared'
 
 interface SalesDashboardData {
@@ -28,6 +28,12 @@ interface SalesDashboardData {
   mySkuRanking: { product: { id: string; name: string; sku: string; unit: string } | null; quantity: number; revenue: number }[]
 }
 
+interface VisitDue {
+  customerId: string; customerName: string; customerCode: string
+  grade: string | null; daysOverdue: number; requiredFrequencyDays: number
+  isFirstOrder: boolean; hasAnomaly: boolean; lastVisitDate: string | null
+}
+
 interface TargetData {
   targets: { revenue: number; orders: number; visits: number; newCustomers: number }
   actuals: { revenue: number; orders: number; visits: number; newCustomers: number }
@@ -38,6 +44,8 @@ interface TargetData {
 export function SalesDashboard() {
   const [data, setData] = useState<SalesDashboardData | null>(null)
   const [target, setTarget] = useState<TargetData | null>(null)
+  const [dailyReport, setDailyReport] = useState<{ status: string; submittedAt: string | null } | null>(null)
+  const [visitDue, setVisitDue] = useState<VisitDue[]>([])
   const [loading, setLoading] = useState(true)
   const { dict } = useI18n()
   const dOrders = dict.orders
@@ -47,9 +55,13 @@ export function SalesDashboard() {
     Promise.all([
       fetch('/api/dashboard/sales').then(r => r.json()),
       fetch('/api/sales-targets').then(r => r.json()).then((arr: TargetData[]) => arr[0] ?? null),
-    ]).then(([salesData, targetData]) => {
+      fetch('/api/sales-daily-report/today').then(r => r.ok ? r.json() : null),
+      fetch('/api/customers/visit-schedule').then(r => r.ok ? r.json() : []),
+    ]).then(([salesData, targetData, reportData, visitData]) => {
       setData(salesData)
       setTarget(targetData)
+      setDailyReport(reportData)
+      setVisitDue(Array.isArray(visitData) ? visitData.slice(0, 8) : [])
     }).finally(() => setLoading(false))
   }, [])
 
@@ -62,15 +74,32 @@ export function SalesDashboard() {
   // Alert items
   const alertCount = pendingTasks + expiringQuotes + pendingShipmentOrders
 
+  // KPI gap calculation
+  const revenueTarget = target?.targets.revenue ?? 0
+  const revenueGap = revenueTarget > 0 ? revenueTarget - month.revenue : 0
+  const gapPercent = revenueTarget > 0 ? (revenueGap / revenueTarget) * 100 : 0
+  const bannerColor = !target?.hasTarget
+    ? 'from-emerald-600 to-teal-700'
+    : revenueGap <= 0
+      ? 'from-green-600 to-emerald-700'
+      : gapPercent < 20
+        ? 'from-amber-500 to-orange-600'
+        : 'from-red-600 to-rose-700'
+
+  // Daily report state
+  const isDailySubmitted = dailyReport?.status === 'SUBMITTED'
+  const currentHour = new Date().getHours()
+  const isAfternoon = currentHour >= 17
+
   return (
     <div className="space-y-5">
       <DashboardHeader title={rd.salesWorkbench} />
 
       {/* ── My Performance Banner ── */}
-      <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white shadow-lg">
+      <div className={`rounded-2xl bg-gradient-to-br ${bannerColor} p-5 text-white shadow-lg`}>
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-emerald-200 text-sm font-medium">{rd.myPerformance}</p>
+            <p className="text-white/70 text-sm font-medium">{rd.myPerformance}</p>
             <p className="text-4xl font-bold mt-1">{fmt(month.revenue)}</p>
             {month.revenueGrowth !== null && (
               <p className={`text-sm mt-1 flex items-center gap-1 ${month.revenueGrowth >= 0 ? 'text-green-300' : 'text-red-300'}`}>
@@ -78,30 +107,124 @@ export function SalesDashboard() {
                 {month.revenueGrowth >= 0 ? '+' : ''}{month.revenueGrowth}% {rd.comparedLastMonth}
               </p>
             )}
+            {target?.hasTarget && revenueGap > 0 && (
+              <p className="text-sm mt-1 text-white/80">
+                距月目標還差 <span className="font-bold text-white">{fmt(revenueGap)}</span>
+              </p>
+            )}
+            {target?.hasTarget && revenueGap <= 0 && (
+              <p className="text-sm mt-1 text-green-200 flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />月目標已達成！
+              </p>
+            )}
           </div>
           <div className="text-right">
-            <p className="text-emerald-200 text-sm">{rd.monthOrders}</p>
-            <p className="text-2xl font-bold">{month.orders} <span className="text-lg text-emerald-200">{rd.orderUnit}</span></p>
+            <p className="text-white/70 text-sm">{rd.monthOrders}</p>
+            <p className="text-2xl font-bold">{month.orders} <span className="text-lg text-white/70">{rd.orderUnit}</span></p>
+            {target?.hasTarget && (
+              <p className="text-xs text-white/60 mt-0.5">目標 {fmt(revenueTarget)}</p>
+            )}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3 border-t border-emerald-500 pt-3">
+        <div className="grid grid-cols-3 gap-3 border-t border-white/20 pt-3">
           <div>
-            <p className="text-emerald-200 text-xs">{rd.todayRevenue}</p>
+            <p className="text-white/70 text-xs">{rd.todayRevenue}</p>
             <p className="text-lg font-semibold">{fmt(today.revenue)}</p>
-            <p className="text-emerald-300 text-xs">{today.orders} {rd.orderCountUnit}</p>
+            <p className="text-white/60 text-xs">{today.orders} {rd.orderCountUnit}</p>
           </div>
           <div>
-            <p className="text-emerald-200 text-xs">{rd.visits}</p>
+            <p className="text-white/70 text-xs">{rd.visits}</p>
             <p className="text-lg font-semibold">{activity.monthVisits}</p>
-            <p className="text-emerald-300 text-xs">{rd.today} {today.visits} {rd.timesUnit}</p>
+            <p className="text-white/60 text-xs">{rd.today} {today.visits} {rd.timesUnit}</p>
           </div>
           <div>
-            <p className="text-emerald-200 text-xs">{rd.calls}/{rd.quotes}</p>
+            <p className="text-white/70 text-xs">{rd.calls}/{rd.quotes}</p>
             <p className="text-lg font-semibold">{activity.monthCalls}/{activity.monthQuotes}</p>
-            <p className="text-emerald-300 text-xs">{rd.monthAccum}</p>
+            <p className="text-white/60 text-xs">{rd.monthAccum}</p>
           </div>
         </div>
       </div>
+
+      {/* ── Daily Report Reminder ── */}
+      {isDailySubmitted ? (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2.5 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+          <p className="text-sm text-green-700">
+            今日日報已提交
+            {dailyReport?.submittedAt && (
+              <span className="text-green-500 ml-1">
+                （{new Date(dailyReport.submittedAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}）
+              </span>
+            )}
+          </p>
+          <Link href="/sales-daily-report" className="ml-auto text-xs text-green-600 hover:underline">查看 →</Link>
+        </div>
+      ) : isAfternoon ? (
+        <div className="rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 flex items-center gap-3">
+          <Clock className="h-5 w-5 shrink-0 text-amber-500" />
+          <div className="flex-1">
+            <p className="text-sm text-amber-800 font-medium">今日日報尚未提交</p>
+            <p className="text-xs text-amber-600">下班前記得回報今日工作成果，主管在等候您的日報！</p>
+          </div>
+          <Link href="/sales-daily-report">
+            <span className="flex items-center gap-1 text-xs font-medium bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors">
+              <Send className="h-3 w-3" />立即填寫
+            </span>
+          </Link>
+        </div>
+      ) : (
+        <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-2.5 flex items-center gap-2">
+          <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+          <p className="text-sm text-slate-500">記得在今天結束前填寫業務日報</p>
+          <Link href="/sales-daily-report" className="ml-auto text-xs text-blue-600 hover:underline">填寫 →</Link>
+        </div>
+      )}
+
+      {/* ── Visit Schedule ── */}
+      {visitDue.length > 0 && (
+        <Card className="border-orange-200">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-orange-500" />
+                待拜訪客戶
+                <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">{visitDue.length}</Badge>
+              </CardTitle>
+              <Link href="/customers" className="text-xs text-blue-600 hover:underline">全部客戶 →</Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {visitDue.map(v => (
+                <Link key={v.customerId} href={`/customers/${v.customerId}`}
+                  className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50/80 transition-colors">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {v.hasAnomaly && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" />}
+                    {v.isFirstOrder && !v.hasAnomaly && <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded shrink-0">首購關懷</span>}
+                    {v.grade && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                        v.grade === 'A' ? 'bg-amber-400 text-white' :
+                        v.grade === 'B' ? 'bg-blue-400 text-white' :
+                        'bg-slate-300 text-white'
+                      }`}>{v.grade}</span>
+                    )}
+                    <span className="text-sm font-medium truncate">{v.customerName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {v.hasAnomaly ? (
+                      <span className="text-xs font-medium text-red-600">立即拜訪</span>
+                    ) : (
+                      <span className={`text-xs ${v.daysOverdue > 7 ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+                        逾期 {v.daysOverdue} 天
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Monthly Target Progress ── */}
       <Card>

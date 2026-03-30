@@ -154,7 +154,7 @@ function CreateLeadDialog({ open, onClose, onSuccess }: {
             </div>
             <div className="space-y-1.5">
               <Label>{dict.customers.phone}</Label>
-              <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="02-XXXX-XXXX" />
+              <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="0912-345-678" />
             </div>
           </div>
 

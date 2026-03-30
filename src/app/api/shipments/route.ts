@@ -88,6 +88,22 @@ export async function POST(req: NextRequest) {
 
   const shipmentNo = await generateSequenceNo('SHIPMENT')
 
+  // 自動帶入客戶配送注意事項（司機/倉儲專屬備注）
+  const order = await prisma.salesOrder.findUnique({
+    where: { id: body.orderId },
+    include: { customer: { include: { deliveryProfile: true } } },
+  })
+  const deliveryProfile = order?.customer?.deliveryProfile
+  const autoDriverNotes = [
+    deliveryProfile?.driverNotes,
+    deliveryProfile?.parkingNotes,
+    deliveryProfile?.parkingSpot ? `停車位：${deliveryProfile.parkingSpot}` : null,
+    deliveryProfile?.elevatorDimensions ? `電梯：${deliveryProfile.elevatorDimensions}` : null,
+    deliveryProfile?.routeNotes,
+  ].filter(Boolean).join('\n') || null
+
+  const combinedNotes = [body.notes, autoDriverNotes].filter(Boolean).join('\n---\n') || null
+
   const shipment = await prisma.$transaction(async (tx) => {
     const newShipment = await tx.shipment.create({
       data: {
@@ -106,7 +122,7 @@ export async function POST(req: NextRequest) {
         weight:               body.weight               ? Number(body.weight)      : null,
         volume:               body.volume               || null,
         expectedDeliveryDate: body.expectedDeliveryDate ? new Date(body.expectedDeliveryDate) : null,
-        notes:                body.notes                || null,
+        notes:                combinedNotes,
         items: {
           create: (body.items as { productId: string; quantity: number; boxCount?: number; notes?: string }[])
             .map(item => ({

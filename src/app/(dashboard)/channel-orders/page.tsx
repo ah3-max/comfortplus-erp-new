@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useI18n } from '@/lib/i18n/context'
-import { Plus, Search, ShoppingBag, Store, Package, Link as LinkIcon } from 'lucide-react'
+import { Plus, Search, ShoppingBag, Store, Package, Link as LinkIcon, RefreshCw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 
@@ -50,6 +50,7 @@ export default function ChannelOrdersPage() {
   const [channels, setChannels] = useState<SalesChannel[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
+  const [syncingChannelId, setSyncingChannelId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterChannel, setFilterChannel] = useState('')
@@ -113,6 +114,34 @@ export default function ChannelOrdersPage() {
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : dict.common.createFailed) }
   }
 
+  const handleSync = async (channelId: string, channelName: string) => {
+    setSyncingChannelId(channelId)
+    try {
+      const res = await fetch(`/api/channels/${channelId}/sync`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.missingCredentials) {
+          toast.error(`${channelName}：API 憑證未設定，請聯絡管理員設定環境變數`)
+        } else if (data.supported === false) {
+          toast.info(`${channelName}：不支援 API 同步，請手動匯入訂單`)
+        } else {
+          toast.error(data.error ?? '同步失敗')
+        }
+      } else {
+        toast.success(`${channelName} ${data.message}`)
+        // Warn about unmatched SKUs
+        if (data.unmatchedSkus?.length > 0) {
+          toast.warning(
+            `${data.unmatchedSkus.length} 個平台 SKU 無法對應商品（${data.unmatchedSkus.slice(0, 3).join('、')}${data.unmatchedSkus.length > 3 ? '…' : ''}），請至商品 → SKU 對照表設定`,
+            { duration: 8000 }
+          )
+        }
+        load()
+      }
+    } catch { toast.error('同步時發生錯誤') }
+    finally { setSyncingChannelId(null) }
+  }
+
   const handleStatusUpdate = async (id: string, status: string) => {
     try {
       const res = await fetch(`/api/channel-orders/${id}`, {
@@ -143,9 +172,21 @@ export default function ChannelOrdersPage() {
           <h1 className="text-2xl font-bold">{d.title}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{d.subtitle}</p>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-1.5">
-          <Plus size={16} />{d.newOrder}
-        </Button>
+        <div className="flex gap-2 flex-wrap justify-end">
+          {channels.filter(c => ['SHOPEE', 'MOMO'].includes(c.platform.toUpperCase())).map(c => (
+            <Button key={c.id} variant="outline" size="sm"
+              disabled={syncingChannelId === c.id}
+              onClick={() => handleSync(c.id, c.name)}>
+              {syncingChannelId === c.id
+                ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                : <RefreshCw className="mr-1.5 h-4 w-4" />}
+              同步 {c.name}
+            </Button>
+          ))}
+          <Button onClick={() => setShowCreate(true)} className="gap-1.5">
+            <Plus size={16} />{d.newOrder}
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}

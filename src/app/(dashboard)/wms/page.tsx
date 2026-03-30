@@ -204,14 +204,14 @@ function InboundDialog({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose() }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{wm.newInboundTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
           {/* Header fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>{wm.inboundType} <span className="text-red-500">*</span></Label>
               <Select value={inboundType} onValueChange={v => setInboundType(v ?? '')}>
@@ -244,8 +244,8 @@ function InboundDialog({
             />
           </div>
 
-          {/* Items */}
-          <div className="space-y-2">
+          {/* Items — card layout, no horizontal scroll */}
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-base font-semibold">{wm.itemsDetail}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
@@ -253,87 +253,81 @@ function InboundDialog({
               </Button>
             </div>
 
-            <div className="rounded-lg border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 border-b">
-                      <th className="text-left px-3 py-2 font-medium">{dict.common.product} *</th>
-                      <th className="text-left px-3 py-2 font-medium">{wm.locationCodeCol}</th>
-                      <th className="text-left px-3 py-2 font-medium">{dict.common.quantity} *</th>
-                      <th className="text-left px-3 py-2 font-medium">{wm.batchNo}</th>
-                      <th className="text-left px-3 py-2 font-medium">{dict.inventoryExt.expiryDate}</th>
-                      <th className="px-3 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((row, idx) => (
-                      <tr key={idx} className="border-b last:border-0">
-                        <td className="px-3 py-2 min-w-[160px]">
-                          <Select value={row.productId} onValueChange={v => updateItem(idx, 'productId', v ?? '')}>
-                            <SelectTrigger className="h-9">
-                              <SelectValue placeholder={dict.common.product} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map(p => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name} <span className="text-muted-foreground text-xs">({p.sku})</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="px-3 py-2 min-w-[120px]">
-                          <Input
-                            className="h-9"
-                            placeholder="e.g. A-01-01"
-                            value={row.locationCode}
-                            onChange={e => updateItem(idx, 'locationCode', e.target.value)}
-                          />
-                        </td>
-                        <td className="px-3 py-2 w-24">
-                          <Input
-                            className="h-9"
-                            type="number"
-                            min="1"
-                            placeholder={dict.common.quantity}
-                            value={row.qty}
-                            onChange={e => updateItem(idx, 'qty', e.target.value)}
-                          />
-                        </td>
-                        <td className="px-3 py-2 min-w-[110px]">
-                          <Input
-                            className="h-9"
-                            placeholder={wm.batchNo}
-                            value={row.batchNo}
-                            onChange={e => updateItem(idx, 'batchNo', e.target.value)}
-                          />
-                        </td>
-                        <td className="px-3 py-2 min-w-[130px]">
-                          <Input
-                            className="h-9"
-                            type="date"
-                            value={row.expiryDate}
-                            onChange={e => updateItem(idx, 'expiryDate', e.target.value)}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-700"
-                            disabled={items.length === 1}
-                            onClick={() => removeItem(idx)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="space-y-2">
+              {items.map((row, idx) => (
+                <div key={idx} className="rounded-lg border bg-slate-50/50 p-3 space-y-2.5">
+                  {/* Row 1: 品項 (full width) + 刪除 */}
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs text-muted-foreground">{dict.common.product} <span className="text-red-500">*</span></Label>
+                      <Select value={row.productId} onValueChange={v => updateItem(idx, 'productId', v ?? '')}>
+                        <SelectTrigger className="h-9 bg-white">
+                          <SelectValue placeholder={dict.common.product} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} <span className="text-muted-foreground text-xs">({p.sku})</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 mt-5 shrink-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+                      disabled={items.length === 1}
+                      onClick={() => removeItem(idx)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Row 2: 數量 / 貨位 / 批號 / 效期 */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{dict.common.quantity} <span className="text-red-500">*</span></Label>
+                      <Input
+                        className="h-9 bg-white"
+                        type="number"
+                        min="1"
+                        placeholder="0"
+                        value={row.qty}
+                        onChange={e => updateItem(idx, 'qty', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{wm.locationCodeCol}</Label>
+                      <Input
+                        className="h-9 bg-white"
+                        placeholder="A-01-01"
+                        value={row.locationCode}
+                        onChange={e => updateItem(idx, 'locationCode', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{wm.batchNo}</Label>
+                      <Input
+                        className="h-9 bg-white"
+                        placeholder={wm.batchNo}
+                        value={row.batchNo}
+                        onChange={e => updateItem(idx, 'batchNo', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{dict.inventoryExt.expiryDate}</Label>
+                      <Input
+                        className="h-9 bg-white"
+                        type="date"
+                        value={row.expiryDate}
+                        onChange={e => updateItem(idx, 'expiryDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -433,13 +427,13 @@ function OutboundDialog({
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) handleClose() }}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{wm.newOutboundTitle}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>{wm.outboundType} <span className="text-red-500">*</span></Label>
               <Select value={outboundType} onValueChange={v => setOutboundType(v ?? '')}>
@@ -472,7 +466,8 @@ function OutboundDialog({
             />
           </div>
 
-          <div className="space-y-2">
+          {/* Items — card layout, no horizontal scroll */}
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-base font-semibold">{wm.itemsDetail}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addItem}>
@@ -480,69 +475,63 @@ function OutboundDialog({
               </Button>
             </div>
 
-            <div className="rounded-lg border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 border-b">
-                      <th className="text-left px-3 py-2 font-medium">{dict.common.product} *</th>
-                      <th className="text-left px-3 py-2 font-medium">{wm.locationCodeCol}</th>
-                      <th className="text-left px-3 py-2 font-medium">{dict.common.quantity} *</th>
-                      <th className="px-3 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((row, idx) => (
-                      <tr key={idx} className="border-b last:border-0">
-                        <td className="px-3 py-2 min-w-[180px]">
-                          <Select value={row.productId} onValueChange={v => updateItem(idx, 'productId', v ?? '')}>
-                            <SelectTrigger className="h-9">
-                              <SelectValue placeholder={dict.common.product} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products.map(p => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name} <span className="text-muted-foreground text-xs">({p.sku})</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="px-3 py-2 min-w-[120px]">
-                          <Input
-                            className="h-9"
-                            placeholder="e.g. A-01-01"
-                            value={row.locationCode}
-                            onChange={e => updateItem(idx, 'locationCode', e.target.value)}
-                          />
-                        </td>
-                        <td className="px-3 py-2 w-24">
-                          <Input
-                            className="h-9"
-                            type="number"
-                            min="1"
-                            placeholder={dict.common.quantity}
-                            value={row.qty}
-                            onChange={e => updateItem(idx, 'qty', e.target.value)}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-700"
-                            disabled={items.length === 1}
-                            onClick={() => removeItem(idx)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="space-y-2">
+              {items.map((row, idx) => (
+                <div key={idx} className="rounded-lg border bg-slate-50/50 p-3 space-y-2.5">
+                  {/* 品項 + 刪除 */}
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-xs text-muted-foreground">{dict.common.product} <span className="text-red-500">*</span></Label>
+                      <Select value={row.productId} onValueChange={v => updateItem(idx, 'productId', v ?? '')}>
+                        <SelectTrigger className="h-9 bg-white">
+                          <SelectValue placeholder={dict.common.product} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {products.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name} <span className="text-muted-foreground text-xs">({p.sku})</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 mt-5 shrink-0 text-red-400 hover:text-red-600 hover:bg-red-50"
+                      disabled={items.length === 1}
+                      onClick={() => removeItem(idx)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* 數量 + 貨位 */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{dict.common.quantity} <span className="text-red-500">*</span></Label>
+                      <Input
+                        className="h-9 bg-white"
+                        type="number"
+                        min="1"
+                        placeholder="0"
+                        value={row.qty}
+                        onChange={e => updateItem(idx, 'qty', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{wm.locationCodeCol}</Label>
+                      <Input
+                        className="h-9 bg-white"
+                        placeholder="A-01-01"
+                        value={row.locationCode}
+                        onChange={e => updateItem(idx, 'locationCode', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
