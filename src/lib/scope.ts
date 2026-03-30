@@ -32,12 +32,17 @@ interface ScopeContext {
 
 /**
  * Returns a Prisma `where` clause for SalesOrder queries.
- * - SALES/CS/CARE_SUPERVISOR: only orders they created
+ * - SALES/CS/CARE_SUPERVISOR: orders they created OR for customers assigned to them
  * - Others: no filter
  */
 export function orderScope(ctx: ScopeContext): Record<string, unknown> {
   if (OWN_DATA_ROLES.includes(ctx.role)) {
-    return { createdById: ctx.userId }
+    return {
+      OR: [
+        { createdById: ctx.userId },
+        { customer: { salesRepId: ctx.userId } },
+      ],
+    }
   }
   return {}
 }
@@ -106,9 +111,14 @@ export function buildScopeContext(session: { user: { id: string; role: string } 
  * Check if user can access a specific order.
  * Returns true if allowed, false if denied.
  */
-export function canAccessOrder(ctx: ScopeContext, order: { createdById: string }): boolean {
+export function canAccessOrder(
+  ctx: ScopeContext,
+  order: { createdById: string; customer?: { salesRepId: string | null } | null }
+): boolean {
   if (!OWN_DATA_ROLES.includes(ctx.role)) return true
-  return order.createdById === ctx.userId
+  if (order.createdById === ctx.userId) return true
+  if (order.customer?.salesRepId === ctx.userId) return true
+  return false
 }
 
 /**
