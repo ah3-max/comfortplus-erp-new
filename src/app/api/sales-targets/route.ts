@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * GET /api/sales-targets?month=2026-03&userId=xxx
  * Returns sales targets with actual performance filled in
  */
 export async function GET(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -112,6 +114,9 @@ export async function GET(req: NextRequest) {
   )
 
   return NextResponse.json(results)
+  } catch (error) {
+    return handleApiError(error, 'sales-targets.GET')
+  }
 }
 
 /**
@@ -119,6 +124,7 @@ export async function GET(req: NextRequest) {
  * Body: { userId, month: "2026-03", revenueTarget, orderTarget?, visitTarget?, newCustTarget? }
  */
 export async function POST(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -161,4 +167,7 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json(target, { status: 201 })
+  } catch (error) {
+    return handleApiError(error, 'sales-targets.POST')
+  }
 }

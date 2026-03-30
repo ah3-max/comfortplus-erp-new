@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -16,9 +18,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
   if (!list) return NextResponse.json({ error: '找不到價格表' }, { status: 404 })
   return NextResponse.json(list)
+  } catch (error) { return handleApiError(error, 'price-lists.get') }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -58,13 +62,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   })
 
   return NextResponse.json(list)
+  } catch (error) { return handleApiError(error, 'price-lists.update') }
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
   await prisma.priceList.delete({ where: { id } })
   return NextResponse.json({ ok: true })
+  } catch (error) { return handleApiError(error, 'price-lists.delete') }
 }

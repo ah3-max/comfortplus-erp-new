@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -27,9 +29,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   })
 
   return NextResponse.json(record, { status: 201 })
+  } catch (error) {
+    return handleApiError(error, 'supplierPriceHistory.post')
+  }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -40,4 +46,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   await params // consume
   await prisma.supplierPriceHistory.delete({ where: { id: recordId } })
   return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleApiError(error, 'supplierPriceHistory.delete')
+  }
 }

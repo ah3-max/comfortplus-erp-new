@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -27,9 +29,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   })
 
   return NextResponse.json(provider)
+  } catch (error) { return handleApiError(error, 'logistics.update') }
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -39,4 +43,5 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     data: { isActive: false },
   })
   return NextResponse.json(provider)
+  } catch (error) { return handleApiError(error, 'logistics.delete') }
 }

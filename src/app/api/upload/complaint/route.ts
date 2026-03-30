@@ -3,10 +3,12 @@ import { auth } from '@/auth'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { validateUpload, isUploadError } from '@/lib/upload'
+import { handleApiError } from '@/lib/api-error'
 
 // POST /api/upload/complaint — upload a photo for a complaint record or log
 // FormData: file (required), label?, category?
 export async function POST(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -32,4 +34,7 @@ export async function POST(req: NextRequest) {
     category,
     uploadedAt: new Date().toISOString(),
   }, { status: 201 })
+  } catch (error) {
+    return handleApiError(error, 'upload.complaint')
+  }
 }

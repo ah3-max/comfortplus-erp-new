@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -29,9 +31,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!outlet) return NextResponse.json({ error: '找不到門市' }, { status: 404 })
   return NextResponse.json(outlet)
+  } catch (error) {
+    return handleApiError(error, 'retailOutlets.get')
+  }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -92,4 +98,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   })
 
   return NextResponse.json(outlet)
+  } catch (error) {
+    return handleApiError(error, 'retailOutlets.put')
+  }
 }

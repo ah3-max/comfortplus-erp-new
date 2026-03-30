@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 // All sidebar module codes (keep in sync with sidebar.tsx navGroups)
 const ALL_MODULES = [
@@ -124,55 +125,63 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
 
 // GET /api/role-permissions — returns full matrix { [role]: { [module]: boolean } }
 export async function GET(_req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const existing = await prisma.rolePermission.findMany({
-    select: { roleName: true, module: true, canView: true },
-  })
+    const existing = await prisma.rolePermission.findMany({
+      select: { roleName: true, module: true, canView: true },
+    })
 
-  // Build matrix: if no record exists for a role+module, use default
-  const matrix: Record<string, Record<string, boolean>> = {}
-  for (const role of ALL_ROLES) {
-    matrix[role] = {}
-    const defaults = ROLE_DEFAULTS[role] ?? []
-    for (const mod of ALL_MODULES) {
-      const record = existing.find(r => r.roleName === role && r.module === mod)
-      matrix[role][mod] = record ? record.canView : defaults.includes(mod)
+    // Build matrix: if no record exists for a role+module, use default
+    const matrix: Record<string, Record<string, boolean>> = {}
+    for (const role of ALL_ROLES) {
+      matrix[role] = {}
+      const defaults = ROLE_DEFAULTS[role] ?? []
+      for (const mod of ALL_MODULES) {
+        const record = existing.find(r => r.roleName === role && r.module === mod)
+        matrix[role][mod] = record ? record.canView : defaults.includes(mod)
+      }
     }
-  }
 
-  return NextResponse.json({ matrix, roles: ALL_ROLES, modules: ALL_MODULES })
+    return NextResponse.json({ matrix, roles: ALL_ROLES, modules: ALL_MODULES })
+  } catch (error) {
+    return handleApiError(error, 'role-permissions.GET')
+  }
 }
 
 // PUT /api/role-permissions — bulk upsert { [role]: { [module]: boolean } }
 export async function PUT(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Check admin
-  const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } })
-  if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'GM') {
-    return NextResponse.json({ error: '僅管理員可修改權限' }, { status: 403 })
-  }
-
-  const { matrix } = await req.json() as { matrix: Record<string, Record<string, boolean>> }
-
-  // Upsert all entries
-  const ops = []
-  for (const [role, modules] of Object.entries(matrix)) {
-    for (const [mod, canView] of Object.entries(modules)) {
-      ops.push(
-        prisma.rolePermission.upsert({
-          where: { roleName_module: { roleName: role, module: mod } },
-          create: { roleName: role, module: mod, canView },
-          update: { canView },
-        })
-      )
+    // Check admin
+    const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } })
+    if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'GM') {
+      return NextResponse.json({ error: '僅管理員可修改權限' }, { status: 403 })
     }
+
+    const { matrix } = await req.json() as { matrix: Record<string, Record<string, boolean>> }
+
+    // Upsert all entries
+    const ops = []
+    for (const [role, modules] of Object.entries(matrix)) {
+      for (const [mod, canView] of Object.entries(modules)) {
+        ops.push(
+          prisma.rolePermission.upsert({
+            where: { roleName_module: { roleName: role, module: mod } },
+            create: { roleName: role, module: mod, canView },
+            update: { canView },
+          })
+        )
+      }
+    }
+
+    await prisma.$transaction(ops)
+
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    return handleApiError(error, 'role-permissions.PUT')
   }
-
-  await prisma.$transaction(ops)
-
-  return NextResponse.json({ ok: true })
 }

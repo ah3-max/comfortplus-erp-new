@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 const FULL_INCLUDE = {
   customer:      { select: { id: true, name: true, code: true, phone: true } },
@@ -37,53 +38,65 @@ const FULL_INCLUDE = {
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await params
-  const incident = await prisma.careIncident.findUnique({ where: { id }, include: FULL_INCLUDE })
-  if (!incident) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json(incident)
+    const { id } = await params
+    const incident = await prisma.careIncident.findUnique({ where: { id }, include: FULL_INCLUDE })
+    if (!incident) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json(incident)
+  } catch (error) {
+    return handleApiError(error, 'incidents.get')
+  }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await params
-  const body = await req.json()
-  const now  = new Date()
+    const { id } = await params
+    const body = await req.json()
+    const now  = new Date()
 
-  const data: Record<string, unknown> = {
-    assignedOwnerId:      body.assignedOwnerId      ?? undefined,
-    severity:             body.severity             ?? undefined,
-    status:               body.status               ?? undefined,
-    symptomCategory:      body.symptomCategory      ?? undefined,
-    issueSummary:         body.issueSummary         ?? undefined,
-    detailedDescription:  body.detailedDescription  ?? undefined,
-    suspectedCause:       body.suspectedCause       ?? undefined,
-    immediateActionTaken: body.immediateActionTaken ?? undefined,
-    requiresOnSiteVisit:  body.requiresOnSiteVisit  ?? undefined,
-    scheduledVisitDate:   body.scheduledVisitDate ? new Date(body.scheduledVisitDate) : undefined,
-    resolution:           body.resolution           ?? undefined,
-    contactPerson:        body.contactPerson        ?? undefined,
+    const data: Record<string, unknown> = {
+      assignedOwnerId:      body.assignedOwnerId      ?? undefined,
+      severity:             body.severity             ?? undefined,
+      status:               body.status               ?? undefined,
+      symptomCategory:      body.symptomCategory      ?? undefined,
+      issueSummary:         body.issueSummary         ?? undefined,
+      detailedDescription:  body.detailedDescription  ?? undefined,
+      suspectedCause:       body.suspectedCause       ?? undefined,
+      immediateActionTaken: body.immediateActionTaken ?? undefined,
+      requiresOnSiteVisit:  body.requiresOnSiteVisit  ?? undefined,
+      scheduledVisitDate:   body.scheduledVisitDate ? new Date(body.scheduledVisitDate) : undefined,
+      resolution:           body.resolution           ?? undefined,
+      contactPerson:        body.contactPerson        ?? undefined,
+    }
+
+    if (body.status === 'RESOLVED') data.resolvedAt = body.resolvedAt ? new Date(body.resolvedAt) : now
+    if (body.status === 'CLOSED') {
+      data.closedAt        = body.closedAt ? new Date(body.closedAt) : now
+      data.isKnowledgeBase = true   // auto-add to knowledge base
+    }
+
+    const incident = await prisma.careIncident.update({ where: { id }, data, include: FULL_INCLUDE })
+    return NextResponse.json(incident)
+  } catch (error) {
+    return handleApiError(error, 'incidents.update')
   }
-
-  if (body.status === 'RESOLVED') data.resolvedAt = body.resolvedAt ? new Date(body.resolvedAt) : now
-  if (body.status === 'CLOSED') {
-    data.closedAt        = body.closedAt ? new Date(body.closedAt) : now
-    data.isKnowledgeBase = true   // auto-add to knowledge base
-  }
-
-  const incident = await prisma.careIncident.update({ where: { id }, data, include: FULL_INCLUDE })
-  return NextResponse.json(incident)
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await params
-  await prisma.careIncident.delete({ where: { id } })
-  return NextResponse.json({ success: true })
+    const { id } = await params
+    await prisma.careIncident.delete({ where: { id } })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return handleApiError(error, 'incidents.delete')
+  }
 }

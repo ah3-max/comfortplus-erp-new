@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 // GET /api/products/[id]/suppliers — list all suppliers for a product
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
@@ -17,10 +19,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
 
   return NextResponse.json(suppliers)
+  } catch (error) {
+    return handleApiError(error, 'productSuppliers.get')
+  }
 }
 
 // POST /api/products/[id]/suppliers — add a supplier to a product
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
@@ -94,10 +100,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   return NextResponse.json(ps, { status: 201 })
+  } catch (error) {
+    return handleApiError(error, 'productSuppliers.post')
+  }
 }
 
 // DELETE /api/products/[id]/suppliers?supplierId=xxx
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
@@ -108,4 +118,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     where: { productId_supplierId: { productId: id, supplierId } },
   })
   return NextResponse.json({ ok: true })
+  } catch (error) {
+    return handleApiError(error, 'productSuppliers.delete')
+  }
 }

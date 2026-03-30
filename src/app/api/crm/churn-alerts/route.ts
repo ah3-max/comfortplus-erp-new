@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ interface ChurnAlert {
 // Detects: no-order, volume decline, engagement drop
 
 export async function GET(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -223,12 +225,16 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ alerts, summary, generatedAt: now.toISOString() })
+  } catch (error) {
+    return handleApiError(error, 'churnAlerts.get')
+  }
 }
 
 // ── POST /api/crm/churn-alerts ─────────────────────────────────────────────
 // Auto-create follow-up tasks for high-risk customers
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -280,4 +286,7 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  } catch (error) {
+    return handleApiError(error, 'churnAlerts.post')
+  }
 }

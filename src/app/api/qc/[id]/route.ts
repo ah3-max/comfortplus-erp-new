@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { notifyByRole } from '@/lib/notify'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -21,9 +23,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!qc) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   return NextResponse.json(qc)
+  } catch (error) { return handleApiError(error, 'qc.get') }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -96,4 +100,5 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   return NextResponse.json(check)
+  } catch (error) { return handleApiError(error, 'qc.update') }
 }

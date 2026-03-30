@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -17,9 +19,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
   if (!order) return NextResponse.json({ error: '找不到生產單' }, { status: 404 })
   return NextResponse.json(order)
+  } catch (error) { return handleApiError(error, 'production.get') }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -50,4 +54,5 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   })
 
   return NextResponse.json(order)
+  } catch (error) { return handleApiError(error, 'production.update') }
 }

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -27,9 +29,11 @@ export async function GET(req: NextRequest) {
   })
 
   return NextResponse.json(orders)
+  } catch (error) { return handleApiError(error, 'production.list') }
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -56,4 +60,5 @@ export async function POST(req: NextRequest) {
   })
 
   return NextResponse.json(order, { status: 201 })
+  } catch (error) { return handleApiError(error, 'production.create') }
 }

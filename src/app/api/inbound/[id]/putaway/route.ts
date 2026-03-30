@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 // POST /api/inbound/[id]/putaway — 確認上架完成
 // body: { items: [{ id: inboundItemId, locationCode: "A-01-03" }] }
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -44,4 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   })
 
   return NextResponse.json(updated)
+  } catch (error) {
+    return handleApiError(error, 'inbound.putaway')
+  }
 }

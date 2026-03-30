@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 // POST /api/notifications/generate - Scan system and create notifications
 export async function POST(_req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -239,4 +241,7 @@ export async function POST(_req: NextRequest) {
     categories: [...new Set(created)],
     generatedAt: now.toISOString(),
   })
+  } catch (error) {
+    return handleApiError(error, 'notifications.generate.POST')
+  }
 }

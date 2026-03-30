@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
+import { handleApiError } from '@/lib/api-error'
 
 /**
  * POST /api/dispatch — 一鍵派車出貨
@@ -21,6 +22,7 @@ import { generateSequenceNo } from '@/lib/sequence'
  * }
  */
 export async function POST(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -160,4 +162,7 @@ export async function POST(req: NextRequest) {
       ? `出貨單 ${result.shipment.shipmentNo} 已建立，配送趟次 ${result.trip.tripNo} 已排定`
       : `出貨單 ${result.shipment.shipmentNo} 已建立`,
   })
+  } catch (error) {
+    return handleApiError(error, 'dispatch.POST')
+  }
 }

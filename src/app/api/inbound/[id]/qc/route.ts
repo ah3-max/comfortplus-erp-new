@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
+import { handleApiError } from '@/lib/api-error'
 
 // POST /api/inbound/[id]/qc — 從入庫單建立 QC 驗收，QC 完成後自動入庫
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -148,4 +150,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   })
 
   return NextResponse.json({ qc: result, inboundId: id, qcResult: isPass ? 'PASS' : 'FAIL' })
+  } catch (error) {
+    return handleApiError(error, 'inbound.qc')
+  }
 }

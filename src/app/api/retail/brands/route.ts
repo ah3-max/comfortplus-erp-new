@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET() {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -11,9 +13,13 @@ export async function GET() {
     orderBy: { name: 'asc' },
   })
   return NextResponse.json(brands)
+  } catch (error) {
+    return handleApiError(error, 'retailBrands.get')
+  }
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -55,9 +61,13 @@ export async function POST(req: NextRequest) {
     },
   })
   return NextResponse.json(brand, { status: 201 })
+  } catch (error) {
+    return handleApiError(error, 'retailBrands.post')
+  }
 }
 
 export async function PUT(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -95,4 +105,7 @@ export async function PUT(req: NextRequest) {
     },
   })
   return NextResponse.json(brand)
+  } catch (error) {
+    return handleApiError(error, 'retailBrands.put')
+  }
 }

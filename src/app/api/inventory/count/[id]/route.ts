@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -20,9 +22,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
   if (!count) return NextResponse.json({ error: '找不到盤點單' }, { status: 404 })
   return NextResponse.json(count)
+  } catch (error) { return handleApiError(error, 'inventory.count.get') }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -94,4 +98,5 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   return NextResponse.json({ error: '無效操作' }, { status: 400 })
+  } catch (error) { return handleApiError(error, 'inventory.count.update') }
 }

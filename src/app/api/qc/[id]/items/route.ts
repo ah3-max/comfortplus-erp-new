@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 // POST /api/qc/[id]/items — 新增或批量更新檢驗明細項目
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -48,6 +50,7 @@ export async function POST(
   )
 
   return NextResponse.json(created, { status: 201 })
+  } catch (error) { return handleApiError(error, 'qc.items.create') }
 }
 
 // PATCH /api/qc/[id]/items — 更新單一 check item
@@ -55,6 +58,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -77,6 +81,7 @@ export async function PATCH(
   })
 
   return NextResponse.json(updated)
+  } catch (error) { return handleApiError(error, 'qc.items.update') }
 }
 
 // DELETE /api/qc/[id]/items?itemId=xxx
@@ -84,6 +89,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -94,4 +100,5 @@ export async function DELETE(
 
   await prisma.qcCheckItem.delete({ where: { id: itemId } })
   return NextResponse.json({ ok: true })
+  } catch (error) { return handleApiError(error, 'qc.items.delete') }
 }
