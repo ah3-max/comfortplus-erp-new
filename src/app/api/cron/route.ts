@@ -267,6 +267,57 @@ export async function GET(req: NextRequest) {
     results.expiryRefresh = { status: 'error', error: (e as Error).message }
   }
 
+  // ── Task: Inventory reconciliation — compare Inventory.quantity vs last transaction afterQty ──
+  try {
+    const discrepancies = await prisma.$queryRaw<Array<{
+      productId: string
+      warehouse: string
+      category: string
+      currentQty: number
+      lastTxnQty: number
+      productName: string
+      sku: string
+    }>>`
+      SELECT
+        i."productId",
+        i.warehouse,
+        i.category::text AS category,
+        i.quantity AS "currentQty",
+        t."afterQty" AS "lastTxnQty",
+        p.name AS "productName",
+        p.sku
+      FROM "Inventory" i
+      JOIN "Product" p ON p.id = i."productId"
+      JOIN LATERAL (
+        SELECT "afterQty"
+        FROM "InventoryTransaction"
+        WHERE "productId" = i."productId"
+          AND warehouse = i.warehouse
+          AND ("afterQty" IS NOT NULL)
+        ORDER BY "createdAt" DESC
+        LIMIT 1
+      ) t ON TRUE
+      WHERE t."afterQty" IS DISTINCT FROM i.quantity
+        AND p."isActive" = true
+    `
+
+    if (discrepancies.length > 0) {
+      const details = discrepancies.slice(0, 10).map(d =>
+        `${d.productName}(${d.sku}) ${d.warehouse}/${d.category}: 帳面=${d.currentQty} 末筆交易=${d.lastTxnQty}`
+      )
+      await notifyManagers({
+        title: `⚠️ 庫存異動核對異常：${discrepancies.length} 筆`,
+        message: details.join('\n'),
+        linkUrl: '/inventory',
+        category: 'INVENTORY_RECONCILE',
+        priority: 'HIGH',
+      }).catch(() => {})
+    }
+    results.inventoryReconcile = { status: 'ok', data: { discrepancies: discrepancies.length } }
+  } catch (e) {
+    results.inventoryReconcile = { status: 'error', error: (e as Error).message }
+  }
+
   return NextResponse.json({
     ok: Object.values(results).every(r => r.status === 'ok'),
     timestamp: now.toISOString(),

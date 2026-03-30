@@ -12,6 +12,7 @@ model Inventory {
   damagedQty    Int               @default(0)    // 不良品數量
   safetyStock   Int               @default(0)
   lastCountDate DateTime?                        // 最近盤點日
+  version       Int               @default(0)    // 樂觀鎖版本號
   updatedAt     DateTime          @updatedAt
 
   @@unique([productId, warehouse, category])

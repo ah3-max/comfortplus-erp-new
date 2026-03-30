@@ -46,12 +46,22 @@ export async function POST(req: NextRequest) {
 
   const delta = newQuantity - inv.quantity
 
-  const [updated] = await prisma.$transaction([
-    prisma.inventory.update({
-      where: { productId_warehouse_category: { productId, warehouse, category } },
-      data: { quantity: newQuantity },
-    }),
-    prisma.inventoryTransaction.create({
+  // 樂觀鎖：version 不符表示有並發修改，回傳 409
+  try {
+  const result = await prisma.$transaction(async (tx) => {
+    const updated = await tx.inventory.updateMany({
+      where: {
+        id: inv.id,
+        version: inv.version, // optimistic lock check
+      },
+      data: {
+        quantity: newQuantity,
+        version: { increment: 1 },
+      },
+    })
+    if (updated.count === 0) throw Object.assign(new Error('VERSION_CONFLICT'), { code: 'VERSION_CONFLICT' })
+
+    await tx.inventoryTransaction.create({
       data: {
         productId,
         warehouse,
@@ -64,8 +74,18 @@ export async function POST(req: NextRequest) {
         createdById: session.user.id,
         referenceType: 'MANUAL',
       },
-    }),
-  ])
+    })
 
-  return NextResponse.json(updated, { status: 200 })
+    return tx.inventory.findUniqueOrThrow({
+      where: { id: inv.id },
+    })
+  })
+
+  return NextResponse.json(result, { status: 200 })
+  } catch (e: unknown) {
+    if ((e as { code?: string }).code === 'VERSION_CONFLICT') {
+      return NextResponse.json({ error: '並發衝突，請重新載入後再試' }, { status: 409 })
+    }
+    throw e
+  }
 }
