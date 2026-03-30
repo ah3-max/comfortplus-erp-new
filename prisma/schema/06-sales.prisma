@@ -108,6 +108,7 @@ model QuotationApproval {
 model SalesOrder {
   id                    String        @id @default(cuid())
   orderNo               String        @unique
+  idempotencyKey        String?       @unique  // 客戶端提供，防止網路重試重複建單
   customerId            String
   customer              Customer      @relation(fields: [customerId], references: [id])
   customerContactId     String?       // 客戶聯絡人
@@ -198,6 +199,14 @@ model SalesOrderItem {
   discount        Decimal    @default(0) @db.Decimal(5, 2)
   subtotal        Decimal    @db.Decimal(12, 2)
   notes           String?
+  // ── 毛利率計算（財務專用）────────────────────────────
+  batchNo              String?   // 對應批次號
+  unitCostSnap         Decimal?  @db.Decimal(10,4)  // 批次單位成本（TWD）
+  warehouseStorageDays Int?                           // 在倉天數
+  warehouseStorageCost Decimal?  @db.Decimal(10,4)  // 每單位倉儲成本分攤
+  effectiveUnitCost    Decimal?  @db.Decimal(10,4)  // 有效單位成本 = unitCostSnap + warehouseStorageCost
+  grossMarginAmt       Decimal?  @db.Decimal(12,2)  // 毛利額
+  grossMarginRate      Decimal?  @db.Decimal(5,2)   // 毛利率 %
 }
 
 // ── 定期配送設定 ────────────────────────────────────

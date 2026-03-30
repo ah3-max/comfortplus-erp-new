@@ -16,6 +16,11 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status') ?? ''
   const page = Math.max(1, Number(searchParams.get('page') ?? 1))
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
+  const ALLOWED_SORT = ['createdAt', 'totalAmount', 'expectedShipDate', 'orderNo'] as const
+  type AllowedSort = typeof ALLOWED_SORT[number]
+  const rawOrderBy = searchParams.get('orderBy') ?? 'createdAt'
+  const orderBy: AllowedSort = ALLOWED_SORT.includes(rawOrderBy as AllowedSort) ? rawOrderBy as AllowedSort : 'createdAt'
+  const orderDir = searchParams.get('orderDir') === 'asc' ? 'asc' : 'desc'
 
   // Data scope: SALES/CS only see their own orders
   const scope = orderScope(buildScopeContext(session as { user: { id: string; role: string } }))
@@ -42,7 +47,7 @@ export async function GET(req: NextRequest) {
         },
         _count: { select: { shipments: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [orderBy]: orderDir },
       take: pageSize,
       skip: (page - 1) * pageSize,
     }),
@@ -61,6 +66,26 @@ export async function POST(req: NextRequest) {
 
   try {
   const body = await req.json()
+
+  // ── Idempotency check ──────────────────────────────────────────────────────
+  // Client should send a unique `Idempotency-Key` header per submission attempt.
+  // Re-sending the same key returns the original order without creating a new one.
+  const idempotencyKey = req.headers.get('Idempotency-Key')?.trim() || null
+  if (idempotencyKey) {
+    if (idempotencyKey.length > 128) {
+      return NextResponse.json({ error: 'Idempotency-Key 不得超過 128 字元' }, { status: 400 })
+    }
+    const existing = await prisma.salesOrder.findUnique({
+      where: { idempotencyKey },
+      include: { customer: { select: { id: true, name: true, code: true } }, items: true },
+    })
+    if (existing) {
+      return NextResponse.json(existing, {
+        status: 200,
+        headers: { 'Idempotent-Replayed': 'true' },
+      })
+    }
+  }
 
   if (!body.customerId || !body.items?.length) {
     return NextResponse.json({ error: '請選擇客戶並至少新增一項商品' }, { status: 400 })
@@ -114,6 +139,7 @@ export async function POST(req: NextRequest) {
   const order = await prisma.salesOrder.create({
     data: {
       orderNo,
+      ...(idempotencyKey && { idempotencyKey }),
       customerId: body.customerId,
       quotationId: body.quotationId || null,
       createdById: session.user.id,
