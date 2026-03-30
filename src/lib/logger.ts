@@ -13,6 +13,7 @@ interface LogEntry {
   level: LogLevel
   module: string
   message: string
+  requestId?: string
   error?: string
   stack?: string
   data?: Record<string, unknown>
@@ -37,11 +38,12 @@ function formatLog(entry: LogEntry): string {
   return line
 }
 
-function log(level: LogLevel, module: string, message: string, extra?: { error?: unknown; data?: Record<string, unknown> }) {
+function log(level: LogLevel, module: string, message: string, extra?: { error?: unknown; data?: Record<string, unknown>; requestId?: string }) {
   const entry: LogEntry = {
     level,
     module,
     message,
+    ...(extra?.requestId && { requestId: extra.requestId }),
     timestamp: new Date().toISOString(),
   }
 
@@ -68,4 +70,9 @@ export const logger = {
   warn:  (module: string, message: string, data?: Record<string, unknown>) => log('warn', module, message, { data }),
   error: (module: string, message: string, error?: unknown, data?: Record<string, unknown>) => log('error', module, message, { error, data }),
   debug: (module: string, message: string, data?: Record<string, unknown>) => log('debug', module, message, { data }),
+}
+
+/** Extract X-Request-ID from incoming request headers (injected by middleware) */
+export function getRequestId(req: { headers: { get(name: string): string | null } }): string | undefined {
+  return req.headers.get('X-Request-ID') ?? undefined
 }
