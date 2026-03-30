@@ -23,9 +23,6 @@ const TYPE_COLORS: Record<string, string> = {
   ASSET: 'bg-blue-100 text-blue-700', LIABILITY: 'bg-amber-100 text-amber-700',
   EQUITY: 'bg-purple-100 text-purple-700', REVENUE: 'bg-green-100 text-green-700', EXPENSE: 'bg-red-100 text-red-700',
 }
-const TYPE_LABELS: Record<string, string> = {
-  ASSET: '資產', LIABILITY: '負債', EQUITY: '權益', REVENUE: '收入', EXPENSE: '費用',
-}
 
 function fmt(n: number) {
   return n > 0 ? n.toLocaleString('zh-TW') : '—'
@@ -33,6 +30,7 @@ function fmt(n: number) {
 
 export default function AccountSummaryPage() {
   const { dict } = useI18n()
+  const p = dict.accountSummaryPage
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
 
@@ -77,15 +75,15 @@ export default function AccountSummaryPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.accountSummary}</h1>
-          <p className="text-sm text-muted-foreground">按科目和摘要分組顯示借貸合計</p>
+          <p className="text-sm text-muted-foreground">{p.subtitle}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">科目（空白 = 全部）</label>
+          <label className="text-xs font-medium text-muted-foreground">{p.accountFilter}</label>
           <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className="rounded-md border px-3 py-2 text-sm min-w-[240px]">
-            <option value="">全部科目</option>
+            <option value="">{p.allAccounts}</option>
             {accounts.map(a => <option key={a.id} value={a.id}>{a.code} {a.name}</option>)}
           </select>
         </div>
@@ -115,15 +113,15 @@ export default function AccountSummaryPage() {
                 <div className="flex items-center gap-3">
                   {expanded.has(g.accountId) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[g.type] ?? ''}`}>
-                    {TYPE_LABELS[g.type] ?? g.type}
+                    {p.typeLabels[g.type as keyof typeof p.typeLabels] ?? g.type}
                   </span>
                   <span className="font-mono text-sm text-muted-foreground">{g.code}</span>
                   <span className="font-semibold">{g.name}</span>
-                  <span className="text-xs text-muted-foreground">{g.summaries.length} 種摘要</span>
+                  <span className="text-xs text-muted-foreground">{g.summaries.length} {p.summaryCountSuffix}</span>
                 </div>
                 <div className="flex gap-4 text-sm font-mono">
-                  <span className="text-muted-foreground">借 <span className="text-slate-700">{g.totalDebit.toLocaleString('zh-TW')}</span></span>
-                  <span className="text-muted-foreground">貸 <span className="text-slate-700">{g.totalCredit.toLocaleString('zh-TW')}</span></span>
+                  <span className="text-muted-foreground">{p.debit} <span className="text-slate-700">{g.totalDebit.toLocaleString('zh-TW')}</span></span>
+                  <span className="text-muted-foreground">{p.credit} <span className="text-slate-700">{g.totalCredit.toLocaleString('zh-TW')}</span></span>
                 </div>
               </div>
 
@@ -131,19 +129,19 @@ export default function AccountSummaryPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>摘要</TableHead>
-                      <TableHead className="w-20">來源類型</TableHead>
-                      <TableHead className="text-right w-16">筆數</TableHead>
-                      <TableHead className="text-right w-28">借方合計</TableHead>
-                      <TableHead className="text-right w-28">貸方合計</TableHead>
-                      <TableHead className="text-right w-28">淨額</TableHead>
+                      <TableHead>{p.colSummary}</TableHead>
+                      <TableHead className="w-20">{p.colSourceType}</TableHead>
+                      <TableHead className="text-right w-16">{p.colCount}</TableHead>
+                      <TableHead className="text-right w-28">{p.colDebitTotal}</TableHead>
+                      <TableHead className="text-right w-28">{p.colCreditTotal}</TableHead>
+                      <TableHead className="text-right w-28">{p.colNet}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {g.summaries.map((s, i) => (
                       <TableRow key={i} className="text-sm hover:bg-slate-50/40">
                         <TableCell>{s.description}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{s.referenceType ?? '手動'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{s.referenceType ?? p.manual}</TableCell>
                         <TableCell className="text-right text-muted-foreground">{s.count}</TableCell>
                         <TableCell className="text-right font-mono">{fmt(s.debit)}</TableCell>
                         <TableCell className="text-right font-mono">{fmt(s.credit)}</TableCell>
@@ -153,7 +151,7 @@ export default function AccountSummaryPage() {
                       </TableRow>
                     ))}
                     <TableRow className="bg-slate-50 font-semibold text-sm">
-                      <TableCell colSpan={3}>合計</TableCell>
+                      <TableCell colSpan={3}>{p.totalRow}</TableCell>
                       <TableCell className="text-right font-mono">{g.totalDebit.toLocaleString('zh-TW')}</TableCell>
                       <TableCell className="text-right font-mono">{g.totalCredit.toLocaleString('zh-TW')}</TableCell>
                       <TableCell className="text-right font-mono">{(g.totalDebit - g.totalCredit).toLocaleString('zh-TW')}</TableCell>

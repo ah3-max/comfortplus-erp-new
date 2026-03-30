@@ -48,20 +48,17 @@ function formatDate(str: string) {
   return new Date(str).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
-const statusConfig: Record<RequisitionStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  DRAFT:     { label: '草稿', variant: 'outline' },
-  CONFIRMED: { label: '已確認', variant: 'secondary' },
-  ISSUED:    { label: '已發料', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  COMPLETED: { label: '已完成', variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-  CANCELLED: { label: '已取消', variant: 'destructive' },
+const STATUS_VARIANT: Record<RequisitionStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  DRAFT: 'outline', CONFIRMED: 'secondary', ISSUED: 'default', COMPLETED: 'default', CANCELLED: 'destructive',
+}
+const STATUS_CLASS: Partial<Record<RequisitionStatus, string>> = {
+  ISSUED:    'bg-blue-100 text-blue-700 border-blue-200',
+  COMPLETED: 'bg-green-100 text-green-700 border-green-200',
 }
 
 export default function MaterialRequisitionDetailPage() {
   const { dict } = useI18n()
+  const p = dict.materialRequisitionDetail
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
@@ -75,10 +72,7 @@ export default function MaterialRequisitionDetailPage() {
       setLoading(true)
       try {
         const res = await fetch(`/api/material-requisitions/${id}`)
-        if (res.status === 404 || res.status === 403) {
-          setNotFound(true)
-          return
-        }
+        if (res.status === 404 || res.status === 403) { setNotFound(true); return }
         if (!res.ok) throw new Error(dict.common.loadFailed)
         const data = await res.json()
         setRequisition(data)
@@ -103,46 +97,46 @@ export default function MaterialRequisitionDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
         <FileText className="h-12 w-12 text-muted-foreground/50" />
-        <p className="text-muted-foreground">找不到此領料單</p>
+        <p className="text-muted-foreground">{p.notFound}</p>
         <Button variant="outline" onClick={() => router.push('/material-requisitions')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />返回列表
+          <ArrowLeft className="mr-2 h-4 w-4" />{p.backToList}
         </Button>
       </div>
     )
   }
-
-  const sc = statusConfig[requisition.status] ?? { label: requisition.status, variant: 'outline' as const }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="outline" size="sm" onClick={() => router.push('/material-requisitions')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />返回
+          <ArrowLeft className="mr-2 h-4 w-4" />{p.back}
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 font-mono">{requisition.requisitionNumber}</h1>
-            <Badge variant={sc.variant} className={sc.className}>{sc.label}</Badge>
+            <Badge variant={STATUS_VARIANT[requisition.status]} className={STATUS_CLASS[requisition.status]}>
+              {p.statusLabels[requisition.status] ?? requisition.status}
+            </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {dict.materialRequisitions.title} · 建立於 {formatDate(requisition.createdAt)}
+            {dict.materialRequisitions.title} · {p.createdAt} {formatDate(requisition.createdAt)}
           </p>
         </div>
       </div>
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Requisition Info */}
+        {/* Basic Info */}
         <div className="rounded-lg border bg-white p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">基本資料</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.basicInfo}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">{dict.materialRequisitions.productionOrder}</dt>
               <dd className="font-mono font-medium">{requisition.productionOrder.productionNo}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">工單狀態</dt>
+              <dt className="text-muted-foreground">{p.orderStatus}</dt>
               <dd>{requisition.productionOrder.status}</dd>
             </div>
             <div className="flex justify-between">
@@ -150,22 +144,22 @@ export default function MaterialRequisitionDetailPage() {
               <dd>{formatDate(requisition.date)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">品項數量</dt>
+              <dt className="text-muted-foreground">{p.itemCount}</dt>
               <dd>{requisition.items.length} 項</dd>
             </div>
           </dl>
         </div>
 
-        {/* Warehouse & Handler */}
+        {/* Warehouse & Staff */}
         <div className="rounded-lg border bg-white p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">倉庫與人員</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.warehouseAndStaff}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">出料倉庫</dt>
+              <dt className="text-muted-foreground">{p.fromWarehouse}</dt>
               <dd>{requisition.fromWarehouse.code} - {requisition.fromWarehouse.name}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">收料倉庫</dt>
+              <dt className="text-muted-foreground">{p.toWarehouse}</dt>
               <dd>{requisition.toWarehouse.code} - {requisition.toWarehouse.name}</dd>
             </div>
             <div className="flex justify-between">
@@ -173,7 +167,7 @@ export default function MaterialRequisitionDetailPage() {
               <dd className="font-medium">{requisition.handler.name}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">建立者</dt>
+              <dt className="text-muted-foreground">{p.createdBy}</dt>
               <dd>{requisition.createdBy.name}</dd>
             </div>
           </dl>
@@ -198,17 +192,17 @@ export default function MaterialRequisitionDetailPage() {
             <TableRow>
               <TableHead className="w-8">#</TableHead>
               <TableHead>品項</TableHead>
-              <TableHead className="w-24">規格</TableHead>
+              <TableHead className="w-24">{p.colSpec}</TableHead>
               <TableHead className="w-20 text-right">{dict.common.quantity}</TableHead>
               <TableHead className="w-16 text-center">{dict.common.unit}</TableHead>
-              <TableHead className="w-24">BOM版本</TableHead>
+              <TableHead className="w-24">{p.colBomVersion}</TableHead>
               <TableHead>{dict.common.notes}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {requisition.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">無明細項目</TableCell>
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">{p.noItems}</TableCell>
               </TableRow>
             ) : (
               requisition.items.map((item, idx) => (

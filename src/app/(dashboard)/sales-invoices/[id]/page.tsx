@@ -62,20 +62,17 @@ function formatDate(str: string) {
   return new Date(str).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
-const statusConfig: Record<InvoiceStatus, {
-  label: string
-  variant: 'default' | 'secondary' | 'outline' | 'destructive'
-  className?: string
-}> = {
-  DRAFT:     { label: '草稿', variant: 'outline' },
-  CONFIRMED: { label: '已確認', variant: 'secondary' },
-  SHIPPED:   { label: '已出貨', variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-  RETURNED:  { label: '已退貨', variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-  CANCELLED: { label: '已取消', variant: 'destructive' },
+const STATUS_VARIANT: Record<InvoiceStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  DRAFT: 'outline', CONFIRMED: 'secondary', SHIPPED: 'default', RETURNED: 'default', CANCELLED: 'destructive',
+}
+const STATUS_CLASS: Partial<Record<InvoiceStatus, string>> = {
+  SHIPPED:  'bg-blue-100 text-blue-700 border-blue-200',
+  RETURNED: 'bg-amber-100 text-amber-700 border-amber-200',
 }
 
 export default function SalesInvoiceDetailPage() {
   const { dict } = useI18n()
+  const p = dict.salesInvoiceDetail
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
@@ -89,10 +86,7 @@ export default function SalesInvoiceDetailPage() {
       setLoading(true)
       try {
         const res = await fetch(`/api/sales-invoices/${id}`)
-        if (res.status === 404 || res.status === 403) {
-          setNotFound(true)
-          return
-        }
+        if (res.status === 404 || res.status === 403) { setNotFound(true); return }
         if (!res.ok) throw new Error(dict.common.loadFailed)
         const data = await res.json()
         setInvoice(data)
@@ -117,46 +111,46 @@ export default function SalesInvoiceDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
         <FileText className="h-12 w-12 text-muted-foreground/50" />
-        <p className="text-muted-foreground">找不到此銷貨單</p>
+        <p className="text-muted-foreground">{p.notFound}</p>
         <Button variant="outline" onClick={() => router.push('/sales-invoices')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />返回列表
+          <ArrowLeft className="mr-2 h-4 w-4" />{p.backToList}
         </Button>
       </div>
     )
   }
-
-  const sc = statusConfig[invoice.status] ?? { label: invoice.status, variant: 'outline' as const }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="outline" size="sm" onClick={() => router.push('/sales-invoices')}>
-          <ArrowLeft className="mr-2 h-4 w-4" />返回
+          <ArrowLeft className="mr-2 h-4 w-4" />{p.back}
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900 font-mono">{invoice.invoiceNumber}</h1>
-            <Badge variant={sc.variant} className={sc.className}>{sc.label}</Badge>
+            <Badge variant={STATUS_VARIANT[invoice.status]} className={STATUS_CLASS[invoice.status]}>
+              {p.statusLabels[invoice.status] ?? invoice.status}
+            </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {dict.salesInvoices.title} · 建立於 {formatDate(invoice.createdAt)}
+            {dict.salesInvoices.title} · {p.createdAt} {formatDate(invoice.createdAt)}
           </p>
         </div>
       </div>
 
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Customer & Order Info */}
+        {/* Basic Info */}
         <div className="rounded-lg border bg-white p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">基本資料</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.basicInfo}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">{dict.common.customer}</dt>
               <dd className="font-medium">{invoice.customer.name}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">客戶代碼</dt>
+              <dt className="text-muted-foreground">{p.customerCode}</dt>
               <dd className="font-mono">{invoice.customer.code}</dd>
             </div>
             <div className="flex justify-between">
@@ -164,28 +158,28 @@ export default function SalesInvoiceDetailPage() {
               <dd>{formatDate(invoice.date)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">交易類型</dt>
-              <dd>{invoice.transactionType === 'TAX' ? '營業稅' : '其他（寄庫）'}</dd>
+              <dt className="text-muted-foreground">{p.transactionType}</dt>
+              <dd>{invoice.transactionType === 'TAX' ? p.transactionTypeTax : p.transactionTypeOther}</dd>
             </div>
             {invoice.sourceOrder && (
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">來源訂單</dt>
+                <dt className="text-muted-foreground">{p.sourceOrder}</dt>
                 <dd className="font-mono text-blue-600">{invoice.sourceOrder.orderNo}</dd>
               </div>
             )}
           </dl>
         </div>
 
-        {/* People & Warehouse */}
+        {/* Staff & Warehouse */}
         <div className="rounded-lg border bg-white p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">人員與倉庫</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.staffAndWarehouse}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">{dict.common.salesRep}</dt>
               <dd className="font-medium">{invoice.salesPerson.name}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">承辦人</dt>
+              <dt className="text-muted-foreground">{p.handler}</dt>
               <dd>{invoice.handler.name}</dd>
             </div>
             <div className="flex justify-between">
@@ -193,7 +187,7 @@ export default function SalesInvoiceDetailPage() {
               <dd>{invoice.warehouse.code} - {invoice.warehouse.name}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">建立者</dt>
+              <dt className="text-muted-foreground">{p.createdBy}</dt>
               <dd>{invoice.createdBy.name}</dd>
             </div>
           </dl>
@@ -202,29 +196,29 @@ export default function SalesInvoiceDetailPage() {
         {/* Shipping Info */}
         {(invoice.receiverName || invoice.shippingAddress || invoice.phone) && (
           <div className="rounded-lg border bg-white p-5 space-y-3">
-            <h2 className="text-sm font-semibold text-slate-700">配送資訊</h2>
+            <h2 className="text-sm font-semibold text-slate-700">{p.shippingInfo}</h2>
             <dl className="space-y-2 text-sm">
               {invoice.receiverName && (
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">收貨人</dt>
+                  <dt className="text-muted-foreground">{p.receiver}</dt>
                   <dd>{invoice.receiverName}</dd>
                 </div>
               )}
               {invoice.phone && (
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">手機號碼</dt>
+                  <dt className="text-muted-foreground">{p.phone}</dt>
                   <dd>{invoice.phone}</dd>
                 </div>
               )}
               {invoice.shippingAddress && (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground shrink-0">送貨地址</dt>
+                  <dt className="text-muted-foreground shrink-0">{p.shippingAddress}</dt>
                   <dd className="text-right">{invoice.shippingAddress}</dd>
                 </div>
               )}
               {invoice.shippingNote && (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground shrink-0">送貨備註</dt>
+                  <dt className="text-muted-foreground shrink-0">{p.shippingNote}</dt>
                   <dd className="text-right">{invoice.shippingNote}</dd>
                 </div>
               )}
@@ -234,18 +228,18 @@ export default function SalesInvoiceDetailPage() {
 
         {/* Amount Summary */}
         <div className="rounded-lg border bg-white p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-700">金額摘要</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.amountSummary}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">稅前小計</dt>
+              <dt className="text-muted-foreground">{p.subtotalExTax}</dt>
               <dd>{formatCurrency(invoice.subtotal)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">營業稅 (5%)</dt>
+              <dt className="text-muted-foreground">{p.taxLine}</dt>
               <dd>{formatCurrency(invoice.taxAmount)}</dd>
             </div>
             <div className="flex justify-between border-t pt-2 mt-2">
-              <dt className="font-semibold">含稅合計</dt>
+              <dt className="font-semibold">{p.totalIncTax}</dt>
               <dd className="font-bold text-lg">{formatCurrency(invoice.totalAmount)}</dd>
             </div>
           </dl>
@@ -263,25 +257,25 @@ export default function SalesInvoiceDetailPage() {
       {/* Line Items Table */}
       <div className="rounded-lg border bg-white">
         <div className="px-5 py-4 border-b">
-          <h2 className="text-sm font-semibold text-slate-700">明細項目（{invoice.items.length} 項）</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.itemsHeader}（{invoice.items.length} 項）</h2>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-8">#</TableHead>
-              <TableHead>品項</TableHead>
-              <TableHead className="w-24">規格</TableHead>
+              <TableHead>{p.colProduct}</TableHead>
+              <TableHead className="w-24">{p.colSpec}</TableHead>
               <TableHead className="w-16 text-right">{dict.common.quantity}</TableHead>
               <TableHead className="w-16 text-center">{dict.common.unit}</TableHead>
-              <TableHead className="w-28 text-right">單價 (未稅)</TableHead>
-              <TableHead className="w-28 text-right">小計 (未稅)</TableHead>
-              <TableHead className="w-28 text-right">含稅金額</TableHead>
+              <TableHead className="w-28 text-right">{p.colUnitPriceExTax}</TableHead>
+              <TableHead className="w-28 text-right">{p.colSubtotalExTax}</TableHead>
+              <TableHead className="w-28 text-right">{p.colAmountIncTax}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {invoice.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">無明細項目</TableCell>
+                <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">{p.noItems}</TableCell>
               </TableRow>
             ) : (
               invoice.items.map((item, idx) => (
@@ -305,15 +299,15 @@ export default function SalesInvoiceDetailPage() {
         {/* Footer Totals */}
         <div className="px-5 py-4 border-t bg-slate-50 flex flex-col items-end gap-1 text-sm">
           <div className="flex gap-8">
-            <span className="text-muted-foreground">稅前合計</span>
+            <span className="text-muted-foreground">{p.footerSubtotal}</span>
             <span className="w-32 text-right">{formatCurrency(invoice.subtotal)}</span>
           </div>
           <div className="flex gap-8">
-            <span className="text-muted-foreground">營業稅</span>
+            <span className="text-muted-foreground">{p.footerTax}</span>
             <span className="w-32 text-right">{formatCurrency(invoice.taxAmount)}</span>
           </div>
           <div className="flex gap-8 font-bold text-base border-t pt-2 mt-1">
-            <span>含稅合計</span>
+            <span>{p.footerTotal}</span>
             <span className="w-32 text-right">{formatCurrency(invoice.totalAmount)}</span>
           </div>
         </div>

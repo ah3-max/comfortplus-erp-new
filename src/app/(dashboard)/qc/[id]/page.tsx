@@ -54,27 +54,9 @@ interface QcDetail {
   checkItems:      CheckItem[]
 }
 
-// ── Label maps ─────────────────────────────────────────────────────────────
-const INSPECTION_TYPE_LABEL: Record<string, string> = {
-  RAW_MATERIAL: '原物料 QC', PACKAGING: '包材 QC', IN_PRODUCTION: '生產中 QC',
-  FINISHED_PRODUCT: '成品 QC', PRE_SHIPMENT: '出貨前 QC',
-  INCOMING: '到貨驗收', COMPLAINT_TRACE: '客訴反查',
-}
-const STATUS_OPTIONS = [
-  { value: 'PENDING',     label: '待檢驗' },
-  { value: 'IN_PROGRESS', label: '檢驗中' },
-  { value: 'COMPLETED',   label: '已完成' },
-  { value: 'ON_HOLD',     label: '暫停' },
-]
-const RESULT_OPTIONS = [
-  { value: 'ACCEPTED',           label: '✅ 允收' },
-  { value: 'CONDITIONAL_ACCEPT', label: '⚠️ 條件允收' },
-  { value: 'REWORK',             label: '🔧 重工' },
-  { value: 'RETURN_TO_SUPPLIER', label: '↩️ 退供應商' },
-  { value: 'SUPPLEMENT',         label: '➕ 補貨' },
-  { value: 'DEDUCTION',          label: '💲 扣款' },
-  { value: 'ANOMALY_CLOSED',     label: '📁 異常結案' },
-]
+// ── Status/Result value arrays (values only; labels come from dict) ──────────
+const STATUS_VALUES = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD'] as const
+const RESULT_VALUES = ['ACCEPTED', 'CONDITIONAL_ACCEPT', 'REWORK', 'RETURN_TO_SUPPLIER', 'SUPPLEMENT', 'DEDUCTION', 'ANOMALY_CLOSED'] as const
 const JUDGMENT_OPTIONS = ['PASS', 'FAIL', 'WARNING']
 const STATUS_COLOR: Record<string, string> = {
   PENDING: 'bg-slate-100 text-slate-600', IN_PROGRESS: 'bg-blue-100 text-blue-700',
@@ -107,6 +89,7 @@ function CheckItemRow({
   onDelete: (id: string) => void
 }) {
   const { dict } = useI18n()
+  const p = dict.qcDetail
   const [actualValue, setActualValue] = useState(item.actualValue ?? '')
   const [isQualified, setIsQualified] = useState<boolean | null>(item.isQualified ?? null)
   const [defectType, setDefectType] = useState(item.defectType ?? '')
@@ -140,7 +123,7 @@ function CheckItemRow({
         <div className="w-40 shrink-0">
           <p className="text-sm font-medium text-slate-800">{item.itemName}</p>
           {item.standardValue && (
-            <p className="text-xs text-muted-foreground mt-0.5">標準：{item.standardValue}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{p.standardPrefix}{item.standardValue}</p>
           )}
         </div>
 
@@ -150,7 +133,7 @@ function CheckItemRow({
             value={actualValue}
             onChange={e => { setActualValue(e.target.value); markDirty() }}
             className="h-8 text-xs"
-            placeholder="實測值"
+            placeholder={p.actualValuePlaceholder}
           />
         </div>
 
@@ -161,13 +144,13 @@ function CheckItemRow({
             className={`text-xs px-2.5 py-1 rounded-md border-2 font-medium transition-all ${
               isQualified === true ? 'border-green-400 bg-green-100 text-green-700' : 'border-slate-200 text-slate-400'
             }`}
-          >✓ 合格</button>
+          >{p.passBtn}</button>
           <button
             onClick={() => { setIsQualified(false); markDirty() }}
             className={`text-xs px-2.5 py-1 rounded-md border-2 font-medium transition-all ${
               isQualified === false ? 'border-red-400 bg-red-100 text-red-700' : 'border-slate-200 text-slate-400'
             }`}
-          >✗ 不合格</button>
+          >{p.failBtn}</button>
         </div>
 
         {/* Judgment */}
@@ -176,7 +159,7 @@ function CheckItemRow({
           onChange={e => { setJudgment(e.target.value); markDirty() }}
           className="border rounded-md px-2 py-1 text-xs w-24 h-8"
         >
-          <option value="">判定</option>
+          <option value="">{p.judgmentPlaceholder}</option>
           {JUDGMENT_OPTIONS.map(j => <option key={j} value={j}>{j}</option>)}
         </select>
 
@@ -187,7 +170,7 @@ function CheckItemRow({
               value={defectType}
               onChange={e => { setDefectType(e.target.value); markDirty() }}
               className="h-8 text-xs w-28"
-              placeholder="缺陷描述"
+              placeholder={p.defectTypePlaceholder}
             />
             <Input
               type="number"
@@ -195,7 +178,7 @@ function CheckItemRow({
               value={defectQty}
               onChange={e => { setDefectQty(e.target.value); markDirty() }}
               className="h-8 text-xs w-20"
-              placeholder="缺陷數"
+              placeholder={p.defectQtyPlaceholder}
             />
           </div>
         )}
@@ -225,6 +208,7 @@ function CheckItemRow({
 // ── Main Detail Page ───────────────────────────────────────────────────────
 export default function QcDetailPage() {
   const { dict } = useI18n()
+  const qp = dict.qcDetail
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [qc, setQc] = useState<QcDetail | null>(null)
@@ -333,7 +317,7 @@ export default function QcDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(presets.map(name => ({ itemName: name }))),
       })
-      toast.success(`已套用 ${presets.length} 個預設檢驗項目`)
+      toast.success(qp.applyPreset)
       await load()
     } finally {
       setAddingItem(false)
@@ -367,19 +351,19 @@ export default function QcDetailPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold text-slate-900 font-mono">{qc.qcNo}</h1>
             <Badge className={`border-0 ${STATUS_COLOR[qc.qcStatus] ?? ''}`}>
-              {STATUS_OPTIONS.find(s => s.value === qc.qcStatus)?.label ?? qc.qcStatus}
+              {qp.statusLabels[qc.qcStatus as keyof typeof qp.statusLabels] ?? qc.qcStatus}
             </Badge>
             {qc.result && (
               <Badge className={`border-0 ${RESULT_COLOR[qc.result] ?? ''}`}>
-                {RESULT_OPTIONS.find(r => r.value === qc.result)?.label ?? qc.result}
+                {qp.resultLabels[qc.result as keyof typeof qp.resultLabels] ?? qc.result}
               </Badge>
             )}
             <Badge variant="outline" className="text-xs">
-              {INSPECTION_TYPE_LABEL[qc.inspectionType] ?? qc.inspectionType}
+              {qp.inspectionTypeLabels[qc.inspectionType as keyof typeof qp.inspectionTypeLabels] ?? qc.inspectionType}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            建立日期：{new Date(qc.createdAt).toLocaleDateString('zh-TW')}
+            {qp.createdDatePrefix}{new Date(qc.createdAt).toLocaleDateString('zh-TW')}
           </p>
         </div>
         <Button onClick={handleSave} disabled={saving} size="sm">
@@ -393,7 +377,7 @@ export default function QcDetailPage() {
           {/* Related entities */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-700">關聯資訊</CardTitle>
+              <CardTitle className="text-sm font-semibold text-slate-700">{qp.relatedInfo}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               {qc.product && (
@@ -419,7 +403,7 @@ export default function QcDetailPage() {
                 <div className="flex items-start gap-2">
                   <Factory className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-muted-foreground">生產單</p>
+                    <p className="text-xs text-muted-foreground">{qp.productionOrderLabel}</p>
                     <p className="font-mono text-sm">{qc.productionOrder.productionNo}</p>
                   </div>
                 </div>
@@ -434,8 +418,8 @@ export default function QcDetailPage() {
                 </div>
               )}
               <div className="pt-1 border-t space-y-1 text-xs text-slate-600">
-                {qc.batchNo && <p><span className="text-muted-foreground">批次：</span>{qc.batchNo}</p>}
-                {qc.inspectionDate && <p><span className="text-muted-foreground">檢驗日：</span>{new Date(qc.inspectionDate).toLocaleDateString('zh-TW')}</p>}
+                {qc.batchNo && <p><span className="text-muted-foreground">{qp.batchPrefix}</span>{qc.batchNo}</p>}
+                {qc.inspectionDate && <p><span className="text-muted-foreground">{qp.inspectionDatePrefix}</span>{new Date(qc.inspectionDate).toLocaleDateString('zh-TW')}</p>}
               </div>
             </CardContent>
           </Card>
@@ -443,7 +427,7 @@ export default function QcDetailPage() {
           {/* Inspection result controls */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-700">檢驗結果登錄</CardTitle>
+              <CardTitle className="text-sm font-semibold text-slate-700">{qp.resultCard}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -453,18 +437,18 @@ export default function QcDetailPage() {
                   onChange={e => setEditStatus(e.target.value)}
                   className="w-full border rounded-md px-3 py-1.5 text-sm"
                 >
-                  {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  {STATUS_VALUES.map(v => <option key={v} value={v}>{qp.statusLabels[v]}</option>)}
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-slate-600 mb-1.5 block">良品數</Label>
+                  <Label className="text-xs text-slate-600 mb-1.5 block">{qp.passedQtyLabel}</Label>
                   <Input type="number" min={0} value={editPassedQty}
                     onChange={e => setEditPassedQty(e.target.value)} className="text-sm h-9" placeholder="0" />
                 </div>
                 <div>
-                  <Label className="text-xs text-slate-600 mb-1.5 block">不良數</Label>
+                  <Label className="text-xs text-slate-600 mb-1.5 block">{qp.failedQtyLabel}</Label>
                   <Input type="number" min={0} value={editFailedQty}
                     onChange={e => setEditFailedQty(e.target.value)} className="text-sm h-9" placeholder="0" />
                 </div>
@@ -474,7 +458,7 @@ export default function QcDetailPage() {
                 <div className="grid grid-cols-2 gap-2 text-center">
                   <div className="rounded-lg bg-green-50 border border-green-200 py-1.5">
                     <p className="text-sm font-bold text-green-700">{livePassRate}%</p>
-                    <p className="text-xs text-green-600">良品率</p>
+                    <p className="text-xs text-green-600">{qp.passRateLabel}</p>
                   </div>
                   <div className="rounded-lg bg-red-50 border border-red-200 py-1.5">
                     <p className="text-sm font-bold text-red-700">{liveDefectRate}%</p>
@@ -484,32 +468,32 @@ export default function QcDetailPage() {
               )}
 
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">最終判定</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{qp.finalJudgment}</Label>
                 <select
                   value={editResult}
                   onChange={e => setEditResult(e.target.value)}
                   className="w-full border rounded-md px-3 py-1.5 text-sm"
                 >
-                  <option value="">待判定</option>
-                  {RESULT_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  <option value="">{qp.pendingJudgment}</option>
+                  {RESULT_VALUES.map(v => <option key={v} value={v}>{qp.resultLabels[v]}</option>)}
                 </select>
               </div>
 
               <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">結果摘要</Label>
+                <Label className="text-xs text-slate-600 mb-1.5 block">{qp.resultSummaryLabel}</Label>
                 <Textarea
                   value={editResultSummary}
                   onChange={e => setEditResultSummary(e.target.value)}
                   rows={2}
                   className="text-sm resize-none"
-                  placeholder="例：腰貼黏性不足，建議重工後再驗…"
+                  placeholder={qp.resultSummaryPlaceholder}
                 />
               </div>
 
               <div>
                 <Label className="text-xs text-slate-600 mb-1.5 block">{dict.common.notes}</Label>
                 <Input value={editNotes} onChange={e => setEditNotes(e.target.value)}
-                  className="text-sm h-9" placeholder="（選填）" />
+                  className="text-sm h-9" placeholder={qp.notesOptional} />
               </div>
             </CardContent>
           </Card>
@@ -522,13 +506,13 @@ export default function QcDetailPage() {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                   <ClipboardCheck className="h-4 w-4" />
-                  逐項檢驗明細
+                  {qp.checkItemsHeader}
                   <span className="font-normal text-xs text-muted-foreground">({qc.checkItems.length} 項)</span>
                 </CardTitle>
                 <div className="flex gap-2">
                   {qc.checkItems.length === 0 && PRESET_ITEMS[qc.inspectionType] && (
                     <Button variant="outline" size="sm" onClick={applyPreset} disabled={addingItem} className="text-xs">
-                      {addingItem ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : '套用預設項目'}
+                      {addingItem ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : qp.applyPreset}
                     </Button>
                   )}
                   <Button size="sm" variant="outline" onClick={() => setShowAddItem(s => !s)} className="gap-1 text-xs">
@@ -541,14 +525,14 @@ export default function QcDetailPage() {
               {qc.checkItems.length > 0 && (
                 <div className="flex gap-2 mt-2 flex-wrap">
                   <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                    <CheckCircle2 className="h-3 w-3 inline mr-0.5" />合格 {passedItems}
+                    <CheckCircle2 className="h-3 w-3 inline mr-0.5" />{qp.passedLabel} {passedItems}
                   </span>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                    <AlertTriangle className="h-3 w-3 inline mr-0.5" />不合格 {failedItems}
+                    <AlertTriangle className="h-3 w-3 inline mr-0.5" />{qp.failedLabel} {failedItems}
                   </span>
                   {pendingItems > 0 && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                      待判定 {pendingItems}
+                      {qp.pendingLabel} {pendingItems}
                     </span>
                   )}
                 </div>
@@ -561,23 +545,23 @@ export default function QcDetailPage() {
                 <div className="border-b px-4 py-3 bg-blue-50/50">
                   <div className="flex gap-2 items-end flex-wrap">
                     <div className="flex-1 min-w-40">
-                      <Label className="text-xs text-slate-600 mb-1 block">項目名稱 *</Label>
+                      <Label className="text-xs text-slate-600 mb-1 block">{qp.itemNameLabel}</Label>
                       <Input
                         value={newItemName}
                         onChange={e => setNewItemName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleAddItem()}
                         className="h-8 text-sm"
-                        placeholder="例：吸收量（ml）"
+                        placeholder={qp.itemNamePlaceholder}
                         autoFocus
                       />
                     </div>
                     <div className="flex-1 min-w-32">
-                      <Label className="text-xs text-slate-600 mb-1 block">標準值（選填）</Label>
+                      <Label className="text-xs text-slate-600 mb-1 block">{qp.standardValueLabel}</Label>
                       <Input
                         value={newItemStandard}
                         onChange={e => setNewItemStandard(e.target.value)}
                         className="h-8 text-sm"
-                        placeholder="例：≥ 300ml"
+                        placeholder={qp.standardValuePlaceholder}
                       />
                     </div>
                     <Button size="sm" onClick={handleAddItem} disabled={addingItem || !newItemName.trim()}>
@@ -591,14 +575,14 @@ export default function QcDetailPage() {
               {qc.checkItems.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <ClipboardCheck className="h-10 w-10 mx-auto mb-3 opacity-25" />
-                  <p className="text-sm">尚未新增檢驗項目</p>
-                  <p className="text-xs mt-1">點擊「套用預設項目」快速帶入常用檢驗項目</p>
+                  <p className="text-sm">{qp.emptyItems}</p>
+                  <p className="text-xs mt-1">{qp.emptyItemsHint}</p>
                 </div>
               ) : (
                 <>
                   {/* Column headers */}
                   <div className="grid grid-cols-[10rem_7rem_auto_6rem_auto_auto] gap-2 px-4 py-2 text-xs font-semibold text-muted-foreground bg-slate-50 border-b">
-                    <span>項目名稱</span><span>實測值</span><span>合格</span><span>判定</span><span>缺陷</span><span></span>
+                    <span>{qp.colItemName}</span><span>{qp.colActualValue}</span><span>{qp.colQualified}</span><span>{qp.colJudgment}</span><span>{qp.colDefect}</span><span></span>
                   </div>
                   {qc.checkItems.map(item => (
                     <CheckItemRow

@@ -29,6 +29,7 @@ interface HealthData {
 
 export default function AiSettingsPage() {
   const { dict } = useI18n()
+  const p = dict.settingsAi
   const { data: session } = useSession()
   const role = (session?.user?.role as string) ?? ''
   const isAdmin = ['SUPER_ADMIN', 'GM'].includes(role)
@@ -82,7 +83,7 @@ export default function AiSettingsPage() {
   if (!isAdmin) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
-        僅管理員可存取此頁面
+        {p.adminOnly}
       </div>
     )
   }
@@ -91,7 +92,7 @@ export default function AiSettingsPage() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{dict.settings.title} — AI</h1>
-        <p className="text-sm text-muted-foreground">管理 AI 助手的模型連線設定</p>
+        <p className="text-sm text-muted-foreground">{p.subtitle}</p>
       </div>
 
       {/* Status Card */}
@@ -100,7 +101,7 @@ export default function AiSettingsPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <Bot className="h-5 w-5 text-violet-500" />
-              連線狀態
+              {p.statusCard}
             </CardTitle>
             <Button variant="outline" size="sm" onClick={fetchHealth} disabled={loading} title={dict.common.refresh}>
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -115,13 +116,13 @@ export default function AiSettingsPage() {
           ) : health ? (
             <>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm">目前提供者</span>
+                <span className="text-sm">{p.currentProvider}</span>
                 <Badge variant="outline" className="text-sm">
-                  {health.config.provider === 'anthropic' ? 'Anthropic Claude' : 'Ollama (本地)'}
+                  {health.config.provider === 'anthropic' ? p.providerAnthropicLabel : p.providerOllamaLabel}
                 </Badge>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm">使用模型</span>
+                <span className="text-sm">{p.currentModel}</span>
                 <span className="text-sm font-mono">
                   {health.config.provider === 'anthropic'
                     ? health.config.anthropicModel
@@ -129,7 +130,7 @@ export default function AiSettingsPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-sm">Ollama 伺服器</span>
+                <span className="text-sm">{p.ollamaServer}</span>
                 <div className="flex items-center gap-2">
                   {health.ollama.ok ? (
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -141,7 +142,7 @@ export default function AiSettingsPage() {
               </div>
               {health.ollama.ok && health.ollama.models && (
                 <div className="py-2">
-                  <p className="text-sm text-muted-foreground mb-2">可用模型：</p>
+                  <p className="text-sm text-muted-foreground mb-2">{p.availableModels}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {health.ollama.models.map(m => (
                       <Badge key={m} variant="secondary" className="text-xs font-mono">
@@ -153,7 +154,7 @@ export default function AiSettingsPage() {
               )}
               {!health.ollama.ok && health.ollama.error && (
                 <p className="text-sm text-red-600">
-                  Ollama 錯誤：{health.ollama.error}
+                  {p.ollamaError}{health.ollama.error}
                 </p>
               )}
             </>
@@ -168,26 +169,26 @@ export default function AiSettingsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Server className="h-5 w-5 text-blue-500" />
-            連線設定
+            {p.configCard}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>AI 提供者</Label>
+            <Label>{p.providerLabel}</Label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5">
               {[
-                { value: 'anthropic', label: 'Anthropic Claude', sub: '雲端 API' },
-                { value: 'ollama', label: 'Ollama', sub: '本地 GPU' },
-              ].map(p => (
-                <button key={p.value} type="button"
-                  onClick={() => setProvider(p.value)}
+                { value: 'anthropic', label: p.providerAnthropicLabel, sub: p.providerAnthropicSub },
+                { value: 'ollama', label: 'Ollama', sub: p.providerOllamaSub },
+              ].map(opt => (
+                <button key={opt.value} type="button"
+                  onClick={() => setProvider(opt.value)}
                   className={`rounded-xl border-2 p-3 text-left transition-all active:scale-[0.98] ${
-                    provider === p.value
+                    provider === opt.value
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-slate-200'
                   }`}>
-                  <p className="font-medium text-sm">{p.label}</p>
-                  <p className="text-xs text-muted-foreground">{p.sub}</p>
+                  <p className="font-medium text-sm">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground">{opt.sub}</p>
                 </button>
               ))}
             </div>
@@ -196,45 +197,36 @@ export default function AiSettingsPage() {
           {provider === 'ollama' && (
             <>
               <div className="space-y-1.5">
-                <Label>Ollama 伺服器 URL</Label>
+                <Label>{p.ollamaUrlLabel}</Label>
                 <Input value={ollamaUrl} onChange={e => setOllamaUrl(e.target.value)}
-                  placeholder="http://192.168.1.100:11434" />
-                <p className="text-xs text-muted-foreground">
-                  Dell 770 的 IP 位址 + port 11434
-                </p>
+                  placeholder={p.ollamaUrlPlaceholder} />
+                <p className="text-xs text-muted-foreground">{p.ollamaUrlHint}</p>
               </div>
               <div className="space-y-1.5">
-                <Label>模型名稱</Label>
+                <Label>{p.modelLabel}</Label>
                 <Input value={ollamaModel} onChange={e => setOllamaModel(e.target.value)}
-                  placeholder="llama3.1:70b" />
-                <p className="text-xs text-muted-foreground">
-                  建議：qwen2.5:72b（中文最佳）、llama3.1:70b（通用）
-                </p>
+                  placeholder={p.modelPlaceholder} />
+                <p className="text-xs text-muted-foreground">{p.modelHint}</p>
               </div>
             </>
           )}
 
           {provider === 'anthropic' && (
             <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
-              <p className="text-sm text-blue-700">
-                目前使用 Anthropic Claude Sonnet。API Key 請設定在伺服器的 .env 檔案中。
-              </p>
+              <p className="text-sm text-blue-700">{p.anthropicNote}</p>
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground border-t pt-3">
-            注意：變更設定需要修改伺服器的 .env 檔案並重啟服務。
-            此頁面目前僅供查看連線狀態。
-          </p>
+          <p className="text-xs text-muted-foreground border-t pt-3">{p.configNote}</p>
         </CardContent>
       </Card>
 
       {/* Test Connection */}
       <Button onClick={testConnection} disabled={testing} className="w-full">
         {testing ? (
-          <><Loader2 className="h-4 w-4 animate-spin mr-2" /> 測試中...</>
+          <><Loader2 className="h-4 w-4 animate-spin mr-2" />{p.testingButton}</>
         ) : (
-          <><Bot className="h-4 w-4 mr-2" /> 測試 AI 連線</>
+          <><Bot className="h-4 w-4 mr-2" />{p.testButton}</>
         )}
       </Button>
 
