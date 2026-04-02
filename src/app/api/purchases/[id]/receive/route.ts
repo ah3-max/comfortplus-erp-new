@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { createAutoJournal } from '@/lib/auto-journal'
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -16,8 +17,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     include: { items: true },
   })
   if (!po) return NextResponse.json({ error: '找不到採購單' }, { status: 404 })
-  if (!['CONFIRMED', 'PARTIAL'].includes(po.status)) {
-    return NextResponse.json({ error: '採購單須為已確認或部分到貨狀態才能驗收' }, { status: 400 })
+  if (!['FACTORY_CONFIRMED', 'PARTIAL'].includes(po.status)) {
+    return NextResponse.json({ error: '採購單須為工廠確認或部分到貨狀態才能驗收' }, { status: 400 })
   }
 
   const receiveItems: Array<{ productId: string; quantity: number }> = body.items.filter(
@@ -103,6 +104,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       data: { status: allReceived ? 'RECEIVED' : 'PARTIAL' },
     })
   })
+
+  // 1-2: Auto-create AP on first receive (idempotent)
+  const existingAP = await prisma.accountsPayable.findFirst({ where: { purchaseOrderId: id } })
+  if (!existingAP) {
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + 30)
+    await prisma.accountsPayable.create({
+      data: {
+        supplierId: po.supplierId,
+        purchaseOrderId: id,
+        invoiceNo: receiptNo,
+        invoiceDate: new Date(),
+        dueDate,
+        amount: po.totalAmount ?? 0,
+      },
+    })
+  }
+
+  // 1-3: Auto journal — PURCHASE_RECEIVE
+  const receivedTotal = receiveItems.reduce((sum, ri) => {
+    const poi = po.items.find(i => i.productId === ri.productId)
+    return sum + ri.quantity * Number(poi?.unitCost ?? 0)
+  }, 0)
+  createAutoJournal({
+    type: 'PURCHASE_RECEIVE',
+    referenceType: 'PURCHASE_RECEIPT',
+    referenceId: receiptNo,
+    entryDate: new Date(),
+    description: `採購驗收 ${receiptNo}`,
+    amount: receivedTotal,
+    createdById: session.user.id,
+  }).catch(() => {})
 
   return NextResponse.json({ success: true, receiptNo })
   } catch (error) { return handleApiError(error, 'purchases.receive') }

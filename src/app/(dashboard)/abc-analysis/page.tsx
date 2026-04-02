@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -62,6 +62,8 @@ export default function ABCAnalysisPage() {
     } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate])
+
+  useEffect(() => { query() }, [query])
 
   const filtered = gradeFilter === 'ALL' ? data : data.filter(r => r.grade === gradeFilter)
 

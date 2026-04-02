@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,12 +11,12 @@ import { Loader2, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-const TYPE_CONFIG: Record<string, { label: string; badge: string; row: string }> = {
-  ASSET:     { label: '資產', badge: 'bg-blue-100 text-blue-700',   row: 'bg-blue-50/30' },
-  LIABILITY: { label: '負債', badge: 'bg-amber-100 text-amber-700', row: 'bg-amber-50/30' },
-  EQUITY:    { label: '權益', badge: 'bg-purple-100 text-purple-700', row: 'bg-purple-50/30' },
-  REVENUE:   { label: '收入', badge: 'bg-green-100 text-green-700', row: 'bg-green-50/30' },
-  EXPENSE:   { label: '費用', badge: 'bg-red-100 text-red-700',     row: 'bg-red-50/30' },
+const TYPE_CLASSES: Record<string, { badge: string; row: string }> = {
+  ASSET:     { badge: 'bg-blue-100 text-blue-700',   row: 'bg-blue-50/30' },
+  LIABILITY: { badge: 'bg-amber-100 text-amber-700', row: 'bg-amber-50/30' },
+  EQUITY:    { badge: 'bg-purple-100 text-purple-700', row: 'bg-purple-50/30' },
+  REVENUE:   { badge: 'bg-green-100 text-green-700', row: 'bg-green-50/30' },
+  EXPENSE:   { badge: 'bg-red-100 text-red-700',     row: 'bg-red-50/30' },
 }
 
 interface AccountRow {
@@ -36,6 +36,11 @@ function fmt(n: number) {
 
 export default function AccountListPage() {
   const { dict } = useI18n()
+  const fp = dict.financePages
+  const typeLabels: Record<string, string> = {
+    ASSET: fp.alTypeAsset, LIABILITY: fp.alTypeLiability,
+    EQUITY: fp.alTypeEquity, REVENUE: fp.alTypeRevenue, EXPENSE: fp.alTypeExpense,
+  }
   const [type, setType] = useState('all')
   const [includeBalance, setIncludeBalance] = useState(false)
   const [data, setData] = useState<AccountData | null>(null)
@@ -52,6 +57,8 @@ export default function AccountListPage() {
     finally { setLoading(false) }
   }, [type, includeBalance])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -60,20 +67,20 @@ export default function AccountListPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.accountList}</h1>
-          <p className="text-sm text-muted-foreground">會計科目表及期間餘額</p>
+          <p className="text-sm text-muted-foreground">{fp.alDesc}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">科目類型</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.alTypeLabel}</label>
           <select value={type} onChange={e => setType(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="all">全部</option>
-            <option value="ASSET">資產</option>
-            <option value="LIABILITY">負債</option>
-            <option value="EQUITY">權益</option>
-            <option value="REVENUE">收入</option>
-            <option value="EXPENSE">費用</option>
+            <option value="all">{fp.alTypeAll}</option>
+            <option value="ASSET">{fp.alTypeAsset}</option>
+            <option value="LIABILITY">{fp.alTypeLiability}</option>
+            <option value="EQUITY">{fp.alTypeEquity}</option>
+            <option value="REVENUE">{fp.alTypeRevenue}</option>
+            <option value="EXPENSE">{fp.alTypeExpense}</option>
           </select>
         </div>
         <div className="flex items-center gap-2 pb-1">
@@ -82,7 +89,7 @@ export default function AccountListPage() {
             onChange={e => setIncludeBalance(e.target.checked)}
             className="rounded"
           />
-          <label htmlFor="inclBal" className="text-sm cursor-pointer">顯示餘額</label>
+          <label htmlFor="inclBal" className="text-sm cursor-pointer">{fp.alShowBalance}</label>
         </div>
         <Button onClick={fetchData} disabled={loading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}
@@ -93,14 +100,14 @@ export default function AccountListPage() {
         <>
           <div className="flex flex-wrap gap-2">
             <div className="rounded-lg border bg-white px-4 py-2 text-sm">
-              <span className="text-muted-foreground">科目總數 </span>
+              <span className="text-muted-foreground">{fp.alSummaryTotal} </span>
               <span className="font-semibold">{data.summary.total}</span>
             </div>
             {Object.entries(data.summary.byType).map(([t, count]) => {
-              const cfg = TYPE_CONFIG[t]
+              const cfg = TYPE_CLASSES[t]
               return (
                 <div key={t} className={`rounded-lg border px-3 py-2 text-xs flex items-center gap-1.5 ${cfg?.row ?? ''}`}>
-                  <Badge className={`text-xs ${cfg?.badge ?? ''}`}>{cfg?.label ?? t}</Badge>
+                  <Badge className={`text-xs ${cfg?.badge ?? ''}`}>{typeLabels[t] ?? t}</Badge>
                   <span className="font-medium">{count}</span>
                 </div>
               )
@@ -111,25 +118,25 @@ export default function AccountListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">科目代碼</TableHead>
-                  <TableHead>科目名稱</TableHead>
-                  <TableHead className="w-20">類型</TableHead>
-                  <TableHead className="w-28">正常方向</TableHead>
+                  <TableHead className="w-24">{fp.alColCode}</TableHead>
+                  <TableHead>{fp.alColName}</TableHead>
+                  <TableHead className="w-20">{fp.alColType}</TableHead>
+                  <TableHead className="w-28">{fp.alColNormalBalance}</TableHead>
                   {includeBalance && (
                     <>
-                      <TableHead className="text-right w-28">借方合計</TableHead>
-                      <TableHead className="text-right w-28">貸方合計</TableHead>
-                      <TableHead className="text-right w-28">餘額</TableHead>
+                      <TableHead className="text-right w-28">{fp.alColDebitTotal}</TableHead>
+                      <TableHead className="text-right w-28">{fp.alColCreditTotal}</TableHead>
+                      <TableHead className="text-right w-28">{fp.alColBalance}</TableHead>
                     </>
                   )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.accounts.length === 0 ? (
-                  <TableRow><TableCell colSpan={includeBalance ? 7 : 4} className="py-12 text-center text-muted-foreground">無科目資料</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={includeBalance ? 7 : 4} className="py-12 text-center text-muted-foreground">{fp.alNoRecords}</TableCell></TableRow>
                 ) : (
                   data.accounts.map(acc => {
-                    const cfg = TYPE_CONFIG[acc.type]
+                    const cfg = TYPE_CLASSES[acc.type]
                     return (
                       <TableRow key={acc.id} className={`text-sm hover:bg-slate-50/40 ${cfg?.row ?? ''}`}>
                         <TableCell className="font-mono text-xs">{acc.code}</TableCell>
@@ -138,10 +145,10 @@ export default function AccountListPage() {
                           {acc.subType && <span className="ml-2 text-xs text-muted-foreground">({acc.subType})</span>}
                         </TableCell>
                         <TableCell>
-                          <Badge className={`text-xs ${cfg?.badge ?? ''}`}>{cfg?.label ?? acc.type}</Badge>
+                          <Badge className={`text-xs ${cfg?.badge ?? ''}`}>{typeLabels[acc.type] ?? acc.type}</Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {acc.normalBalance === 'DEBIT' ? '借方' : '貸方'}
+                          {acc.normalBalance === 'DEBIT' ? fp.alDebit : fp.alCredit}
                         </TableCell>
                         {includeBalance && (
                           <>

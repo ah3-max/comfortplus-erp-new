@@ -69,7 +69,7 @@ export function WarehouseDashboard() {
       fetch('/api/sea-freight?pageSize=20').then(r => r.ok ? r.json() : { data: [] }),
       fetch('/api/orders?status=CONFIRMED&pageSize=20').then(r => r.ok ? r.json() : { data: [] }),
     ]).then(([warehouseData, mainData, inboundData, freightData, ordersData]) => {
-      setData(warehouseData)
+      if (warehouseData?.totalInventory !== undefined) setData(warehouseData)
       setExtra({
         pendingShipments: mainData.pending?.shipments ?? 0,
         lowStockCount: mainData.lowStock?.count ?? 0,
@@ -82,11 +82,17 @@ export function WarehouseDashboard() {
       )
       setSeaFreights(freights)
       setConfirmedOrders(ordersData.data ?? [])
-    }).finally(() => setLoading(false))
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <DashboardLoading />
-  if (!data || !extra) return null
+  if (!data || !extra) return (
+    <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
+      <AlertTriangle className="h-8 w-8 text-amber-500" />
+      <p>儀表板載入失敗，請重新整理</p>
+      <button onClick={() => window.location.reload()} className="text-sm underline">重新載入</button>
+    </div>
+  )
 
   const pendingQc = inbounds.filter(i => !i.qcResult)
   const pendingPutaway = inbounds.filter(i => i.qcResult === 'PASS' && i.putawayStatus !== 'COMPLETED')

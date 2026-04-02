@@ -101,7 +101,29 @@ export function Header() {
       }
     })
     const interval = setInterval(fetchNotifications, 60000)
-    return () => clearInterval(interval)
+
+    // SSE real-time push (G-5)
+    let es: EventSource | null = null
+    try {
+      es = new EventSource('/api/notifications/stream')
+      es.addEventListener('notification', (e) => {
+        try {
+          const payload = JSON.parse(e.data) as { notifications: Notification[]; count: number }
+          setNotifications(prev => {
+            const ids = new Set(prev.map(n => n.id))
+            const fresh = payload.notifications.filter(n => !ids.has(n.id))
+            return [...fresh, ...prev].slice(0, 20)
+          })
+          setUnreadCount(prev => prev + payload.notifications.filter(n => !n.isRead).length)
+        } catch { /* ignore */ }
+      })
+      es.onerror = () => { es?.close() }
+    } catch { /* SSE not supported */ }
+
+    return () => {
+      clearInterval(interval)
+      es?.close()
+    }
   }, [fetchNotifications, generateNotifications])
 
   const markAsRead = async (id: string, linkUrl?: string) => {

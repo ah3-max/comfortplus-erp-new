@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         { customer: { name: { contains: search, mode: 'insensitive' as const } } },
       ],
     }),
-    ...(status && { status: status as never }),
+    ...(status && { status: status.includes(',') ? { in: status.split(',') } as never : status as never }),
   }
 
   const [dispatchOrders, total] = await Promise.all([

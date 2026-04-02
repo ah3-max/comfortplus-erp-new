@@ -45,6 +45,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `訂單狀態 ${order.status} 無法出貨` }, { status: 400 })
   }
 
+  // Resolve warehouse code
+  let warehouseCode = 'MAIN'
+  if (order.warehouseId) {
+    const wh = await prisma.warehouse.findUnique({ where: { id: order.warehouseId }, select: { code: true } })
+    if (wh?.code) warehouseCode = wh.code
+  }
+
   // Items to ship (unshipped quantities)
   const shipItems = order.items
     .filter(i => i.quantity > i.shippedQty)
@@ -55,18 +62,7 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    // 1. Check inventory
-    for (const item of shipItems) {
-      const inv = await tx.inventory.findFirst({
-        where: { productId: item.productId, warehouse: 'MAIN', category: 'FINISHED_GOODS' },
-      })
-      if (!inv || inv.quantity < item.quantity) {
-        const product = order.items.find(i => i.productId === item.productId)
-        throw new Error(`庫存不足：${product?.product.name ?? item.productId}（需要 ${item.quantity}，庫存 ${inv?.quantity ?? 0}）`)
-      }
-    }
-
-    // 2. Create shipment
+    // 1. Create shipment
     const shipmentNo = await generateSequenceNo('SHIPMENT')
     const shipment = await tx.shipment.create({
       data: {
@@ -77,7 +73,7 @@ export async function POST(req: NextRequest) {
         deliveryMethod: 'OWN_FLEET',
         carrier: body.vehicleNo ? `自有車 ${body.vehicleNo}` : '自行配送',
         address: order.customer?.address ?? null,
-        warehouse: 'MAIN',
+        warehouse: warehouseCode,
         notes: body.notes ?? null,
         items: {
           create: shipItems.map(i => ({
@@ -88,31 +84,41 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // 3. Deduct inventory
+    // 2. Deduct inventory (SELECT FOR UPDATE row-level lock)
     for (const item of shipItems) {
-      const inv = await tx.inventory.findFirst({
-        where: { productId: item.productId, warehouse: 'MAIN', category: 'FINISHED_GOODS' },
-      })
-      if (inv) {
-        await tx.inventory.update({
-          where: { id: inv.id },
-          data: { quantity: { decrement: item.quantity } },
-        })
-        await tx.inventoryTransaction.create({
-          data: {
-            productId: item.productId,
-            warehouse: 'MAIN',
-            category: 'FINISHED_GOODS',
-            type: 'OUT',
-            quantity: item.quantity,
-            beforeQty: inv.quantity,
-            afterQty: inv.quantity - item.quantity,
-            referenceType: 'SHIPMENT',
-            referenceId: shipment.id,
-            notes: `一鍵出貨 ${shipmentNo}`,
-          },
-        })
+      const rows = await tx.$queryRaw<Array<{ id: string; quantity: number }>>`
+        SELECT id, quantity FROM "Inventory"
+        WHERE "productId" = ${item.productId}
+          AND warehouse = ${warehouseCode}
+          AND category = 'FINISHED_GOODS'
+        FOR UPDATE
+      `
+      const inv = rows[0]
+      if (!inv || inv.quantity < item.quantity) {
+        const product = order.items.find(i => i.productId === item.productId)
+        throw new Error(`庫存不足：${product?.product.name ?? item.productId}（需要 ${item.quantity}，庫存 ${inv?.quantity ?? 0}）`)
       }
+      await tx.inventory.update({
+        where: { id: inv.id },
+        data: {
+          quantity:    { decrement: item.quantity },
+          reservedQty: { decrement: item.quantity },
+        },
+      })
+      await tx.inventoryTransaction.create({
+        data: {
+          productId: item.productId,
+          warehouse: warehouseCode,
+          category: 'FINISHED_GOODS',
+          type: 'OUT',
+          quantity: item.quantity,
+          beforeQty: inv.quantity,
+          afterQty: inv.quantity - item.quantity,
+          referenceType: 'SHIPMENT',
+          referenceId: shipment.id,
+          notes: `一鍵出貨 ${shipmentNo}`,
+        },
+      })
 
       // Update order item shippedQty
       const orderItem = order.items.find(i => i.productId === item.productId)
@@ -127,7 +133,7 @@ export async function POST(req: NextRequest) {
     // 4. Update order status
     await tx.salesOrder.update({
       where: { id: orderId },
-      data: { status: 'ALLOCATING' },
+      data: { status: 'READY_TO_SHIP' },
     })
 
     // 5. Auto-create delivery trip if vehicle info provided

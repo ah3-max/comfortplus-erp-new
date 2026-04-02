@@ -113,6 +113,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             notes: `入庫驗收通過 ${inbound.inboundNo} / QC ${qcNo}`,
           },
         })
+
+        // 2-7: Create InventoryLot for traceability
+        const today = new Date()
+        const dateStr = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`
+        const lotNo = `LOT${dateStr}-${qcNo}-${String(inbound.items.indexOf(item)+1).padStart(2,'0')}`
+        await tx.inventoryLot.upsert({
+          where: { lotNo },
+          update: { quantity: { increment: qty } },
+          create: {
+            lotNo,
+            productId: item.productId,
+            warehouseId: inbound.warehouseId,
+            category: 'FINISHED_GOODS',
+            quantity: qty,
+            inboundDate: new Date(),
+            purchaseOrderId: inbound.seaFreight?.purchaseOrder?.id ?? null,
+          },
+        })
       }
 
       // Update PO items receivedQty

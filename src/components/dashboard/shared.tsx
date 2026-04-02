@@ -5,11 +5,14 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-export function fmt(n: number) {
-  return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(n)
+const LOCALE_MAP: Record<string, string> = { 'zh-TW': 'zh-TW', en: 'en-US', th: 'th-TH' }
+
+export function fmt(n: number, locale = 'zh-TW') {
+  return new Intl.NumberFormat(LOCALE_MAP[locale] ?? locale, { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(n)
 }
 
 export function fmtShort(n: number) {
@@ -212,11 +215,13 @@ export function OrderRow({ id, orderNo, customerName, amount, status, statusLabe
 // ── Today Header Banner ──────────────────────────────────────────────────────
 
 export function DashboardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  const { locale } = useI18n()
+  const dateLocale = LOCALE_MAP[locale] ?? 'zh-TW'
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
       <p className="text-sm text-muted-foreground">
-        {subtitle ?? new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+        {subtitle ?? new Date().toLocaleDateString(dateLocale, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
       </p>
     </div>
   )

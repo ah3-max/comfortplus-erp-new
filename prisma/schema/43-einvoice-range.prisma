@@ -1,0 +1,21 @@
+// ========== 電子發票字軌管理 ==========
+// 管理台灣電子發票的字軌（號碼區間設定）
+
+model EInvoiceNumberRange {
+  id            String   @id @default(cuid())
+  prefix        String   // 字軌代號，2碼大寫英文，如 "ZM"、"AA"
+  year          Int      // 民國年，如 114
+  period        String   // 期別: "01-02"、"03-04"、"05-06"、"07-08"、"09-10"、"11-12"
+  startNumber   Int      // 起始號碼（含），如 1
+  endNumber     Int      // 結束號碼（含），如 50
+  currentNumber Int      @default(0) // 目前已使用到的號碼（0=尚未使用）
+  isActive      Boolean  @default(true)
+  note          String?
+  createdById   String
+  createdBy     User     @relation("EInvoiceRangeCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([prefix, year, period])
+  @@index([year, period, isActive])
+}

@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
-import { Loader2, Plus, Trash2, CheckCircle2, TrendingUp, Scale, BookOpen, RotateCcw, ChevronDown, ChevronUp, BarChart2, AlertTriangle } from 'lucide-react'
+import { Loader2, Plus, Trash2, CheckCircle2, TrendingUp, Scale, BookOpen, RotateCcw, ChevronDown, ChevronUp, BarChart2, AlertTriangle, FileDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 function fmtPct(n: number) {
@@ -290,6 +290,17 @@ export default function FinancePage() {
               {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
             </select>
             <Button variant="outline" size="sm" onClick={fetchIncome}>{dict.common.refresh}</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const p = new URLSearchParams({ type: 'income-statement', year: String(year) })
+                if (month) p.set('month', String(month))
+                window.open(`/api/finance/reports/export?${p}`, '_blank')
+              }}
+            >
+              <FileDown className="w-4 h-4 mr-1" />{fp.exportExcel ?? '匯出 Excel'}
+            </Button>
           </div>
 
           {loadingIncome ? (
@@ -363,11 +374,18 @@ export default function FinancePage() {
 
         {/* ── 資產負債表 ── */}
         <TabsContent value="balance" className="space-y-4 mt-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Button variant="outline" size="sm" onClick={fetchBalance}>{dict.common.refresh}</Button>
             {balanceSheet && (
               <p className="text-sm text-muted-foreground">{fp.asOfDate} {new Date(balanceSheet.asOf).toLocaleDateString(locale)}</p>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('/api/finance/reports/export?type=balance-sheet', '_blank')}
+            >
+              <FileDown className="w-4 h-4 mr-1" />{fp.exportExcel ?? '匯出 Excel'}
+            </Button>
           </div>
 
           {loadingBalance ? (
@@ -553,6 +571,18 @@ export default function FinancePage() {
             </div>
             <Button variant="outline" size="sm" onClick={() => fetchTrialBalance(trialStart, trialEnd)}>
               {dict.reportsExt.generate}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const p = new URLSearchParams({ type: 'trial-balance' })
+                if (trialStart) p.set('startDate', trialStart)
+                if (trialEnd) p.set('endDate', trialEnd)
+                window.open(`/api/finance/reports/export?${p}`, '_blank')
+              }}
+            >
+              <FileDown className="w-4 h-4 mr-1" />{fp.exportExcel ?? '匯出 Excel'}
             </Button>
             {trialData && (
               <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm ${trialData.isBalanced ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}>

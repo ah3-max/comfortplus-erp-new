@@ -111,12 +111,12 @@ function fmtDate(iso: string | null | undefined): string {
   return iso.slice(0, 10)
 }
 
-function alertVariant(alert: string): 'destructive' | 'outline' {
-  return alert.includes('已過期') || alert.includes('已逾期') ? 'destructive' : 'outline'
+function alertVariant(alert: string, expiredKw: string, overdueKw: string): 'destructive' | 'outline' {
+  return alert.includes(expiredKw) || alert.includes(overdueKw) ? 'destructive' : 'outline'
 }
 
-function alertColor(alert: string): string {
-  return alert.includes('已過期') || alert.includes('已逾期')
+function alertColor(alert: string, expiredKw: string, overdueKw: string): string {
+  return alert.includes(expiredKw) || alert.includes(overdueKw)
     ? 'border-red-400 text-red-600'
     : 'border-amber-400 text-amber-600'
 }
@@ -702,7 +702,7 @@ function VehiclesTab() {
                           <Badge
                             key={i}
                             variant="outline"
-                            className={`text-xs ${alertColor(alert)}`}
+                            className={`text-xs ${alertColor(alert, lg.alertExpiredKeyword, lg.alertOverdueKeyword)}`}
                           >
                             <AlertTriangle className="h-3 w-3 mr-1" />
                             {alert}

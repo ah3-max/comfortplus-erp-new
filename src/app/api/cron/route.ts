@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { notify, notifyManagers } from '@/lib/notify'
+import { notify, notifyManagers, notifyByRole } from '@/lib/notify'
 import { refreshExpiryStatus } from '@/app/api/inventory/lots/refresh-expiry/route'
 import { updateOrderPrediction } from '@/lib/order-prediction'
 
@@ -122,13 +122,13 @@ export async function GET(req: NextRequest) {
   // ── Task 3: Low stock alerts — idempotent ──
   try {
     const lowStockItems = await prisma.$queryRaw<Array<{
-      productId: string; name: string; sku: string; quantity: number; safetyStock: number
+      productId: string; name: string; sku: string; availableQty: number; safetyStock: number
     }>>`
-      SELECT i."productId", p.name, p.sku, i.quantity, i."safetyStock"
+      SELECT i."productId", p.name, p.sku, i."availableQty", i."safetyStock"
       FROM "Inventory" i
       JOIN "Product" p ON p.id = i."productId"
-      WHERE i.quantity <= i."safetyStock" AND i.quantity > 0 AND p."isActive" = true
-      ORDER BY (i.quantity::float / NULLIF(i."safetyStock", 0)) ASC
+      WHERE i."availableQty" < i."safetyStock" AND i."safetyStock" > 0 AND p."isActive" = true
+      ORDER BY (i."availableQty"::float / NULLIF(i."safetyStock", 0)) ASC
       LIMIT 20
     `
 
@@ -138,16 +138,25 @@ export async function GET(req: NextRequest) {
         where: { category: 'INVENTORY_LOW', createdAt: { gte: todayStart } },
       })
       if (!alreadyNotified) {
+        const msg = lowStockItems.slice(0, 10).map(i =>
+          `• ${i.name}（${i.sku}）：${i.availableQty}/${i.safetyStock}`
+        ).join('\n')
         await notifyManagers({
           line: true,
           title: `⚠️ ${lowStockItems.length} 個商品低庫存`,
-          message: lowStockItems.slice(0, 10).map(i =>
-            `• ${i.name}（${i.sku}）：${i.quantity}/${i.safetyStock}`
-          ).join('\n'),
+          message: msg,
           linkUrl: '/inventory',
           category: 'INVENTORY_LOW',
           priority: 'HIGH',
         })
+        // 3-4: Also notify procurement so they can reorder
+        await notifyByRole(['PROCUREMENT'], {
+          title: `⚠️ ${lowStockItems.length} 個商品低庫存 — 請安排採購`,
+          message: msg,
+          linkUrl: '/inventory',
+          category: 'INVENTORY_LOW',
+          priority: 'HIGH',
+        }).catch(() => {})
       }
     }
     results.lowStock = { status: 'ok', data: { count: lowStockItems.length } }
@@ -337,6 +346,54 @@ export async function GET(req: NextRequest) {
     results.orderPrediction = { status: 'ok', data: { updated, failed } }
   } catch (e) {
     results.orderPrediction = { status: 'error', error: (e as Error).message }
+  }
+
+  // ── M-7: Overdue meeting action items reminder ──
+  try {
+    const overdueItems = await prisma.meetingActionItem.findMany({
+      where: {
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+        dueDate: { lt: now },
+      },
+      include: {
+        meetingRecord: { select: { id: true, title: true, meetingNo: true } },
+        owner: { select: { id: true, name: true } },
+      },
+    })
+
+    // Notify owners of overdue items (status stays OPEN/IN_PROGRESS)
+    const byOwner: Record<string, { items: string[]; meetingTitle: string }> = {}
+    for (const item of overdueItems) {
+      if (item.ownerUserId) {
+        if (!byOwner[item.ownerUserId]) byOwner[item.ownerUserId] = { items: [], meetingTitle: item.meetingRecord.title }
+        byOwner[item.ownerUserId].items.push(item.actionTitle)
+      }
+    }
+
+    for (const [userId, { items, meetingTitle }] of Object.entries(byOwner)) {
+      // Idempotent: check if already notified today
+      const alreadyNotified = await prisma.notification.findFirst({
+        where: {
+          userId,
+          category: 'MEETING_ACTION_OVERDUE',
+          createdAt: { gte: todayStart },
+        },
+      })
+      if (!alreadyNotified) {
+        await notify({
+          userIds: [userId],
+          title: `⚠️ 會議待辦事項逾期：${items.length} 項`,
+          message: `來自「${meetingTitle}」等會議的待辦已逾期：\n${items.slice(0, 5).join('\n')}`,
+          linkUrl: '/meeting-records',
+          category: 'MEETING_ACTION_OVERDUE',
+          priority: 'HIGH',
+        })
+      }
+    }
+
+    results.meetingActionOverdue = { status: 'ok', data: { overdue: overdueItems.length, notified: Object.keys(byOwner).length } }
+  } catch (e) {
+    results.meetingActionOverdue = { status: 'error', error: (e as Error).message }
   }
 
   return NextResponse.json({

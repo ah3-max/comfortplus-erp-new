@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,18 +22,19 @@ interface VoucherData {
   rows: VoucherRow[]
 }
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  NOT_DUE:     { label: '未到期', cls: 'bg-green-100 text-green-700' },
-  DUE:         { label: '已到期', cls: 'bg-red-100 text-red-700' },
-  PARTIAL_PAID:{ label: '部分收款', cls: 'bg-amber-100 text-amber-700' },
-  PAID:        { label: '已收清', cls: 'bg-slate-100 text-slate-600' },
-  BAD_DEBT:    { label: '呆帳', cls: 'bg-red-200 text-red-800' },
+const STATUS_CLS: Record<string, string> = {
+  NOT_DUE:     'bg-green-100 text-green-700',
+  DUE:         'bg-red-100 text-red-700',
+  PARTIAL_PAID:'bg-amber-100 text-amber-700',
+  PAID:        'bg-slate-100 text-slate-600',
+  BAD_DEBT:    'bg-red-200 text-red-800',
 }
 
 function fmt(n: number) { return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
 
 export default function ARVoucherDetailPage() {
   const { dict } = useI18n()
+  const fp = dict.financePages
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -54,13 +55,15 @@ export default function ARVoucherDetailPage() {
     finally { setLoading(false) }
   }, [startDate, endDate, status])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">應收憑證明細</h1>
-          <p className="text-sm text-muted-foreground">應收帳款發票及收款狀態明細</p>
+          <h1 className="text-2xl font-bold text-slate-900">{fp.arVoucherTitle}</h1>
+          <p className="text-sm text-muted-foreground">{fp.arVoucherDesc}</p>
         </div>
         {data && (
           <Button variant="outline" size="sm" onClick={() => window.print()}>
@@ -70,21 +73,21 @@ export default function ARVoucherDetailPage() {
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4 print:hidden">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateStart}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateEnd}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">{dict.common.status}</label>
           <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
             <option value="">{dict.common.all}</option>
-            <option value="NOT_DUE">未到期</option>
-            <option value="DUE">已到期</option>
-            <option value="PARTIAL_PAID">部分收款</option>
-            <option value="PAID">已收清</option>
+            <option value="NOT_DUE">{fp.arStatusNotDue}</option>
+            <option value="DUE">{fp.arStatusDue}</option>
+            <option value="PARTIAL_PAID">{fp.arStatusPartialPaid}</option>
+            <option value="PAID">{fp.arStatusPaid}</option>
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}</Button>
@@ -93,10 +96,10 @@ export default function ARVoucherDetailPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 print:gap-2">
             {[
-              { label: '應收筆數', value: String(data.summary.count), isStr: true },
-              { label: '應收總額', value: `$${fmt(data.summary.totalAmount)}`, color: 'text-slate-900' },
-              { label: '已收金額', value: `$${fmt(data.summary.totalPaid)}`, color: 'text-green-600' },
-              { label: '未收餘額', value: `$${fmt(data.summary.totalBalance)}`, color: data.summary.totalBalance > 0 ? 'text-red-600 font-bold' : 'text-slate-700' },
+              { label: fp.arSummaryCount, value: String(data.summary.count), isStr: true },
+              { label: fp.arSummaryTotal, value: `$${fmt(data.summary.totalAmount)}`, color: 'text-slate-900' },
+              { label: fp.arSummaryPaid, value: `$${fmt(data.summary.totalPaid)}`, color: 'text-green-600' },
+              { label: fp.arSummaryBalance, value: `$${fmt(data.summary.totalBalance)}`, color: data.summary.totalBalance > 0 ? 'text-red-600 font-bold' : 'text-slate-700' },
             ].map(c => (
               <div key={c.label} className="rounded-lg border bg-white p-3">
                 <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
@@ -108,25 +111,26 @@ export default function ARVoucherDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-28">發票號</TableHead>
-                  <TableHead className="w-24">開票日期</TableHead>
-                  <TableHead className="w-24">到期日</TableHead>
-                  <TableHead>客戶名稱</TableHead>
-                  <TableHead className="w-24">訂單號</TableHead>
-                  <TableHead className="text-right w-28">應收金額</TableHead>
-                  <TableHead className="text-right w-28 text-green-700">已收金額</TableHead>
-                  <TableHead className="text-right w-28">未收餘額</TableHead>
-                  <TableHead className="w-24">狀態</TableHead>
-                  <TableHead className="w-16 text-right">帳齡</TableHead>
+                  <TableHead className="w-28">{fp.arColInvoice}</TableHead>
+                  <TableHead className="w-24">{fp.arColIssueDate}</TableHead>
+                  <TableHead className="w-24">{fp.arColDueDate}</TableHead>
+                  <TableHead>{fp.arColCustomer}</TableHead>
+                  <TableHead className="w-24">{fp.arColOrderNo}</TableHead>
+                  <TableHead className="text-right w-28">{fp.arColAmount}</TableHead>
+                  <TableHead className="text-right w-28 text-green-700">{fp.arColPaid}</TableHead>
+                  <TableHead className="text-right w-28">{fp.arColBalance}</TableHead>
+                  <TableHead className="w-24">{fp.arColStatus}</TableHead>
+                  <TableHead className="w-16 text-right">{fp.arColAging}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="py-12 text-center text-muted-foreground">無應收憑證記錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="py-12 text-center text-muted-foreground">{fp.arNoRecords}</TableCell></TableRow>
                 ) : (
                   <>
                     {data.rows.map(row => {
-                      const sc = STATUS_CONFIG[row.status] ?? { label: row.status, cls: 'bg-slate-100 text-slate-600' }
+                      const arStatusLabels: Record<string, string> = { NOT_DUE: fp.arStatusNotDue, DUE: fp.arStatusDue, PARTIAL_PAID: fp.arStatusPartialPaid, PAID: fp.arStatusPaid, BAD_DEBT: fp.arStatusBadDebt }
+                      const sc = { label: arStatusLabels[row.status] ?? row.status, cls: STATUS_CLS[row.status] ?? 'bg-slate-100 text-slate-600' }
                       return (
                         <TableRow key={row.id} className={`text-sm hover:bg-slate-50/40 ${row.status === 'PAID' ? 'opacity-60' : ''}`}>
                           <TableCell className="font-mono text-xs">{row.invoiceNo || '—'}</TableCell>
@@ -146,12 +150,12 @@ export default function ARVoucherDetailPage() {
                             {row.balance > 0 ? `$${fmt(row.balance)}` : '—'}
                           </TableCell>
                           <TableCell><Badge className={`text-xs ${sc.cls}`}>{sc.label}</Badge></TableCell>
-                          <TableCell className="text-right text-xs text-muted-foreground">{row.agingDays != null ? `${row.agingDays}天` : '—'}</TableCell>
+                          <TableCell className="text-right text-xs text-muted-foreground">{row.agingDays != null ? `${row.agingDays}${fp.agingDaysSuffix}` : '—'}</TableCell>
                         </TableRow>
                       )
                     })}
                     <TableRow className="border-t-2 bg-slate-50 font-semibold text-sm">
-                      <TableCell colSpan={5}>合計 {data.summary.count} 筆</TableCell>
+                      <TableCell colSpan={5}>{fp.arTotalLabel.replace('{n}', String(data.summary.count))}</TableCell>
                       <TableCell className="text-right font-mono">${fmt(data.summary.totalAmount)}</TableCell>
                       <TableCell className="text-right font-mono text-green-700">${fmt(data.summary.totalPaid)}</TableCell>
                       <TableCell className="text-right font-mono text-red-600">${fmt(data.summary.totalBalance)}</TableCell>

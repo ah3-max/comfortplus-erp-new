@@ -759,6 +759,8 @@ export default function WmsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('inbound')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [wmsCategory, setWmsCategory] = useState('')
+  const [productCategories, setProductCategories] = useState<string[]>([])
 
   // Data
   const [inventory, setInventory]   = useState<WmsInventoryItem[]>([])
@@ -784,10 +786,12 @@ export default function WmsPage() {
       fetch('/api/products?pageSize=200').then(r => r.json()),
       fetch('/api/warehouses').then(r => r.json()),
       fetch('/api/wms/zones?pageSize=100').then(r => r.json()),
-    ]).then(([prodRes, whRes, zoneRes]) => {
+      fetch('/api/products/categories').then(r => r.json()),
+    ]).then(([prodRes, whRes, zoneRes, catRes]) => {
       setProducts(prodRes.data ?? [])
       setWarehouses(Array.isArray(whRes) ? whRes : (whRes.data ?? []))
       setZones(zoneRes.data ?? [])
+      setProductCategories(Array.isArray(catRes) ? catRes : [])
     }).catch(() => {})
   }, [])
 
@@ -803,7 +807,9 @@ export default function WmsPage() {
         const result = await res.json()
         setOutbounds(result.data ?? [])
       } else if (activeTab === 'inventory') {
-        const res = await fetch(`/api/wms/inventory?search=${encodeURIComponent(search)}&pageSize=100`)
+        const p = new URLSearchParams({ search, pageSize: '100' })
+        if (wmsCategory) p.set('category', wmsCategory)
+        const res = await fetch(`/api/wms/inventory?${p}`)
         const result = await res.json()
         setInventory(result.data ?? [])
       } else if (activeTab === 'locations') {
@@ -813,7 +819,7 @@ export default function WmsPage() {
       }
     } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
-  }, [activeTab, search])
+  }, [activeTab, search, wmsCategory])
 
   useEffect(() => {
     const t = setTimeout(fetchTab, 300)
@@ -823,6 +829,7 @@ export default function WmsPage() {
   function handleTabChange(tab: Tab) {
     setActiveTab(tab)
     setSearch('')
+    setWmsCategory('')
   }
 
   return (
@@ -870,14 +877,26 @@ export default function WmsPage() {
       </div>
 
       {/* Search bar */}
-      <div className="relative w-full sm:w-72">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9 min-h-[44px]"
-          placeholder={dict.wms.searchPlaceholder}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+      <div className="flex flex-wrap gap-3">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9 min-h-[44px]"
+            placeholder={dict.wms.searchPlaceholder}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        {activeTab === 'inventory' && productCategories.length > 0 && (
+          <select
+            value={wmsCategory}
+            onChange={e => setWmsCategory(e.target.value)}
+            className="h-11 rounded-md border px-3 text-sm"
+          >
+            <option value="">{wm.allCategories}</option>
+            {productCategories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        )}
       </div>
 
       {/* Content */}

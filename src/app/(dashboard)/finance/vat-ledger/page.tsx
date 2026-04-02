@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -21,10 +21,6 @@ interface VatData {
   period: { startDate: string; endDate: string }
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: '草稿', CONFIRMED: '確認', DELIVERED: '已出貨', COMPLETED: '完成',
-  NOT_DUE: '未到期', DUE: '逾期', PARTIAL_PAID: '部分付', PAID: '已付',
-}
 
 function fmt(n: number) {
   return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
@@ -32,6 +28,7 @@ function fmt(n: number) {
 
 export default function VatLedgerPage() {
   const { dict } = useI18n()
+  const fp = dict.financePages
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -55,17 +52,24 @@ export default function VatLedgerPage() {
     finally { setLoading(false) }
   }, [startDate, endDate])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   function VatTable({ data }: { data: VatData | null }) {
-    if (!data) return <div className="py-12 text-center text-muted-foreground">請點擊查詢</div>
+    const vatStatusLabels: Record<string, string> = {
+      DRAFT: fp.vatStatusDraft, CONFIRMED: fp.vatStatusConfirmed, DELIVERED: fp.vatStatusDelivered,
+      COMPLETED: fp.vatStatusCompleted, NOT_DUE: fp.vatStatusNotDue, DUE: fp.vatStatusDue,
+      PARTIAL_PAID: fp.vatStatusPartialPaid, PAID: fp.vatStatusPaid,
+    }
+    if (!data) return <div className="py-12 text-center text-muted-foreground">{fp.vatQueryFirst}</div>
     return (
       <div className="space-y-3">
         {/* Summary */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: '筆數', value: `${data.summary.count} 筆`, mono: false },
-            { label: '稅前合計', value: `$${fmt(data.summary.subtotalSum)}`, mono: true },
-            { label: '稅額合計', value: `$${fmt(data.summary.taxSum)}`, mono: true },
-            { label: '含稅合計', value: `$${fmt(data.summary.totalSum)}`, mono: true, bold: true },
+            { label: fp.vatSummaryCount, value: `${data.summary.count}${fp.forexCountSuffix}`, mono: false },
+            { label: fp.vatSummarySubtotal, value: `$${fmt(data.summary.subtotalSum)}`, mono: true },
+            { label: fp.vatSummaryTax, value: `$${fmt(data.summary.taxSum)}`, mono: true },
+            { label: fp.vatSummaryTotal, value: `$${fmt(data.summary.totalSum)}`, mono: true, bold: true },
           ].map(c => (
             <div key={c.label} className="rounded-lg border bg-white p-3">
               <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
@@ -78,19 +82,19 @@ export default function VatLedgerPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24">日期</TableHead>
-                <TableHead className="w-32">發票號</TableHead>
-                <TableHead>{data.type === 'OUTPUT' ? '客戶' : '供應商'}</TableHead>
-                <TableHead className="w-16">幣別</TableHead>
-                <TableHead className="text-right w-28">稅前金額</TableHead>
-                <TableHead className="text-right w-24">稅額</TableHead>
-                <TableHead className="text-right w-28">含稅金額</TableHead>
-                <TableHead className="w-20">狀態</TableHead>
+                <TableHead className="w-24">{fp.vatColDate}</TableHead>
+                <TableHead className="w-32">{fp.vatColInvoice}</TableHead>
+                <TableHead>{data.type === 'OUTPUT' ? fp.vatColCustomer : fp.vatColSupplier}</TableHead>
+                <TableHead className="w-16">{fp.vatColCurrency}</TableHead>
+                <TableHead className="text-right w-28">{fp.vatColSubtotal}</TableHead>
+                <TableHead className="text-right w-24">{fp.vatColTax}</TableHead>
+                <TableHead className="text-right w-28">{fp.vatColTotal}</TableHead>
+                <TableHead className="w-20">{fp.vatColStatus}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {data.rows.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">本期間無資料</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">{fp.vatNoData}</TableCell></TableRow>
               ) : (
                 <>
                   {data.rows.map(row => (
@@ -106,12 +110,12 @@ export default function VatLedgerPage() {
                       <TableCell className="text-right font-mono text-amber-600">{row.taxAmount > 0 ? fmt(row.taxAmount) : '—'}</TableCell>
                       <TableCell className="text-right font-mono font-medium">{fmt(row.totalAmount)}</TableCell>
                       <TableCell>
-                        <span className="text-xs text-muted-foreground">{STATUS_LABELS[row.status] ?? row.status}</span>
+                        <span className="text-xs text-muted-foreground">{vatStatusLabels[row.status] ?? row.status}</span>
                       </TableCell>
                     </TableRow>
                   ))}
                   <TableRow className="bg-slate-50 font-semibold text-sm border-t-2">
-                    <TableCell colSpan={4}>合計 {data.summary.count} 筆</TableCell>
+                    <TableCell colSpan={4}>{fp.arTotalLabel.replace('{n}', String(data.summary.count))}</TableCell>
                     <TableCell className="text-right font-mono">{fmt(data.summary.subtotalSum)}</TableCell>
                     <TableCell className="text-right font-mono text-amber-600">{fmt(data.summary.taxSum)}</TableCell>
                     <TableCell className="text-right font-mono font-bold">{fmt(data.summary.totalSum)}</TableCell>
@@ -134,7 +138,7 @@ export default function VatLedgerPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.vatLedger}</h1>
-          <p className="text-sm text-muted-foreground">銷貨發票（銷項）與進貨發票（進項）明細</p>
+          <p className="text-sm text-muted-foreground">{fp.vatDesc}</p>
         </div>
       </div>
 
@@ -154,8 +158,8 @@ export default function VatLedgerPage() {
 
       <Tabs defaultValue="output">
         <TabsList>
-          <TabsTrigger value="output"><FileOutput className="mr-1.5 h-4 w-4" />銷項帳簿</TabsTrigger>
-          <TabsTrigger value="input"><FileInput className="mr-1.5 h-4 w-4" />進項帳簿</TabsTrigger>
+          <TabsTrigger value="output"><FileOutput className="mr-1.5 h-4 w-4" />{fp.vatOutputTab}</TabsTrigger>
+          <TabsTrigger value="input"><FileInput className="mr-1.5 h-4 w-4" />{fp.vatInputTab}</TabsTrigger>
         </TabsList>
         <TabsContent value="output" className="mt-4"><VatTable data={outputData} /></TabsContent>
         <TabsContent value="input" className="mt-4"><VatTable data={inputData} /></TabsContent>

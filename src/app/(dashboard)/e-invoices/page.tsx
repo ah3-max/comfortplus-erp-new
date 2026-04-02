@@ -16,8 +16,11 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
+import {
   Plus, Search, MoreHorizontal, Loader2,
-  CheckCircle2, XCircle, FileText, Send,
+  CheckCircle2, XCircle, FileText, Send, Scissors,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
@@ -91,6 +94,8 @@ export default function EInvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterMonth, setFilterMonth] = useState('')   // YYYY-MM
+  const [filterType, setFilterType] = useState('')     // B2B | B2C
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -99,11 +104,23 @@ export default function EInvoicesPage() {
   const [customers, setCustomers] = useState<{ id: string; name: string; code: string }[]>([])
   const [salesInvoices, setSalesInvoices] = useState<{ id: string; invoiceNumber: string; customerId: string; customer: { name: string }; subtotal: string; taxAmount: string; totalAmount: string }[]>([])
 
+  // Void dialog state
+  const [voidTarget, setVoidTarget] = useState<{ id: string; no: string } | null>(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [voiding, setVoiding] = useState(false)
+
+  // Credit note dialog state
+  const [cnTarget, setCnTarget] = useState<{ id: string; no: string; totalAmount: string } | null>(null)
+  const [cnForm, setCnForm] = useState({ creditNoteNumber: '', creditNoteDate: '', creditNoteAmount: '' })
+  const [cnSaving, setCnSaving] = useState(false)
+
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (filterStatus) params.set('status', filterStatus)
+    if (filterMonth) params.set('month', filterMonth)
+    if (filterType) params.set('invoiceType', filterType)
     params.set('page', String(page))
     params.set('pageSize', '50')
     try {
@@ -117,7 +134,7 @@ export default function EInvoicesPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, filterStatus, page])
+  }, [search, filterStatus, filterMonth, filterType, page])
 
   useEffect(() => {
     const t = setTimeout(fetchInvoices, 300)
@@ -201,13 +218,49 @@ export default function EInvoicesPage() {
     else toast.error(dict.common.updateFailed)
   }
 
-  async function handleVoid(id: string, no: string) {
-    if (!confirm(ei.confirmVoid.replace('{no}', no))) return
-    const res = await fetch(`/api/e-invoices/${id}`, { method: 'DELETE' })
-    if (res.ok) { toast.success(dict.eInvoicesPage.voided); fetchInvoices() }
-    else {
+  async function handleVoidSubmit() {
+    if (!voidTarget) return
+    setVoiding(true)
+    try {
+      const res = await fetch(`/api/e-invoices/${voidTarget.id}/void`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voidReason }),
+      })
+      if (res.ok) {
+        toast.success(dict.eInvoicesPage.voided)
+        setVoidTarget(null)
+        setVoidReason('')
+        fetchInvoices()
+      } else {
+        const data = await res.json()
+        toast.error(data.error ?? dict.common.operationFailed)
+      }
+    } finally {
+      setVoiding(false)
+    }
+  }
+
+  async function handleCreditNoteSubmit() {
+    if (!cnTarget) return
+    setCnSaving(true)
+    try {
+      const res = await fetch(`/api/e-invoices/${cnTarget.id}/credit-note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cnForm),
+      })
       const data = await res.json()
-      toast.error(data.error ?? dict.common.operationFailed)
+      if (res.ok) {
+        toast.success(ei.creditNoteIssued ?? '折讓已開立')
+        setCnTarget(null)
+        setCnForm({ creditNoteNumber: '', creditNoteDate: '', creditNoteAmount: '' })
+        fetchInvoices()
+      } else {
+        toast.error(data.error ?? dict.common.operationFailed)
+      }
+    } finally {
+      setCnSaving(false)
     }
   }
 
@@ -232,12 +285,33 @@ export default function EInvoicesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative w-64">
+      <div className="flex flex-wrap gap-3 items-center">
+        {/* Search */}
+        <div className="relative flex-1 min-w-48 max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder={dict.eInvoices.searchPlaceholder}
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
         </div>
+        {/* Month picker */}
+        <Input
+          type="month"
+          className="w-40"
+          value={filterMonth}
+          onChange={e => { setFilterMonth(e.target.value); setPage(1) }}
+          title="篩選年月"
+        />
+        {/* Invoice type */}
+        <Select value={filterType || '_all'} onValueChange={(v: string | null) => { setFilterType(v === '_all' || !v ? '' : v); setPage(1) }}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="發票類型" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_all">全部類型</SelectItem>
+            <SelectItem value="B2B">B2B 統編</SelectItem>
+            <SelectItem value="B2C">B2C 個人</SelectItem>
+          </SelectContent>
+        </Select>
+        {/* Status chips */}
         <div className="flex gap-1.5 flex-wrap">
           {statusFilters.map((f) => (
             <button key={f.value} onClick={() => { setFilterStatus(f.value); setPage(1) }}
@@ -250,6 +324,13 @@ export default function EInvoicesPage() {
             </button>
           ))}
         </div>
+        {/* Clear filters */}
+        {(filterMonth || filterType) && (
+          <button onClick={() => { setFilterMonth(''); setFilterType(''); setPage(1) }}
+            className="text-xs text-slate-400 hover:text-red-500">
+            清除篩選
+          </button>
+        )}
       </div>
 
       {/* Table (desktop) */}
@@ -336,10 +417,18 @@ export default function EInvoicesPage() {
                               <Send className="mr-2 h-4 w-4" />{ei.markTransmitted}
                             </DropdownMenuItem>
                           )}
-                          {inv.status !== 'VOIDED' && inv.transmitStatus !== 'TRANSMITTED' && (
+                          {['CREATED', 'APPROVED'].includes(inv.status) && (
+                            <DropdownMenuItem onClick={() => {
+                              setCnTarget({ id: inv.id, no: inv.invoiceNumber, totalAmount: inv.totalAmount })
+                              setCnForm({ creditNoteNumber: '', creditNoteDate: new Date().toISOString().slice(0, 10), creditNoteAmount: '' })
+                            }}>
+                              <Scissors className="mr-2 h-4 w-4" />{ei.issueCreditNote ?? '開立折讓'}
+                            </DropdownMenuItem>
+                          )}
+                          {inv.status !== 'VOIDED' && inv.status !== 'CREDIT_NOTE' && inv.transmitStatus !== 'TRANSMITTED' && (
                             <>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleVoid(inv.id, inv.invoiceNumber)} variant="destructive">
+                              <DropdownMenuItem onClick={() => { setVoidTarget({ id: inv.id, no: inv.invoiceNumber }); setVoidReason('') }} variant="destructive">
                                 <XCircle className="mr-2 h-4 w-4" />{ei.voidInvoice}
                               </DropdownMenuItem>
                             </>
@@ -420,6 +509,86 @@ export default function EInvoicesPage() {
           </div>
         </div>
       )}
+
+      {/* Void Dialog */}
+      <Dialog open={!!voidTarget} onOpenChange={open => { if (!open) setVoidTarget(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <XCircle className="w-5 h-5" />{ei.voidInvoice}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              {ei.confirmVoid?.replace('{no}', voidTarget?.no ?? '') ?? `確定要作廢發票 ${voidTarget?.no}？`}
+            </p>
+            <div>
+              <Label>{ei.voidReasonLabel ?? '作廢原因（選填）'}</Label>
+              <Input
+                value={voidReason}
+                onChange={e => setVoidReason(e.target.value)}
+                placeholder={ei.voidReasonPlaceholder ?? '例：重複開立、金額錯誤…'}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setVoidTarget(null)}>{dict.common.cancel}</Button>
+            <Button variant="destructive" onClick={handleVoidSubmit} disabled={voiding}>
+              {voiding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
+              {ei.confirmVoidBtn ?? '確認作廢'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credit Note Dialog */}
+      <Dialog open={!!cnTarget} onOpenChange={open => { if (!open) setCnTarget(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scissors className="w-5 h-5" />{ei.issueCreditNote ?? '開立折讓'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              {ei.creditNoteFor ?? '對發票'} <span className="font-mono font-medium">{cnTarget?.no}</span> {ei.creditNoteForSuffix ?? '開立折讓證明'}
+            </p>
+            <div>
+              <Label>{ei.creditNoteNumberLabel ?? '折讓證明單號碼 *'}</Label>
+              <Input
+                value={cnForm.creditNoteNumber}
+                onChange={e => setCnForm(f => ({ ...f, creditNoteNumber: e.target.value }))}
+                placeholder="CN-2025-001"
+              />
+            </div>
+            <div>
+              <Label>{ei.creditNoteDateLabel ?? '折讓日期 *'}</Label>
+              <Input
+                type="date"
+                value={cnForm.creditNoteDate}
+                onChange={e => setCnForm(f => ({ ...f, creditNoteDate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>{ei.creditNoteAmountLabel ?? '折讓金額 *'}</Label>
+              <Input
+                type="number"
+                min={0}
+                value={cnForm.creditNoteAmount}
+                onChange={e => setCnForm(f => ({ ...f, creditNoteAmount: e.target.value }))}
+                placeholder={`最高 ${Number(cnTarget?.totalAmount ?? 0).toLocaleString('zh-TW')}`}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setCnTarget(null)}>{dict.common.cancel}</Button>
+            <Button onClick={handleCreditNoteSubmit} disabled={cnSaving}>
+              {cnSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {ei.confirmCreditNoteBtn ?? '開立折讓'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

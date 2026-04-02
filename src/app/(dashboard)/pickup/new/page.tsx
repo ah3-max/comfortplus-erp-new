@@ -57,7 +57,7 @@ export default function NewPickupPage() {
 
   // Load customers
   useEffect(() => {
-    fetch('/api/customers').then(r => r.json()).then(setCustomers)
+    fetch('/api/customers?pageSize=500').then(r => r.json()).then(d => setCustomers(d.data ?? []))
   }, [])
 
   // Load products with search
@@ -65,7 +65,7 @@ export default function NewPickupPage() {
     const params = new URLSearchParams()
     if (productSearch) params.set('search', productSearch)
     const timer = setTimeout(() => {
-      fetch(`/api/products?${params}`).then(r => r.json()).then(setProducts)
+      fetch(`/api/products?${params}`).then(r => r.json()).then(d => setProducts(d.data ?? []))
     }, 200)
     return () => clearTimeout(timer)
   }, [productSearch])

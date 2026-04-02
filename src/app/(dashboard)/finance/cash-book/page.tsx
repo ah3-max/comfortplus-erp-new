@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,6 +27,7 @@ function fmt(n: number) {
 
 export default function CashBookPage() {
   const { dict } = useI18n()
+  const cb = dict.cashBook
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
   const [startDate, setStartDate] = useState(firstOfMonth)
@@ -47,6 +48,8 @@ export default function CashBookPage() {
     finally { setLoading(false) }
   }, [startDate, endDate, method])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -55,7 +58,7 @@ export default function CashBookPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.cashBook}</h1>
-          <p className="text-sm text-muted-foreground">收付款逐筆明細與累計餘額</p>
+          <p className="text-sm text-muted-foreground">{cb.subtitle}</p>
         </div>
       </div>
 
@@ -69,9 +72,9 @@ export default function CashBookPage() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">付款方式</label>
+          <label className="text-xs font-medium text-muted-foreground">{cb.methodLabel}</label>
           <select value={method} onChange={e => setMethod(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="">全部</option>
+            <option value="">{cb.methodAll}</option>
             {['銀行轉帳', '支票', '現金', '信用卡', '月結'].map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
@@ -85,10 +88,10 @@ export default function CashBookPage() {
           {/* Summary cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: '期初餘額', value: data.openingBalance, color: 'text-slate-700' },
-              { label: '本期收入', value: data.periodIncoming, color: 'text-green-600' },
-              { label: '本期支出', value: data.periodOutgoing, color: 'text-red-600' },
-              { label: '期末餘額', value: data.closingBalance, color: data.closingBalance >= 0 ? 'text-slate-900' : 'text-red-600', bold: true },
+              { label: cb.openingBalance, value: data.openingBalance, color: 'text-slate-700' },
+              { label: cb.periodIncoming, value: data.periodIncoming, color: 'text-green-600' },
+              { label: cb.periodOutgoing, value: data.periodOutgoing, color: 'text-red-600' },
+              { label: cb.closingBalance, value: data.closingBalance, color: data.closingBalance >= 0 ? 'text-slate-900' : 'text-red-600', bold: true },
             ].map(c => (
               <div key={c.label} className="rounded-lg border bg-white p-3">
                 <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
@@ -102,14 +105,14 @@ export default function CashBookPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">日期</TableHead>
-                  <TableHead className="w-28">單號</TableHead>
-                  <TableHead>摘要</TableHead>
-                  <TableHead>往來對象</TableHead>
-                  <TableHead className="w-20">方式</TableHead>
-                  <TableHead className="text-right w-28 text-green-700">收入</TableHead>
-                  <TableHead className="text-right w-28 text-red-600">支出</TableHead>
-                  <TableHead className="text-right w-32">累計餘額</TableHead>
+                  <TableHead className="w-24">{cb.colDate}</TableHead>
+                  <TableHead className="w-28">{cb.colNo}</TableHead>
+                  <TableHead>{cb.colSummary}</TableHead>
+                  <TableHead>{cb.colParty}</TableHead>
+                  <TableHead className="w-20">{cb.colMethod}</TableHead>
+                  <TableHead className="text-right w-28 text-green-700">{cb.colIncoming}</TableHead>
+                  <TableHead className="text-right w-28 text-red-600">{cb.colOutgoing}</TableHead>
+                  <TableHead className="text-right w-32">{cb.colBalance}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -117,13 +120,13 @@ export default function CashBookPage() {
                 <TableRow className="bg-slate-50/80 italic text-muted-foreground text-sm">
                   <TableCell>{data.period.startDate}</TableCell>
                   <TableCell>—</TableCell>
-                  <TableCell colSpan={4}>期初餘額</TableCell>
+                  <TableCell colSpan={4}>{cb.openingRow}</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-mono font-semibold text-slate-700">${fmt(data.openingBalance)}</TableCell>
                 </TableRow>
 
                 {data.rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">本期間無收付款記錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">{cb.noRecords}</TableCell></TableRow>
                 ) : (
                   data.rows.map(row => (
                     <TableRow key={row.id} className="text-sm hover:bg-slate-50/40">
@@ -155,7 +158,7 @@ export default function CashBookPage() {
 
                 {/* Closing */}
                 <TableRow className="border-t-2 bg-slate-100 font-semibold text-sm">
-                  <TableCell colSpan={5}>合計 {data.rows.length} 筆</TableCell>
+                  <TableCell colSpan={5}>{cb.closingRow.replace('{n}', String(data.rows.length))}</TableCell>
                   <TableCell className="text-right font-mono text-green-700">${fmt(data.periodIncoming)}</TableCell>
                   <TableCell className="text-right font-mono text-red-600">${fmt(data.periodOutgoing)}</TableCell>
                   <TableCell className={`text-right font-mono font-bold ${data.closingBalance < 0 ? 'text-red-600' : ''}`}>

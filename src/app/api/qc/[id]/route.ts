@@ -97,6 +97,33 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: { status: 'INSPECTED' },
       }).catch(() => {})
     }
+
+    // 3-3: QC REJECTED/REWORK → auto-create DefectiveGoods
+    if (['RETURN_TO_SUPPLIER', 'REWORK', 'CONDITIONAL_ACCEPT'].includes(newResult ?? '') && existingQc?.productId) {
+      const failedQty = Number(check.failedQty ?? 0)
+      if (failedQty > 0) {
+        const defaultWh = await prisma.warehouse.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+        if (defaultWh) {
+          const count = await prisma.defectiveGoods.count()
+          const today = new Date()
+          const dateStr = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`
+          const defectNo = `DFT${dateStr}${String(count + 1).padStart(4,'0')}`
+          await prisma.defectiveGoods.create({
+            data: {
+              defectNo,
+              source: 'QC_FAIL',
+              productId: existingQc.productId,
+              warehouseId: defaultWh.id,
+              quantity: failedQty,
+              severity: newResult === 'RETURN_TO_SUPPLIER' ? 'MAJOR' : 'MINOR',
+              description: `QC ${existingQc.qcNo} 不良品`,
+              qcId: id,
+              createdById: session.user.id,
+            },
+          }).catch(() => {})
+        }
+      }
+    }
   }
 
   return NextResponse.json(check)

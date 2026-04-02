@@ -24,10 +24,7 @@ interface AccountGroup {
   rows: LedgerRow[]
 }
 
-const REF_LABELS: Record<string, string> = {
-  SalesInvoice: '銷貨單', AccountsPayable: '應付', PaymentRecord: '收付款',
-  AccountsReceivable: '應收', PurchaseOrder: '採購', JournalEntry: '傳票',
-}
+// REF_LABELS provided via dict.accountDetailExt.refLabels
 
 function fmt(n: number) {
   if (n === 0) return ''
@@ -36,6 +33,8 @@ function fmt(n: number) {
 
 export default function AccountDetailPage() {
   const { dict } = useI18n()
+  const ad = dict.accountDetailExt
+  const REF_LABELS = ad.refLabels as Record<string, string>
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
 
@@ -87,14 +86,14 @@ export default function AccountDetailPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.accountDetail}</h1>
-          <p className="text-sm text-muted-foreground">多科目明細，可依來源類型篩選</p>
+          <p className="text-sm text-muted-foreground">{ad.subtitle}</p>
         </div>
       </div>
 
       <div className="rounded-lg border bg-white p-4 space-y-3">
         <div className="flex flex-wrap gap-3 items-end">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">科目（可多選）</label>
+            <label className="text-xs font-medium text-muted-foreground">{ad.accountMultiLabel}</label>
             <div className="max-h-40 overflow-y-auto rounded-md border p-2 min-w-[240px] space-y-1">
               {accounts.map(a => (
                 <label key={a.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 px-1 py-0.5 rounded text-sm">
@@ -106,9 +105,9 @@ export default function AccountDetailPage() {
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">來源類型</label>
+            <label className="text-xs font-medium text-muted-foreground">{ad.refTypeLabel}</label>
             <select value={refType} onChange={e => setRefType(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-              <option value="">全部</option>
+              <option value="">{ad.refTypeAll}</option>
               {Object.entries(REF_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
@@ -125,7 +124,7 @@ export default function AccountDetailPage() {
           </Button>
         </div>
         {selectedIds.length > 0 && (
-          <p className="text-xs text-muted-foreground">已選 {selectedIds.length} 個科目</p>
+          <p className="text-xs text-muted-foreground">{ad.selectedCount.replace('{n}', String(selectedIds.length))}</p>
         )}
       </div>
 
@@ -145,8 +144,8 @@ export default function AccountDetailPage() {
                   <span className="font-semibold">{g.name}</span>
                 </div>
                 <div className="flex gap-4 text-sm">
-                  <span className="text-muted-foreground">借方：<span className="font-mono text-slate-700">{g.rows.slice(1).reduce((s, r) => s + r.debit, 0).toLocaleString('zh-TW')}</span></span>
-                  <span className="text-muted-foreground">貸方：<span className="font-mono text-slate-700">{g.rows.slice(1).reduce((s, r) => s + r.credit, 0).toLocaleString('zh-TW')}</span></span>
+                  <span className="text-muted-foreground">{ad.debitTotal}<span className="font-mono text-slate-700">{g.rows.slice(1).reduce((s, r) => s + r.debit, 0).toLocaleString('zh-TW')}</span></span>
+                  <span className="text-muted-foreground">{ad.creditTotal}<span className="font-mono text-slate-700">{g.rows.slice(1).reduce((s, r) => s + r.credit, 0).toLocaleString('zh-TW')}</span></span>
                 </div>
               </div>
 
@@ -154,13 +153,13 @@ export default function AccountDetailPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-24">日期</TableHead>
-                      <TableHead className="w-28">傳票號</TableHead>
-                      <TableHead>摘要</TableHead>
-                      <TableHead className="w-20">來源</TableHead>
-                      <TableHead className="text-right w-28">借方</TableHead>
-                      <TableHead className="text-right w-28">貸方</TableHead>
-                      <TableHead className="text-right w-32">餘額</TableHead>
+                      <TableHead className="w-24">{ad.colDate}</TableHead>
+                      <TableHead className="w-28">{ad.colVoucherNo}</TableHead>
+                      <TableHead>{ad.colSummary}</TableHead>
+                      <TableHead className="w-20">{ad.colSource}</TableHead>
+                      <TableHead className="text-right w-28">{ad.colDebit}</TableHead>
+                      <TableHead className="text-right w-28">{ad.colCredit}</TableHead>
+                      <TableHead className="text-right w-32">{ad.colBalance}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

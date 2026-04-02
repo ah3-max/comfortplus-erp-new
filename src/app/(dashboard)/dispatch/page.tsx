@@ -13,9 +13,13 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  Search, MoreHorizontal, Loader2, CheckCircle2, XCircle, Truck,
+  Search, MoreHorizontal, Loader2, CheckCircle2, XCircle, Truck, Printer, Car,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 
 type Status = 'PENDING' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED'
 
@@ -26,6 +30,7 @@ interface DispatchOrder {
   handler: { id: string; name: string }
   warehouse: { id: string; name: string }
   items: { id: string; productName: string; quantity: string }[]
+  vehicleNo: string | null; driverName: string | null; driverPhone: string | null
 }
 
 function formatDate(str: string) {
@@ -84,6 +89,43 @@ export default function DispatchPage() {
     else toast.error(dict.common.updateFailed)
   }
 
+  // Vehicle/driver assignment dialog
+  const [assignOrder, setAssignOrder] = useState<DispatchOrder | null>(null)
+  const [assignVehicleNo, setAssignVehicleNo] = useState('')
+  const [assignDriverName, setAssignDriverName] = useState('')
+  const [assignDriverPhone, setAssignDriverPhone] = useState('')
+  const [savingAssign, setSavingAssign] = useState(false)
+
+  function openAssignDialog(order: DispatchOrder) {
+    setAssignVehicleNo(order.vehicleNo ?? '')
+    setAssignDriverName(order.driverName ?? '')
+    setAssignDriverPhone(order.driverPhone ?? '')
+    setAssignOrder(order)
+  }
+
+  async function saveVehicleAssignment() {
+    if (!assignOrder) return
+    setSavingAssign(true)
+    const res = await fetch(`/api/dispatch-orders/${assignOrder.id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        assignVehicle: true,
+        vehicleNo: assignVehicleNo,
+        driverName: assignDriverName,
+        driverPhone: assignDriverPhone,
+      }),
+    })
+    setSavingAssign(false)
+    if (res.ok) {
+      toast.success('車輛/司機指派完成')
+      setAssignOrder(null)
+      fetchData()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? dict.common.updateFailed)
+    }
+  }
+
   async function handleCancel(id: string, no: string) {
     if (!confirm(`${dict.dispatch.cancelConfirmPrefix} ${no} ${dict.dispatch.cancelSuffix}`)) return
     const res = await fetch(`/api/dispatch-orders/${id}`, { method: 'DELETE' })
@@ -127,15 +169,16 @@ export default function DispatchPage() {
               <TableHead className="w-20">{dict.common.status}</TableHead>
               <TableHead className="w-16">{dict.common.pieces}</TableHead>
               <TableHead className="w-20">{dict.common.handler}</TableHead>
+              <TableHead className="w-28">車輛/司機</TableHead>
               <TableHead className="w-24">{dict.common.date}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={9} className="py-16 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="py-16 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" /></TableCell></TableRow>
             ) : data.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="py-16 text-center">
+              <TableRow><TableCell colSpan={10} className="py-16 text-center">
                 <Truck className="mx-auto h-10 w-10 text-muted-foreground/50 mb-2" />
                 <p className="text-muted-foreground">{search || filterStatus ? dict.dispatch.noResults : dict.dispatch.noDispatch}</p>
               </TableCell></TableRow>
@@ -150,13 +193,23 @@ export default function DispatchPage() {
                   <TableCell><Badge variant={sc.variant} className={sc.className}>{sc.label}</Badge></TableCell>
                   <TableCell className="text-center">{d.items.length}</TableCell>
                   <TableCell className="text-sm">{d.handler.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {d.vehicleNo ? <span className="font-mono">{d.vehicleNo}</span> : null}
+                    {d.driverName ? <span className="ml-1">{d.driverName}</span> : null}
+                    {!d.vehicleNo && !d.driverName && <span className="text-slate-300">—</span>}
+                  </TableCell>
                   <TableCell className="text-sm">{formatDate(d.createdAt)}</TableCell>
                   <TableCell onClick={e => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100">
                         <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuContent align="end" className="w-48">
+                        {['PENDING', 'DISPATCHED'].includes(d.status) && (
+                          <DropdownMenuItem onClick={() => openAssignDialog(d)}>
+                            <Car className="mr-2 h-4 w-4" />指派車輛/司機
+                          </DropdownMenuItem>
+                        )}
                         {d.status === 'PENDING' && (
                           <DropdownMenuItem onClick={() => updateStatus(d.id, 'DISPATCHED', dict.dispatch.statuses.DISPATCHED)}>
                             <Truck className="mr-2 h-4 w-4" />{dict.dispatch.markDispatched}
@@ -167,6 +220,10 @@ export default function DispatchPage() {
                             <CheckCircle2 className="mr-2 h-4 w-4" />{dict.dispatch.markDelivered}
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => window.open(`/api/dispatch-orders/${d.id}/print`, '_blank')}>
+                          <Printer className="mr-2 h-4 w-4" />列印派車單
+                        </DropdownMenuItem>
                         {!['DELIVERED', 'CANCELLED'].includes(d.status) && (
                           <><DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleCancel(d.id, d.dispatchNumber)} variant="destructive">
@@ -214,6 +271,39 @@ export default function DispatchPage() {
           </div>
         </div>
       )}
+
+      {/* Vehicle/Driver Assignment Dialog */}
+      <Dialog open={!!assignOrder} onOpenChange={open => { if (!open) setAssignOrder(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Car className="h-4 w-4" />
+              指派車輛/司機 — {assignOrder?.dispatchNumber}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>車牌號碼</Label>
+              <Input value={assignVehicleNo} onChange={e => setAssignVehicleNo(e.target.value)} placeholder="ABC-1234" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>司機姓名</Label>
+              <Input value={assignDriverName} onChange={e => setAssignDriverName(e.target.value)} placeholder="姓名" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>司機電話</Label>
+              <Input value={assignDriverPhone} onChange={e => setAssignDriverPhone(e.target.value)} placeholder="0912-345-678" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignOrder(null)}>取消</Button>
+            <Button onClick={saveVehicleAssignment} disabled={savingAssign} className="gap-2">
+              {savingAssign && <Loader2 className="h-4 w-4 animate-spin" />}
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

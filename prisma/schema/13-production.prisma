@@ -132,6 +132,7 @@ model SeaFreight {
   packingListAttachment String?
   coaAttachment       String?
   originCertAttachment String?
+  documentsJson       Json?          // [{type, url, fileName, uploadedAt}] 多份單據
 
   notes               String?
   createdAt           DateTime       @default(now())

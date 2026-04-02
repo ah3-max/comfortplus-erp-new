@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       purchaseOrder:   { select: { id: true, poNo: true } },
       supplier:        { select: { id: true, name: true, code: true } },
       product:         { select: { id: true, sku: true, name: true } },
+      _count:          { select: { checkItems: true } },
     },
     orderBy: { createdAt: 'desc' },
   })

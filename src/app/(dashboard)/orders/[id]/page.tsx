@@ -161,9 +161,9 @@ export default function OrderDetailPage() {
     })
     if (res.ok) {
       setMarginData(await res.json())
-      toast.success('毛利率已重新計算並儲存')
+      toast.success(dict.orderMargin.recalcSaved)
     } else {
-      toast.error('重算失敗，請稍後再試')
+      toast.error(dict.orderMargin.recalcFailed)
     }
     setMarginLoading(false)
   }
@@ -383,18 +383,18 @@ export default function OrderDetailPage() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-emerald-500" />毛利率分析
+                <TrendingUp className="h-4 w-4 text-emerald-500" />{dict.orderMargin.sectionTitle}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <button onClick={fetchMargin} disabled={marginLoading}
                   className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 disabled:opacity-50"
-                  title="重新讀取預覽（不寫入）">
-                  <RefreshCw className={`h-3 w-3 ${marginLoading ? 'animate-spin' : ''}`} />預覽
+                  title={dict.orderMargin.previewHint}>
+                  <RefreshCw className={`h-3 w-3 ${marginLoading ? 'animate-spin' : ''}`} />{dict.orderMargin.previewBtn}
                 </button>
                 <button onClick={recalcAndSaveMargin} disabled={marginLoading}
                   className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium disabled:opacity-50"
-                  title="重新計算並寫入資料庫（含稽核日誌）">
-                  重算並儲存
+                  title={dict.orderMargin.recalcHint}>
+                  {dict.orderMargin.recalcBtn}
                 </button>
               </div>
             </div>
@@ -407,10 +407,10 @@ export default function OrderDetailPage() {
                 {/* Order-level summary */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
-                    { label: '成本合計', value: formatCurrency(marginData.costOfGoods), cls: 'text-slate-700' },
-                    { label: '毛利額', value: formatCurrency(marginData.grossProfit), cls: marginData.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600' },
-                    { label: '毛利率', value: `${marginData.grossMarginPct.toFixed(1)}%`, cls: marginData.grossMarginPct >= 20 ? 'text-emerald-600' : marginData.grossMarginPct >= 10 ? 'text-amber-600' : 'text-red-600' },
-                    { label: '倉儲成本', value: formatCurrency(marginData.warehouseStorageTotal), cls: 'text-slate-500' },
+                    { label: dict.orderMargin.labelCost, value: formatCurrency(marginData.costOfGoods), cls: 'text-slate-700' },
+                    { label: dict.orderMargin.labelGrossProfit, value: formatCurrency(marginData.grossProfit), cls: marginData.grossProfit >= 0 ? 'text-emerald-600' : 'text-red-600' },
+                    { label: dict.orderMargin.labelMarginPct, value: `${marginData.grossMarginPct.toFixed(1)}%`, cls: marginData.grossMarginPct >= 20 ? 'text-emerald-600' : marginData.grossMarginPct >= 10 ? 'text-amber-600' : 'text-red-600' },
+                    { label: dict.orderMargin.labelStorageCost, value: formatCurrency(marginData.warehouseStorageTotal), cls: 'text-slate-500' },
                   ].map(m => (
                     <div key={m.label} className="rounded-lg bg-slate-50 p-3 text-center">
                       <p className="text-xs text-muted-foreground mb-1">{m.label}</p>
@@ -422,11 +422,11 @@ export default function OrderDetailPage() {
                 {marginData.items.length > 0 && (
                   <div className="rounded-lg border text-sm overflow-hidden">
                     <div className="bg-slate-50 px-3 py-1.5 grid grid-cols-5 gap-2 text-xs font-medium text-muted-foreground">
-                      <span className="col-span-1">商品</span>
-                      <span className="text-right">單位成本</span>
-                      <span className="text-right">倉儲天數</span>
-                      <span className="text-right">毛利額</span>
-                      <span className="text-right">毛利率</span>
+                      <span className="col-span-1">{dict.orderMargin.colProduct}</span>
+                      <span className="text-right">{dict.orderMargin.colUnitCost}</span>
+                      <span className="text-right">{dict.orderMargin.colStorageDays}</span>
+                      <span className="text-right">{dict.orderMargin.colGrossProfit}</span>
+                      <span className="text-right">{dict.orderMargin.colMarginPct}</span>
                     </div>
                     {marginData.items.map((item, i) => {
                       const orderItem = order?.items[i]
@@ -434,10 +434,10 @@ export default function OrderDetailPage() {
                         <div key={item.id} className="border-t px-3 py-2 grid grid-cols-5 gap-2 items-center">
                           <div className="col-span-1 text-xs text-muted-foreground truncate">
                             {orderItem?.product.sku ?? '—'}
-                            {item.batchNo && <div className="text-[10px] text-slate-400">批#{item.batchNo}</div>}
+                            {item.batchNo && <div className="text-[10px] text-slate-400">{dict.orderMargin.batchPrefix}{item.batchNo}</div>}
                           </div>
                           <span className="text-right text-xs">{formatCurrency(item.effectiveUnitCost)}</span>
-                          <span className="text-right text-xs">{item.warehouseStorageDays > 0 ? `${item.warehouseStorageDays}天` : '—'}</span>
+                          <span className="text-right text-xs">{item.warehouseStorageDays > 0 ? `${item.warehouseStorageDays}${dict.orderMargin.daysUnit}` : '—'}</span>
                           <span className={`text-right text-xs font-medium ${item.grossMarginAmt >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                             {formatCurrency(item.grossMarginAmt)}
                           </span>
@@ -450,12 +450,12 @@ export default function OrderDetailPage() {
                   </div>
                 )}
                 <p className="text-[10px] text-muted-foreground">
-                  成本來源：FIFO批次分攤（含匯率換算）+ 棧板倉儲天數成本
-                  {marginData.items.some(i => i.source === 'cost_price') && '（部分品項使用標準成本）'}
+                  {dict.orderMargin.costNote}
+                  {marginData.items.some(i => i.source === 'cost_price') && dict.orderMargin.costSourceNote}
                 </p>
               </div>
             ) : (
-              <p className="py-4 text-center text-sm text-muted-foreground">尚無毛利資料，點擊「重算」重新計算</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">{dict.orderMargin.noData}</p>
             )}
           </CardContent>
         </Card>
@@ -466,16 +466,16 @@ export default function OrderDetailPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />活動紀錄
+              <Clock className="h-4 w-4 text-muted-foreground" />{dict.orderMargin.activityTitle}
             </CardTitle>
-            <button onClick={fetchActivity} className="text-xs text-blue-500 hover:text-blue-700">重新整理</button>
+            <button onClick={fetchActivity} className="text-xs text-blue-500 hover:text-blue-700">{dict.common.refresh}</button>
           </div>
         </CardHeader>
         <CardContent>
           {activityLoading ? (
             <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : activity.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">尚無活動紀錄</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">{dict.orderMargin.noActivity}</p>
           ) : (
             <div className="relative">
               {/* Vertical line: spans from first icon center to last icon center */}

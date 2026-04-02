@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, ChevronLeft } from 'lucide-react'
@@ -19,10 +19,12 @@ function fmt(n: number) {
   return Math.abs(n).toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
-const MONTH_LABELS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+// Month labels provided via dict.monthlyPL.months
 
 export default function MonthlyPLPage() {
   const { dict } = useI18n()
+  const mpl = dict.monthlyPL
+  const MONTH_LABELS = [...mpl.months]
   const [year, setYear] = useState(new Date().getFullYear())
   const [showAccounts, setShowAccounts] = useState(false)
   const [data, setData] = useState<MonthlyData | null>(null)
@@ -38,6 +40,8 @@ export default function MonthlyPLPage() {
     finally { setLoading(false) }
   }, [year, dict])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   const currentYear = new Date().getFullYear()
 
   return (
@@ -46,14 +50,14 @@ export default function MonthlyPLPage() {
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.monthlyPL}</h1>
-          <p className="text-sm text-muted-foreground">12 個月橫向損益比較</p>
+          <p className="text-sm text-muted-foreground">{mpl.subtitle}</p>
         </div>
       </div>
       <div className="flex items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">{dict.reportsExt.period}</label>
           <select value={year} onChange={e => setYear(Number(e.target.value))} className="rounded-md border px-3 py-2 text-sm">
-            {Array.from({ length: 5 }, (_, i) => currentYear - i).map(y => <option key={y} value={y}>{y} 年</option>)}
+            {Array.from({ length: 5 }, (_, i) => currentYear - i).map(y => <option key={y} value={y}>{y}{mpl.yearSuffix}</option>)}
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.reportsExt.generate}</Button>
@@ -62,15 +66,15 @@ export default function MonthlyPLPage() {
         <>
           <div className="grid grid-cols-3 gap-3">
             <div className="rounded-lg border bg-white p-3">
-              <p className="text-xs text-muted-foreground mb-1">全年收入</p>
+              <p className="text-xs text-muted-foreground mb-1">{mpl.totalRevenue}</p>
               <p className="text-base font-mono font-semibold text-green-600">${fmt(data.summary.totalRevenue)}</p>
             </div>
             <div className="rounded-lg border bg-white p-3">
-              <p className="text-xs text-muted-foreground mb-1">全年費用</p>
+              <p className="text-xs text-muted-foreground mb-1">{mpl.totalExpense}</p>
               <p className="text-base font-mono font-semibold text-red-600">${fmt(data.summary.totalExpense)}</p>
             </div>
             <div className="rounded-lg border bg-white p-3">
-              <p className="text-xs text-muted-foreground mb-1">全年淨利</p>
+              <p className="text-xs text-muted-foreground mb-1">{mpl.totalNetIncome}</p>
               <p className={`text-base font-mono font-bold ${data.summary.totalNetIncome >= 0 ? 'text-slate-900' : 'text-red-600'}`}>${fmt(data.summary.totalNetIncome)}</p>
             </div>
           </div>
@@ -80,16 +84,16 @@ export default function MonthlyPLPage() {
             <table className="w-full text-sm min-w-[900px]">
               <thead>
                 <tr className="border-b bg-slate-50">
-                  <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-slate-50 w-36">項目</th>
+                  <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-slate-50 w-36">{mpl.colItem}</th>
                   {MONTH_LABELS.map(m => <th key={m} className="text-right px-2 py-3 font-medium text-muted-foreground w-20">{m}</th>)}
-                  <th className="text-right px-3 py-3 font-semibold w-24">全年合計</th>
+                  <th className="text-right px-3 py-3 font-semibold w-24">{mpl.colYearTotal}</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  { label: '收入合計', data: data.summary.revenue, total: data.summary.totalRevenue, cls: 'text-green-700 bg-green-50/50', totalCls: 'text-green-700 font-bold' },
-                  { label: '費用合計', data: data.summary.expense, total: data.summary.totalExpense, cls: 'text-red-600 bg-red-50/50', totalCls: 'text-red-600 font-bold' },
-                  { label: '淨利潤', data: data.summary.netIncome, total: data.summary.totalNetIncome, cls: 'bg-slate-50 border-t-2', totalCls: 'font-bold' },
+                  { label: mpl.rowRevenue, data: data.summary.revenue, total: data.summary.totalRevenue, cls: 'text-green-700 bg-green-50/50', totalCls: 'text-green-700 font-bold' },
+                  { label: mpl.rowExpense, data: data.summary.expense, total: data.summary.totalExpense, cls: 'text-red-600 bg-red-50/50', totalCls: 'text-red-600 font-bold' },
+                  { label: mpl.rowNetIncome, data: data.summary.netIncome, total: data.summary.totalNetIncome, cls: 'bg-slate-50 border-t-2', totalCls: 'font-bold' },
                 ].map(row => (
                   <tr key={row.label} className={`border-b ${row.cls}`}>
                     <td className={`px-4 py-2.5 font-semibold sticky left-0 ${row.cls}`}>{row.label}</td>
@@ -110,7 +114,7 @@ export default function MonthlyPLPage() {
           {/* Account breakdown toggle */}
           <div className="flex items-center gap-2">
             <button onClick={() => setShowAccounts(!showAccounts)} className="text-sm text-blue-600 hover:underline">
-              {showAccounts ? '▲ 收起' : '▼ 顯示科目明細'}
+              {showAccounts ? mpl.hideAccounts : mpl.showAccounts}
             </button>
           </div>
           {showAccounts && (
@@ -118,10 +122,10 @@ export default function MonthlyPLPage() {
               <table className="w-full text-sm min-w-[900px]">
                 <thead>
                   <tr className="border-b bg-slate-50">
-                    <th className="text-left px-4 py-2 font-medium sticky left-0 bg-slate-50 w-48">科目</th>
-                    <th className="text-left px-2 py-2 font-medium w-16">類型</th>
+                    <th className="text-left px-4 py-2 font-medium sticky left-0 bg-slate-50 w-48">{mpl.colAccount}</th>
+                    <th className="text-left px-2 py-2 font-medium w-16">{mpl.colType}</th>
                     {MONTH_LABELS.map(m => <th key={m} className="text-right px-2 py-2 text-xs text-muted-foreground w-20">{m}</th>)}
-                    <th className="text-right px-3 py-2 font-medium w-24">合計</th>
+                    <th className="text-right px-3 py-2 font-medium w-24">{mpl.colYearTotal}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -132,7 +136,7 @@ export default function MonthlyPLPage() {
                       </td>
                       <td className="px-2 py-2">
                         <Badge className={`text-xs ${acc.type === 'REVENUE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {acc.type === 'REVENUE' ? '收入' : '費用'}
+                          {acc.type === 'REVENUE' ? mpl.typeRevenue : mpl.typeExpense}
                         </Badge>
                       </td>
                       {acc.monthly.map((v, i) => (

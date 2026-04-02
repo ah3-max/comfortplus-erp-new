@@ -7,9 +7,31 @@ import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Plus, Trash2, Search } from 'lucide-react'
+import { Loader2, Plus, Trash2, Search, LayoutTemplate, Save, FolderOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
+
+// ── 報價範本 (localStorage-based) ──────────────────────────────────────────────
+const TEMPLATE_KEY = 'quotation_templates_v1'
+
+interface QuotationTemplate {
+  id: string
+  name: string
+  items: LineItem[]
+  createdAt: string
+}
+
+function loadTemplates(): QuotationTemplate[] {
+  try {
+    return JSON.parse(localStorage.getItem(TEMPLATE_KEY) ?? '[]')
+  } catch {
+    return []
+  }
+}
+
+function saveTemplates(templates: QuotationTemplate[]) {
+  localStorage.setItem(TEMPLATE_KEY, JSON.stringify(templates))
+}
 
 interface Customer {
   id: string
@@ -23,6 +45,7 @@ interface Product {
   name: string
   unit: string
   sellingPrice: string
+  costPrice: string
 }
 
 interface LineItem {
@@ -33,6 +56,7 @@ interface LineItem {
   quantity: number
   unitPrice: number
   discount: number
+  costPrice: number
 }
 
 interface QuotationItem {
@@ -66,6 +90,7 @@ const emptyItem = (): LineItem => ({
   quantity: 1,
   unitPrice: 0,
   discount: 0,
+  costPrice: 0,
 })
 
 export function QuotationForm({ open, onClose, onSuccess, quotation }: QuotationFormProps) {
@@ -96,9 +121,12 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
       quantity: i.quantity,
       unitPrice: Number(i.unitPrice),
       discount: Number(i.discount),
+      costPrice: 0,
     })) ?? [emptyItem()]
   )
   const [loading, setLoading] = useState(false)
+  const [templatePanelOpen, setTemplatePanelOpen] = useState(false)
+  const [templates, setTemplates] = useState<QuotationTemplate[]>([])
 
   useEffect(() => {
     if (!open) {
@@ -112,7 +140,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
       setNotes(quotation?.notes ?? '')
       setItems(quotation?.items?.map((i) => ({
         productId: i.productId, productName: i.product.name, productSku: i.product.sku,
-        unit: i.product.unit, quantity: i.quantity, unitPrice: Number(i.unitPrice), discount: Number(i.discount),
+        unit: i.product.unit, quantity: i.quantity, unitPrice: Number(i.unitPrice), discount: Number(i.discount), costPrice: 0,
       })) ?? [emptyItem()])
       return
     }
@@ -165,6 +193,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
               productSku: product.sku,
               unit: product.unit,
               unitPrice: Number(product.sellingPrice),
+              costPrice: Number(product.costPrice),
             }
           : item
       )
@@ -192,8 +221,48 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
     0
   )
 
+  const totalCost = items.reduce(
+    (sum, item) => sum + item.quantity * item.costPrice,
+    0
+  )
+  const grossProfit = totalAmount - totalCost
+  const grossMarginPct = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0
+
   function formatCurrency(val: number) {
     return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(val)
+  }
+
+  function openTemplatePanel() {
+    setTemplates(loadTemplates())
+    setTemplatePanelOpen(true)
+  }
+
+  function saveAsTemplate() {
+    const validItems = items.filter(i => i.productId)
+    if (validItems.length === 0) { toast.error('請先加入商品品項'); return }
+    const name = prompt('請輸入範本名稱：')
+    if (!name?.trim()) return
+    const tpl: QuotationTemplate = {
+      id: Date.now().toString(),
+      name: name.trim(),
+      items: validItems,
+      createdAt: new Date().toISOString(),
+    }
+    const updated = [...loadTemplates(), tpl]
+    saveTemplates(updated)
+    toast.success(`範本「${tpl.name}」已儲存`)
+  }
+
+  function loadTemplate(tpl: QuotationTemplate) {
+    setItems(tpl.items)
+    setTemplatePanelOpen(false)
+    toast.success(`已套用範本「${tpl.name}」`)
+  }
+
+  function deleteTemplate(id: string) {
+    const updated = loadTemplates().filter(t => t.id !== id)
+    saveTemplates(updated)
+    setTemplates(updated)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -297,11 +366,49 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
           <div>
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-medium text-muted-foreground">{fl.quotationItems}</p>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                {fl.addItem}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={openTemplatePanel}>
+                  <FolderOpen className="mr-1 h-3.5 w-3.5" />套用範本
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={saveAsTemplate}>
+                  <Save className="mr-1 h-3.5 w-3.5" />存為範本
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                  <Plus className="mr-1 h-3.5 w-3.5" />
+                  {fl.addItem}
+                </Button>
+              </div>
             </div>
+
+            {/* 範本選擇面板 */}
+            {templatePanelOpen && (
+              <div className="mb-3 rounded-lg border bg-amber-50 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium flex items-center gap-1.5">
+                    <LayoutTemplate className="h-4 w-4 text-amber-600" />報價範本
+                  </span>
+                  <button type="button" onClick={() => setTemplatePanelOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">關閉</button>
+                </div>
+                {templates.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-2">尚無範本。新增品項後點「存為範本」。</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {templates.map(tpl => (
+                      <div key={tpl.id} className="flex items-center justify-between bg-white rounded-md border px-3 py-2">
+                        <div>
+                          <span className="text-sm font-medium">{tpl.name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{tpl.items.length} 項商品</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => loadTemplate(tpl)} className="text-xs text-blue-600 hover:text-blue-700 font-medium">套用</button>
+                          <button type="button" onClick={() => deleteTemplate(tpl.id)} className="text-xs text-red-500 hover:text-red-600">刪除</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             {activeItemIndex !== null && (
               <div className="mb-3 rounded-lg border bg-slate-50 p-3">
@@ -451,6 +558,20 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                     </td>
                     <td />
                   </tr>
+                  {totalCost > 0 && (
+                    <tr className="border-t border-slate-200">
+                      <td colSpan={5} className="px-3 py-2 text-right text-xs text-muted-foreground">
+                        預估毛利率
+                      </td>
+                      <td className={`px-3 py-2 text-right text-sm font-semibold tabular-nums ${grossMarginPct >= 30 ? 'text-emerald-600' : grossMarginPct >= 15 ? 'text-yellow-600' : 'text-red-500'}`}>
+                        {grossMarginPct.toFixed(1)}%
+                        <span className="text-xs font-normal text-muted-foreground ml-1">
+                          ({formatCurrency(grossProfit)})
+                        </span>
+                      </td>
+                      <td />
+                    </tr>
+                  )}
                 </tfoot>
               </table>
             </div>

@@ -48,6 +48,24 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const newStatus = body.status as string
     const prevOrder = await prisma.purchaseOrder.findUnique({ where: { id }, select: { status: true } })
 
+    // 3-7: State machine validation
+    const PO_TRANSITIONS: Record<string, string[]> = {
+      DRAFT:            ['PENDING_APPROVAL', 'SOURCING', 'CANCELLED'],
+      SOURCING:         ['PENDING_APPROVAL', 'ORDERED', 'CANCELLED'],
+      PENDING_APPROVAL: ['ORDERED', 'CANCELLED'],
+      ORDERED:          ['FACTORY_CONFIRMED', 'IN_PRODUCTION', 'CANCELLED'],
+      IN_PRODUCTION:    ['FACTORY_CONFIRMED'],
+      FACTORY_CONFIRMED:['RECEIVED', 'PARTIAL'],
+      PARTIAL:          ['RECEIVED'],
+      RECEIVED:         ['INSPECTED', 'WAREHOUSED', 'CLOSED'],
+      INSPECTED:        ['WAREHOUSED', 'CLOSED'],
+      WAREHOUSED:       ['CLOSED'],
+    }
+    const allowedPOTransitions = PO_TRANSITIONS[prevOrder?.status as string]
+    if (allowedPOTransitions && !allowedPOTransitions.includes(newStatus)) {
+      return NextResponse.json({ error: `採購單狀態不允許從 ${prevOrder?.status} 轉換為 ${newStatus}` }, { status: 400 })
+    }
+
     const order = await prisma.purchaseOrder.update({
       where: { id },
       data: { status: newStatus as any },
@@ -71,39 +89,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             customsStatus: 'NOT_STARTED',
             purchaseOrderId: id,
             notes: `採購單 ${order.poNo} 工廠已確認出貨 — 供應商: ${order.supplier?.name ?? ''}，待安排海運`,
-          },
-        })
-      }
-    }
-
-    // ── 已下單 → 自動建立 WMS 預計入庫單 ──
-    if (newStatus === 'ORDERED' && prevOrder?.status !== 'ORDERED') {
-      const existingInbound = await prisma.wmsInbound.findFirst({ where: { sourceId: id, type: 'PURCHASE' } })
-      if (!existingInbound) {
-        const inboundNumber = await generateSequenceNo('WMS_INBOUND')
-        const fullOrder = await prisma.purchaseOrder.findUnique({
-          where: { id },
-          select: { expectedDate: true, items: { select: { productId: true, quantity: true } } },
-        })
-        await prisma.wmsInbound.create({
-          data: {
-            inboundNumber,
-            type: 'PURCHASE',
-            sourceId: id,
-            handlerId: session.user.id,
-            expectedDate: fullOrder?.expectedDate ?? null,
-            status: 'EXPECTED',
-            notes: `採購單 ${order.poNo} 已下單 — 供應商: ${order.supplier?.name ?? ''}`,
-            createdById: session.user.id,
-            items: {
-              create: (fullOrder?.items ?? [])
-                .filter(item => item.productId != null)
-                .map(item => ({
-                  productId: item.productId as string,
-                  quantity: Number(item.quantity),
-                  receivedQty: 0,
-                })),
-            },
           },
         })
       }

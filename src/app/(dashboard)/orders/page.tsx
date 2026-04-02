@@ -22,7 +22,7 @@ import {
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
-type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED'
+type OrderStatus = 'PENDING' | 'CONFIRMED' | 'ALLOCATING' | 'READY_TO_SHIP' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'SIGNED' | 'COMPLETED' | 'CANCELLED'
 
 interface OrderItem {
   productId: string; quantity: number; unitPrice: number; discount: number
@@ -54,22 +54,28 @@ export default function OrdersPage() {
     variant: 'default' | 'secondary' | 'outline' | 'destructive'
     className?: string
   }> = {
-    PENDING:    { label: dict.orders.statuses.PENDING,    variant: 'outline' },
-    CONFIRMED:  { label: dict.orders.statuses.CONFIRMED,  variant: 'secondary' },
-    PROCESSING: { label: dict.orders.statuses.PROCESSING, variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
-    SHIPPED:    { label: dict.orders.statuses.SHIPPED,    variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
-    DELIVERED:  { label: dict.orders.statuses.DELIVERED,  variant: 'default', className: 'bg-teal-100 text-teal-700 border-teal-200' },
-    COMPLETED:  { label: dict.orders.statuses.COMPLETED,  variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
-    CANCELLED:  { label: dict.orders.statuses.CANCELLED,  variant: 'destructive' },
+    PENDING:       { label: dict.orders.statuses.PENDING,       variant: 'outline' },
+    CONFIRMED:     { label: dict.orders.statuses.CONFIRMED,     variant: 'secondary' },
+    ALLOCATING:    { label: dict.orders.statuses.ALLOCATING,    variant: 'default', className: 'bg-orange-100 text-orange-700 border-orange-200' },
+    READY_TO_SHIP: { label: dict.orders.statuses.READY_TO_SHIP, variant: 'default', className: 'bg-purple-100 text-purple-700 border-purple-200' },
+    PROCESSING:    { label: dict.orders.statuses.PROCESSING,    variant: 'default', className: 'bg-amber-100 text-amber-700 border-amber-200' },
+    SHIPPED:       { label: dict.orders.statuses.SHIPPED,       variant: 'default', className: 'bg-blue-100 text-blue-700 border-blue-200' },
+    DELIVERED:     { label: dict.orders.statuses.DELIVERED,     variant: 'default', className: 'bg-teal-100 text-teal-700 border-teal-200' },
+    SIGNED:        { label: dict.orders.statuses.SIGNED,        variant: 'default', className: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+    COMPLETED:     { label: dict.orders.statuses.COMPLETED,     variant: 'default', className: 'bg-green-100 text-green-700 border-green-200' },
+    CANCELLED:     { label: dict.orders.statuses.CANCELLED,     variant: 'destructive' },
   }
 
   const statusFilters = [
     { value: '', label: dict.common.all },
     { value: 'PENDING',    label: dict.orders.statuses.PENDING },
-    { value: 'CONFIRMED',  label: dict.orders.statuses.CONFIRMED },
-    { value: 'PROCESSING', label: dict.orders.statuses.PROCESSING },
-    { value: 'SHIPPED',    label: dict.orders.statuses.SHIPPED },
-    { value: 'COMPLETED',  label: dict.orders.statuses.COMPLETED },
+    { value: 'CONFIRMED',     label: dict.orders.statuses.CONFIRMED },
+    { value: 'ALLOCATING',    label: dict.orders.statuses.ALLOCATING },
+    { value: 'READY_TO_SHIP', label: dict.orders.statuses.READY_TO_SHIP },
+    { value: 'PROCESSING',    label: dict.orders.statuses.PROCESSING },
+    { value: 'SHIPPED',       label: dict.orders.statuses.SHIPPED },
+    { value: 'SIGNED',        label: dict.orders.statuses.SIGNED },
+    { value: 'COMPLETED',     label: dict.orders.statuses.COMPLETED },
   ]
 
   const [orders, setOrders] = useState<Order[]>([])
@@ -108,11 +114,45 @@ export default function OrdersPage() {
     }
   }
 
+  async function batchShip() {
+    if (selectedIds.size === 0) return
+    const confirmedOrders = orders.filter(o =>
+      ['CONFIRMED', 'ALLOCATING', 'READY_TO_SHIP'].includes(o.status) && selectedIds.has(o.id)
+    )
+    if (confirmedOrders.length === 0) { toast.error('請勾選已確認狀態的訂單'); return }
+    if (!confirm(`確認為 ${confirmedOrders.length} 筆訂單自動建立出貨單？`)) return
+    setBatchLoading(true)
+    try {
+      const results = await Promise.allSettled(
+        confirmedOrders.map(order => fetch('/api/shipments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: order.id,
+            warehouse: 'MAIN',
+            items: order.items.map(i => ({
+              productId: i.productId,
+              quantity: i.quantity - ((i as { shippedQty?: number }).shippedQty ?? 0),
+            })),
+          }),
+        }))
+      )
+      const ok = results.filter(r => r.status === 'fulfilled' && (r.value as Response).ok).length
+      const fail = results.length - ok
+      if (ok > 0) toast.success(`已建立 ${ok} 筆出貨單${fail > 0 ? `，${fail} 筆失敗` : ''}`)
+      else toast.error('出貨單建立失敗，請確認庫存是否充足')
+      setSelectedIds(new Set())
+      fetchOrders()
+    } finally {
+      setBatchLoading(false)
+    }
+  }
+
   async function batchConfirm() {
     if (selectedIds.size === 0) return
     const pendingIds = orders.filter(o => o.status === 'PENDING' && selectedIds.has(o.id)).map(o => o.id)
-    if (pendingIds.length === 0) { toast.error('所選訂單中沒有可確認的待處理訂單'); return }
-    if (!confirm(`確認批次確認 ${pendingIds.length} 筆訂單？`)) return
+    if (pendingIds.length === 0) { toast.error(dict.ordersExt.batchNoPending); return }
+    if (!confirm(dict.ordersExt.batchConfirmMsg.replace('{n}', String(pendingIds.length)))) return
     setBatchLoading(true)
     try {
       const results = await Promise.allSettled(
@@ -123,7 +163,7 @@ export default function OrdersPage() {
         }))
       )
       const ok = results.filter(r => r.status === 'fulfilled' && (r.value as Response).ok).length
-      toast.success(`已確認 ${ok} 筆訂單`)
+      toast.success(dict.ordersExt.batchConfirmedMsg.replace('{n}', String(ok)))
       setSelectedIds(new Set())
       fetchOrders()
     } finally {
@@ -239,14 +279,18 @@ export default function OrdersPage() {
       {/* Batch Action Bar */}
       {selectedIds.size > 0 && (
         <div className="flex items-center gap-3 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2.5">
-          <span className="text-sm font-medium text-blue-700">已選 {selectedIds.size} 筆</span>
+          <span className="text-sm font-medium text-blue-700">{dict.ordersExt.selectedCount.replace('{n}', String(selectedIds.size))}</span>
           <div className="flex gap-2 ml-auto">
             <Button size="sm" variant="outline" onClick={batchExport} className="border-blue-300 text-blue-700 hover:bg-blue-100">
-              <Download className="mr-1.5 h-3.5 w-3.5" />匯出選取
+              <Download className="mr-1.5 h-3.5 w-3.5" />{dict.ordersExt.exportSelected}
             </Button>
             <Button size="sm" onClick={batchConfirm} disabled={batchLoading} className="bg-blue-600 hover:bg-blue-700">
               {batchLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />}
-              批次確認
+              {dict.ordersExt.batchConfirmBtn}
+            </Button>
+            <Button size="sm" variant="outline" onClick={batchShip} disabled={batchLoading} className="border-teal-300 text-teal-700 hover:bg-teal-50">
+              {batchLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Truck className="mr-1.5 h-3.5 w-3.5" />}
+              批次建立出貨
             </Button>
             <button onClick={() => setSelectedIds(new Set())} className="ml-1 text-slate-400 hover:text-slate-600">
               <X className="h-4 w-4" />

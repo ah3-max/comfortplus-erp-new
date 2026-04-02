@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { ArrowLeft, Loader2, FileText } from 'lucide-react'
+import { ArrowLeft, Loader2, FileText, CheckCircle2, PackagePlus, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 type ReceiptStatus = 'DRAFT' | 'CONFIRMED' | 'RECEIVED' | 'CANCELLED'
 
@@ -67,27 +68,49 @@ export default function ProductionReceiptDetailPage() {
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await fetch(`/api/production-receipts/${id}`)
-        if (res.status === 404 || res.status === 403) {
-          setNotFound(true)
-          return
-        }
-        if (!res.ok) throw new Error(dict.common.loadFailed)
-        const data = await res.json()
-        setReceipt(data)
-      } catch {
-        setNotFound(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [id])
+  async function loadReceipt() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/production-receipts/${id}`)
+      if (res.status === 404 || res.status === 403) { setNotFound(true); return }
+      if (!res.ok) throw new Error(dict.common.loadFailed)
+      setReceipt(await res.json())
+    } catch { setNotFound(true) }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { loadReceipt() }, [id])
+
+  async function updateStatus(status: string) {
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/production-receipts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusOnly: true, status }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? dict.common.updateFailed) }
+      toast.success(dict.common.updateSuccess)
+      loadReceipt()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : dict.common.updateFailed)
+    } finally { setActionLoading(false) }
+  }
+
+  async function handleCancel() {
+    if (!confirm(p.confirmCancelMsg.replace('{no}', receipt?.receiptNumber ?? ''))) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/production-receipts/${id}`, { method: 'DELETE' })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? dict.common.operationFailed) }
+      toast.success(p.cancelSuccess)
+      loadReceipt()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : dict.common.operationFailed)
+    } finally { setActionLoading(false) }
+  }
 
   if (loading) {
     return (
@@ -112,7 +135,7 @@ export default function ProductionReceiptDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Button variant="outline" size="sm" onClick={() => router.push('/production-receipts')}>
           <ArrowLeft className="mr-2 h-4 w-4" />{p.back}
         </Button>
@@ -126,6 +149,26 @@ export default function ProductionReceiptDetailPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {dict.productionReceipts.title} · {p.createdAt} {formatDate(receipt.createdAt)}
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {receipt.status === 'DRAFT' && (
+            <Button size="sm" onClick={() => updateStatus('CONFIRMED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              {p.confirmReceipt}
+            </Button>
+          )}
+          {receipt.status === 'CONFIRMED' && (
+            <Button size="sm" onClick={() => updateStatus('RECEIVED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackagePlus className="mr-2 h-4 w-4" />}
+              {p.completeReceipt}
+            </Button>
+          )}
+          {!['RECEIVED', 'CANCELLED'].includes(receipt.status) && (
+            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50"
+              onClick={handleCancel} disabled={actionLoading}>
+              <XCircle className="mr-2 h-4 w-4" />{p.cancelBtn}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -149,7 +192,7 @@ export default function ProductionReceiptDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">{p.itemCount}</dt>
-              <dd>{receipt.items.length} 項</dd>
+              <dd>{receipt.items.length} {dict.common.pieces}</dd>
             </div>
           </dl>
         </div>
@@ -197,13 +240,13 @@ export default function ProductionReceiptDetailPage() {
       {/* Items Table */}
       <div className="rounded-lg border bg-white">
         <div className="px-5 py-4 border-b">
-          <h2 className="text-sm font-semibold text-slate-700">{p.itemsHeader}（{receipt.items.length} 項）</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.itemsHeader}（{receipt.items.length} {dict.common.pieces}）</h2>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-8">#</TableHead>
-              <TableHead>品項</TableHead>
+              <TableHead>{p.colProduct}</TableHead>
               <TableHead className="w-24">{p.colSpec}</TableHead>
               <TableHead className="w-20 text-right">{dict.common.quantity}</TableHead>
               <TableHead className="w-16 text-center">{dict.common.unit}</TableHead>

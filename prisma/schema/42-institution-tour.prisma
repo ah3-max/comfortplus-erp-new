@@ -1,0 +1,64 @@
+// ========== 機構巡迴排程 ==========
+// 功能：SALES / CARE_SUPERVISOR 的機構拜訪排程，含出發前推播與完成回報
+
+model InstitutionTour {
+  id              String    @id @default(cuid())
+  tourNo          String    @unique            // TOUR-YYYYMMDD-0001
+
+  // 巡迴人員
+  assignedUserId  String
+  assignedUser    User      @relation("TourAssigned", fields: [assignedUserId], references: [id])
+
+  // 目標機構
+  customerId      String
+  customer        Customer  @relation("TourCustomer", fields: [customerId], references: [id])
+
+  // 日期時間
+  tourDate        DateTime  @db.Date
+  plannedStartTime String?                    // HH:MM 格式，如 "14:30"
+  reminderMinutes Int       @default(30)      // 出發前幾分鐘推播
+
+  // 巡迴類型
+  tourType        String    @default("ROUTINE_VISIT")
+  // ROUTINE_VISIT    例行巡迴
+  // DIAPER_CHECK     尿布問題檢查
+  // COMPLAINT_FOLLOW 客訴追蹤
+  // TRAINING         教育訓練
+  // ONBOARDING       新客開通
+  // PAYMENT          收款
+  // OTHER            其他
+
+  purpose         String?                     // 具體說明
+
+  // 狀態
+  status          String    @default("SCHEDULED")
+  // SCHEDULED    已排程（未出發）
+  // DEPARTED     已出發
+  // IN_PROGRESS  進行中（已到達）
+  // COMPLETED    已完成
+  // MISSED       未完成
+  // CANCELLED    已取消
+
+  // 推播
+  reminderSentAt  DateTime?
+
+  // 實際執行時間
+  departedAt      DateTime?
+  arrivedAt       DateTime?
+  completedAt     DateTime?
+
+  // 完成回報
+  reportResult    String?
+  reportedAt      DateTime?
+
+  // 建立者
+  createdById     String?
+  createdBy       User?     @relation("TourCreatedBy", fields: [createdById], references: [id])
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([tourDate, status])
+  @@index([assignedUserId, tourDate])
+  @@index([reminderSentAt, status])
+}

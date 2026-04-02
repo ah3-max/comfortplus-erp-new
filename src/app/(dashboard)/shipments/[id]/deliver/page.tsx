@@ -115,7 +115,7 @@ export default function DeliveryConfirmPage() {
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? '送達確認失敗')
+        throw new Error(err.error ?? d.deliverConfirmFailed)
       }
 
       const result = await res.json()
@@ -136,7 +136,7 @@ export default function DeliveryConfirmPage() {
     )
   }
 
-  if (!shipment) return <div className="p-4 text-center text-muted-foreground">找不到出貨單</div>
+  if (!shipment) return <div className="p-4 text-center text-muted-foreground">{d.notFound}</div>
 
   return (
     <div className="space-y-5 max-w-2xl mx-auto">
@@ -181,7 +181,7 @@ export default function DeliveryConfirmPage() {
         <div className="grid grid-cols-3 gap-2">
           {photos.map((photo, idx) => (
             <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border">
-              <img src={photo.preview} alt={`送達照片 ${idx + 1}`}
+              <img src={photo.preview} alt={`${d.photoAlt} ${idx + 1}`}
                 className="w-full h-full object-cover" />
               <button onClick={() => removePhoto(idx)}
                 className="absolute top-1 right-1 rounded-full bg-black/50 p-1 text-white">
@@ -205,7 +205,7 @@ export default function DeliveryConfirmPage() {
 
         {signaturePhoto ? (
           <div className="relative w-48 aspect-[4/3] rounded-xl overflow-hidden border">
-            <img src={signaturePhoto.preview} alt="簽收單"
+            <img src={signaturePhoto.preview} alt={d.signatureAlt}
               className="w-full h-full object-cover" />
             <button onClick={() => { URL.revokeObjectURL(signaturePhoto.preview); setSignaturePhoto(null) }}
               className="absolute top-1 right-1 rounded-full bg-black/50 p-1 text-white">

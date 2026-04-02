@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET() {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  try {
 
   const now = new Date()
   const startOfToday    = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -361,4 +364,7 @@ export async function GET() {
     purchaseTrend,
     repurchaseRate,
   })
+  } catch (error) {
+    return handleApiError(error, 'dashboard.GET')
+  }
 }

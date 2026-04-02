@@ -52,6 +52,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           items: { include: { product: { select: { name: true } } } },
           factory: { select: { name: true } },
           productionOrder: { select: { productionNo: true } },
+          receivingWarehouse: { select: { code: true } },
         },
       })
       if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -64,21 +65,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: { status: body.status },
       })
 
-      // When CONFIRMED: add inventory to receivingWarehouse for each item
+      // When CONFIRMED: add inventory using warehouse CODE (not ID)
       if (newStatus === 'CONFIRMED' && current.receivingWarehouseId && current.items.length > 0) {
+        const whCode = current.receivingWarehouse?.code ?? current.receivingWarehouseId
         await prisma.$transaction(
           current.items.map(item =>
             prisma.inventory.upsert({
               where: {
                 productId_warehouse_category: {
                   productId: item.productId,
-                  warehouse: current.receivingWarehouseId!,
+                  warehouse: whCode,
                   category: 'FINISHED_GOODS',
                 },
               },
               create: {
                 productId: item.productId,
-                warehouse: current.receivingWarehouseId!,
+                warehouse: whCode,
                 category: 'FINISHED_GOODS',
                 quantity: Number(item.quantity),
                 availableQty: Number(item.quantity),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
@@ -42,6 +42,8 @@ export default function RetainedEarningsPage() {
     } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [year])
+
+  useEffect(() => { fetchData() }, [fetchData])
 
   return (
     <div className="space-y-5">

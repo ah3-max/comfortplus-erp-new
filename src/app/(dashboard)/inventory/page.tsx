@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useI18n } from '@/lib/i18n/context'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { AdjustForm } from '@/components/inventory/adjust-form'
 import {
   Search, AlertTriangle, Package, Loader2, SlidersHorizontal, History,
@@ -141,6 +144,10 @@ interface ProductOption   { id: string; sku: string; name: string; unit: string 
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function InventoryPage() {
+  return <Suspense><InventoryPageInner /></Suspense>
+}
+
+function InventoryPageInner() {
   const { dict } = useI18n()
   const router = useRouter()
 
@@ -184,7 +191,12 @@ export default function InventoryPage() {
     RETURN:       { label: dict.inventoryExt.txTypes.RETURN,       ...TX_TYPE_META.RETURN },
   }
 
-  const [activeTab, setActiveTab] = useState<Tab>('stock')
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const t = searchParams.get('tab')
+    const valid: Tab[] = ['stock', 'lots', 'transfer', 'count', 'scrap', 'reports', 'history']
+    return (valid.includes(t as Tab) ? t : 'stock') as Tab
+  })
 
   // Inventory tab
   const [inventory, setInventory]           = useState<InventoryItem[]>([])
@@ -192,6 +204,8 @@ export default function InventoryPage() {
   const [invSearch, setInvSearch]           = useState('')
   const [invWarehouse, setInvWarehouse]     = useState('')
   const [invCategory, setInvCategory]       = useState('')
+  const [invProductCategory, setInvProductCategory] = useState('')
+  const [productCategories, setProductCategories]   = useState<string[]>([])
   const [showLowStock, setShowLowStock]     = useState(false)
   const [adjustTarget, setAdjustTarget]     = useState<InventoryItem | null>(null)
   const [adjustOpen, setAdjustOpen]         = useState(false)
@@ -263,14 +277,15 @@ export default function InventoryPage() {
   const fetchInventory = useCallback(async () => {
     setInvLoading(true)
     const p = new URLSearchParams()
-    if (invSearch)    p.set('search',    invSearch)
-    if (invWarehouse) p.set('warehouse', invWarehouse)
-    if (invCategory)  p.set('invCategory', invCategory)
-    if (showLowStock) p.set('lowStock',  'true')
+    if (invSearch)           p.set('search',      invSearch)
+    if (invWarehouse)        p.set('warehouse',   invWarehouse)
+    if (invCategory)         p.set('invCategory', invCategory)
+    if (invProductCategory)  p.set('category',    invProductCategory)
+    if (showLowStock)        p.set('lowStock',    'true')
     const res = await fetch(`/api/inventory?${p}`)
     setInventory(await res.json())
     setInvLoading(false)
-  }, [invSearch, invWarehouse, invCategory, showLowStock])
+  }, [invSearch, invWarehouse, invCategory, invProductCategory, showLowStock])
 
   const fetchLots = useCallback(async () => {
     setLotsLoading(true)
@@ -325,15 +340,17 @@ export default function InventoryPage() {
   }, [])
 
   const fetchMeta = useCallback(async () => {
-    const [wRes, pRes] = await Promise.all([
+    const [wRes, pRes, catRes] = await Promise.all([
       fetch('/api/warehouses'),
       fetch('/api/products?limit=500'),
+      fetch('/api/products/categories'),
     ])
     if (wRes.ok) setWarehouses(await wRes.json())
     if (pRes.ok) {
       const data = await pRes.json()
       setProducts(Array.isArray(data) ? data : data.products ?? [])
     }
+    if (catRes.ok) setProductCategories(await catRes.json())
   }, [])
 
   useEffect(() => { fetchMeta() }, [fetchMeta])
@@ -598,6 +615,11 @@ export default function InventoryPage() {
               className="h-9 rounded-md border px-3 text-sm">
               <option value="">{dict.common.all}{dict.common.warehouse}</option>
               {warehouses.map(w => <option key={w.id} value={w.code}>{w.name} ({w.code})</option>)}
+            </select>
+            <select value={invProductCategory} onChange={e => setInvProductCategory(e.target.value)}
+              className="h-9 rounded-md border px-3 text-sm">
+              <option value="">全部品項</option>
+              {productCategories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <select value={invCategory} onChange={e => setInvCategory(e.target.value)}
               className="h-9 rounded-md border px-3 text-sm">
@@ -1316,56 +1338,79 @@ export default function InventoryPage() {
 
       {/* New Transfer Dialog */}
       <Dialog open={trNewOpen} onOpenChange={o => !o && setTrNewOpen(false)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{dict.common.create}{dict.inventory.transfer}{dict.inventoryPage.transferUnit}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-1">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>{dict.inventoryExt.transferFrom} <span className="text-red-500">*</span></Label>
-                <select value={trForm.fromWarehouseId}
-                  onChange={e => setTrForm(f => ({ ...f, fromWarehouseId: e.target.value }))}
-                  className="h-9 w-full rounded-md border px-3 text-sm">
-                  <option value="">{dict.common.select}</option>
-                  {warehouses.map(w => <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
-                </select>
+                <Select value={trForm.fromWarehouseId || '_none'}
+                  onValueChange={(v: string | null) => setTrForm(f => ({ ...f, fromWarehouseId: v === '_none' || !v ? '' : v, toWarehouseId: '' }))}>
+                  <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— {dict.common.select} —</SelectItem>
+                    {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.name} ({w.code})</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>{dict.inventoryExt.transferTo} <span className="text-red-500">*</span></Label>
-                <select value={trForm.toWarehouseId}
-                  onChange={e => setTrForm(f => ({ ...f, toWarehouseId: e.target.value }))}
-                  className="h-9 w-full rounded-md border px-3 text-sm">
-                  <option value="">{dict.common.select}</option>
-                  {warehouses.filter(w => w.id !== trForm.fromWarehouseId).map(w =>
-                    <option key={w.id} value={w.id}>{w.name} ({w.code})</option>)}
-                </select>
+                <Select value={trForm.toWarehouseId || '_none'}
+                  onValueChange={(v: string | null) => setTrForm(f => ({ ...f, toWarehouseId: v === '_none' || !v ? '' : v }))}
+                  disabled={!trForm.fromWarehouseId}>
+                  <SelectTrigger><SelectValue placeholder={trForm.fromWarehouseId ? dict.common.select : '先選來源倉'} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— {dict.common.select} —</SelectItem>
+                    {warehouses.filter(w => w.id !== trForm.fromWarehouseId).map(w =>
+                      <SelectItem key={w.id} value={w.id}>{w.name} ({w.code})</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <Separator />
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>{dict.inventoryExt.transferQty}{dict.inventoryPage.itemsUnit}</Label>
-                <button onClick={() => setTrForm(f => ({ ...f, items: [...f.items, { productId: '', productName: '', quantity: 1 }] }))}
-                  className="text-xs text-blue-600 hover:underline">+ {dict.common.add}{dict.inventoryPage.itemsUnit}</button>
+                <Label>調撥品項</Label>
+                <Button variant="outline" size="sm"
+                  onClick={() => setTrForm(f => ({ ...f, items: [...f.items, { productId: '', productName: '', quantity: 1 }] }))}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}品項
+                </Button>
               </div>
               {trForm.items.map((item, idx) => (
-                <div key={idx} className="flex gap-2">
-                  <select value={item.productId}
-                    onChange={e => {
-                      const p = products.find(p => p.id === e.target.value)
-                      setTrForm(f => ({ ...f, items: f.items.map((it, i) =>
-                        i === idx ? { ...it, productId: e.target.value, productName: p?.name ?? '' } : it) }))
-                    }}
-                    className="flex-1 h-9 rounded-md border px-3 text-sm">
-                    <option value="">{dict.common.select}{dict.common.product}</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
-                  </select>
-                  <Input type="number" min={1} value={item.quantity} className="w-24"
-                    onChange={e => setTrForm(f => ({ ...f, items: f.items.map((it, i) =>
-                      i === idx ? { ...it, quantity: Number(e.target.value) } : it) }))} />
-                  {trForm.items.length > 1 && (
-                    <button onClick={() => setTrForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }))}
-                      className="text-red-500 hover:text-red-700"><XCircle className="h-4 w-4" /></button>
-                  )}
+                <div key={idx} className="rounded-md border p-3 space-y-2 bg-slate-50/50">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">商品</Label>
+                    <Select value={item.productId || '_none'}
+                      onValueChange={(v: string | null) => {
+                        const pid = v === '_none' || !v ? '' : v
+                        const p = products.find(pr => pr.id === pid)
+                        setTrForm(f => ({ ...f, items: f.items.map((it, i) =>
+                          i === idx ? { ...it, productId: pid, productName: p?.name ?? '' } : it) }))
+                      }}>
+                      <SelectTrigger className="mt-0.5 h-9">
+                        <SelectValue placeholder="選擇商品" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-52 w-[380px]">
+                        <SelectItem value="_none">— 選擇商品 —</SelectItem>
+                        {products.map(p => <SelectItem key={p.id} value={p.id}>[{p.sku}] {p.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-28">
+                      <Label className="text-xs text-muted-foreground">數量</Label>
+                      <Input type="number" min={1} className="h-9 mt-0.5"
+                        value={item.quantity}
+                        onChange={e => setTrForm(f => ({ ...f, items: f.items.map((it, i) =>
+                          i === idx ? { ...it, quantity: Math.max(1, Number(e.target.value)) } : it) }))} />
+                    </div>
+                    {trForm.items.length > 1 && (
+                      <Button variant="ghost" size="sm" className="mt-4 text-red-500"
+                        onClick={() => setTrForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }))}>
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1378,7 +1423,7 @@ export default function InventoryPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setTrNewOpen(false)} disabled={trSaving}>{dict.common.cancel}</Button>
             <Button onClick={handleNewTransfer} disabled={trSaving}>
-              {trSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}{dict.inventory.transfer}{dict.inventoryPage.transferUnit}
+              {trSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}建立調撥單
             </Button>
           </DialogFooter>
         </DialogContent>

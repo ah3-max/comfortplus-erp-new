@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -50,13 +50,15 @@ export default function CashMovementPage() {
     finally { setLoading(false) }
   }, [startDate, endDate, direction, method, dict])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.cashMovement}</h1>
-          <p className="text-sm text-muted-foreground">收付款明細流水帳</p>
+          <p className="text-sm text-muted-foreground">{dict.cashMovement.subtitle}</p>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
@@ -69,17 +71,17 @@ export default function CashMovementPage() {
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">方向</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.cashMovement.directionLabel}</label>
           <select value={direction} onChange={e => setDirection(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="all">全部</option>
-            <option value="INCOMING">收款</option>
-            <option value="OUTGOING">付款</option>
+            <option value="all">{dict.cashMovement.directionAll}</option>
+            <option value="INCOMING">{dict.cashMovement.directionIncoming}</option>
+            <option value="OUTGOING">{dict.cashMovement.directionOutgoing}</option>
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">付款方式</label>
+          <label className="text-xs font-medium text-muted-foreground">{dict.cashMovement.methodLabel}</label>
           <select value={method} onChange={e => setMethod(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="">全部</option>
+            <option value="">{dict.cashMovement.methodAll}</option>
             {['銀行轉帳', '支票', '現金', '信用卡', '月結'].map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
@@ -89,10 +91,10 @@ export default function CashMovementPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: '總收款', value: data.summary.totalIncoming, color: 'text-green-600' },
-              { label: '總付款', value: data.summary.totalOutgoing, color: 'text-red-600' },
-              { label: '淨流量', value: data.summary.netFlow, color: data.summary.netFlow >= 0 ? 'text-slate-900' : 'text-red-600' },
-              { label: '筆數', value: data.summary.count, color: 'text-slate-700', isCount: true },
+              { label: dict.cashMovement.totalIncoming, value: data.summary.totalIncoming, color: 'text-green-600' },
+              { label: dict.cashMovement.totalOutgoing, value: data.summary.totalOutgoing, color: 'text-red-600' },
+              { label: dict.cashMovement.netFlow, value: data.summary.netFlow, color: data.summary.netFlow >= 0 ? 'text-slate-900' : 'text-red-600' },
+              { label: dict.cashMovement.count, value: data.summary.count, color: 'text-slate-700', isCount: true },
             ].map(c => (
               <div key={c.label} className="rounded-lg border bg-white p-3">
                 <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
@@ -107,7 +109,7 @@ export default function CashMovementPage() {
                   <span className="font-medium text-slate-700">{m.method}</span>
                   <span className="text-green-600">+{fmt(m.incoming)}</span>
                   <span className="text-red-600">-{fmt(m.outgoing)}</span>
-                  <span className="text-muted-foreground text-xs">{m.count}筆</span>
+                  <span className="text-muted-foreground text-xs">{m.count}{dict.cashMovement.countSuffix}</span>
                 </div>
               ))}
             </div>
@@ -117,25 +119,25 @@ export default function CashMovementPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-24">{dict.common.date}</TableHead>
-                  <TableHead className="w-28">單號</TableHead>
-                  <TableHead className="w-16">方向</TableHead>
-                  <TableHead>往來對象</TableHead>
-                  <TableHead className="w-20">方式</TableHead>
+                  <TableHead className="w-28">{dict.cashMovement.colNo}</TableHead>
+                  <TableHead className="w-16">{dict.cashMovement.colDirection}</TableHead>
+                  <TableHead>{dict.cashMovement.colParty}</TableHead>
+                  <TableHead className="w-20">{dict.cashMovement.colMethod}</TableHead>
                   <TableHead className="text-right w-28">{dict.common.amount}</TableHead>
                   <TableHead>{dict.common.notes}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">無記錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="py-12 text-center text-muted-foreground">{dict.cashMovement.noRecords}</TableCell></TableRow>
                 ) : data.rows.map(row => (
                   <TableRow key={row.id} className="text-sm hover:bg-slate-50/40">
                     <TableCell className="text-muted-foreground">{row.date}</TableCell>
                     <TableCell className="font-mono text-xs">{row.paymentNo}</TableCell>
                     <TableCell>
                       {row.direction === 'INCOMING'
-                        ? <Badge className="bg-green-100 text-green-700 text-xs"><ArrowDownCircle className="h-3 w-3 mr-1" />收</Badge>
-                        : <Badge className="bg-red-100 text-red-700 text-xs"><ArrowUpCircle className="h-3 w-3 mr-1" />付</Badge>}
+                        ? <Badge className="bg-green-100 text-green-700 text-xs"><ArrowDownCircle className="h-3 w-3 mr-1" />{dict.cashMovement.badgeIn}</Badge>
+                        : <Badge className="bg-red-100 text-red-700 text-xs"><ArrowUpCircle className="h-3 w-3 mr-1" />{dict.cashMovement.badgeOut}</Badge>}
                     </TableCell>
                     <TableCell>{row.partyName}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{row.paymentMethod}</TableCell>

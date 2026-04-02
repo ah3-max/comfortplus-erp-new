@@ -3,12 +3,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Loader2, Search, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Loader2, Search, ChevronDown, ChevronRight, AlertTriangle, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 interface ApItem {
   id: string
@@ -74,6 +76,7 @@ function AgingCell({ value, highlight }: { value: number; highlight?: boolean })
 
 export default function ApAgingPage() {
   const { dict } = useI18n()
+  const router = useRouter()
 
   const statusLabels: Record<string, { label: string; className: string }> = {
     NOT_DUE:      { label: dict.apAging.statusNotDue,      className: STATUS_CLASS.NOT_DUE },
@@ -228,10 +231,21 @@ export default function ApAgingPage() {
                           <TableRow key={item.id} className="bg-slate-50/50 text-sm">
                             <TableCell />
                             <TableCell className="pl-6">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Badge variant="outline" className={st.className}>{st.label}</Badge>
                                 <span className="text-muted-foreground font-mono">{item.invoiceNo ?? '—'}</span>
                                 {item.dueDate && <span className="text-xs text-muted-foreground">{dict.apAging.dueLabel} {fmtDate(item.dueDate)}</span>}
+                                {item.outstanding > 0 && item.status !== 'PAID' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 gap-1 text-xs text-blue-700 border-blue-300 hover:bg-blue-50 ml-1"
+                                    onClick={e => { e.stopPropagation(); router.push('/disbursements') }}
+                                  >
+                                    <CreditCard className="h-3 w-3" />
+                                    {dict.disbursements?.newDisbursement ?? '登記付款'}
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell className="text-right text-xs text-muted-foreground">${fmt(item.amount)}</TableCell>

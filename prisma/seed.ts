@@ -47,6 +47,8 @@ async function main() {
     { type: 'PURCHASE_RETURN',  prefix: 'PRR' },
     { type: 'VAT_FILING',       prefix: 'VAT' },
     { type: 'STATEMENT',        prefix: 'STM' },
+    { type: 'INSTITUTION_TOUR', prefix: 'TOUR' },
+    { type: 'INBOUND', prefix: 'IN' },
   ]
   for (const seq of sequences) {
     await prisma.sequence.upsert({

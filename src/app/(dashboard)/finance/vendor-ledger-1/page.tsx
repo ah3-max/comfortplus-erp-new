@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,6 +28,7 @@ function fmt(n: number) {
 
 export default function VendorLedger1Page() {
   const { dict } = useI18n()
+  const fp = dict.financePages
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -48,6 +49,8 @@ export default function VendorLedger1Page() {
     finally { setLoading(false) }
   }, [startDate, endDate, status])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -55,27 +58,27 @@ export default function VendorLedger1Page() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">客戶管理帳簿</h1>
-          <p className="text-sm text-muted-foreground">應收帳款客戶別彙總</p>
+          <h1 className="text-2xl font-bold text-slate-900">{fp.vl1Title}</h1>
+          <p className="text-sm text-muted-foreground">{fp.vl1Desc}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateStart}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateEnd}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">{dict.common.status}</label>
           <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
             <option value="">{dict.common.all}</option>
-            <option value="NOT_DUE">未到期</option>
-            <option value="DUE">已到期</option>
-            <option value="PAID">已付</option>
+            <option value="NOT_DUE">{fp.statusNotDue}</option>
+            <option value="DUE">{fp.statusDue}</option>
+            <option value="PAID">{fp.statusPaid}</option>
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>
@@ -87,10 +90,10 @@ export default function VendorLedger1Page() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: '應收餘額', value: data.summary.totalOutstanding, color: 'text-slate-900 font-bold' },
-              { label: '逾期金額', value: data.summary.totalOverdue, color: 'text-red-600' },
-              { label: '已付金額', value: data.summary.totalPaid, color: 'text-green-600' },
-              { label: '客戶數', value: data.summary.customerCount, color: 'text-slate-700', isCount: true },
+              { label: fp.vl1SummaryOutstanding, value: data.summary.totalOutstanding, color: 'text-slate-900 font-bold' },
+              { label: fp.vl1SummaryOverdue, value: data.summary.totalOverdue, color: 'text-red-600' },
+              { label: fp.vl1SummaryPaid, value: data.summary.totalPaid, color: 'text-green-600' },
+              { label: fp.vl1SummaryCount, value: data.summary.customerCount, color: 'text-slate-700', isCount: true },
             ].map(c => (
               <div key={c.label} className="rounded-lg border bg-white p-3">
                 <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
@@ -105,19 +108,19 @@ export default function VendorLedger1Page() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">客戶代碼</TableHead>
-                  <TableHead>客戶名稱</TableHead>
-                  <TableHead className="text-right w-16">筆數</TableHead>
-                  <TableHead className="text-right w-32">應收總額</TableHead>
-                  <TableHead className="text-right w-32">已付金額</TableHead>
-                  <TableHead className="text-right w-32">未付餘額</TableHead>
-                  <TableHead className="text-right w-32 text-red-600">逾期金額</TableHead>
-                  <TableHead className="w-28">最舊到期日</TableHead>
+                  <TableHead className="w-24">{fp.vl1ColCode}</TableHead>
+                  <TableHead>{fp.vl1ColName}</TableHead>
+                  <TableHead className="text-right w-16">{fp.vl1ColCount}</TableHead>
+                  <TableHead className="text-right w-32">{fp.vl1ColTotal}</TableHead>
+                  <TableHead className="text-right w-32">{fp.vl1ColPaid}</TableHead>
+                  <TableHead className="text-right w-32">{fp.vl1ColBalance}</TableHead>
+                  <TableHead className="text-right w-32 text-red-600">{fp.vl1ColOverdue}</TableHead>
+                  <TableHead className="w-28">{fp.vl1ColOldestDue}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">無應收帳款記錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">{fp.vl1NoRecords}</TableCell></TableRow>
                 ) : (
                   data.rows.map(row => (
                     <TableRow key={row.customerId} className="text-sm hover:bg-slate-50/40">

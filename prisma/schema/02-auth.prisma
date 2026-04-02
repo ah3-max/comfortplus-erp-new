@@ -6,13 +6,14 @@ model User {
   name         String
   avatar       String?            // 頭貼 URL
   engName      String?            // 英文名
-  password     String
+  password     String?           // nullable for Google OAuth users
   role         Role      @default(SALES)
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
   title        String?            // 職稱
   mobile       String?            // 手機
-  lineId       String?            // LINE ID
+  lineId       String?            // LINE ID（手動輸入）
+  lineUserId   String?   @unique  // LINE Messaging API 綁定 userId（e.g. U1234...）
   hireDate     DateTime?          // 到職日
   resignDate   DateTime?          // 離職日
   isActive     Boolean   @default(true)
@@ -117,6 +118,7 @@ model User {
 
   // ── 電子發票 ────────────────────────────────────────
   eInvoicesCreated       EInvoice[]             @relation("EInvoiceCreatedBy")
+  eInvoiceRangesCreated  EInvoiceNumberRange[]  @relation("EInvoiceRangeCreatedBy")
 
   // ── P2-1 多級單價 ────────────────────────────────────
   priceTierUpdates       ProductPriceTier[]     @relation("PriceTierUpdatedBy")
@@ -175,6 +177,15 @@ model User {
   attendances              Attendance[]         @relation("AttendanceUser")
   payrollRecords           PayrollRecord[]      @relation("PayrollUser")
 
+  // ── 機構巡迴排程 ────────────────────────────────────
+  institutionToursAssigned  InstitutionTour[]   @relation("TourAssigned")
+  institutionToursCreated   InstitutionTour[]   @relation("TourCreatedBy")
+  tourAutoAssigneeCustomers Customer[]          @relation("TourAutoAssignee")
+
+  // ── 每日工作提醒 ────────────────────────────────────
+  dailyRemindersAsTarget    DailyReminderLog[]  @relation("ReminderTarget")
+  dailyRemindersConfirmed   DailyReminderLog[]  @relation("ReminderConfirmer")
+
   // ── 行政管理 ────────────────────────────────────────
   announcementsCreated     Announcement[]       @relation("AnnouncementCreatedBy")
   assetsBorrowed           AssetLoan[]          @relation("AssetBorrower")
@@ -192,6 +203,9 @@ model User {
   // ── 業務日報 ────────────────────────────────────────
   dailyReports         SalesDailyReport[]   @relation("SalesRepDailyReport")
   reviewedDailyReports SalesDailyReport[]   @relation("DailyReportReviewer")
+
+  // ── 競品價格監控 ─────────────────────────────────────
+  competitorPricesCreated CompetitorPrice[] @relation("CompetitorPriceCreatedBy")
 
   @@index([role, isActive])
   @@index([departmentId, isActive])

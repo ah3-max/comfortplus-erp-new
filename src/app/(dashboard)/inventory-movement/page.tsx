@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -66,6 +66,8 @@ export default function InventoryMovementPage() {
       setLoading(false)
     }
   }, [startDate, endDate, categoryFilter])
+
+  useEffect(() => { query() }, [query])
 
   // Filter client-side by search term
   const filtered = rows.filter(r =>

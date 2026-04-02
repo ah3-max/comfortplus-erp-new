@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
+import { notifyByRole } from '@/lib/notify'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -75,7 +76,44 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         changes: { status: { before: oldStatus, after: newStatus } },
       }).catch(() => {})
 
+      // L-9: Notify internal roles when dispatched
+      if (newStatus === 'DISPATCHED') {
+        notifyByRole(['SALES', 'CS'], {
+          title: `已出車：${current.dispatchNumber}`,
+          message: `${current.customer?.name ?? ''} 訂單已出車，預計送達`,
+          linkUrl: `/dispatch`,
+          category: 'SHIPMENT_DISPATCHED',
+          priority: 'NORMAL',
+        }).catch(() => {})
+      }
+
+      // L-11: Anomaly escalation — notify manager if CANCELLED unexpectedly
+      if (newStatus === 'CANCELLED' && oldStatus === 'DISPATCHED') {
+        notifyByRole(['WAREHOUSE_MANAGER', 'GM'], {
+          title: `配送異常：${current.dispatchNumber}`,
+          message: `${current.customer?.name ?? ''} 的派車單已在配送途中取消`,
+          linkUrl: `/dispatch`,
+          category: 'DISPATCH_ANOMALY',
+          priority: 'HIGH',
+        }).catch(() => {})
+      }
+
       return NextResponse.json(dispatchOrder)
+    }
+
+    // Vehicle/driver assignment (allowed in PENDING and DISPATCHED)
+    if (body.assignVehicle) {
+      const existing = await prisma.dispatchOrder.findUnique({ where: { id } })
+      if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      const updated = await prisma.dispatchOrder.update({
+        where: { id },
+        data: {
+          vehicleNo:   body.vehicleNo   !== undefined ? (body.vehicleNo   || null) : undefined,
+          driverName:  body.driverName  !== undefined ? (body.driverName  || null) : undefined,
+          driverPhone: body.driverPhone !== undefined ? (body.driverPhone || null) : undefined,
+        },
+      })
+      return NextResponse.json(updated)
     }
 
     // Full update (PENDING only)
@@ -97,6 +135,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         scheduledDate: body.scheduledDate ? new Date(body.scheduledDate) : undefined,
         contactInfo: body.contactInfo !== undefined ? body.contactInfo : undefined,
         shippingAddress: body.shippingAddress !== undefined ? body.shippingAddress : undefined,
+        vehicleNo:   body.vehicleNo   !== undefined ? (body.vehicleNo   || null) : undefined,
+        driverName:  body.driverName  !== undefined ? (body.driverName  || null) : undefined,
+        driverPhone: body.driverPhone !== undefined ? (body.driverPhone || null) : undefined,
         ...(body.items && {
           items: {
             create: body.items.map((item: {

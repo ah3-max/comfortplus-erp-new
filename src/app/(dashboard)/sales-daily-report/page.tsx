@@ -79,7 +79,7 @@ export default function SalesDailyReportPage() {
     })
     setSaving(false)
     if (res.ok) {
-      toast.success(submit ? '日報已提交' : '草稿已儲存')
+      toast.success(submit ? dict.salesDailyReport.submitted : dict.salesDailyReport.draftSaved)
       loadToday()
     } else {
       toast.error(dict.common.saveFailed)
@@ -95,12 +95,13 @@ export default function SalesDailyReportPage() {
   const isAfternoon = new Date().getHours() >= 17
   const showReminder = isAfternoon && !isLocked && !isNeedsRevision
 
+  const sdr = dict.salesDailyReport
   const statFields = [
-    { key: 'visitCount',       label: '拜訪次數',   icon: MapPin,       color: 'text-violet-600' },
-    { key: 'callCount',        label: '電話聯絡',   icon: Phone,        color: 'text-blue-600' },
-    { key: 'orderCount',       label: '成交訂單',   icon: ShoppingCart, color: 'text-emerald-600' },
-    { key: 'quoteCount',       label: '報價單',     icon: FileSearch,   color: 'text-amber-600' },
-    { key: 'newCustomerCount', label: '新開發客戶', icon: Users,        color: 'text-rose-600' },
+    { key: 'visitCount',       label: sdr.visitCount,       icon: MapPin,       color: 'text-violet-600' },
+    { key: 'callCount',        label: sdr.callCount,        icon: Phone,        color: 'text-blue-600' },
+    { key: 'orderCount',       label: sdr.orderCount,       icon: ShoppingCart, color: 'text-emerald-600' },
+    { key: 'quoteCount',       label: sdr.quoteCount,       icon: FileSearch,   color: 'text-amber-600' },
+    { key: 'newCustomerCount', label: sdr.newCustomerCount, icon: Users,        color: 'text-rose-600' },
   ] as const
 
   if (loading) return (
@@ -115,26 +116,26 @@ export default function SalesDailyReportPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="h-6 w-6 text-blue-600" />業務日報
+            <FileText className="h-6 w-6 text-blue-600" />{sdr.title}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">{today}</p>
         </div>
         <div className="flex items-center gap-2">
           {isApproved ? (
             <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300 gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" />已核准
+              <CheckCircle2 className="h-3.5 w-3.5" />{sdr.approved}
             </Badge>
           ) : report?.status === 'SUBMITTED' ? (
             <Badge className="bg-blue-100 text-blue-700 border-blue-300 gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5" />已提交
+              <CheckCircle2 className="h-3.5 w-3.5" />{sdr.statusSubmitted}
             </Badge>
           ) : isNeedsRevision ? (
             <Badge className="bg-amber-100 text-amber-700 border-amber-300 gap-1">
-              <AlertTriangle className="h-3.5 w-3.5" />需修正
+              <AlertTriangle className="h-3.5 w-3.5" />{sdr.statusNeedsRevision}
             </Badge>
           ) : (
             <Badge variant="outline" className="text-slate-500 border-slate-300 gap-1">
-              <Clock className="h-3.5 w-3.5" />草稿
+              <Clock className="h-3.5 w-3.5" />{sdr.statusDraft}
             </Badge>
           )}
           <Button variant="ghost" size="icon" onClick={loadToday}>
@@ -147,7 +148,7 @@ export default function SalesDailyReportPage() {
       {showReminder && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-center gap-3">
           <Clock className="h-5 w-5 shrink-0 text-amber-500" />
-          <p className="text-sm text-amber-800 font-medium">下班前記得提交今日日報！主管在等候您的回報。</p>
+          <p className="text-sm text-amber-800 font-medium">{sdr.reminderBanner}</p>
         </div>
       )}
 
@@ -156,7 +157,7 @@ export default function SalesDailyReportPage() {
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 space-y-1">
           <div className="flex items-center gap-2 text-red-700 font-medium text-sm">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            主管退回，請修正後重新提交
+            {sdr.revisionBanner}
           </div>
           <p className="text-sm text-red-800 pl-6">{report.managerComment}</p>
           {report.reviewedBy && (
@@ -172,7 +173,7 @@ export default function SalesDailyReportPage() {
         <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-center gap-2 text-emerald-700 text-sm">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>
-            日報已由 {report?.reviewedBy?.name ?? '主管'} 核准
+            {sdr.approvedBanner.replace('{name}', report?.reviewedBy?.name ?? '主管')}
             {report?.reviewedAt ? `（${new Date(report.reviewedAt).toLocaleString('zh-TW')}）` : ''}
             {report?.managerComment && `：${report.managerComment}`}
           </span>
@@ -182,8 +183,8 @@ export default function SalesDailyReportPage() {
       {/* Stats — editable numbers */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">今日工作統計
-            <span className="ml-2 text-xs font-normal text-muted-foreground">（系統自動帶入，可手動調整）</span>
+          <CardTitle className="text-base">{sdr.statsTitle}
+            <span className="ml-2 text-xs font-normal text-muted-foreground">{sdr.statsHint}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -204,7 +205,7 @@ export default function SalesDailyReportPage() {
             ))}
           </div>
           <div className="mt-3 space-y-1">
-            <Label className="text-xs text-muted-foreground">訂單金額（元）</Label>
+            <Label className="text-xs text-muted-foreground">{sdr.orderAmount}</Label>
             <Input
               type="number"
               min="0"
@@ -220,43 +221,43 @@ export default function SalesDailyReportPage() {
       {/* Qualitative fields */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">日報內容</CardTitle>
+          <CardTitle className="text-base">{sdr.contentTitle}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
-            <Label>今日重點 / 亮點 <span className="text-muted-foreground text-xs">（成交、突破、好消息）</span></Label>
+            <Label>{sdr.highlightsLabel} <span className="text-muted-foreground text-xs">{sdr.highlightsHint}</span></Label>
             <Textarea
               rows={3}
-              placeholder="例：拜訪XX護理之家，院長有意願簽年約，預計下週報價…"
+              placeholder={sdr.highlightsPlaceholder}
               value={form.highlights}
               disabled={isLocked}
               onChange={e => setForm(f => ({ ...f, highlights: e.target.value }))}
             />
           </div>
           <div className="space-y-1.5">
-            <Label>遭遇困難 / 障礙 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+            <Label>{sdr.obstaclesLabel} <span className="text-muted-foreground text-xs">{sdr.obstaclesOptional}</span></Label>
             <Textarea
               rows={2}
-              placeholder="例：某客戶提出競品更低價格，需要支援報價策略…"
+              placeholder={sdr.obstaclesPlaceholder}
               value={form.obstacles}
               disabled={isLocked}
               onChange={e => setForm(f => ({ ...f, obstacles: e.target.value }))}
             />
           </div>
           <div className="space-y-1.5">
-            <Label>明日計畫</Label>
+            <Label>{sdr.tomorrowPlanLabel}</Label>
             <Textarea
               rows={3}
-              placeholder="例：上午拜訪A客戶，下午跟進B客戶報價，傍晚回訪C護理之家…"
+              placeholder={sdr.tomorrowPlanPlaceholder}
               value={form.tomorrowPlan}
               disabled={isLocked}
               onChange={e => setForm(f => ({ ...f, tomorrowPlan: e.target.value }))}
             />
           </div>
           <div className="space-y-1.5">
-            <Label>需要協助 <span className="text-muted-foreground text-xs">（選填）</span></Label>
+            <Label>{sdr.needsHelpLabel} <span className="text-muted-foreground text-xs">{sdr.needsHelpOptional}</span></Label>
             <Input
-              placeholder="例：需要主管協助陪訪、需要更多樣品支援…"
+              placeholder={sdr.needsHelpPlaceholder}
               value={form.needsHelp}
               disabled={isLocked}
               onChange={e => setForm(f => ({ ...f, needsHelp: e.target.value }))}
@@ -270,18 +271,18 @@ export default function SalesDailyReportPage() {
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            儲存草稿
+            {sdr.saveDraft}
           </Button>
           <Button onClick={() => handleSave(true)} disabled={saving} className="flex-1">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            {isNeedsRevision ? '修正並重新提交' : '提交日報'}
+            {isNeedsRevision ? sdr.submitRevision : sdr.submitReport}
           </Button>
         </div>
       )}
 
       {report?.status === 'SUBMITTED' && report?.submittedAt && (
         <p className="text-center text-sm text-muted-foreground">
-          已於 {new Date(report.submittedAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })} 提交，等待主管審核
+          {sdr.submittedAt.replace('{time}', new Date(report.submittedAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' }))}
         </p>
       )}
     </div>

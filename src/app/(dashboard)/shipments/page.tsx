@@ -80,6 +80,29 @@ const tripStatusClassName: Record<TripStatus, string> = {
   CANCELLED: 'border-slate-300 text-slate-500',
 }
 
+// ── Logistics tracking URL builder ───────────────────────────────────────────
+const CARRIER_TRACKING: Record<string, (no: string) => string> = {
+  '黑貓':    no => `https://www.t-cat.com.tw/inquire/trace.aspx?no=${no}`,
+  't-cat':   no => `https://www.t-cat.com.tw/inquire/trace.aspx?no=${no}`,
+  'tcat':    no => `https://www.t-cat.com.tw/inquire/trace.aspx?no=${no}`,
+  '郵局':    no => `https://postserv.post.gov.tw/pstmail/main_mail.jsp?targetRef=TrackMail&searchForm.mailNo=${no}`,
+  'post':    no => `https://postserv.post.gov.tw/pstmail/main_mail.jsp?targetRef=TrackMail&searchForm.mailNo=${no}`,
+  '大榮':    no => `https://www.t-cat.com.tw/inquire/trace.aspx?no=${no}`,
+  '嘉里':    no => `https://www.kerry.com/tw/express/tracking?trackingNo=${no}`,
+  'kerry':   no => `https://www.kerry.com/tw/express/tracking?trackingNo=${no}`,
+  '新竹':    no => `https://www.hct.com.tw/search/trace_detail_list.aspx?bno=${no}`,
+  'hct':     no => `https://www.hct.com.tw/search/trace_detail_list.aspx?bno=${no}`,
+}
+
+function getTrackingUrl(carrier: string | null, trackingNo: string): string | null {
+  if (!carrier) return null
+  const key = carrier.toLowerCase().replace(/[\s-]/g, '')
+  for (const [k, fn] of Object.entries(CARRIER_TRACKING)) {
+    if (key.includes(k) || carrier.includes(k)) return fn(trackingNo)
+  }
+  return null
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ShipmentsPage() {
   const { dict, locale } = useI18n()
@@ -145,6 +168,9 @@ export default function ShipmentsPage() {
   const [pickShipmentId, setPickShipmentId] = useState('')
   const [pickData, setPickData]             = useState<Shipment | null>(null)
   const [pickLoading, setPickLoading]       = useState(false)
+
+  // S-11: POD photos state
+  const [podPhotos, setPodPhotos] = useState<{ id: string; photoUrl: string | null; signerName: string | null; signedAt: string | null; anomalyNote: string | null; isCompleted: boolean }[]>([])
   const printRef = useRef<HTMLDivElement>(null)
 
   // ── Fetch ───────────────────────────────────────────────────────────────────
@@ -231,12 +257,14 @@ export default function ShipmentsPage() {
     const ok      = responses.filter(r => r?.ok).length
     const skipped = responses.filter(r => r?.status === 409).length
     if (ok > 0) {
-      const msg = skipped > 0 ? `${ok} 筆已出貨，${skipped} 筆狀態不符已略過` : `${ok} 筆已標記為已出貨`
+      const msg = skipped > 0
+        ? dict.shipmentsBatch.batchShipPartial.replace('{ok}', String(ok)).replace('{skipped}', String(skipped))
+        : dict.shipmentsBatch.batchShipSuccess.replace('{n}', String(ok))
       toast.success(msg)
       setSelectedIds(new Set())
       fetchShipments()
     } else if (skipped > 0) {
-      toast.warning(`${skipped} 筆狀態不符，無法標記`)
+      toast.warning(dict.shipmentsBatch.batchShipAllSkipped.replace('{skipped}', String(skipped)))
       setSelectedIds(new Set())
       fetchShipments()
     } else {
@@ -287,6 +315,14 @@ export default function ShipmentsPage() {
       anomalyStatus:        s.anomalyStatus,
       anomalyNote:          s.anomalyNote          ?? '',
     })
+    // S-11: fetch POD photos for DELIVERED shipments
+    setPodPhotos([])
+    if (s.status === 'DELIVERED') {
+      fetch(`/api/shipments/${s.id}`)
+        .then(r => r.json())
+        .then(d => setPodPhotos(d.proofOfDeliveries ?? []))
+        .catch(() => {})
+    }
     setUpdOpen(true)
   }
 
@@ -413,7 +449,7 @@ export default function ShipmentsPage() {
     })
     setRouteSaving(false)
     if (res.ok) {
-      toast.success('路線順序已儲存')
+      toast.success(dict.shipmentsBatch.routeSaved)
       setRouteOpen(false)
       fetchTrips()
     } else {
@@ -558,16 +594,16 @@ export default function ShipmentsPage() {
           {/* Batch action bar */}
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2.5">
-              <span className="text-sm font-medium text-blue-700">已選 {selectedIds.size} 筆</span>
+              <span className="text-sm font-medium text-blue-700">{dict.shipmentsBatch.selectedCount.replace('{n}', String(selectedIds.size))}</span>
               <div className="flex gap-2 ml-auto">
                 <Button size="sm" variant="outline" onClick={batchExport} disabled={batchLoading}
                   className="border-blue-300 text-blue-700 hover:bg-blue-100">
-                  <Download className="mr-1.5 h-3.5 w-3.5" />匯出選取
+                  <Download className="mr-1.5 h-3.5 w-3.5" />{dict.shipmentsBatch.exportSelected}
                 </Button>
                 <Button size="sm" onClick={() => setBatchConfirmOpen(true)} disabled={batchLoading}
                   className="bg-blue-600 hover:bg-blue-700">
                   {batchLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Truck className="mr-1.5 h-3.5 w-3.5" />}
-                  批次標記已出貨
+                  {dict.shipmentsBatch.batchMarkShipped}
                 </Button>
                 <button onClick={() => setSelectedIds(new Set())} className="ml-1 text-slate-400 hover:text-slate-600">
                   <X className="h-4 w-4" />
@@ -639,9 +675,17 @@ export default function ShipmentsPage() {
                         {s.logisticsProvider?.name ?? s.carrier ?? '—'}
                       </TableCell>
                       <TableCell>
-                        {s.trackingNo ? (
-                          <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{s.trackingNo}</span>
-                        ) : '—'}
+                        {s.trackingNo ? (() => {
+                          const url = getTrackingUrl(s.logisticsProvider?.name ?? s.carrier, s.trackingNo)
+                          return url ? (
+                            <a href={url} target="_blank" rel="noopener noreferrer"
+                              className="font-mono text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-0.5 rounded border border-blue-200 underline-offset-2 hover:underline">
+                              {s.trackingNo}
+                            </a>
+                          ) : (
+                            <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{s.trackingNo}</span>
+                          )
+                        })() : '—'}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {s.palletCount != null || s.boxCount != null
@@ -700,6 +744,9 @@ export default function ShipmentsPage() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => { setPickShipmentId(s.shipmentNo); setPickData(s); setTab('picking') }}>
                               <Printer className="mr-2 h-4 w-4" />{se.tabPicking}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.open(`/api/shipments/${s.id}/print`, '_blank')}>
+                              <Download className="mr-2 h-4 w-4" />列印出貨單
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -925,7 +972,7 @@ export default function ShipmentsPage() {
                   <div><span className="text-muted-foreground">{se.labelWeight}</span>{pickData.weight ? `${pickData.weight} kg` : '—'}</div>
                   <div><span className="text-muted-foreground">{se.labelVolume}</span>{pickData.volume ?? '—'}</div>
                   <div><span className="text-muted-foreground">{se.labelCarrier}</span>{pickData.logisticsProvider?.name ?? pickData.carrier ?? '—'}</div>
-                  <div><span className="text-muted-foreground">{se.labelTracking}</span><span className="font-mono">{pickData.trackingNo ?? '—'}</span></div>
+                  <div><span className="text-muted-foreground">{se.labelTracking}</span>{pickData.trackingNo ? (() => { const url = getTrackingUrl(pickData.logisticsProvider?.name ?? pickData.carrier, pickData.trackingNo!); return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="font-mono text-blue-600 hover:underline">{pickData.trackingNo}</a> : <span className="font-mono">{pickData.trackingNo}</span> })() : '—'}</div>
                 </div>
                 <Table className="mt-4">
                   <TableHeader>
@@ -972,7 +1019,7 @@ export default function ShipmentsPage() {
                   <div className="col-span-2"><span className="text-muted-foreground">{se.labelAddress}</span>{pickData.order.customer.address ?? pickData.order.customer.name}</div>
                   <div><span className="text-muted-foreground">{se.labelExpectedDate}</span>{fmtFull(pickData.expectedDeliveryDate)}</div>
                   <div><span className="text-muted-foreground">{se.labelCarrier}</span>{pickData.logisticsProvider?.name ?? pickData.carrier ?? '—'}</div>
-                  <div><span className="text-muted-foreground">{se.labelTracking}</span><span className="font-mono">{pickData.trackingNo ?? '—'}</span></div>
+                  <div><span className="text-muted-foreground">{se.labelTracking}</span>{pickData.trackingNo ? (() => { const url = getTrackingUrl(pickData.logisticsProvider?.name ?? pickData.carrier, pickData.trackingNo!); return url ? <a href={url} target="_blank" rel="noopener noreferrer" className="font-mono text-blue-600 hover:underline">{pickData.trackingNo}</a> : <span className="font-mono">{pickData.trackingNo}</span> })() : '—'}</div>
                 </div>
                 <div className="mt-6 grid grid-cols-2 gap-x-12 text-sm text-muted-foreground">
                   <div>{se.recipientSignature}</div>
@@ -1117,6 +1164,34 @@ export default function ShipmentsPage() {
                 <Textarea value={updForm.anomalyNote}
                   onChange={e => setUpdForm(f => ({ ...f, anomalyNote: e.target.value }))}
                   rows={2} placeholder={se.anomalyNotePlaceholder} />
+              </div>
+            )}
+            {/* S-11: POD 送達照片 */}
+            {podPhotos.length > 0 && (
+              <div className="space-y-2">
+                <Separator />
+                <Label className="flex items-center gap-1.5 text-sm font-medium">
+                  <Camera className="h-4 w-4 text-blue-500" />送達照片（{podPhotos.length} 張）
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {podPhotos.map(p => p.photoUrl && (
+                    <a key={p.id} href={p.photoUrl} target="_blank" rel="noreferrer"
+                      className="relative block rounded-lg overflow-hidden border bg-slate-50 aspect-square hover:opacity-90 transition-opacity">
+                      <img src={p.photoUrl} alt="POD" className="w-full h-full object-cover" />
+                      {p.anomalyNote && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 py-0.5 truncate">
+                          {p.anomalyNote}
+                        </div>
+                      )}
+                    </a>
+                  ))}
+                </div>
+                {podPhotos.some(p => p.signerName) && (
+                  <p className="text-xs text-muted-foreground">
+                    簽收人：{podPhotos.find(p => p.signerName)?.signerName}
+                    {podPhotos.find(p => p.signedAt)?.signedAt && ` · ${new Date(podPhotos.find(p => p.signedAt)!.signedAt!).toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}`}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -1300,15 +1375,15 @@ export default function ShipmentsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              確認批次出貨
+              {dict.shipmentsBatch.confirmBatchShip}
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            確定要將 <span className="font-semibold text-foreground">{selectedIds.size}</span> 筆出貨單標記為已出貨？此操作無法復原。
+            {dict.shipmentsBatch.batchShipSuccess.replace('{n}', String(selectedIds.size))}？{dict.common.deleteConfirm.split('？')[1]}
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBatchConfirmOpen(false)}>取消</Button>
-            <Button onClick={batchConfirm} className="bg-blue-600 hover:bg-blue-700">確認出貨</Button>
+            <Button variant="outline" onClick={() => setBatchConfirmOpen(false)}>{dict.common.cancel}</Button>
+            <Button onClick={batchConfirm} className="bg-blue-600 hover:bg-blue-700">{dict.common.confirm}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

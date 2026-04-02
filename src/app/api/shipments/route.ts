@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
           { trackingNo: { contains: search, mode: 'insensitive' as const } },
         ],
       }),
-      ...(status         && { status: status as never }),
+      ...(status         && { status: status.includes(',') ? { in: status.split(',') } as never : status as never }),
       ...(deliveryMethod && { deliveryMethod: deliveryMethod as never }),
       ...(anomaly        && { anomalyStatus: { not: 'NORMAL' as never } }),
     }
@@ -142,15 +142,27 @@ export async function POST(req: NextRequest) {
         include: { items: true },
       })
 
-      // 扣減庫存並記錄交易
+      // 扣減庫存並記錄交易（SELECT FOR UPDATE 行級鎖，防止並發超賣）
       for (const item of body.items as { productId: string; quantity: number }[]) {
-        const inv = await tx.inventory.findFirst({
-          where: { productId: item.productId, warehouse: wh, category: 'FINISHED_GOODS' },
-        })
+        const rows = await tx.$queryRaw<Array<{ id: string; quantity: number }>>`
+          SELECT id, quantity FROM "Inventory"
+          WHERE "productId" = ${item.productId}
+            AND warehouse = ${wh}
+            AND category = 'FINISHED_GOODS'
+          FOR UPDATE
+        `
+        const inv = rows[0]
         if (inv) {
+          if (inv.quantity < item.quantity) {
+            const product = await tx.product.findUnique({ where: { id: item.productId }, select: { name: true } })
+            throw new Error(`庫存不足：${product?.name ?? item.productId}（現有 ${inv.quantity}，需求 ${item.quantity}）`)
+          }
           await tx.inventory.update({
             where: { id: inv.id },
-            data: { quantity: { decrement: item.quantity } },
+            data: {
+              quantity:    { decrement: item.quantity },
+              reservedQty: { decrement: item.quantity },
+            },
           })
           await tx.inventoryTransaction.create({
             data: {
@@ -176,7 +188,7 @@ export async function POST(req: NextRequest) {
 
       await tx.salesOrder.update({
         where: { id: body.orderId },
-        data: { status: 'ALLOCATING' },
+        data: { status: 'READY_TO_SHIP' },
       })
 
       return newShipment

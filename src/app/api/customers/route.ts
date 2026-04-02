@@ -57,8 +57,43 @@ export async function GET(req: NextRequest) {
       prisma.customer.count({ where }),
     ])
 
+    // ── S-14: 平均付款天數 ──────────────────────────────────
+    const customerIds = customers.map(c => c.id)
+    const [avgDaysRaw, overdueRaw] = await Promise.all([
+      customerIds.length === 0 ? [] : prisma.$queryRaw<Array<{ customerId: string; avgDays: number }>>`
+        SELECT so."customerId",
+               ROUND(AVG(EXTRACT(EPOCH FROM (pr."paymentDate" - so."createdAt")) / 86400))::int AS "avgDays"
+        FROM "PaymentRecord" pr
+        JOIN "SalesOrder" so ON so.id = pr."salesOrderId"
+        WHERE pr.direction = 'INCOMING'
+          AND so."paidAmount" >= so."totalAmount"
+          AND so."customerId" = ANY(${customerIds})
+        GROUP BY so."customerId"
+      `,
+      // ── S-15: 逾期應收筆數（>30天未全付）──────────────────
+      customerIds.length === 0 ? [] : prisma.$queryRaw<Array<{ customerId: string; overdueCount: number }>>`
+        SELECT "customerId",
+               COUNT(*)::int AS "overdueCount"
+        FROM "SalesOrder"
+        WHERE status NOT IN ('CANCELLED', 'COMPLETED', 'DRAFT')
+          AND "totalAmount" > "paidAmount"
+          AND "createdAt" < NOW() - INTERVAL '30 days'
+          AND "customerId" = ANY(${customerIds})
+        GROUP BY "customerId"
+      `,
+    ])
+
+    const avgDaysMap = Object.fromEntries(avgDaysRaw.map(r => [r.customerId, Number(r.avgDays)]))
+    const overdueMap = Object.fromEntries(overdueRaw.map(r => [r.customerId, Number(r.overdueCount)]))
+
+    const enriched = customers.map(c => ({
+      ...c,
+      avgPaymentDays: avgDaysMap[c.id] ?? null,
+      overdueCount: overdueMap[c.id] ?? 0,
+    }))
+
     return NextResponse.json({
-      data: customers,
+      data: enriched,
       pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     })
   } catch (error) {

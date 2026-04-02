@@ -164,6 +164,8 @@ model SalesOrder {
   isSupportShipment     Boolean       @default(false)
   invoiceIds            String[]      @default([])
 
+  customerPoNo          String?       // 客戶端採購單號（對帳用）
+
   notes                 String?
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt

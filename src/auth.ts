@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
+import Google from 'next-auth/providers/google'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 
@@ -23,6 +24,12 @@ const REFRESH_WINDOW = 5 * 60                  // Refresh if < 5 min remaining
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [Google({
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        })]
+      : []),
     Credentials({
       credentials: {
         email: { label: 'Email', type: 'email' },
@@ -39,7 +46,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const passwordMatch = await bcrypt.compare(
           credentials.password as string,
-          user.password
+          user.password ?? ''
         )
 
         if (!passwordMatch) return null
@@ -55,14 +62,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ account, profile }) {
+      if (account?.provider === 'google') {
+        const email = profile?.email
+        if (!email) return false
+        const dbUser = await prisma.user.findUnique({
+          where: { email },
+          select: { isActive: true },
+        })
+        // Only allow Google sign-in for existing active users
+        return !!(dbUser?.isActive)
+      }
+      return true
+    },
+    async jwt({ token, user, account }) {
       const now = Math.floor(Date.now() / 1000)
 
       // Initial sign-in: populate token
       if (user) {
-        token.id = user.id
-        token.role = (user as any).role
-        token.tokenVersion = (user as any).tokenVersion ?? 0
+        if (account?.provider === 'google') {
+          // Fetch our DB user by email (Google user.id is the Google sub, not our DB id)
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+            select: { id: true, role: true, tokenVersion: true },
+          })
+          if (!dbUser) return { ...token, error: 'UserNotFound' }
+          token.id = dbUser.id
+          token.role = dbUser.role
+          token.tokenVersion = dbUser.tokenVersion
+        } else {
+          token.id = user.id
+          token.role = (user as any).role
+          token.tokenVersion = (user as any).tokenVersion ?? 0
+        }
         token.issuedAt = now
         token.absoluteExpiry = now + SESSION_ABSOLUTE_MAX_AGE
         token.accessExpiry = now + ACCESS_TOKEN_MAX_AGE

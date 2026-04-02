@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Loader2, AlertTriangle, Clock, DollarSign, Users } from 'lucide-react'
+import { Loader2, AlertTriangle, Clock, DollarSign, Users, CheckCircle2 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
+import { useRouter } from 'next/navigation'
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface ARItem {
@@ -65,6 +67,7 @@ type SortDir = 'asc' | 'desc'
 /* ─── Component ─────────────────────────────────────────── */
 export default function ARAgingPage() {
   const { dict } = useI18n()
+  const router = useRouter()
   const [data, setData] = useState<ARData | null>(null)
   const [loading, setLoading] = useState(true)
   const [sortField, setSortField] = useState<SortField>('overdueDays')
@@ -266,12 +269,13 @@ export default function ARAgingPage() {
                     {dict.arAging.overdueDays}{sortIcon('overdueDays')}
                   </TableHead>
                   <TableHead className="text-xs">{dict.common.status}</TableHead>
+                  <TableHead className="text-xs"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedItems.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="py-16 text-center text-muted-foreground">
+                    <TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
                       {dict.arAging.noData}
                     </TableCell>
                   </TableRow>
@@ -322,6 +326,19 @@ export default function ARAgingPage() {
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badge.cls}`}>
                             {badge.label}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          {item.balance > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 gap-1 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                              onClick={() => router.push('/receipts')}
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              {dict.receipts?.newReceipt ?? '登記收款'}
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     )

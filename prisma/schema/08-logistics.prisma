@@ -235,6 +235,7 @@ model ReturnOrder {
   warehouseId     String?      // 退回倉庫
   refundAmount    Decimal?     @db.Decimal(12, 2)
   refundStatus    String?      // PENDING / REFUNDED / DEDUCTED
+  photoUrls       Json?        // [{url, label, uploadedAt}] 退貨照片
   notes           String?
   createdById     String
   createdAt       DateTime     @default(now())

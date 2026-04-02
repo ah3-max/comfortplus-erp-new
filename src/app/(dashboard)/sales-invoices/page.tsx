@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Plus, Search, MoreHorizontal, Pencil, Loader2,
   CheckCircle2, XCircle, Truck, FileText, Trash2, Download,
@@ -295,8 +296,8 @@ export default function SalesInvoicesPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative w-64">
+      <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative flex-1 min-w-48 max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input className="pl-9" placeholder={dict.salesInvoices.searchPlaceholder}
             value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
@@ -504,19 +505,21 @@ export default function SalesInvoicesPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>{dict.common.customer} *</Label>
-                <select className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.customerId} onChange={e => setForm(f => ({ ...f, customerId: e.target.value }))}>
-                  <option value="">{dict.common.select}</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
-                </select>
+                <Select value={form.customerId} onValueChange={v => setForm(f => ({ ...f, customerId: v ?? '' }))}>
+                  <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
+                  <SelectContent className="max-h-64 w-[320px]">
+                    {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>{dict.common.warehouse} *</Label>
-                <select className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.warehouseId} onChange={e => setForm(f => ({ ...f, warehouseId: e.target.value }))}>
-                  <option value="">{dict.common.select}</option>
-                  {warehouses.map(w => <option key={w.id} value={w.id}>{w.code} - {w.name}</option>)}
-                </select>
+                <Select value={form.warehouseId} onValueChange={v => setForm(f => ({ ...f, warehouseId: v ?? '' }))}>
+                  <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
+                  <SelectContent>
+                    {warehouses.map(w => <SelectItem key={w.id} value={w.id}>{w.code} - {w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>{dict.common.date}</Label>
@@ -528,27 +531,31 @@ export default function SalesInvoicesPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>{dict.common.salesRep}</Label>
-                <select className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.salesPersonId} onChange={e => setForm(f => ({ ...f, salesPersonId: e.target.value }))}>
-                  <option value="">{dict.common.select}</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+                <Select value={form.salesPersonId} onValueChange={v => setForm(f => ({ ...f, salesPersonId: v ?? '' }))}>
+                  <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
+                  <SelectContent>
+                    {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>{dict.salesInvoicesPage.handlerLabel}</Label>
-                <select className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.handlerId} onChange={e => setForm(f => ({ ...f, handlerId: e.target.value }))}>
-                  <option value="">{dict.common.select}</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+                <Select value={form.handlerId} onValueChange={v => setForm(f => ({ ...f, handlerId: v ?? '' }))}>
+                  <SelectTrigger><SelectValue placeholder={dict.common.select} /></SelectTrigger>
+                  <SelectContent>
+                    {users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>{dict.salesInvoicesPage.transactionTypeLabel}</Label>
-                <select className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={form.transactionType} onChange={e => setForm(f => ({ ...f, transactionType: e.target.value }))}>
-                  <option value="TAX">{dict.salesInvoicesPage.transactionTypeTax}</option>
-                  <option value="OTHER">{dict.salesInvoicesPage.transactionTypeOther}</option>
-                </select>
+                <Select value={form.transactionType} onValueChange={v => setForm(f => ({ ...f, transactionType: v ?? 'TAX' }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TAX">{dict.salesInvoicesPage.transactionTypeTax}</SelectItem>
+                    <SelectItem value="OTHER">{dict.salesInvoicesPage.transactionTypeOther}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -585,11 +592,12 @@ export default function SalesInvoicesPage() {
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end border rounded-lg p-3 bg-slate-50">
                     <div className="col-span-12 md:col-span-4">
                       <Label className="text-xs">{dict.common.product}</Label>
-                      <select className="w-full rounded-md border px-2 py-1.5 text-sm"
-                        value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
-                        <option value="">{dict.common.select}</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
-                      </select>
+                      <Select value={item.productId} onValueChange={v => updateItem(idx, 'productId', v ?? '')}>
+                        <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={dict.common.select} /></SelectTrigger>
+                        <SelectContent className="max-h-64 w-[380px]">
+                          {products.map(p => <SelectItem key={p.id} value={p.id}>{p.sku} - {p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="col-span-4 md:col-span-2">
                       <Label className="text-xs">{dict.common.quantity}</Label>

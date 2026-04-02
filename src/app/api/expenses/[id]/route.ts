@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
+import { createAutoJournal } from '@/lib/auto-journal'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -128,10 +129,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ error: '只有已核准狀態可以付款' }, { status: 400 })
       }
 
+      const reportWithItems = await prisma.expenseReport.findUnique({
+        where: { id },
+        include: { items: true },
+      })
+      const totalAmount = reportWithItems?.items.reduce((s, i) => s + Number(i.amount), 0) ?? 0
+
       const report = await prisma.expenseReport.update({
         where: { id },
         data: { status: 'PAID', paidAt: new Date() },
       })
+
+      // Auto journal: Dr 費用 / Cr 銀行存款
+      if (totalAmount > 0) {
+        createAutoJournal({
+          type: 'EXPENSE_PAY',
+          referenceType: 'EXPENSE_REPORT',
+          referenceId: id,
+          entryDate: new Date(),
+          description: `費用報銷 ${existing.reportNo}`,
+          amount: totalAmount,
+          taxAmount: 0,
+          createdById: session.user.id,
+        }).catch(() => {})
+      }
 
       logAudit({
         userId: session.user.id,

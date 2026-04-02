@@ -507,7 +507,7 @@ export default function QcDetailPage() {
                 <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
                   <ClipboardCheck className="h-4 w-4" />
                   {qp.checkItemsHeader}
-                  <span className="font-normal text-xs text-muted-foreground">({qc.checkItems.length} 項)</span>
+                  <span className="font-normal text-xs text-muted-foreground">({qc.checkItems.length} {dict.common.pieces})</span>
                 </CardTitle>
                 <div className="flex gap-2">
                   {qc.checkItems.length === 0 && PRESET_ITEMS[qc.inspectionType] && (

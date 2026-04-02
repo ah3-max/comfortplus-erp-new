@@ -13,18 +13,32 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get('search') ?? ''
   const status = searchParams.get('status') ?? ''
   const transmitStatus = searchParams.get('transmitStatus') ?? ''
+  const month = searchParams.get('month') ?? ''         // YYYY-MM
+  const invoiceType = searchParams.get('invoiceType') ?? ''  // B2B | B2C
   const page = Math.max(1, Number(searchParams.get('page') ?? 1))
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
 
+  // Build month date range if provided
+  let monthFilter = {}
+  if (month) {
+    const [y, m] = month.split('-').map(Number)
+    const start = new Date(y, m - 1, 1)
+    const end = new Date(y, m, 0, 23, 59, 59)
+    monthFilter = { date: { gte: start, lte: end } }
+  }
+
   const where = {
+    ...monthFilter,
     ...(search && {
       OR: [
         { invoiceNumber: { contains: search, mode: 'insensitive' as const } },
         { customerName: { contains: search, mode: 'insensitive' as const } },
+        { buyerTaxId: { contains: search, mode: 'insensitive' as const } },
       ],
     }),
     ...(status && { status: status as never }),
     ...(transmitStatus && { transmitStatus: transmitStatus as never }),
+    ...(invoiceType && { invoiceType: invoiceType as never }),
   }
 
   const [invoices, total] = await Promise.all([

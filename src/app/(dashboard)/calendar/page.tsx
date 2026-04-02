@@ -68,6 +68,9 @@ interface EventFormState {
   endTime:     string
   description: string
   isAllDay:    boolean
+  assignee:    string   // 負責人
+  departure:   string   // 出發人員
+  prep:        string   // 準備事項
 }
 
 // ---------------------------------------------------------------------------
@@ -103,6 +106,9 @@ const EMPTY_FORM: EventFormState = {
   endTime:     '10:00',
   description: '',
   isAllDay:    false,
+  assignee:    '',
+  departure:   '',
+  prep:        '',
 }
 
 // ---------------------------------------------------------------------------
@@ -259,6 +265,18 @@ export default function CalendarPage() {
   function openEditDialog(event: CalEvent) {
     if (!event.isEditable) return
     setEditingEvent(event)
+    // Parse structured notes JSON
+    let desc = event.description ?? ''
+    let assignee = '', departure = '', prep = ''
+    try {
+      if (desc.startsWith('{')) {
+        const parsed = JSON.parse(desc)
+        desc      = parsed.desc      ?? ''
+        assignee  = parsed.assignee  ?? ''
+        departure = parsed.departure ?? ''
+        prep      = parsed.prep      ?? ''
+      }
+    } catch { /* not JSON, use as plain text */ }
     setForm({
       title:       event.title,
       eventType:   (event.eventType as UiEventType) ?? 'OTHER',
@@ -266,8 +284,11 @@ export default function CalendarPage() {
       startTime:   event.startTime ?? '09:00',
       endDate:     event.endDate   ?? event.date,
       endTime:     event.endTime   ?? '10:00',
-      description: event.description ?? '',
+      description: desc,
       isAllDay:    event.isAllDay  ?? false,
+      assignee,
+      departure,
+      prep,
     })
     setDialogOpen(true)
   }
@@ -286,6 +307,17 @@ export default function CalendarPage() {
 
     setSaving(true)
     try {
+      // Pack extra fields into a structured notes JSON
+      const hasExtra = form.assignee || form.departure || form.prep
+      const notesValue = hasExtra
+        ? JSON.stringify({
+            desc:      form.description,
+            assignee:  form.assignee,
+            departure: form.departure,
+            prep:      form.prep,
+          })
+        : form.description
+
       const payload = {
         title:       form.title.trim(),
         eventType:   form.eventType,
@@ -293,7 +325,7 @@ export default function CalendarPage() {
         startTime:   form.isAllDay ? '' : form.startTime,
         endDate:     form.endDate || form.startDate,
         endTime:     form.isAllDay ? '' : form.endTime,
-        description: form.description,
+        description: notesValue,
         isAllDay:    form.isAllDay,
       }
 
@@ -612,9 +644,22 @@ export default function CalendarPage() {
                           <Badge variant="secondary" className="text-xs mt-0.5">{dict.calendarPage.allDayBadge}</Badge>
                         )}
 
-                        {e.description && (
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{e.description}</p>
-                        )}
+                        {e.description && (() => {
+                          try {
+                            if (e.description!.startsWith('{')) {
+                              const parsed = JSON.parse(e.description!)
+                              return (
+                                <div className="mt-0.5 space-y-0.5">
+                                  {parsed.desc      && <p className="text-xs text-slate-500 line-clamp-2">{parsed.desc}</p>}
+                                  {parsed.assignee  && <p className="text-xs text-slate-500">👤 負責：{parsed.assignee}</p>}
+                                  {parsed.departure && <p className="text-xs text-slate-500">🚗 出發：{parsed.departure}</p>}
+                                  {parsed.prep      && <p className="text-xs text-amber-600">📋 準備：{parsed.prep}</p>}
+                                </div>
+                              )
+                            }
+                          } catch { /* ignore */ }
+                          return <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{e.description}</p>
+                        })()}
 
                         <p className="text-xs text-slate-400 mt-0.5">{e.user}</p>
                       </div>
@@ -755,6 +800,30 @@ export default function CalendarPage() {
               )}
             </div>
 
+            {/* Assignee + Departure */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="ev-assignee">負責人／代辦人</Label>
+                <Input
+                  id="ev-assignee"
+                  value={form.assignee}
+                  onChange={e => setField('assignee', e.target.value)}
+                  placeholder="誰負責這個行程"
+                  className="min-h-[44px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="ev-departure">出發人員</Label>
+                <Input
+                  id="ev-departure"
+                  value={form.departure}
+                  onChange={e => setField('departure', e.target.value)}
+                  placeholder="誰要出發 / 出差"
+                  className="min-h-[44px]"
+                />
+              </div>
+            </div>
+
             {/* Description */}
             <div className="space-y-1.5">
               <Label htmlFor="ev-desc">{dict.calendarPage.fieldNotes}</Label>
@@ -763,7 +832,20 @@ export default function CalendarPage() {
                 value={form.description}
                 onChange={e => setField('description', e.target.value)}
                 placeholder={dict.calendarPage.notesPlaceholder}
-                rows={3}
+                rows={2}
+                className="resize-none"
+              />
+            </div>
+
+            {/* Prep Notes */}
+            <div className="space-y-1.5">
+              <Label htmlFor="ev-prep">準備事項</Label>
+              <Textarea
+                id="ev-prep"
+                value={form.prep}
+                onChange={e => setField('prep', e.target.value)}
+                placeholder="需要帶什麼、注意什麼、提前準備的事項"
+                rows={2}
                 className="resize-none"
               />
             </div>

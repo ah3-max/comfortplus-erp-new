@@ -7,20 +7,23 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const search = searchParams.get('search') ?? ''
+  const search     = searchParams.get('search')     ?? ''
   const locationId = searchParams.get('locationId') ?? ''
-  const page = Math.max(1, Number(searchParams.get('page') ?? 1))
-  const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
+  const category   = searchParams.get('category')   ?? ''
+  const page       = Math.max(1, Number(searchParams.get('page') ?? 1))
+  const pageSize   = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
 
   const where = {
     ...(locationId && { locationId }),
-    ...(search && {
-      OR: [
-        { stockNumber: { contains: search, mode: 'insensitive' as const } },
-        { product: { name: { contains: search, mode: 'insensitive' as const } } },
-        { product: { sku: { contains: search, mode: 'insensitive' as const } } },
-      ],
-    }),
+    product: {
+      ...(category && { category }),
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' as const } },
+          { sku:  { contains: search, mode: 'insensitive' as const } },
+        ],
+      }),
+    },
   }
 
   const [inventory, total] = await Promise.all([

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +61,8 @@ export default function ReorderCyclePage() {
     } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate, minOrders])
+
+  useEffect(() => { query() }, [query])
 
   const filtered = statusFilter === 'ALL' ? data : data.filter(r => r.status === statusFilter)
 

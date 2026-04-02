@@ -145,6 +145,8 @@ model FollowUpLog {
   taskCreated     Boolean         @default(false)  // 是否已自動建立任務
   taskId          String?         // 自動建立的任務 ID
   isFollowUp      Boolean         @default(true)   // 是否繼續追蹤
+  duration        Int?                             // 拜訪/通話時長（分鐘）
+  competitorInfo  String?                          // 競品資訊（直接記錄於本次互動）
   attachments     String?         // 附件 JSON array
   createdAt       DateTime        @default(now())
 }

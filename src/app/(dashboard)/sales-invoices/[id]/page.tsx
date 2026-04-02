@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { ArrowLeft, Loader2, FileText } from 'lucide-react'
+import { ArrowLeft, Loader2, FileText, CheckCircle2, Truck, XCircle, RotateCcw, Package, Receipt } from 'lucide-react'
+import { toast } from 'sonner'
 
 type InvoiceStatus = 'DRAFT' | 'CONFIRMED' | 'SHIPPED' | 'RETURNED' | 'CANCELLED'
 
@@ -52,6 +54,8 @@ interface Invoice {
   createdBy: { id: string; name: string }
   sourceOrder: { id: string; orderNo: string; status: string } | null
   items: InvoiceItem[]
+  pickingOrders: { id: string; pickingNumber: string; status: string; createdAt: string }[]
+  eInvoices: { id: string; invoiceNumber: string; status: string; transmitStatus: string; createdAt: string }[]
 }
 
 function formatCurrency(val: string | number) {
@@ -80,24 +84,63 @@ export default function SalesInvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await fetch(`/api/sales-invoices/${id}`)
-        if (res.status === 404 || res.status === 403) { setNotFound(true); return }
-        if (!res.ok) throw new Error(dict.common.loadFailed)
-        const data = await res.json()
-        setInvoice(data)
-      } catch {
-        setNotFound(true)
-      } finally {
-        setLoading(false)
-      }
+  async function loadInvoice() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/sales-invoices/${id}`)
+      if (res.status === 404 || res.status === 403) { setNotFound(true); return }
+      if (!res.ok) throw new Error(dict.common.loadFailed)
+      const data = await res.json()
+      setInvoice(data)
+    } catch {
+      setNotFound(true)
+    } finally {
+      setLoading(false)
     }
-    load()
-  }, [id])
+  }
+
+  useEffect(() => { loadInvoice() }, [id])
+
+  async function updateStatus(status: string) {
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/sales-invoices/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusOnly: true, status }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? dict.common.updateFailed)
+      }
+      toast.success(dict.common.updateSuccess)
+      loadInvoice()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : dict.common.updateFailed)
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleCancel() {
+    if (!confirm(p.confirmCancelMsg.replace('{no}', invoice?.invoiceNumber ?? ''))) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/sales-invoices/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error ?? dict.common.operationFailed)
+      }
+      toast.success(p.cancelSuccess)
+      loadInvoice()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : dict.common.operationFailed)
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -122,7 +165,7 @@ export default function SalesInvoiceDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Button variant="outline" size="sm" onClick={() => router.push('/sales-invoices')}>
           <ArrowLeft className="mr-2 h-4 w-4" />{p.back}
         </Button>
@@ -136,6 +179,33 @@ export default function SalesInvoiceDetailPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {dict.salesInvoices.title} · {p.createdAt} {formatDate(invoice.createdAt)}
           </p>
+        </div>
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2">
+          {invoice.status === 'DRAFT' && (
+            <Button size="sm" onClick={() => updateStatus('CONFIRMED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              {p.confirmInvoice}
+            </Button>
+          )}
+          {invoice.status === 'CONFIRMED' && (
+            <Button size="sm" onClick={() => updateStatus('SHIPPED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Truck className="mr-2 h-4 w-4" />}
+              {p.markShipped}
+            </Button>
+          )}
+          {invoice.status === 'SHIPPED' && (
+            <Button size="sm" variant="outline" onClick={() => updateStatus('RETURNED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+              {p.returnBtn}
+            </Button>
+          )}
+          {!['SHIPPED', 'CANCELLED', 'RETURNED'].includes(invoice.status) && (
+            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50"
+              onClick={handleCancel} disabled={actionLoading}>
+              <XCircle className="mr-2 h-4 w-4" />{p.cancelBtn}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -254,10 +324,49 @@ export default function SalesInvoiceDetailPage() {
         </div>
       )}
 
+      {/* Related Documents */}
+      {(invoice.pickingOrders.length > 0 || invoice.eInvoices.length > 0) && (
+        <div className="rounded-lg border bg-white p-5 space-y-4">
+          <h2 className="text-sm font-semibold text-slate-700">{p.relatedDocs}</h2>
+          {invoice.pickingOrders.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <Package className="h-3 w-3" /> {p.pickingOrders}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {invoice.pickingOrders.map(pk => (
+                  <Link key={pk.id} href={`/picking-orders/${pk.id}`}
+                    className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm hover:bg-slate-50 transition-colors">
+                    <span className="font-mono text-blue-600">{pk.pickingNumber}</span>
+                    <Badge variant="outline" className="text-xs">{pk.status}</Badge>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          {invoice.eInvoices.length > 0 && (
+            <div>
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <Receipt className="h-3 w-3" /> {p.eInvoices}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {invoice.eInvoices.map(ei => (
+                  <Link key={ei.id} href={`/e-invoices/${ei.id}`}
+                    className="inline-flex items-center gap-1.5 rounded border px-3 py-1.5 text-sm hover:bg-slate-50 transition-colors">
+                    <span className="font-mono text-blue-600">{ei.invoiceNumber}</span>
+                    <Badge variant="outline" className="text-xs">{ei.status}</Badge>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Line Items Table */}
       <div className="rounded-lg border bg-white">
         <div className="px-5 py-4 border-b">
-          <h2 className="text-sm font-semibold text-slate-700">{p.itemsHeader}（{invoice.items.length} 項）</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{p.itemsHeader}（{invoice.items.length} {dict.common.pieces}）</h2>
         </div>
         <Table>
           <TableHeader>

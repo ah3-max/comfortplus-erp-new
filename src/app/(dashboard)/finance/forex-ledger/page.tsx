@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +39,7 @@ function fmt(n: number) {
 
 export default function ForexLedgerPage() {
   const { dict } = useI18n()
+  const fp = dict.financePages
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [currency, setCurrency] = useState('all')
@@ -58,6 +59,8 @@ export default function ForexLedgerPage() {
     finally { setLoading(false) }
   }, [currency, startDate, endDate])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -65,25 +68,25 @@ export default function ForexLedgerPage() {
           <ChevronLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">外幣帳簿</h1>
-          <p className="text-sm text-muted-foreground">外幣收付款明細追蹤</p>
+          <h1 className="text-2xl font-bold text-slate-900">{fp.forexTitle}</h1>
+          <p className="text-sm text-muted-foreground">{fp.forexDesc}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">幣別</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.forexCurrencyLabel}</label>
           <select value={currency} onChange={e => setCurrency(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
-            <option value="all">全部外幣</option>
+            <option value="all">{fp.forexAllCurrencies}</option>
             {['USD', 'EUR', 'JPY', 'CNY', 'THB'].map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateStart}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateEnd}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <Button onClick={fetchData} disabled={loading}>
@@ -95,10 +98,10 @@ export default function ForexLedgerPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: '外幣收入', value: data.summary.totalIncoming, color: 'text-green-600' },
-              { label: '外幣支出', value: data.summary.totalOutgoing, color: 'text-red-600' },
-              { label: '淨流量', value: data.summary.netFlow, color: data.summary.netFlow >= 0 ? 'text-slate-900' : 'text-red-600' },
-              { label: '交易筆數', value: data.summary.txCount, color: 'text-slate-700', isCount: true },
+              { label: fp.forexSummaryIncoming, value: data.summary.totalIncoming, color: 'text-green-600' },
+              { label: fp.forexSummaryOutgoing, value: data.summary.totalOutgoing, color: 'text-red-600' },
+              { label: fp.forexSummaryNet, value: data.summary.netFlow, color: data.summary.netFlow >= 0 ? 'text-slate-900' : 'text-red-600' },
+              { label: fp.forexSummaryCount, value: data.summary.txCount, color: 'text-slate-700', isCount: true },
             ].map(c => (
               <div key={c.label} className="rounded-lg border bg-white p-3">
                 <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
@@ -116,7 +119,7 @@ export default function ForexLedgerPage() {
                   <Badge className={CURRENCY_COLORS[bc.currency] ?? 'bg-slate-100 text-slate-600'}>{bc.currency}</Badge>
                   <span className="text-green-600">+{fmt(bc.incoming)}</span>
                   <span className="text-red-600">-{fmt(bc.outgoing)}</span>
-                  <span className="text-muted-foreground">{bc.count}筆</span>
+                  <span className="text-muted-foreground">{bc.count}{fp.forexCountSuffix}</span>
                 </div>
               ))}
             </div>
@@ -126,19 +129,19 @@ export default function ForexLedgerPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-24">日期</TableHead>
-                  <TableHead className="w-28">單號</TableHead>
-                  <TableHead className="w-16">幣別</TableHead>
-                  <TableHead>往來對象</TableHead>
-                  <TableHead className="w-20">方式</TableHead>
-                  <TableHead>銀行帳戶</TableHead>
-                  <TableHead className="text-right w-28 text-green-700">收入</TableHead>
-                  <TableHead className="text-right w-28 text-red-600">支出</TableHead>
+                  <TableHead className="w-24">{fp.forexColDate}</TableHead>
+                  <TableHead className="w-28">{fp.forexColRef}</TableHead>
+                  <TableHead className="w-16">{fp.forexColCurrency}</TableHead>
+                  <TableHead>{fp.forexColParty}</TableHead>
+                  <TableHead className="w-20">{fp.forexColMethod}</TableHead>
+                  <TableHead>{fp.forexColBank}</TableHead>
+                  <TableHead className="text-right w-28 text-green-700">{fp.forexColIncoming}</TableHead>
+                  <TableHead className="text-right w-28 text-red-600">{fp.forexColOutgoing}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">無外幣交易記錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="py-12 text-center text-muted-foreground">{fp.forexNoRecords}</TableCell></TableRow>
                 ) : (
                   data.rows.map(row => (
                     <TableRow key={row.id} className="text-sm hover:bg-slate-50/40">

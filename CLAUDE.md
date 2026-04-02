@@ -64,6 +64,9 @@ src/lib/
 - **分頁格式**：所有 list API 回傳 `{ data: T[], pagination: { page, pageSize, total, totalPages } }`
 - **觸控優化**：手機上 button/input 最小 44px，使用 `active:scale-[0.97]` 按壓回饋
 - **i18n**：UI 文字用 `dict.xxx` 取值，AI Skill 關鍵字保持中文（用於意圖辨識）
+- **三套入庫系統**（5-7 已知技術債）：`InboundRecord`（海運到倉）/ `WmsInbound`（WMS 作業）/ `ProductionReceipt`（製令入庫）三套並存，各有獨立庫存觸發點。長期目標：合併為 `InboundRecord + sourceType` 欄位，需 schema migration。
+- **兩套 QC 系統**（5-8 已知技術債）：`/api/inbound/[id]/qc` 處理進貨驗收，`QualityCheck` model + `/api/qc` 處理製令/獨立品檢。兩套已在 Phase 3 串接（QC pass → InventoryLot，fail → DefectiveGoods）。長期目標：統一為 QualityCheck + sourceType。
+- **訂單 vs 銷貨單職責**（5-9 設計決策）：`SalesOrder` = 商務合約（確認客戶、金額、條件）；`SalesInvoice` = 出庫憑證（實際出倉記錄，可多次分批）。訂單 CONFIRMED 自動建銷貨單，出貨扣庫存。
 
 ## 測試帳號
 

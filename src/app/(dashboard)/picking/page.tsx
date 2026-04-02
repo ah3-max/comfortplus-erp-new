@@ -16,9 +16,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import {
   Plus, Search, MoreHorizontal, Loader2, CheckCircle2, XCircle,
-  ClipboardCheck, PackageCheck,
+  ClipboardCheck, PackageCheck, Printer, Edit2,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 
 type Status = 'PENDING' | 'PICKING' | 'PICKED' | 'CANCELLED'
 
@@ -94,6 +98,42 @@ export default function PickingPage() {
     const res = await fetch(`/api/picking-orders/${id}`, { method: 'DELETE' })
     if (res.ok) { toast.success(dict.common.cancelSuccess); fetchData() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.operationFailed) }
+  }
+
+  // Picked quantity dialog
+  const [pickQtyOrder, setPickQtyOrder] = useState<PickingOrder | null>(null)
+  const [pickQtyValues, setPickQtyValues] = useState<Record<string, string>>({})
+  const [savingPickQty, setSavingPickQty] = useState(false)
+
+  function openPickQtyDialog(order: PickingOrder) {
+    const initial: Record<string, string> = {}
+    order.items.forEach(item => {
+      initial[item.id] = String(Number(item.pickedQuantity) > 0 ? item.pickedQuantity : item.quantity)
+    })
+    setPickQtyValues(initial)
+    setPickQtyOrder(order)
+  }
+
+  async function savePickedQty() {
+    if (!pickQtyOrder) return
+    setSavingPickQty(true)
+    const items = pickQtyOrder.items.map(item => ({
+      itemId: item.id,
+      pickedQuantity: Number(pickQtyValues[item.id] ?? item.quantity),
+    }))
+    const res = await fetch(`/api/picking-orders/${pickQtyOrder.id}/short-pick`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    })
+    setSavingPickQty(false)
+    if (res.ok) {
+      toast.success('揀貨數量已更新')
+      setPickQtyOrder(null)
+      fetchData()
+    } else {
+      const d = await res.json()
+      toast.error(d.error ?? dict.common.updateFailed)
+    }
   }
 
   const pendingCount = data.filter(d => d.status === 'PENDING').length
@@ -178,11 +218,18 @@ export default function PickingPage() {
                             <PackageCheck className="mr-2 h-4 w-4" />{dict.picking.startPicking}
                           </DropdownMenuItem>
                         )}
-                        {d.status === 'PICKING' && (
+                        {d.status === 'PICKING' && (<>
+                          <DropdownMenuItem onClick={() => openPickQtyDialog(d)}>
+                            <Edit2 className="mr-2 h-4 w-4" />輸入揀貨數量
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => updateStatus(d.id, 'PICKED', dict.picking.statuses.COMPLETED)}>
                             <CheckCircle2 className="mr-2 h-4 w-4" />{dict.picking.completePicking}
                           </DropdownMenuItem>
-                        )}
+                        </>)}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => window.open(`/api/picking-orders/${d.id}/print`, '_blank')}>
+                          <Printer className="mr-2 h-4 w-4" />列印揀貨單
+                        </DropdownMenuItem>
                         {!['PICKED', 'CANCELLED'].includes(d.status) && (
                           <><DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleCancel(d.id, d.pickingNumber)} variant="destructive">
@@ -230,6 +277,43 @@ export default function PickingPage() {
           </div>
         </div>
       )}
+
+      {/* Picked Quantity Dialog */}
+      <Dialog open={!!pickQtyOrder} onOpenChange={open => { if (!open) setPickQtyOrder(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="h-4 w-4" />
+              輸入揀貨數量 — {pickQtyOrder?.pickingNumber}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2 max-h-80 overflow-y-auto">
+            {pickQtyOrder?.items.map(item => (
+              <div key={item.id} className="grid grid-cols-3 gap-3 items-center">
+                <div className="col-span-2 text-sm font-medium truncate">{item.productName}</div>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={Number(item.quantity)}
+                    className="h-8 text-sm"
+                    value={pickQtyValues[item.id] ?? item.quantity}
+                    onChange={e => setPickQtyValues(prev => ({ ...prev, [item.id]: e.target.value }))}
+                  />
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">/ {item.quantity}</Label>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPickQtyOrder(null)}>取消</Button>
+            <Button onClick={savePickedQty} disabled={savingPickQty} className="gap-2">
+              {savingPickQty && <Loader2 className="h-4 w-4 animate-spin" />}
+              儲存數量
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

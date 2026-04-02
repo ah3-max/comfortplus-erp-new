@@ -16,7 +16,8 @@ import {
   PackageX, GitPullRequestArrow, ShipIcon, UserSquare2, ClipboardList,
   MapPinned, ReceiptText, BriefcaseBusiness, HandCoins, Megaphone,
   Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp,
-  Clock, DollarSign, CheckCircle2, Tag, Send,
+  Clock, DollarSign, CheckCircle2, Tag, Send, BellRing, Hash, DatabaseZap,
+  Printer, AlertTriangle,
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -37,12 +38,11 @@ const navGroups: NavGroup[] = [
   {
     labelKey: 'groupDaily',
     items: [
-      { href: '/dashboard',    key: 'dashboard',   icon: LayoutDashboard },
-      { href: '/daily-report', key: 'dailyReport', icon: ClipboardCheck },
-      { href: '/quick-input',  key: 'quickInput',  icon: Zap },
-      { href: '/crm',          key: 'crm',         icon: Crosshair },
-      { href: '/alerts',       key: 'alerts',      icon: ShieldAlert },
-      { href: '/calendar',     key: 'calendar',    icon: CalendarDays },
+      { href: '/dashboard',          key: 'dashboard',        icon: LayoutDashboard },
+      { href: '/daily-reminder',     key: 'dailyReminder',    icon: BellRing },
+      { href: '/crm',                key: 'crm',              icon: Crosshair },
+      { href: '/institution-tours',  key: 'institutionTours', icon: MapPinned },
+      { href: '/calendar',           key: 'calendar',         icon: CalendarDays },
     ],
   },
 
@@ -53,22 +53,19 @@ const navGroups: NavGroup[] = [
       {
         subLabelKey: 'subCustomers',
         items: [
-          { href: '/customers',    key: 'customers',   icon: Users },
-          { href: '/key-accounts', key: 'keyAccounts', icon: Star },
-          { href: '/incidents',    key: 'incidents',   icon: AlertOctagon },
+          { href: '/customers',        key: 'customers',        icon: Users },
+          { href: '/key-accounts',     key: 'keyAccounts',      icon: Star },
+          { href: '/incidents',        key: 'incidents',        icon: AlertOctagon },
         ],
       },
       {
         subLabelKey: 'subOpportunity',
         items: [
           { href: '/pipeline',            key: 'pipeline',       icon: Target },
-          { href: '/sales-opportunities', key: 'opportunities',  icon: Briefcase },
           { href: '/kpi',                 key: 'kpi',            icon: Zap },
           { href: '/tasks',               key: 'tasks',          icon: ListTodo },
           { href: '/sales-daily-report',  key: 'salesDailyReport', icon: Send },
           { href: '/meeting-records',     key: 'meetingRecords', icon: CalendarDays },
-          { href: '/business-calendar',   key: 'businessCalendar', icon: CalendarDays },
-          { href: '/promo-calendar',      key: 'promoCalendar',  icon: CalendarDays },
         ],
       },
       {
@@ -79,10 +76,7 @@ const navGroups: NavGroup[] = [
           { href: '/sales-invoices', key: 'salesInvoices', icon: Receipt },
           { href: '/e-invoices',     key: 'eInvoices',     icon: FileText },
           { href: '/sales-returns',  key: 'salesReturns',  icon: RotateCcw },
-          { href: '/price-lists',    key: 'priceLists',    icon: Tag },
           { href: '/channel-orders', key: 'channelOrders', icon: ShoppingBag },
-          { href: '/margin-calc',    key: 'marginCalc',    icon: Calculator },
-          { href: '/profit',         key: 'profit',        icon: TrendingUp },
         ],
       },
     ],
@@ -93,13 +87,12 @@ const navGroups: NavGroup[] = [
     labelKey: 'groupInventory',
     items: [
       { href: '/products',       key: 'products',      icon: Package },
-      { href: '/inventory',      key: 'inventory',     icon: BarChart3 },
-      { href: '/warehouses',     key: 'warehouses',    icon: Warehouse },
-      { href: '/wms',            key: 'wms',           icon: Warehouse },
-      { href: '/stock-counts',   key: 'stockCounts',   icon: ClipboardCheck },
-      { href: '/inventory-lots', key: 'inventoryLots', icon: Package },
-      { href: '/defective-goods', key: 'defectiveGoods', icon: PackageX },
+      { href: '/inventory',         key: 'inventory',        icon: BarChart3 },
+      { href: '/inventory-safety',  key: 'inventorySafety',  icon: AlertTriangle },
+      { href: '/wms',               key: 'wms',              icon: Warehouse },
+      { href: '/inventory?tab=count', key: 'stockCounts',   icon: ClipboardCheck },
       { href: '/internal-use',   key: 'internalUse',   icon: PackageX },
+      { href: '/inbound',        key: 'inbound',       icon: PackageCheck },
     ],
   },
 
@@ -107,13 +100,11 @@ const navGroups: NavGroup[] = [
   {
     labelKey: 'groupLogistics',
     items: [
+      { href: '/shipping-center', key: 'shippingCenter', icon: Package },
       { href: '/shipments',      key: 'shipments',      icon: Truck },
       { href: '/picking',        key: 'picking',        icon: ClipboardCheck },
       { href: '/dispatch',       key: 'dispatch',       icon: Truck },
-      { href: '/pickup',         key: 'pickup',         icon: Package },
       { href: '/logistics',      key: 'logistics',      icon: Navigation },
-      { href: '/vehicles',       key: 'vehicles',       icon: Truck },
-      { href: '/delivery-trips', key: 'deliveryTrips',  icon: Truck },
     ],
   },
 
@@ -125,11 +116,10 @@ const navGroups: NavGroup[] = [
         subLabelKey: 'subPurchasing',
         items: [
           { href: '/purchases',         key: 'purchases',        icon: ShoppingBag },
-          { href: '/purchase-requests',  key: 'purchaseRequests', icon: FileText },
-          { href: '/rfq',                key: 'rfq',              icon: FileText },
-          { href: '/suppliers',          key: 'suppliers',        icon: Building2 },
-          { href: '/purchase-plans',     key: 'purchasePlans',    icon: ClipboardList },
-          { href: '/purchase-returns',   key: 'purchaseReturns',  icon: RotateCcw },
+          { href: '/purchase-requests', key: 'purchaseRequests', icon: FileText },
+          { href: '/suppliers',         key: 'suppliers',        icon: Building2 },
+          { href: '/purchase-returns',  key: 'purchaseReturns',  icon: RotateCcw },
+          { href: '/sea-freight',       key: 'seaFreight',       icon: Ship },
         ],
       },
       {
@@ -139,14 +129,6 @@ const navGroups: NavGroup[] = [
           { href: '/material-requisitions', key: 'materialRequisitions', icon: Layers },
           { href: '/production-receipts',   key: 'productionReceipts',   icon: PackageCheck },
           { href: '/qc',                    key: 'qc',                   icon: ClipboardCheck },
-          { href: '/packaging',             key: 'packaging',            icon: Layers },
-        ],
-      },
-      {
-        subLabelKey: 'subImport',
-        items: [
-          { href: '/sea-freight',     key: 'seaFreight',     icon: Ship },
-          { href: '/import-projects', key: 'importProjects', icon: ShipIcon },
         ],
       },
     ],
@@ -159,13 +141,11 @@ const navGroups: NavGroup[] = [
       {
         subLabelKey: 'subFinCore',
         items: [
-          { href: '/finance',       key: 'finance',    icon: BarChart3 },
-          { href: '/payments',      key: 'payments',   icon: CreditCard },
-          { href: '/petty-cash',    key: 'pettyCash',  icon: Wallet },
-          { href: '/contracts',     key: 'contracts',  icon: FileArchive },
-          { href: '/expenses',      key: 'expenses',   icon: ReceiptText },
-          { href: '/fixed-assets',  key: 'fixedAssets', icon: Landmark },
-          { href: '/budget',        key: 'budget',     icon: Target },
+          { href: '/finance',           key: 'finance',          icon: BarChart3 },
+          { href: '/payments',          key: 'payments',         icon: CreditCard },
+          { href: '/receipts',          key: 'receipts',         icon: CheckCircle2 },
+          { href: '/expenses',          key: 'expenses',         icon: ReceiptText },
+          { href: '/petty-cash',        key: 'pettyCash',        icon: Wallet },
         ],
       },
       {
@@ -173,8 +153,8 @@ const navGroups: NavGroup[] = [
         items: [
           { href: '/ar-aging',          key: 'arAging',          icon: Receipt },
           { href: '/ap-aging',          key: 'apAging',          icon: Receipt },
+          { href: '/disbursements',     key: 'disbursements',    icon: CreditCard },
           { href: '/credit-management', key: 'creditManagement', icon: BadgeAlert },
-          { href: '/statements',        key: 'statements',       icon: FileText },
         ],
       },
       {
@@ -182,75 +162,41 @@ const navGroups: NavGroup[] = [
         items: [
           { href: '/finance/general-ledger',    key: 'generalLedger',    icon: BookOpen },
           { href: '/finance/account-detail',    key: 'accountDetail',    icon: BookOpen },
-          { href: '/finance/account-summary',   key: 'accountSummary',   icon: BookOpen },
-          { href: '/finance/account-movement',  key: 'accountMovement',  icon: BookOpen },
-          { href: '/finance/vat-ledger',        key: 'vatLedger',        icon: Receipt },
           { href: '/finance/cash-book',         key: 'cashBook',         icon: CreditCard },
-          { href: '/finance/daily-monthly-summary', key: 'dailyMonthlySummary', icon: CalendarDays },
-          { href: '/finance/forex-ledger',      key: 'forexLedger',      icon: BookOpen },
-          { href: '/finance/vendor-ledger-1',   key: 'vendorLedger1',    icon: Users },
-          { href: '/finance/vendor-ledger-2',   key: 'vendorLedger2',    icon: Building2 },
-          { href: '/finance/party-transactions', key: 'partyTransactions', icon: BookOpen },
-        ],
-      },
-      {
-        subLabelKey: 'subFinReports',
-        items: [
-          { href: '/finance/cash-flow-statement',   key: 'cashFlowStatement',   icon: BarChart3 },
-          { href: '/finance/cost-detail',           key: 'costDetail',           icon: Receipt },
-          { href: '/finance/account-list',          key: 'accountList',          icon: BookOpen },
-          { href: '/finance/income-expense-detail', key: 'incomeExpenseDetail',  icon: BarChart3 },
-          { href: '/finance/retained-earnings',     key: 'retainedEarnings',     icon: Landmark },
+          { href: '/finance/vat-ledger',        key: 'vatLedger',        icon: Receipt },
         ],
       },
       {
         subLabelKey: 'subOperations',
         items: [
-          { href: '/finance/daily-cash-report',  key: 'dailyCashReport',  icon: CalendarDays },
-          { href: '/finance/cash-movement',      key: 'cashMovement',     icon: CreditCard },
-          { href: '/finance/cash-position',      key: 'cashPosition',     icon: Wallet },
-          { href: '/finance/cash-inout-detail',  key: 'cashInoutDetail',  icon: BarChart3 },
-          { href: '/finance/monthly-pl',         key: 'monthlyPL',        icon: BarChart3 },
-          { href: '/finance/monthly-cost',       key: 'monthlyCost',      icon: BarChart3 },
-          { href: '/finance/ar-ap-turnover',     key: 'arApTurnover',     icon: BarChart3 },
-          { href: '/finance/management-summary', key: 'managementSummary', icon: PieChart },
-          { href: '/finance/accounting-summary', key: 'accountingSummary', icon: Scale },
-          { href: '/finance/monthly-purchase',   key: 'monthlyPurchase',  icon: ShoppingBag },
-          { href: '/finance/monthly-sales',      key: 'monthlySales',     icon: ShoppingCart },
-          { href: '/finance/payment-summary',    key: 'paymentSummary',   icon: CreditCard },
-          { href: '/finance/receipt-summary',    key: 'receiptSummary',   icon: Receipt },
-          { href: '/finance/advance-payment-summary', key: 'advancePaymentSummary', icon: HandCoins },
-          { href: '/finance/custom-report',      key: 'customReport',     icon: FileText },
-        ],
-      },
-      {
-        subLabelKey: 'subVouchers',
-        items: [
-          { href: '/finance/transaction-detail',    key: 'transactionDetail',   icon: BookOpen },
-          { href: '/finance/ar-voucher-detail',     key: 'arVoucherDetail',     icon: Receipt },
-          { href: '/finance/ap-voucher-detail',     key: 'apVoucherDetail',     icon: Receipt },
-          { href: '/finance/payment-transfer-list', key: 'paymentTransferList', icon: CreditCard },
+          { href: '/finance/monthly-pl',                key: 'monthlyPL',               icon: BarChart3 },
+          { href: '/finance/cash-flow-statement',       key: 'cashFlowStatement',       icon: BarChart3 },
+          { href: '/finance/payment-summary',           key: 'paymentSummary',          icon: CreditCard },
+          { href: '/finance/receipt-summary',            key: 'receiptSummary',          icon: Receipt },
+          { href: '/finance/advance-payment-summary',   key: 'advancePaymentSummary',   icon: HandCoins },
+          { href: '/finance/management-summary',        key: 'managementSummary',       icon: PieChart },
         ],
       },
       {
         subLabelKey: 'subFinSettings',
         items: [
-          { href: '/auto-journal',  key: 'autoJournal', icon: Zap },
-          { href: '/period-close',  key: 'periodClose', icon: CalendarCheck2 },
-          { href: '/bank-accounts', key: 'bankAccounts', icon: Landmark },
-          { href: '/cheques',       key: 'cheques',     icon: FileText },
-          { href: '/vat-filings',   key: 'vatFilings',  icon: Receipt },
+          { href: '/bank-accounts',     key: 'bankAccounts',       icon: Landmark },
+          { href: '/cheques',           key: 'cheques',            icon: FileText },
+          { href: '/vat-filings',       key: 'vatFilings',         icon: Receipt },
+          { href: '/period-close',      key: 'periodClose',        icon: CalendarCheck2 },
+          { href: '/auto-journal',      key: 'autoJournal',        icon: Zap },
         ],
       },
-      {
-        subLabelKey: 'subChannels',
-        items: [
-          { href: '/channels',       key: 'channels',      icon: Store },
-          { href: '/retail',         key: 'retail',        icon: Landmark },
-          { href: '/price-tiers',    key: 'priceTiers',    icon: Layers },
-          { href: '/discount-rules', key: 'discountRules', icon: HandCoins },
-        ],
-      },
+    ],
+  },
+
+  /* ─── 通路 ─── */
+  {
+    labelKey: 'groupChannels',
+    items: [
+      { href: '/channels',       key: 'channels',      icon: Store },
+      { href: '/price-tiers',    key: 'priceTiers',    icon: Layers },
+      { href: '/discount-rules', key: 'discountRules', icon: HandCoins },
     ],
   },
 
@@ -258,21 +204,26 @@ const navGroups: NavGroup[] = [
   {
     labelKey: 'groupAnalysis',
     items: [
-      { href: '/reports',               key: 'reports',               icon: PieChart },
-      { href: '/sales-analysis',        key: 'salesAnalysis',         icon: TrendingUp },
-      { href: '/gross-margin',          key: 'grossMargin',           icon: DollarSign },
-      { href: '/abc-analysis',          key: 'abcAnalysis',           icon: PieChart },
-      { href: '/purchase-analysis',     key: 'purchaseAnalysis',      icon: BarChart3 },
-      { href: '/supplier-performance',  key: 'supplierPerformance',   icon: Star },
-      { href: '/salesperson-performance', key: 'salespersonPerformance', icon: Users },
-      { href: '/return-analysis',       key: 'returnAnalysis',        icon: RotateCcw },
-      { href: '/delivery-performance',  key: 'deliveryPerformance',   icon: BarChart3 },
-      { href: '/fulfillment-rate',      key: 'fulfillmentRate',       icon: CheckCircle2 },
-      { href: '/inventory-movement',    key: 'inventoryMovement',     icon: BarChart3 },
-      { href: '/dead-stock',            key: 'deadStock',             icon: PackageX },
-      { href: '/reorder-cycle',         key: 'reorderCycle',          icon: Clock },
-      { href: '/traceability',          key: 'traceability',          icon: SearchCode },
-      { href: '/expiry-tracking',       key: 'expiryTracking',        icon: Clock },
+      {
+        subLabelKey: 'subSalesReports',
+        items: [
+          { href: '/reports',                 key: 'reports',               icon: PieChart },
+          { href: '/sales-analysis',          key: 'salesAnalysis',         icon: TrendingUp },
+          { href: '/gross-margin',            key: 'grossMargin',           icon: DollarSign },
+          { href: '/salesperson-performance', key: 'salespersonPerformance', icon: Users },
+          { href: '/competitor-prices',       key: 'competitorPrices',      icon: TrendingUp },
+        ],
+      },
+      {
+        subLabelKey: 'subOpsReports',
+        items: [
+          { href: '/purchase-analysis',     key: 'purchaseAnalysis',    icon: BarChart3 },
+          { href: '/supplier-performance',  key: 'supplierPerformance', icon: Star },
+          { href: '/delivery-performance',  key: 'deliveryPerformance', icon: BarChart3 },
+          { href: '/inventory-movement',    key: 'inventoryMovement',   icon: BarChart3 },
+          { href: '/dead-stock',            key: 'deadStock',           icon: PackageX },
+        ],
+      },
     ],
   },
 
@@ -302,11 +253,13 @@ const navGroups: NavGroup[] = [
   {
     labelKey: 'groupSystem',
     items: [
-      { href: '/approvals', key: 'approvals', icon: GitPullRequestArrow },
-      { href: '/documents', key: 'documents', icon: FileArchive },
-      { href: '/audit-log', key: 'auditLog',  icon: Shield },
-      { href: '/users',     key: 'users',     icon: UserCog },
-      { href: '/settings',  key: 'settings',  icon: Settings },
+      { href: '/approvals',  key: 'approvals',  icon: GitPullRequestArrow },
+      { href: '/documents',  key: 'documents',  icon: FileArchive },
+      { href: '/warehouses', key: 'warehouses', icon: Warehouse },
+      { href: '/audit-log',  key: 'auditLog',   icon: Shield },
+      { href: '/users',      key: 'users',      icon: UserCog },
+      { href: '/settings',   key: 'settings',   icon: Settings },
+      { href: '/migration',  key: 'migration',  icon: DatabaseZap },
     ],
   },
 ]

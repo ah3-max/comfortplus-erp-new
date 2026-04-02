@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -63,6 +63,8 @@ export default function SupplierPerformancePage() {
     } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [startDate, endDate])
+
+  useEffect(() => { query() }, [query])
 
   const radarData = selected ? [
     { subject: dict.supplierPerformance.radarDimOnTime, value: selected.onTimePct ?? 0 },

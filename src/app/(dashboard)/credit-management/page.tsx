@@ -250,7 +250,7 @@ export default function CreditManagementPage() {
             {Object.entries(STATUS_LABELS).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
             ))}
-            <SelectItem value="NO_LIMIT">未設限</SelectItem>
+            <SelectItem value="NO_LIMIT">{STATUS_LABELS.NO_LIMIT ?? cm.statusLabels.NO_LIMIT}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -337,7 +337,7 @@ export default function CreditManagementPage() {
               {/* Credit summary */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { label: cm.creditLimitLabel, value: detail.creditLimit !== null ? fmt(detail.creditLimit) : '未設限' },
+                  { label: cm.creditLimitLabel, value: detail.creditLimit !== null ? fmt(detail.creditLimit) : (STATUS_LABELS.NO_LIMIT ?? cm.statusLabels.NO_LIMIT) },
                   { label: cm.usedLabel, value: fmt(detail.creditUsed) },
                   { label: cm.availableLabel, value: detail.creditAvailable !== null ? fmt(detail.creditAvailable) : '—' },
                   { label: '%', value: detail.utilizationPct !== null ? `${detail.utilizationPct}%` : '—' },

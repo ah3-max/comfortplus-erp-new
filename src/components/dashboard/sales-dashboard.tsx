@@ -41,11 +41,20 @@ interface TargetData {
   hasTarget: boolean
 }
 
+interface ForecastData {
+  history: { label: string; revenue: number }[]
+  forecast: { label: string; revenue: number; isForecast: true }[]
+  confidence: number
+  trend: number | null
+  slope: number
+}
+
 export function SalesDashboard() {
   const [data, setData] = useState<SalesDashboardData | null>(null)
   const [target, setTarget] = useState<TargetData | null>(null)
   const [dailyReport, setDailyReport] = useState<{ status: string; submittedAt: string | null } | null>(null)
   const [visitDue, setVisitDue] = useState<VisitDue[]>([])
+  const [forecast, setForecast] = useState<ForecastData | null>(null)
   const [loading, setLoading] = useState(true)
   const { dict } = useI18n()
   const dOrders = dict.orders
@@ -57,16 +66,24 @@ export function SalesDashboard() {
       fetch('/api/sales-targets').then(r => r.json()).then((arr: TargetData[]) => arr[0] ?? null),
       fetch('/api/sales-daily-report/today').then(r => r.ok ? r.json() : null),
       fetch('/api/customers/visit-schedule').then(r => r.ok ? r.json() : []),
-    ]).then(([salesData, targetData, reportData, visitData]) => {
-      setData(salesData)
+      fetch('/api/dashboard/sales/forecast').then(r => r.ok ? r.json() : null),
+    ]).then(([salesData, targetData, reportData, visitData, forecastData]) => {
+      if (salesData?.today) setData(salesData)
       setTarget(targetData)
       setDailyReport(reportData)
       setVisitDue(Array.isArray(visitData) ? visitData.slice(0, 8) : [])
-    }).finally(() => setLoading(false))
+      setForecast(forecastData)
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <DashboardLoading />
-  if (!data) return null
+  if (!data) return (
+    <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
+      <AlertTriangle className="h-8 w-8 text-amber-500" />
+      <p>儀表板載入失敗，請重新整理</p>
+      <button onClick={() => window.location.reload()} className="text-sm underline">重新載入</button>
+    </div>
+  )
 
   const { today, month, activity, myCustomers, myQuotations, myRecentOrders,
     pendingTasks, expiringQuotes, pendingShipmentOrders, mySkuRanking } = data
@@ -109,12 +126,12 @@ export function SalesDashboard() {
             )}
             {target?.hasTarget && revenueGap > 0 && (
               <p className="text-sm mt-1 text-white/80">
-                距月目標還差 <span className="font-bold text-white">{fmt(revenueGap)}</span>
+                {rd.revenueLack} <span className="font-bold text-white">{fmt(revenueGap)}</span>
               </p>
             )}
             {target?.hasTarget && revenueGap <= 0 && (
               <p className="text-sm mt-1 text-green-200 flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" />月目標已達成！
+                <CheckCircle2 className="h-3.5 w-3.5" />{rd.targetAchieved}
               </p>
             )}
           </div>
@@ -122,7 +139,7 @@ export function SalesDashboard() {
             <p className="text-white/70 text-sm">{rd.monthOrders}</p>
             <p className="text-2xl font-bold">{month.orders} <span className="text-lg text-white/70">{rd.orderUnit}</span></p>
             {target?.hasTarget && (
-              <p className="text-xs text-white/60 mt-0.5">目標 {fmt(revenueTarget)}</p>
+              <p className="text-xs text-white/60 mt-0.5">{rd.targetLabel} {fmt(revenueTarget)}</p>
             )}
           </div>
         </div>
@@ -150,33 +167,33 @@ export function SalesDashboard() {
         <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2.5 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
           <p className="text-sm text-green-700">
-            今日日報已提交
+            {rd.dailyReportSubmitted}
             {dailyReport?.submittedAt && (
               <span className="text-green-500 ml-1">
                 （{new Date(dailyReport.submittedAt).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}）
               </span>
             )}
           </p>
-          <Link href="/sales-daily-report" className="ml-auto text-xs text-green-600 hover:underline">查看 →</Link>
+          <Link href="/sales-daily-report" className="ml-auto text-xs text-green-600 hover:underline">{rd.viewReport} →</Link>
         </div>
       ) : isAfternoon ? (
         <div className="rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 flex items-center gap-3">
           <Clock className="h-5 w-5 shrink-0 text-amber-500" />
           <div className="flex-1">
-            <p className="text-sm text-amber-800 font-medium">今日日報尚未提交</p>
-            <p className="text-xs text-amber-600">下班前記得回報今日工作成果，主管在等候您的日報！</p>
+            <p className="text-sm text-amber-800 font-medium">{rd.dailyReportNotSubmitted}</p>
+            <p className="text-xs text-amber-600">{rd.dailyReportReminder}</p>
           </div>
           <Link href="/sales-daily-report">
             <span className="flex items-center gap-1 text-xs font-medium bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition-colors">
-              <Send className="h-3 w-3" />立即填寫
+              <Send className="h-3 w-3" />{rd.submitNow}
             </span>
           </Link>
         </div>
       ) : (
         <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-2.5 flex items-center gap-2">
           <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-          <p className="text-sm text-slate-500">記得在今天結束前填寫業務日報</p>
-          <Link href="/sales-daily-report" className="ml-auto text-xs text-blue-600 hover:underline">填寫 →</Link>
+          <p className="text-sm text-slate-500">{rd.rememberDailyReport}</p>
+          <Link href="/sales-daily-report" className="ml-auto text-xs text-blue-600 hover:underline">{rd.fillIn} →</Link>
         </div>
       )}
 
@@ -187,10 +204,10 @@ export function SalesDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-orange-500" />
-                待拜訪客戶
+                {rd.visitSchedule}
                 <Badge variant="outline" className="text-xs border-orange-300 text-orange-700">{visitDue.length}</Badge>
               </CardTitle>
-              <Link href="/customers" className="text-xs text-blue-600 hover:underline">全部客戶 →</Link>
+              <Link href="/customers" className="text-xs text-blue-600 hover:underline">{rd.allCustomers} →</Link>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -200,7 +217,7 @@ export function SalesDashboard() {
                   className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50/80 transition-colors">
                   <div className="flex items-center gap-2 min-w-0">
                     {v.hasAnomaly && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" />}
-                    {v.isFirstOrder && !v.hasAnomaly && <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded shrink-0">首購關懷</span>}
+                    {v.isFirstOrder && !v.hasAnomaly && <span className="text-[10px] font-medium bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded shrink-0">{rd.firstOrderCare}</span>}
                     {v.grade && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
                         v.grade === 'A' ? 'bg-amber-400 text-white' :
@@ -212,10 +229,10 @@ export function SalesDashboard() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {v.hasAnomaly ? (
-                      <span className="text-xs font-medium text-red-600">立即拜訪</span>
+                      <span className="text-xs font-medium text-red-600">{rd.visitNow}</span>
                     ) : (
                       <span className={`text-xs ${v.daysOverdue > 7 ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
-                        逾期 {v.daysOverdue} 天
+                        {rd.overdueNDays.replace('{n}', String(v.daysOverdue))}
                       </span>
                     )}
                   </div>
@@ -471,6 +488,76 @@ export function SalesDashboard() {
           />
         </div>
       </div>
+
+      {/* ── S-19: AI Revenue Forecast ── */}
+      {forecast && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-violet-500" />
+                業績預測
+                <span className="text-xs font-normal text-muted-foreground px-2 py-0.5 rounded-full bg-slate-100">
+                  線性迴歸 · 信心度 {forecast.confidence}%
+                </span>
+              </CardTitle>
+              {forecast.trend !== null && (
+                <span className={`text-sm font-medium flex items-center gap-1 ${forecast.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {forecast.trend >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  趨勢 {forecast.trend >= 0 ? '+' : ''}{forecast.trend}%
+                </span>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const allPoints = [...forecast.history, ...forecast.forecast]
+              const maxRev = Math.max(...allPoints.map(p => p.revenue), 1)
+              return (
+                <div className="space-y-2">
+                  {/* Mini bar chart */}
+                  <div className="flex items-end gap-1 h-24">
+                    {forecast.history.map((m, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full rounded-t bg-violet-400 transition-all duration-700"
+                          style={{ height: `${Math.round((m.revenue / maxRev) * 80)}px` }} />
+                      </div>
+                    ))}
+                    {/* Separator */}
+                    <div className="w-px h-full bg-dashed bg-slate-300 mx-1" />
+                    {forecast.forecast.map((m, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full rounded-t bg-violet-200 border-2 border-dashed border-violet-400 transition-all duration-700"
+                          style={{ height: `${Math.round((m.revenue / maxRev) * 80)}px` }} />
+                      </div>
+                    ))}
+                  </div>
+                  {/* Labels */}
+                  <div className="flex items-center gap-1">
+                    {forecast.history.map((m, i) => (
+                      <div key={i} className="flex-1 text-center text-[10px] text-muted-foreground">{m.label.slice(5)}</div>
+                    ))}
+                    <div className="w-px mx-1" />
+                    {forecast.forecast.map((m, i) => (
+                      <div key={i} className="flex-1 text-center text-[10px] text-violet-600 font-medium">{m.label.slice(5)}*</div>
+                    ))}
+                  </div>
+                  {/* Forecast amounts */}
+                  <div className="flex gap-2 pt-1">
+                    {forecast.forecast.map((m, i) => (
+                      <div key={i} className="flex-1 rounded-lg bg-violet-50 border border-violet-200 p-2 text-center">
+                        <p className="text-[10px] text-violet-600 font-medium">{m.label} 預測</p>
+                        <p className="text-sm font-bold text-violet-700">{fmt(m.revenue)}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">* 預測值基於過去 6 個月線性趨勢，實際業績受季節、市場等因素影響</p>
+                </div>
+              )
+            })()}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

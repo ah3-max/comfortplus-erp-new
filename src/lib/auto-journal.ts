@@ -14,6 +14,7 @@ export type AutoJournalType =
   | 'PURCHASE_RETURN'     // 採購退貨：Dr 應付帳款 / Cr 存貨
   | 'PAYMENT_IN'          // 收款：Dr 銀行存款 / Cr 應收帳款
   | 'PAYMENT_OUT'         // 付款：Dr 應付帳款 / Cr 銀行存款
+  | 'EXPENSE_PAY'         // 費用報銷付款：Dr 費用 / Cr 銀行存款
 
 /**
  * Standard account code map (from seed).
@@ -32,6 +33,7 @@ const ACCOUNT_CODES = {
   COGS:         '5100', // 銷貨成本
   PURCHASE_COST:'5110', // 進貨成本
   BANK:         '1102', // 銀行存款（fallback: 1100 現金及約當現金）
+  EXPENSE:      '6000', // 營業費用（通用）
 }
 
 const VAT_RATE = 0.05
@@ -170,6 +172,16 @@ export async function createAutoJournal(params: AutoJournalParams): Promise<stri
       lines = [
         { accountId: getId(ACCOUNT_CODES.AP), debit: amount, credit: 0,      description: `${description}—付款`, lineNo: 1 },
         { accountId: bankId,                  debit: 0,      credit: amount, description: `${description}—出帳`, lineNo: 2 },
+      ]
+      totalDebit = amount
+      totalCredit = amount
+      break
+
+    case 'EXPENSE_PAY':
+      // Dr 費用 / Cr 銀行存款
+      lines = [
+        { accountId: getId(ACCOUNT_CODES.EXPENSE), debit: amount, credit: 0,      description: `${description}—費用`, lineNo: 1 },
+        { accountId: bankId,                        debit: 0,      credit: amount, description: `${description}—出帳`, lineNo: 2 },
       ]
       totalDebit = amount
       totalCredit = amount

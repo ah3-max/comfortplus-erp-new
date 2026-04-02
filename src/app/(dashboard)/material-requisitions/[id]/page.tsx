@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { ArrowLeft, Loader2, FileText } from 'lucide-react'
+import { ArrowLeft, Loader2, FileText, CheckCircle2, PackageOpen, CheckCheck, XCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 type RequisitionStatus = 'DRAFT' | 'CONFIRMED' | 'ISSUED' | 'COMPLETED' | 'CANCELLED'
 
@@ -66,24 +67,49 @@ export default function MaterialRequisitionDetailPage() {
   const [requisition, setRequisition] = useState<Requisition | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [actionLoading, setActionLoading] = useState(false)
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      try {
-        const res = await fetch(`/api/material-requisitions/${id}`)
-        if (res.status === 404 || res.status === 403) { setNotFound(true); return }
-        if (!res.ok) throw new Error(dict.common.loadFailed)
-        const data = await res.json()
-        setRequisition(data)
-      } catch {
-        setNotFound(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [id])
+  async function loadRequisition() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/material-requisitions/${id}`)
+      if (res.status === 404 || res.status === 403) { setNotFound(true); return }
+      if (!res.ok) throw new Error(dict.common.loadFailed)
+      setRequisition(await res.json())
+    } catch { setNotFound(true) }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { loadRequisition() }, [id])
+
+  async function updateStatus(status: string) {
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/material-requisitions/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusOnly: true, status }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? dict.common.updateFailed) }
+      toast.success(dict.common.updateSuccess)
+      loadRequisition()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : dict.common.updateFailed)
+    } finally { setActionLoading(false) }
+  }
+
+  async function handleCancel() {
+    if (!confirm(p.confirmCancelMsg.replace('{no}', requisition?.requisitionNumber ?? ''))) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/material-requisitions/${id}`, { method: 'DELETE' })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? dict.common.operationFailed) }
+      toast.success(p.cancelSuccess)
+      loadRequisition()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : dict.common.operationFailed)
+    } finally { setActionLoading(false) }
+  }
 
   if (loading) {
     return (
@@ -108,7 +134,7 @@ export default function MaterialRequisitionDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <Button variant="outline" size="sm" onClick={() => router.push('/material-requisitions')}>
           <ArrowLeft className="mr-2 h-4 w-4" />{p.back}
         </Button>
@@ -122,6 +148,32 @@ export default function MaterialRequisitionDetailPage() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {dict.materialRequisitions.title} · {p.createdAt} {formatDate(requisition.createdAt)}
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {requisition.status === 'DRAFT' && (
+            <Button size="sm" onClick={() => updateStatus('CONFIRMED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+              {p.confirmRequisition}
+            </Button>
+          )}
+          {requisition.status === 'CONFIRMED' && (
+            <Button size="sm" onClick={() => updateStatus('ISSUED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PackageOpen className="mr-2 h-4 w-4" />}
+              {p.issueStock}
+            </Button>
+          )}
+          {requisition.status === 'ISSUED' && (
+            <Button size="sm" onClick={() => updateStatus('COMPLETED')} disabled={actionLoading}>
+              {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCheck className="mr-2 h-4 w-4" />}
+              {p.completeBtn}
+            </Button>
+          )}
+          {!['COMPLETED', 'CANCELLED'].includes(requisition.status) && (
+            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50"
+              onClick={handleCancel} disabled={actionLoading}>
+              <XCircle className="mr-2 h-4 w-4" />{p.cancelBtn}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -145,7 +197,7 @@ export default function MaterialRequisitionDetailPage() {
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">{p.itemCount}</dt>
-              <dd>{requisition.items.length} 項</dd>
+              <dd>{requisition.items.length} {dict.common.pieces}</dd>
             </div>
           </dl>
         </div>
@@ -185,13 +237,13 @@ export default function MaterialRequisitionDetailPage() {
       {/* Items Table */}
       <div className="rounded-lg border bg-white">
         <div className="px-5 py-4 border-b">
-          <h2 className="text-sm font-semibold text-slate-700">{dict.materialRequisitions.items}（{requisition.items.length} 項）</h2>
+          <h2 className="text-sm font-semibold text-slate-700">{dict.materialRequisitions.items}（{requisition.items.length} {dict.common.pieces}）</h2>
         </div>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-8">#</TableHead>
-              <TableHead>品項</TableHead>
+              <TableHead>{p.colProduct}</TableHead>
               <TableHead className="w-24">{p.colSpec}</TableHead>
               <TableHead className="w-20 text-right">{dict.common.quantity}</TableHead>
               <TableHead className="w-16 text-center">{dict.common.unit}</TableHead>

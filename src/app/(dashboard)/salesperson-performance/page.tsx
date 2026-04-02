@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/lib/i18n/context'
@@ -53,6 +53,8 @@ export default function SalespersonPerformancePage() {
     } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [month])
+
+  useEffect(() => { query() }, [query])
 
   const sp = dict.salespersonPerformance
   // Radar data for selected person

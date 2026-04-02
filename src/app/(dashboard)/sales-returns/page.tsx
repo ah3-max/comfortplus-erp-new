@@ -4,13 +4,18 @@ import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
-import { Loader2, Plus, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react'
+import { Loader2, Plus, RotateCcw, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -200,62 +205,246 @@ export default function SalesReturnsPage() {
   )
 }
 
+interface Customer { id: string; name: string; code: string }
+interface SalesOrder { id: string; orderNo: string; customerId: string; customer: { name: string } }
+interface Product { id: string; sku: string; name: string; unit: string | null }
+interface ReturnLineItem { productId: string; productName: string; quantity: number; condition: string; reason: string }
+
 function NewReturnDialog({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void }) {
   const { dict } = useI18n()
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ orderId: '', customerId: '', returnType: 'RETURN', reason: '', refundAmount: '', notes: '' })
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [orders, setOrders] = useState<SalesOrder[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [form, setForm] = useState({
+    customerId: '', orderId: '', returnType: 'RETURN',
+    reason: '', refundAmount: '', notes: '', warehouseId: '',
+  })
+  const [items, setItems] = useState<ReturnLineItem[]>([
+    { productId: '', productName: '', quantity: 1, condition: 'GOOD', reason: '' },
+  ])
+
+  // Load customers + products on open
+  useEffect(() => {
+    if (!open) return
+    Promise.all([
+      fetch('/api/customers?pageSize=200').then(r => r.json()),
+      fetch('/api/products?pageSize=300&isActive=true').then(r => r.json()),
+    ]).then(([c, p]) => {
+      setCustomers(Array.isArray(c) ? c : (c.data ?? []))
+      setProducts(Array.isArray(p) ? p : (p.data ?? []))
+    })
+  }, [open])
+
+  // Load orders when customer changes
+  useEffect(() => {
+    if (!form.customerId) { setOrders([]); return }
+    fetch(`/api/orders?customerId=${form.customerId}&pageSize=100&status=CONFIRMED,SHIPPED,COMPLETED`)
+      .then(r => r.json())
+      .then(d => setOrders(Array.isArray(d) ? d : (d.data ?? [])))
+  }, [form.customerId])
+
+  function setField(k: keyof typeof form, v: string) {
+    setForm(prev => ({ ...prev, [k]: v }))
+  }
+
+  function addItem() {
+    setItems(prev => [...prev, { productId: '', productName: '', quantity: 1, condition: 'GOOD', reason: '' }])
+  }
+
+  function removeItem(i: number) {
+    setItems(prev => prev.filter((_, j) => j !== i))
+  }
+
+  function setItemField<K extends keyof ReturnLineItem>(i: number, k: K, v: ReturnLineItem[K]) {
+    setItems(prev => prev.map((item, j) => j === i ? { ...item, [k]: v } : item))
+  }
 
   async function handleSubmit() {
-    if (!form.orderId || !form.customerId) { toast.error(dict.salesReturns.orderCustomerRequired); return }
+    if (!form.customerId) { toast.error('請選擇客戶'); return }
+    if (!form.orderId) { toast.error('請選擇來源訂單'); return }
+    const validItems = items.filter(i => i.productId && i.quantity > 0)
     setSaving(true)
     try {
       const res = await fetch('/api/sales-returns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, refundAmount: form.refundAmount ? Number(form.refundAmount) : null }),
+        body: JSON.stringify({
+          customerId: form.customerId,
+          orderId: form.orderId,
+          returnType: form.returnType,
+          reason: form.reason || null,
+          refundAmount: form.refundAmount ? Number(form.refundAmount) : null,
+          notes: form.notes || null,
+          warehouseId: form.warehouseId || null,
+          items: validItems.map(i => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            condition: i.condition,
+            reason: i.reason || null,
+          })),
+        }),
       })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error ?? dict.common.createFailed)
+      }
       toast.success(dict.salesReturns.created)
+      // Reset
+      setForm({ customerId: '', orderId: '', returnType: 'RETURN', reason: '', refundAmount: '', notes: '', warehouseId: '' })
+      setItems([{ productId: '', productName: '', quantity: 1, condition: 'GOOD', reason: '' }])
       onCreated()
-    } catch { toast.error(dict.common.createFailed) }
-    finally { setSaving(false) }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : dict.common.createFailed)
+    } finally { setSaving(false) }
   }
 
+  const CONDITION_OPTIONS = [
+    { value: 'GOOD', label: '良品可再銷售' },
+    { value: 'DAMAGED', label: '損壞' },
+    { value: 'DEFECTIVE', label: '瑕疵品' },
+  ]
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={v => { if (!saving) onClose(); if (!v) onClose() }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{dict.salesReturns.newReturn}</DialogTitle></DialogHeader>
-        <div className="space-y-3 py-2">
-          {[
-            { label: dict.salesReturns.orderId, key: 'orderId', placeholder: '' },
-            { label: dict.salesReturns.customerId, key: 'customerId', placeholder: '' },
-            { label: dict.salesReturns.refundAmount, key: 'refundAmount', placeholder: dict.common.optional },
-          ].map(f => (
-            <div key={f.key} className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
-              <Input value={(form as Record<string, string>)[f.key]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} />
+        <div className="space-y-4 py-2">
+
+          {/* Customer + Order */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>客戶 <span className="text-red-500">*</span></Label>
+              <Select value={form.customerId || '_none'} onValueChange={(v: string | null) => {
+                const val = v === '_none' || !v ? '' : v
+                setField('customerId', val)
+                setField('orderId', '')
+              }}>
+                <SelectTrigger><SelectValue placeholder="選擇客戶" /></SelectTrigger>
+                <SelectContent className="max-h-56 w-[300px]">
+                  <SelectItem value="_none">— 選擇客戶 —</SelectItem>
+                  {customers.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.code} — {c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ))}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.salesReturns.returnTypeLabel}</label>
-            <select value={form.returnType} onChange={e => setForm(p => ({ ...p, returnType: e.target.value }))} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="RETURN">{dict.salesReturns.typeLabels.RETURN}</option>
-              <option value="EXCHANGE">{dict.salesReturns.typeLabels.EXCHANGE}</option>
-              <option value="PARTIAL">{dict.salesReturns.typeLabels.PARTIAL}</option>
-            </select>
+            <div className="space-y-1.5">
+              <Label>來源訂單 <span className="text-red-500">*</span></Label>
+              <Select value={form.orderId || '_none'} onValueChange={(v: string | null) => setField('orderId', v === '_none' || !v ? '' : v)}
+                disabled={!form.customerId}>
+                <SelectTrigger><SelectValue placeholder={form.customerId ? '選擇訂單' : '請先選客戶'} /></SelectTrigger>
+                <SelectContent className="max-h-56 w-[300px]">
+                  <SelectItem value="_none">— 選擇訂單 —</SelectItem>
+                  {orders.map(o => (
+                    <SelectItem key={o.id} value={o.id}>{o.orderNo}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.salesReturns.reason}</label>
-            <textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} rows={2} className="w-full rounded-md border px-3 py-2 text-sm" />
+
+          {/* Return type + Refund amount */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>{dict.salesReturns.returnTypeLabel}</Label>
+              <Select value={form.returnType} onValueChange={(v: string | null) => setField('returnType', v ?? 'RETURN')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RETURN">{dict.salesReturns.typeLabels.RETURN}</SelectItem>
+                  <SelectItem value="EXCHANGE">{dict.salesReturns.typeLabels.EXCHANGE}</SelectItem>
+                  <SelectItem value="PARTIAL">{dict.salesReturns.typeLabels.PARTIAL}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{dict.salesReturns.refundAmount}（退款金額）</Label>
+              <Input type="number" min={0} placeholder="0"
+                value={form.refundAmount} onChange={e => setField('refundAmount', e.target.value)} />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.common.notes}</label>
-            <textarea value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} rows={2} className="w-full rounded-md border px-3 py-2 text-sm" />
+
+          {/* Return Items */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>退貨品項</Label>
+              <Button variant="outline" size="sm" onClick={addItem}>
+                <Plus className="h-3.5 w-3.5 mr-1" />新增品項
+              </Button>
+            </div>
+            {items.map((item, i) => (
+              <div key={i} className="rounded-md border p-3 space-y-2 bg-slate-50/50">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">商品</Label>
+                    <Select value={item.productId || '_none'}
+                      onValueChange={(v: string | null) => {
+                        const pid = v === '_none' || !v ? '' : v
+                        const prod = products.find(p => p.id === pid)
+                        setItemField(i, 'productId', pid)
+                        setItemField(i, 'productName', prod?.name ?? '')
+                      }}>
+                      <SelectTrigger className="h-9 mt-0.5"><SelectValue placeholder="選擇商品" /></SelectTrigger>
+                      <SelectContent className="max-h-48 w-[280px]">
+                        <SelectItem value="_none">— 選擇商品 —</SelectItem>
+                        {products.map(p => (
+                          <SelectItem key={p.id} value={p.id}>[{p.sku}] {p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">品項狀況</Label>
+                    <Select value={item.condition}
+                      onValueChange={(v: string | null) => setItemField(i, 'condition', v ?? 'GOOD')}>
+                      <SelectTrigger className="h-9 mt-0.5"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CONDITION_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-24">
+                    <Label className="text-xs text-muted-foreground">數量</Label>
+                    <Input type="number" min={1} className="h-9 mt-0.5"
+                      value={item.quantity}
+                      onChange={e => setItemField(i, 'quantity', Math.max(1, Number(e.target.value)))} />
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-muted-foreground">退貨原因</Label>
+                    <Input className="h-9 mt-0.5" placeholder="如：品質瑕疵、尺寸不符..."
+                      value={item.reason}
+                      onChange={e => setItemField(i, 'reason', e.target.value)} />
+                  </div>
+                  {items.length > 1 && (
+                    <Button variant="ghost" size="sm" className="mt-4 text-red-500" onClick={() => removeItem(i)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Reason + Notes */}
+          <div className="space-y-1.5">
+            <Label>{dict.salesReturns.reason}（整體說明）</Label>
+            <Textarea value={form.reason} onChange={e => setField('reason', e.target.value)}
+              rows={2} placeholder="整批退貨原因..." />
+          </div>
+          <div className="space-y-1.5">
+            <Label>{dict.common.notes}</Label>
+            <Textarea value={form.notes} onChange={e => setField('notes', e.target.value)}
+              rows={2} placeholder="備注..." />
           </div>
         </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{dict.common.cancel}</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>{dict.common.cancel}</Button>
+          <Button onClick={handleSubmit} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.create}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

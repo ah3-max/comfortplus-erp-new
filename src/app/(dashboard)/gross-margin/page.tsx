@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -69,6 +69,8 @@ export default function GrossMarginPage() {
     } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [view, startDate, endDate])
+
+  useEffect(() => { query() }, [query])
 
   // Summary for monthly view
   const totalRevenue = monthly.reduce((s, r) => s + r.revenue, 0)

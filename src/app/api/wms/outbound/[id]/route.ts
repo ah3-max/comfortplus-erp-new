@@ -71,6 +71,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         data: { status: body.status },
       })
 
+      // 2-5: When SHIPPED — deduct core inventory
+      if (newStatus === 'SHIPPED') {
+        const wh = 'MAIN'
+        for (const item of current.items) {
+          const qty = Number(item.pickedQty) > 0 ? Number(item.pickedQty) : Number(item.quantity)
+          if (qty <= 0) continue
+          const inv = await prisma.inventory.findFirst({
+            where: { productId: item.productId, warehouse: wh, category: 'FINISHED_GOODS' },
+          })
+          if (inv) {
+            await prisma.inventory.update({
+              where: { id: inv.id },
+              data: { quantity: { decrement: qty }, availableQty: { decrement: qty } },
+            })
+            await prisma.inventoryTransaction.create({
+              data: {
+                productId: item.productId, warehouse: wh, category: 'FINISHED_GOODS',
+                type: 'OUT', quantity: qty,
+                beforeQty: inv.quantity, afterQty: inv.quantity - qty,
+                referenceType: 'WMS_OUTBOUND', referenceId: current.outboundNumber,
+                notes: `WMS 出庫 ${current.outboundNumber}`,
+                createdById: session.user.id,
+              },
+            })
+          }
+        }
+      }
+
       logAudit({
         userId: session.user.id,
         userName: session.user.name ?? '',

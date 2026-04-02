@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useI18n } from '@/lib/i18n/context'
 import { Plus, Search, ShoppingBag, Store, Package, Link as LinkIcon, RefreshCw, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 
 interface ChannelOrderItem {
@@ -121,24 +122,25 @@ export default function ChannelOrdersPage() {
       const data = await res.json()
       if (!res.ok) {
         if (data.missingCredentials) {
-          toast.error(`${channelName}：API 憑證未設定，請聯絡管理員設定環境變數`)
+          toast.error(`${channelName}：${d.missingCredentials}`)
         } else if (data.supported === false) {
-          toast.info(`${channelName}：不支援 API 同步，請手動匯入訂單`)
+          toast.info(`${channelName}：${d.unsupportedSync}`)
         } else {
-          toast.error(data.error ?? '同步失敗')
+          toast.error(data.error ?? d.syncFailed)
         }
       } else {
         toast.success(`${channelName} ${data.message}`)
         // Warn about unmatched SKUs
         if (data.unmatchedSkus?.length > 0) {
+          const skus = `${data.unmatchedSkus.slice(0, 3).join('、')}${data.unmatchedSkus.length > 3 ? '…' : ''}`
           toast.warning(
-            `${data.unmatchedSkus.length} 個平台 SKU 無法對應商品（${data.unmatchedSkus.slice(0, 3).join('、')}${data.unmatchedSkus.length > 3 ? '…' : ''}），請至商品 → SKU 對照表設定`,
+            d.unmatchedSkuWarning.replace('{n}', String(data.unmatchedSkus.length)).replace('{skus}', skus),
             { duration: 8000 }
           )
         }
         load()
       }
-    } catch { toast.error('同步時發生錯誤') }
+    } catch { toast.error(d.syncError) }
     finally { setSyncingChannelId(null) }
   }
 
@@ -180,7 +182,7 @@ export default function ChannelOrdersPage() {
               {syncingChannelId === c.id
                 ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
                 : <RefreshCw className="mr-1.5 h-4 w-4" />}
-              同步 {c.name}
+              {d.syncBtn.replace('{name}', c.name)}
             </Button>
           ))}
           <Button onClick={() => setShowCreate(true)} className="gap-1.5">
@@ -218,16 +220,20 @@ export default function ChannelOrdersPage() {
           <Input value={search} onChange={e => setSearch(e.target.value)}
             placeholder={d.searchPlaceholder} className="pl-8 h-9" />
         </div>
-        <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)}
-          className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">{d.allChannels}</option>
-          {channels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          className="border rounded-md px-3 h-9 text-sm bg-white">
-          <option value="">{d.allStatuses}</option>
-          {Object.keys(d.statuses).map(k => <option key={k} value={k}>{getStatusLabel(k)}</option>)}
-        </select>
+        <Select value={filterChannel || '_all'} onValueChange={v => setFilterChannel(v === '_all' ? '' : (v ?? ''))}>
+          <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_all">{d.allChannels}</SelectItem>
+            {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus || '_all'} onValueChange={v => setFilterStatus(v === '_all' ? '' : (v ?? ''))}>
+          <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="_all">{d.allStatuses}</SelectItem>
+            {Object.keys(d.statuses).map(k => <SelectItem key={k} value={k}>{getStatusLabel(k)}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Orders Table */}
@@ -292,11 +298,12 @@ export default function ChannelOrdersPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <div className="text-xs text-gray-500 mb-1">{d.channel} *</div>
-                <select value={form.channelId} onChange={e => setForm(f => ({ ...f, channelId: e.target.value }))}
-                  className="w-full border rounded-md px-3 h-9 text-sm bg-white">
-                  <option value="">{d.selectChannel}</option>
-                  {channels.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                <Select value={form.channelId} onValueChange={v => setForm(f => ({ ...f, channelId: v ?? '' }))}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder={d.selectChannel} /></SelectTrigger>
+                  <SelectContent>
+                    {channels.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <div className="text-xs text-gray-500 mb-1">{d.platformOrderNo} *</div>
@@ -339,13 +346,16 @@ export default function ChannelOrdersPage() {
               </div>
               {formItems.map((item, idx) => (
                 <div key={idx} className="grid grid-cols-[1fr_80px_90px_24px] gap-1.5 mb-1.5">
-                  <select value={item.productId} onChange={e => {
-                    const prod = products.find(p => p.id === e.target.value)
-                    setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, productId: e.target.value, unitPrice: prod?.sellingPrice ? String(prod.sellingPrice) : it.unitPrice } : it))
-                  }} className="border rounded-md px-2 h-8 text-xs bg-white">
-                    <option value="">{d.selectProduct}</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>)}
-                  </select>
+                  <Select value={item.productId} onValueChange={v => {
+                    const safeV = v ?? ''
+                    const prod = products.find(p => p.id === safeV)
+                    setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, productId: safeV, unitPrice: prod?.sellingPrice ? String(prod.sellingPrice) : it.unitPrice } : it))
+                  }}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder={d.selectProduct} /></SelectTrigger>
+                    <SelectContent className="max-h-60 w-[300px]">
+                      {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.sku})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <Input type="number" value={item.quantity} min="1"
                     onChange={e => setFormItems(prev => prev.map((it, i) => i === idx ? { ...it, quantity: e.target.value } : it))}
                     placeholder={dict.common.quantity} className="h-8 text-xs px-2" />

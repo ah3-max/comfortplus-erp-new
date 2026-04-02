@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -74,7 +75,7 @@ function fmtDate(str: string) {
   return new Date(str).toLocaleDateString('zh-TW', { month: '2-digit', day: '2-digit' })
 }
 
-export default function InternalUsePage() {
+function InternalUsePageInner() {
   const { dict } = useI18n()
   const iu = dict.internalUse
   type IUStatus = keyof typeof iu.statuses
@@ -99,7 +100,8 @@ export default function InternalUsePage() {
     DISCOUNT_SALE: iu.dispositions.DISCOUNT_SALE, QUARANTINE: iu.dispositions.QUARANTINE,
   }
 
-  const [tab, setTab] = useState('internal')
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState(() => searchParams.get('tab') === 'defective' ? 'defective' : 'internal')
 
   // Internal Use
   const [iuData, setIuData] = useState<InternalUseRecord[]>([])
@@ -643,5 +645,13 @@ export default function InternalUsePage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function InternalUsePage() {
+  return (
+    <Suspense>
+      <InternalUsePageInner />
+    </Suspense>
   )
 }

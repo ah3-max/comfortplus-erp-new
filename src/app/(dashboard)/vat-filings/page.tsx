@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useI18n } from '@/lib/i18n/context'
-import { Plus, RefreshCw, Receipt, Calculator } from 'lucide-react'
+import { Plus, RefreshCw, Receipt, Calculator, FileDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface VatFiling {
@@ -246,10 +246,20 @@ export default function VatFilingsPage() {
                   <td className="py-2 pr-3 text-muted-foreground">{f.filedAt ? f.filedAt.slice(0, 10) : '-'}</td>
                   {canManage && (
                     <td className="py-2">
-                      <Button size="sm" variant="ghost" onClick={() => {
-                        setEditFiling(f)
-                        setUpdateForm({ status: f.status, taxAuthRef: f.taxAuthRef ?? '', filedAt: f.filedAt?.slice(0, 10) ?? '', paidAt: f.paidAt?.slice(0, 10) ?? '', notes: f.notes ?? '' })
-                      }}>{vf.updateBtn}</Button>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => {
+                          setEditFiling(f)
+                          setUpdateForm({ status: f.status, taxAuthRef: f.taxAuthRef ?? '', filedAt: f.filedAt?.slice(0, 10) ?? '', paidAt: f.paidAt?.slice(0, 10) ?? '', notes: f.notes ?? '' })
+                        }}>{vf.updateBtn}</Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          title={vf.exportBtn ?? '匯出 401 申報書'}
+                          onClick={() => window.open(`/api/finance/vat-filings/${f.id}/export`, '_blank')}
+                        >
+                          <FileDown className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   )}
                 </tr>

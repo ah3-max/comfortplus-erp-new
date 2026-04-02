@@ -51,9 +51,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         salesOrders: {
           orderBy: { createdAt: 'desc' },
           take: 10,
-          select: { id: true, orderNo: true, status: true, totalAmount: true, createdAt: true },
+          select: { id: true, orderNo: true, status: true, totalAmount: true, paidAmount: true, createdAt: true },
         },
         contacts: { orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] },
+        tourAutoAssignee: { select: { id: true, name: true } },
         _count: { select: { visitRecords: true, callRecords: true, salesOrders: true, sampleRecords: true, complaintRecords: true, quotations: true } },
       },
     })
@@ -122,6 +123,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         relationshipScore:  body.relationshipScore  !== undefined ? (body.relationshipScore ? Number(body.relationshipScore) : null) : undefined,
         keyAccountNote:     body.keyAccountNote     !== undefined ? (body.keyAccountNote || null) : undefined,
         keyAccountSince:    body.keyAccountSince    !== undefined ? (body.keyAccountSince ? new Date(body.keyAccountSince) : null) : undefined,
+        // tour auto-schedule
+        tourAutoSchedule:   body.tourAutoSchedule   !== undefined ? Boolean(body.tourAutoSchedule) : undefined,
+        tourAutoAssigneeId: body.tourAutoAssigneeId !== undefined ? (body.tourAutoAssigneeId || null) : undefined,
       },
       include: { salesRep: { select: { id: true, name: true } } },
     })
@@ -129,6 +133,39 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json(customer)
   } catch (error) {
     return handleApiError(error, 'customers.update')
+  }
+}
+
+// PATCH — quick partial update (grade, devStatus, salesRepId, isFollowUp, nextFollowUpDate)
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await auth()
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { id } = await params
+    const body = await req.json()
+
+    const existing = await prisma.customer.findUnique({ where: { id }, select: { salesRepId: true } })
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    const ctx = buildScopeContext(session as { user: { id: string; role: string } })
+    if (!canAccessCustomer(ctx, existing)) {
+      return NextResponse.json({ error: '無權限修改此客戶' }, { status: 403 })
+    }
+
+    const updateData: Record<string, unknown> = {}
+    if (body.grade      !== undefined) updateData.grade      = body.grade || null
+    if (body.devStatus  !== undefined) updateData.devStatus  = body.devStatus
+    if (body.salesRepId !== undefined) updateData.salesRepId = body.salesRepId || null
+    if (body.isFollowUp !== undefined) updateData.isFollowUp = Boolean(body.isFollowUp)
+    if (body.nextFollowUpDate !== undefined) updateData.nextFollowUpDate = body.nextFollowUpDate ? new Date(body.nextFollowUpDate) : null
+    if (body.notes      !== undefined) updateData.notes      = body.notes || null
+    if (body.tourAutoSchedule   !== undefined) updateData.tourAutoSchedule   = Boolean(body.tourAutoSchedule)
+    if (body.tourAutoAssigneeId !== undefined) updateData.tourAutoAssigneeId = body.tourAutoAssigneeId || null
+
+    const customer = await prisma.customer.update({ where: { id }, data: updateData })
+    return NextResponse.json(customer)
+  } catch (error) {
+    return handleApiError(error, 'customers.patch')
   }
 }
 

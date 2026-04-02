@@ -115,7 +115,7 @@ interface Quotation {
   createdAt: string; validUntil: string | null
 }
 interface SalesOrder {
-  id: string; orderNo: string; status: string; totalAmount: string; createdAt: string
+  id: string; orderNo: string; status: string; totalAmount: string; paidAmount: string; createdAt: string
 }
 interface CustomerContact {
   id: string; name: string; role: string | null; title: string | null
@@ -146,6 +146,8 @@ interface Customer {
   keyAccountMgr: { id: string; name: string } | null
   visitFrequencyDays: number | null; relationshipScore: number | null
   keyAccountNote: string | null; keyAccountSince: string | null
+  tourAutoSchedule: boolean; tourAutoAssigneeId: string | null
+  tourAutoAssignee: { id: string; name: string } | null
   lastContactDate: string | null
   visitRecords: VisitRecord[]; callRecords: CallRecord[]
   sampleRecords: SampleRecord[]; complaintRecords: ComplaintRecord[]
@@ -226,6 +228,8 @@ export default function CustomerDetailPage() {
   const [logNextDate,    setLogNextDate]     = useState('')
   const [logNextAction,  setLogNextAction]   = useState('')
   const [logHasSample,   setLogHasSample]    = useState(false)
+  const [logDuration,    setLogDuration]     = useState('')
+  const [logCompetitor,  setLogCompetitor]   = useState('')
   const [submittingLog,  setSubmittingLog]   = useState(false)
 
   // Dialog states
@@ -268,6 +272,19 @@ export default function CustomerDetailPage() {
   const [usersForKa,    setUsersForKa]    = useState<{id:string;name:string}[]>([])
   const [healthCalcing, setHealthCalcing] = useState(false)
 
+  // Tour auto-schedule state
+  const [tourAutoSchedule,   setTourAutoSchedule]   = useState(false)
+  const [tourAutoAssigneeId, setTourAutoAssigneeId] = useState('')
+  const [savingTourAuto,     setSavingTourAuto]     = useState(false)
+
+  // Payment stats (S-14)
+  const [paymentStats, setPaymentStats] = useState<{
+    avgPaymentDays: number | null
+    totalPayments: number
+    totalAmount: number
+    recentPayments: { id: string; paymentNo: string; amount: number; paymentDate: string; paymentMethod: string; orderNo: string | null }[]
+  } | null>(null)
+
   async function recalcHealth() {
     if (!id) return
     setHealthCalcing(true)
@@ -276,7 +293,7 @@ export default function CustomerDetailPage() {
     if (res.ok) {
       const { score, level } = await res.json()
       setCustomer(prev => prev ? { ...prev, healthScore: score, healthLevel: level, healthUpdatedAt: new Date().toISOString() } : prev)
-      toast.success(`健康分數已更新：${score}分`)
+      toast.success(dict.customerHealth.updated.replace('{score}', String(score)))
     } else {
       toast.error(dict.common.updateFailed)
     }
@@ -293,6 +310,8 @@ export default function CustomerDetailPage() {
       setEditRelScore(String(data.relationshipScore ?? ''))
       setEditKaMgrId(data.keyAccountMgrId ?? '')
       setEditKaNote(data.keyAccountNote ?? '')
+      setTourAutoSchedule(Boolean(data.tourAutoSchedule))
+      setTourAutoAssigneeId(data.tourAutoAssigneeId ?? '')
     }
     setLoading(false)
     // Also fetch follow-up logs
@@ -307,6 +326,9 @@ export default function CustomerDetailPage() {
       const oppData = await oppRes.json()
       setOpportunities(Array.isArray(oppData) ? oppData : [])
     }
+    // Fetch payment stats (S-14)
+    const psRes = await fetch(`/api/customers/${id}/payment-stats`)
+    if (psRes.ok) setPaymentStats(await psRes.json())
   }
   const fetchCustomer = load
   async function loadTimeline() {
@@ -354,6 +376,8 @@ export default function CustomerDetailPage() {
         nextAction: logNextAction || null,
         hasSample: logHasSample,
         logDate: new Date().toISOString(),
+        duration: logDuration ? Number(logDuration) : null,
+        competitorInfo: logCompetitor || null,
       }),
     })
     setSubmittingLog(false)
@@ -362,6 +386,7 @@ export default function CustomerDetailPage() {
       setShowLogForm(false)
       setLogContent(''); setLogResult(''); setLogReaction('NEUTRAL')
       setLogNextDate(''); setLogNextAction(''); setLogHasSample(false); setLogType('CALL')
+      setLogDuration(''); setLogCompetitor('')
       // Reload logs and customer
       const logsRes = await fetch(`/api/customers/${id}/followup?limit=50`)
       if (logsRes.ok) {
@@ -403,6 +428,22 @@ export default function CustomerDetailPage() {
       }),
     })
     setSavingKa(false)
+    if (res.ok) { toast.success(dict.common.saveSuccess); fetchCustomer() }
+    else toast.error(dict.common.saveFailed)
+  }
+
+  async function handleSaveTourAutoSchedule() {
+    if (!customer) return
+    setSavingTourAuto(true)
+    const res = await fetch(`/api/customers/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tourAutoSchedule:   tourAutoSchedule,
+        tourAutoAssigneeId: tourAutoAssigneeId || null,
+      }),
+    })
+    setSavingTourAuto(false)
     if (res.ok) { toast.success(dict.common.saveSuccess); fetchCustomer() }
     else toast.error(dict.common.saveFailed)
   }
@@ -454,8 +495,6 @@ export default function CustomerDetailPage() {
     { key: 'usage',      label: cd.tabs.usage,        icon: Activity },
     { key: 'delivery',   label: cd.tabs.delivery,     icon: Truck },
     { key: 'forecast',   label: cd.tabs.forecast,     icon: BarChart3 },
-    { key: 'visits',     label: cd.tabs.visits,       icon: ClipboardList, badge: customer._count.visitRecords },
-    { key: 'calls',      label: cd.tabs.calls,        icon: PhoneCall,     badge: customer._count.callRecords },
     { key: 'samples',    label: cd.tabs.samples,      icon: Package,       badge: customer._count.sampleRecords },
     { key: 'quotations', label: cd.tabs.quotations,   icon: FileText,      badge: customer._count.quotations },
     { key: 'orders',     label: cd.tabs.orders,       icon: ShoppingCart,  badge: customer._count.salesOrders },
@@ -533,16 +572,16 @@ export default function CustomerDetailPage() {
         {/* Health score card */}
         <div className="rounded-lg border bg-white p-4">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">客戶健康分數</p>
+            <p className="text-xs text-muted-foreground">{dict.customerHealth.scoreTitle}</p>
             <button onClick={recalcHealth} disabled={healthCalcing}
               className="text-xs text-blue-500 hover:text-blue-700 disabled:opacity-50">
-              {healthCalcing ? '計算中…' : '重算'}
+              {healthCalcing ? dict.customerHealth.calculating : dict.customerHealth.recalc}
             </button>
           </div>
           {customer.healthScore != null ? (() => {
             const lvl = customer.healthLevel
             const color = lvl === 'GREEN' ? '#22c55e' : lvl === 'YELLOW' ? '#f59e0b' : lvl === 'ORANGE' ? '#f97316' : lvl === 'RED' ? '#ef4444' : '#94a3b8'
-            const label = lvl === 'GREEN' ? '健康' : lvl === 'YELLOW' ? '觀察' : lvl === 'ORANGE' ? '警示' : lvl === 'RED' ? '危險' : '—'
+            const label = lvl === 'GREEN' ? dict.customerHealth.levelHealthy : lvl === 'YELLOW' ? dict.customerHealth.levelObserve : lvl === 'ORANGE' ? dict.customerHealth.levelWarning : lvl === 'RED' ? dict.customerHealth.levelDanger : '—'
             return (
               <>
                 <p className="mt-1 text-xl font-bold" style={{ color }}>{customer.healthScore}</p>
@@ -553,7 +592,30 @@ export default function CustomerDetailPage() {
               </>
             )
           })() : (
-            <p className="mt-1 text-sm text-muted-foreground">尚未計算</p>
+            <p className="mt-1 text-sm text-muted-foreground">{dict.customerHealth.notCalculated}</p>
+          )}
+        </div>
+        {/* Payment stats card (S-14) */}
+        <div className="rounded-lg border bg-white p-4">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />平均付款天數
+          </p>
+          {paymentStats ? (
+            <>
+              <p className={`mt-1 text-xl font-bold ${
+                paymentStats.avgPaymentDays == null ? 'text-muted-foreground'
+                : paymentStats.avgPaymentDays <= 30 ? 'text-green-600'
+                : paymentStats.avgPaymentDays <= 60 ? 'text-amber-600'
+                : 'text-red-600'
+              }`}>
+                {paymentStats.avgPaymentDays != null ? `${paymentStats.avgPaymentDays} 天` : '—'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                共 {paymentStats.totalPayments} 筆 · {fmt(paymentStats.totalAmount)}
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-muted-foreground">—</p>
           )}
         </div>
       </div>
@@ -645,6 +707,16 @@ export default function CustomerDetailPage() {
                     <div className="space-y-1.5">
                       <Label>{cd.followup.nextActionLabel}</Label>
                       <Input value={logNextAction} onChange={e => setLogNextAction(e.target.value)} placeholder={cd.followup.nextActionPlaceholder} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>拜訪/通話時長（分鐘）</Label>
+                      <Input type="number" min={1} value={logDuration} onChange={e => setLogDuration(e.target.value)} placeholder="15" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>競品資訊</Label>
+                      <Input value={logCompetitor} onChange={e => setLogCompetitor(e.target.value)} placeholder="提及的競品或比價資訊" />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -905,6 +977,67 @@ export default function CustomerDetailPage() {
                   </div>
                 )}
               </div>
+
+              {/* 自動巡迴排程設定 */}
+              {customer.grade && ['A', 'B', 'C'].includes(customer.grade) && (
+                <div className="rounded-xl border-2 border-blue-200 bg-blue-50/50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🗓️</span>
+                      <h3 className="font-semibold text-sm text-blue-900">自動巡迴排程</h3>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                        customer.grade === 'A' ? 'bg-amber-100 text-amber-700' :
+                        customer.grade === 'B' ? 'bg-blue-100 text-blue-700' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>{customer.grade} 級</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const next = !tourAutoSchedule
+                        setTourAutoSchedule(next)
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${tourAutoSchedule ? 'bg-blue-500' : 'bg-slate-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${tourAutoSchedule ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  {tourAutoSchedule && (
+                    <div className="space-y-3">
+                      <p className="text-xs text-blue-700">
+                        {customer.grade === 'A' && '📅 A 級客戶：預設每 7 天自動建立一筆巡迴排程'}
+                        {customer.grade === 'B' && '📅 B 級客戶：預設每 14 天自動建立一筆巡迴排程'}
+                        {customer.grade === 'C' && '📅 C 級客戶：預設每 30 天自動建立一筆巡迴排程'}
+                        {customer.visitFrequencyDays && `（本客戶自訂：每 ${customer.visitFrequencyDays} 天）`}
+                      </p>
+                      <div className="space-y-1">
+                        <Label className="text-xs">指派人員（留空則使用業務負責人）</Label>
+                        <select
+                          className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm"
+                          value={tourAutoAssigneeId}
+                          onChange={e => setTourAutoAssigneeId(e.target.value)}
+                        >
+                          <option value="">使用業務負責人（{customer.salesRep?.name ?? '未設定'}）</option>
+                          {usersForKa.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button size="sm" onClick={handleSaveTourAutoSchedule} disabled={savingTourAuto} className="h-7 text-xs">
+                          {savingTourAuto && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                          儲存排程設定
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {!tourAutoSchedule && (
+                    <div className="flex justify-end">
+                      <Button size="sm" variant="outline" onClick={handleSaveTourAutoSchedule} disabled={savingTourAuto} className="h-7 text-xs">
+                        {savingTourAuto && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+                        儲存（關閉排程）
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -1035,6 +1168,59 @@ export default function CustomerDetailPage() {
           {/* ── 訂單紀錄 ── */}
           {activeTab === 'orders' && (
             <div className="space-y-3">
+              {/* S-13: AR aging mini-card */}
+              {(() => {
+                const unpaidOrders = customer.salesOrders.filter(o =>
+                  !['CANCELLED', 'DRAFT'].includes(o.status) &&
+                  Number(o.totalAmount) > Number(o.paidAmount ?? 0)
+                )
+                const totalUnpaid = unpaidOrders.reduce((s, o) => s + Number(o.totalAmount) - Number(o.paidAmount ?? 0), 0)
+                const overdueCount = unpaidOrders.filter(o => {
+                  const daysAgo = (Date.now() - new Date(o.createdAt).getTime()) / 86400000
+                  return daysAgo > 30
+                }).length
+                if (unpaidOrders.length === 0) return null
+                return (
+                  <div className={`rounded-lg border p-3 flex items-center justify-between ${overdueCount > 0 ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                    <div>
+                      <div className="text-xs font-medium text-gray-500">應收帳款</div>
+                      <div className={`text-base font-bold ${overdueCount > 0 ? 'text-red-600' : 'text-amber-700'}`}>{fmt(String(totalUnpaid))}</div>
+                    </div>
+                    <div className="text-right">
+                      {overdueCount > 0 && (
+                        <div className="text-xs font-medium text-red-600">⚠ {overdueCount} 筆逾期 30 天</div>
+                      )}
+                      <div className="text-xs text-gray-500">{unpaidOrders.length} 筆待收款</div>
+                    </div>
+                  </div>
+                )
+              })()}
+              {/* S-14: Payment stats mini-section */}
+              {paymentStats && paymentStats.totalPayments > 0 && (
+                <div className="rounded-lg border bg-green-50/50 border-green-200 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-green-800">收款紀錄</p>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      paymentStats.avgPaymentDays == null ? 'bg-slate-100 text-slate-600'
+                      : paymentStats.avgPaymentDays <= 30 ? 'bg-green-100 text-green-700'
+                      : paymentStats.avgPaymentDays <= 60 ? 'bg-amber-100 text-amber-700'
+                      : 'bg-red-100 text-red-700'
+                    }`}>
+                      平均 {paymentStats.avgPaymentDays ?? '—'} 天收款
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {paymentStats.recentPayments.slice(0, 5).map(p => (
+                      <div key={p.id} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground font-mono">{p.paymentNo}</span>
+                        {p.orderNo && <span className="text-slate-500">← {p.orderNo}</span>}
+                        <span className="font-medium text-green-700">{fmt(p.amount)}</span>
+                        <span className="text-muted-foreground">{new Date(p.paymentDate).toLocaleDateString('zh-TW')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {customer.salesOrders.length === 0 ? <p className="py-10 text-center text-muted-foreground">{dict.common.noRecords}</p>
                 : customer.salesOrders.map(o => (
                 <div key={o.id} className="flex items-center justify-between rounded-lg border p-3 hover:bg-slate-50 cursor-pointer" onClick={() => router.push(`/orders/${o.id}`)}>
@@ -1589,8 +1775,8 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
       }),
     })
     setSavingWarm(false)
-    if (res.ok) { toast.success('溫馨備注已儲存'); setWarmEditContact(null); reload() }
-    else toast.error('儲存失敗')
+    if (res.ok) { toast.success(dict.customerDetail.contacts.warmNotesSaved); setWarmEditContact(null); reload() }
+    else toast.error(dict.common.saveFailed)
   }
 
   function openNew() { setEditContact(null); setContactForm(emptyContactForm()); setContactOpen(true) }
@@ -1689,23 +1875,23 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
               {/* 溫馨備注 */}
               <details className="mt-3 border-t border-dashed border-pink-100 pt-2">
                 <summary className="text-xs text-pink-500 cursor-pointer select-none font-medium hover:text-pink-700">
-                  溫馨備注 ▼{(c.gender || c.birthday || c.preferences || c.taboos || c.favoriteThings || c.personalNotes || c.lifeEvents || c.hasChildren != null) && <span className="ml-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-pink-400 align-middle" />}
+                  {cd.contacts.warmNotesTitle} ▼{(c.gender || c.birthday || c.preferences || c.taboos || c.favoriteThings || c.personalNotes || c.lifeEvents || c.hasChildren != null) && <span className="ml-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-pink-400 align-middle" />}
                 </summary>
                 <div className="mt-2 space-y-1">
-                  {c.gender     && <p className="text-xs text-slate-600">性別：{c.gender === 'M' ? '男' : c.gender === 'F' ? '女' : '其他'}</p>}
-                  {c.birthday   && <p className="text-xs text-slate-600">生日：{c.birthday.slice(5, 10)}{c.birthdayNote && `（${c.birthdayNote}）`}</p>}
-                  {c.hasChildren != null && <p className="text-xs text-slate-600">小孩：{c.hasChildren ? `有${c.childrenInfo ? `（${c.childrenInfo}）` : ''}` : '無'}</p>}
-                  {c.preferences    && <p className="text-xs text-slate-600">喜好：{c.preferences}</p>}
-                  {c.taboos         && <p className="text-xs text-red-500">禁忌：{c.taboos}</p>}
-                  {c.favoriteThings && <p className="text-xs text-slate-600">喜歡：{c.favoriteThings}</p>}
-                  {c.personalNotes  && <p className="text-xs text-pink-700 italic">備注：{c.personalNotes}</p>}
-                  {c.lifeEvents     && <p className="text-xs text-slate-500">大事：{c.lifeEvents}</p>}
+                  {c.gender     && <p className="text-xs text-slate-600">{cd.contacts.genderDisplay}{c.gender === 'M' ? cd.contacts.genderMale : c.gender === 'F' ? cd.contacts.genderFemale : cd.contacts.genderOther}</p>}
+                  {c.birthday   && <p className="text-xs text-slate-600">{cd.contacts.birthdayDisplay}{c.birthday.slice(5, 10)}{c.birthdayNote && `（${c.birthdayNote}）`}</p>}
+                  {c.hasChildren != null && <p className="text-xs text-slate-600">{cd.contacts.hasChildrenDisplay}{c.hasChildren ? `${cd.contacts.hasChildrenWithInfo}${c.childrenInfo ? `（${c.childrenInfo}）` : ''}` : cd.contacts.hasChildrenNo}</p>}
+                  {c.preferences    && <p className="text-xs text-slate-600">{cd.contacts.preferencesSuffix}{c.preferences}</p>}
+                  {c.taboos         && <p className="text-xs text-red-500">{cd.contacts.taboosSuffix}{c.taboos}</p>}
+                  {c.favoriteThings && <p className="text-xs text-slate-600">{cd.contacts.favoriteThingsSuffix}{c.favoriteThings}</p>}
+                  {c.personalNotes  && <p className="text-xs text-pink-700 italic">{cd.contacts.personalNotesSuffix}{c.personalNotes}</p>}
+                  {c.lifeEvents     && <p className="text-xs text-slate-500">{cd.contacts.lifeEventsSuffix}{c.lifeEvents}</p>}
                   {!(c.gender || c.birthday || c.preferences || c.taboos || c.favoriteThings || c.personalNotes || c.lifeEvents || c.hasChildren != null) && (
-                    <p className="text-xs text-muted-foreground">尚無備注，點選「編輯」新增</p>
+                    <p className="text-xs text-muted-foreground">{cd.contacts.warmNotesEmpty}</p>
                   )}
                   <button type="button" onClick={() => openWarmEdit(c)}
                     className="mt-1 inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium bg-pink-50 text-pink-600 hover:bg-pink-100 border border-pink-200">
-                    <Pencil className="h-3 w-3" />編輯
+                    <Pencil className="h-3 w-3" />{cd.contacts.warmNotesEditBtn}
                   </button>
                 </div>
               </details>
@@ -1780,58 +1966,58 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
               </div>
               {/* ── 溫馨備注（業務拜訪用） ── */}
               <div className="col-span-2">
-                <p className="text-xs font-semibold text-pink-600 mb-2 mt-1 border-t pt-3">溫馨備注（業務拜訪用）</p>
+                <p className="text-xs font-semibold text-pink-600 mb-2 mt-1 border-t pt-3">{cd.contacts.warmNotesSectionLabel}</p>
               </div>
               <div className="space-y-1.5">
-                <Label>性別</Label>
+                <Label>{cd.contacts.genderLabel}</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={contactForm.gender} onChange={e => setContactForm({ ...contactForm, gender: e.target.value })}>
-                  <option value="">未填</option>
-                  <option value="M">男</option>
-                  <option value="F">女</option>
-                  <option value="OTHER">其他</option>
+                  <option value="">{cd.contacts.genderUnset}</option>
+                  <option value="M">{cd.contacts.genderMale}</option>
+                  <option value="F">{cd.contacts.genderFemale}</option>
+                  <option value="OTHER">{cd.contacts.genderOther}</option>
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label>生日</Label>
+                <Label>{cd.contacts.birthdayLabel}</Label>
                 <Input type="date" value={contactForm.birthday} onChange={e => setContactForm({ ...contactForm, birthday: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>生日備注</Label>
-                <Input value={contactForm.birthdayNote} onChange={e => setContactForm({ ...contactForm, birthdayNote: e.target.value })} placeholder="例：農曆" />
+                <Label>{cd.contacts.birthdayNoteLabel}</Label>
+                <Input value={contactForm.birthdayNote} onChange={e => setContactForm({ ...contactForm, birthdayNote: e.target.value })} placeholder={cd.contacts.birthdayNotePlaceholder} />
               </div>
               <div className="space-y-1.5">
-                <Label>有無小孩</Label>
+                <Label>{cd.contacts.hasChildrenLabel}</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={contactForm.hasChildren} onChange={e => setContactForm({ ...contactForm, hasChildren: e.target.value })}>
-                  <option value="">未填</option>
-                  <option value="true">有</option>
-                  <option value="false">無</option>
+                  <option value="">{cd.contacts.hasChildrenUnset}</option>
+                  <option value="true">{cd.contacts.hasChildrenYes}</option>
+                  <option value="false">{cd.contacts.hasChildrenNo}</option>
                 </select>
               </div>
               {contactForm.hasChildren === 'true' && (
                 <div className="col-span-2 space-y-1.5">
-                  <Label>小孩資訊</Label>
-                  <Input value={contactForm.childrenInfo} onChange={e => setContactForm({ ...contactForm, childrenInfo: e.target.value })} placeholder="例：2個，5歲和8歲" />
+                  <Label>{cd.contacts.childrenInfoLabel}</Label>
+                  <Input value={contactForm.childrenInfo} onChange={e => setContactForm({ ...contactForm, childrenInfo: e.target.value })} placeholder={cd.contacts.childrenInfoPlaceholder} />
                 </div>
               )}
               <div className="col-span-2 space-y-1.5">
-                <Label>喜好（食物/飲料/興趣）</Label>
-                <Input value={contactForm.preferences} onChange={e => setContactForm({ ...contactForm, preferences: e.target.value })} placeholder="例：愛喝咖啡、喜歡健身" />
+                <Label>{cd.contacts.preferencesLabel}</Label>
+                <Input value={contactForm.preferences} onChange={e => setContactForm({ ...contactForm, preferences: e.target.value })} placeholder={cd.contacts.preferencesFormPlaceholder} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>禁忌/不喜歡的東西</Label>
-                <Input value={contactForm.taboos} onChange={e => setContactForm({ ...contactForm, taboos: e.target.value })} placeholder="例：對花生過敏、不喜歡花束" />
+                <Label>{cd.contacts.taboosLabel}</Label>
+                <Input value={contactForm.taboos} onChange={e => setContactForm({ ...contactForm, taboos: e.target.value })} placeholder={cd.contacts.taboosFormPlaceholder} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>喜歡的東西（送禮參考）</Label>
-                <Input value={contactForm.favoriteThings} onChange={e => setContactForm({ ...contactForm, favoriteThings: e.target.value })} placeholder="例：星巴克禮卡、頂好超市禮券" />
+                <Label>{cd.contacts.favoriteThingsLabel}</Label>
+                <Input value={contactForm.favoriteThings} onChange={e => setContactForm({ ...contactForm, favoriteThings: e.target.value })} placeholder={cd.contacts.favoriteThingsFormPlaceholder} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>業務備注（溫馨小事）</Label>
-                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={contactForm.personalNotes} onChange={e => setContactForm({ ...contactForm, personalNotes: e.target.value })} placeholder="例：每次拜訪帶手搖飲料會很開心" />
+                <Label>{cd.contacts.personalNotesLabel}</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={contactForm.personalNotes} onChange={e => setContactForm({ ...contactForm, personalNotes: e.target.value })} placeholder={cd.contacts.personalNotesFormPlaceholder} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>重要生活事件</Label>
-                <Input value={contactForm.lifeEvents} onChange={e => setContactForm({ ...contactForm, lifeEvents: e.target.value })} placeholder="例：2024/03 剛升主任、2024/01 生第二胎" />
+                <Label>{cd.contacts.lifeEventsLabel}</Label>
+                <Input value={contactForm.lifeEvents} onChange={e => setContactForm({ ...contactForm, lifeEvents: e.target.value })} placeholder={cd.contacts.lifeEventsFormPlaceholder} />
               </div>
             </div>
             <DialogFooter>
@@ -1848,61 +2034,61 @@ function ContactsTab({ contacts, customerId, contactOpen, setContactOpen, editCo
       <Dialog open={!!warmEditContact} onOpenChange={o => !o && setWarmEditContact(null)}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>溫馨備注 — {warmEditContact?.name}</DialogTitle>
+            <DialogTitle>{cd.contacts.warmDialogTitle} {warmEditContact?.name}</DialogTitle>
           </DialogHeader>
           <form onSubmit={saveWarmNote} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs">性別</Label>
+                <Label className="text-xs">{cd.contacts.genderLabel}</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={warmForm.gender} onChange={e => setWarmForm({ ...warmForm, gender: e.target.value })}>
-                  <option value="">未填</option><option value="M">男</option><option value="F">女</option><option value="OTHER">其他</option>
+                  <option value="">{cd.contacts.genderUnset}</option><option value="M">{cd.contacts.genderMale}</option><option value="F">{cd.contacts.genderFemale}</option><option value="OTHER">{cd.contacts.genderOther}</option>
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">有無小孩</Label>
+                <Label className="text-xs">{cd.contacts.hasChildrenLabel}</Label>
                 <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={warmForm.hasChildren} onChange={e => setWarmForm({ ...warmForm, hasChildren: e.target.value })}>
-                  <option value="">未填</option><option value="true">有</option><option value="false">無</option>
+                  <option value="">{cd.contacts.hasChildrenUnset}</option><option value="true">{cd.contacts.hasChildrenYes}</option><option value="false">{cd.contacts.hasChildrenNo}</option>
                 </select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">生日</Label>
+                <Label className="text-xs">{cd.contacts.birthdayLabel}</Label>
                 <Input type="date" className="text-sm" value={warmForm.birthday} onChange={e => setWarmForm({ ...warmForm, birthday: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">生日備注（如：農曆）</Label>
-                <Input className="text-sm" placeholder="農曆、舊曆…" value={warmForm.birthdayNote} onChange={e => setWarmForm({ ...warmForm, birthdayNote: e.target.value })} />
+                <Label className="text-xs">{cd.contacts.birthdayNoteDialogLabel}</Label>
+                <Input className="text-sm" placeholder={cd.contacts.birthdayNotePlaceholderDialog} value={warmForm.birthdayNote} onChange={e => setWarmForm({ ...warmForm, birthdayNote: e.target.value })} />
               </div>
               {warmForm.hasChildren === 'true' && (
                 <div className="col-span-2 space-y-1.5">
-                  <Label className="text-xs">孩子資訊（幾個、年齡等）</Label>
-                  <Input className="text-sm" placeholder="例：2個，國小和幼稚園" value={warmForm.childrenInfo} onChange={e => setWarmForm({ ...warmForm, childrenInfo: e.target.value })} />
+                  <Label className="text-xs">{cd.contacts.childrenInfoDialogLabel}</Label>
+                  <Input className="text-sm" placeholder={cd.contacts.childrenInfoPlaceholderDialog} value={warmForm.childrenInfo} onChange={e => setWarmForm({ ...warmForm, childrenInfo: e.target.value })} />
                 </div>
               )}
               <div className="col-span-2 space-y-1.5">
-                <Label className="text-xs">喜好（食物 / 飲料 / 興趣）</Label>
-                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：喜歡珍珠奶茶、愛打羽球" value={warmForm.preferences} onChange={e => setWarmForm({ ...warmForm, preferences: e.target.value })} />
+                <Label className="text-xs">{cd.contacts.preferencesDlgLabel}</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder={cd.contacts.preferencesDlgPlaceholder} value={warmForm.preferences} onChange={e => setWarmForm({ ...warmForm, preferences: e.target.value })} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label className="text-xs">禁忌 / 不喜歡 / 過敏</Label>
-                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：不喝咖啡、對花粉過敏" value={warmForm.taboos} onChange={e => setWarmForm({ ...warmForm, taboos: e.target.value })} />
+                <Label className="text-xs">{cd.contacts.taboosDlgLabel}</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder={cd.contacts.taboosDlgPlaceholder} value={warmForm.taboos} onChange={e => setWarmForm({ ...warmForm, taboos: e.target.value })} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label className="text-xs">喜歡的東西（品牌 / 禮物偏好）</Label>
-                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：喜歡 7-11 禮券、偏好實用品" value={warmForm.favoriteThings} onChange={e => setWarmForm({ ...warmForm, favoriteThings: e.target.value })} />
+                <Label className="text-xs">{cd.contacts.favoriteThingsDlgLabel}</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder={cd.contacts.favoriteThingsDlgPlaceholder} value={warmForm.favoriteThings} onChange={e => setWarmForm({ ...warmForm, favoriteThings: e.target.value })} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label className="text-xs">重要生活事件（升遷 / 結婚 / 搬家）</Label>
-                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="例：2024年升任主任、剛搬新家" value={warmForm.lifeEvents} onChange={e => setWarmForm({ ...warmForm, lifeEvents: e.target.value })} />
+                <Label className="text-xs">{cd.contacts.lifeEventsDlgLabel}</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder={cd.contacts.lifeEventsDlgPlaceholder} value={warmForm.lifeEvents} onChange={e => setWarmForm({ ...warmForm, lifeEvents: e.target.value })} />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label className="text-xs">業務備注（溫馨小事）</Label>
-                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={3} placeholder="例：很喜歡聊孩子的事，送禮記得附小卡" value={warmForm.personalNotes} onChange={e => setWarmForm({ ...warmForm, personalNotes: e.target.value })} />
+                <Label className="text-xs">{cd.contacts.personalNotesLabel}</Label>
+                <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={3} placeholder={cd.contacts.personalNotesDlgPlaceholder} value={warmForm.personalNotes} onChange={e => setWarmForm({ ...warmForm, personalNotes: e.target.value })} />
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setWarmEditContact(null)} disabled={savingWarm}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setWarmEditContact(null)} disabled={savingWarm}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={savingWarm}>
-                {savingWarm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}儲存
+                {savingWarm && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.save}
               </Button>
             </DialogFooter>
           </form>
@@ -2090,33 +2276,33 @@ function DeliveryProfileTab({ customerId }: { customerId: string }) {
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.parkingNotes} onChange={e => setField('parkingNotes', e.target.value)} placeholder={cd.delivery.parkingNotesPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>指定停車位</Label>
-            <Input value={form.parkingSpot} onChange={e => setField('parkingSpot', e.target.value)} placeholder="例：B2-25號、地下室進門右轉" />
+            <Label>{cd.delivery.parkingSpot}</Label>
+            <Input value={form.parkingSpot} onChange={e => setField('parkingSpot', e.target.value)} placeholder={cd.delivery.parkingSpotPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>停車費說明</Label>
-            <Input value={form.parkingFee} onChange={e => setField('parkingFee', e.target.value)} placeholder="例：免費/自費/憑單免費2小時" />
+            <Label>{cd.delivery.parkingFee}</Label>
+            <Input value={form.parkingFee} onChange={e => setField('parkingFee', e.target.value)} placeholder={cd.delivery.parkingFeePlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>電梯內尺寸</Label>
-            <Input value={form.elevatorDimensions} onChange={e => setField('elevatorDimensions', e.target.value)} placeholder="例：寬100×深130×高220cm" />
+            <Label>{cd.delivery.elevatorDimensions}</Label>
+            <Input value={form.elevatorDimensions} onChange={e => setField('elevatorDimensions', e.target.value)} placeholder={cd.delivery.elevatorDimensionsPlaceholder} />
           </div>
           <div className="space-y-1.5">
-            <Label>電梯限重（kg）</Label>
-            <Input type="number" value={form.elevatorMaxWeight} onChange={e => setField('elevatorMaxWeight', e.target.value)} placeholder="例：630" />
+            <Label>{cd.delivery.elevatorMaxWeight}</Label>
+            <Input type="number" value={form.elevatorMaxWeight} onChange={e => setField('elevatorMaxWeight', e.target.value)} placeholder={cd.delivery.elevatorMaxWeightPlaceholder} />
           </div>
           <div className="col-span-2 space-y-1.5">
-            <Label>電梯使用注意事項</Label>
-            <Input value={form.elevatorNotes} onChange={e => setField('elevatorNotes', e.target.value)} placeholder="例：需刷卡、貨梯在後門、需提前預約" />
+            <Label>{cd.delivery.elevatorNotes}</Label>
+            <Input value={form.elevatorNotes} onChange={e => setField('elevatorNotes', e.target.value)} placeholder={cd.delivery.elevatorNotesPlaceholder} />
           </div>
           <div className="space-y-1.5">
             <Label>{cd.delivery.routeNotes}</Label>
             <textarea className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} value={form.routeNotes} onChange={e => setField('routeNotes', e.target.value)} placeholder={cd.delivery.routeNotesPlaceholder} />
           </div>
           <div className="col-span-2 space-y-1.5">
-            <Label className="text-amber-700 font-semibold">司機/倉儲專屬注意事項</Label>
-            <textarea className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm resize-none" rows={3} value={form.driverNotes} onChange={e => setField('driverNotes', e.target.value)} placeholder="例：進倉需著安全鞋、禁止停路邊、需通知護理長再上樓（自動帶入出貨備注）" />
-            <p className="text-xs text-amber-600">此欄位內容會自動帶入新建出貨單的備注欄位</p>
+            <Label className="text-amber-700 font-semibold">{cd.delivery.driverNotesLabel}</Label>
+            <textarea className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm resize-none" rows={3} value={form.driverNotes} onChange={e => setField('driverNotes', e.target.value)} placeholder={cd.delivery.driverNotesPlaceholder} />
+            <p className="text-xs text-amber-600">{cd.delivery.driverNotesHint}</p>
           </div>
           <div className="col-span-2 space-y-1.5">
             <Label>{cd.delivery.deliveryNotes}</Label>

@@ -135,7 +135,7 @@ export default function SettingsPage() {
       })
       const data = await res.json()
       if (data.ok) toast.success(data.message)
-      else toast.error(data.error ?? '測試失敗')
+      else toast.error(data.error ?? sExt.testFailed)
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -491,6 +491,9 @@ export default function SettingsPage() {
                 { key: 'decimal_places',          label: sExt.decimalPlaces,       ph: '0' },
                 { key: 'default_vat_rate',        label: sExt.defaultVatRate,      ph: '5' },
                 { key: 'low_stock_threshold',     label: sExt.lowStockThreshold,   ph: '10' },
+                { key: 'TOUR_FREQ_A', label: 'A 級客戶巡迴間隔（天）', ph: '7' },
+                { key: 'TOUR_FREQ_B', label: 'B 級客戶巡迴間隔（天）', ph: '14' },
+                { key: 'TOUR_FREQ_C', label: 'C 級客戶巡迴間隔（天）', ph: '30' },
               ].map(f => (
                 <div key={f.key} className="grid grid-cols-3 items-center gap-3">
                   <Label className="text-right text-sm">{f.label}</Label>

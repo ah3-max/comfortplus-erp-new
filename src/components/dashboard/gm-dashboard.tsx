@@ -70,13 +70,20 @@ export function GmDashboard() {
       fetch('/api/dashboard').then(r => r.json()),
       fetch('/api/sales-targets?team=true').then(r => r.json()).catch(() => []),
     ]).then(([dashData, kpiData]) => {
-      setData(dashData)
+      // Only set data if it looks like a valid dashboard response (has 'today' key)
+      if (dashData && dashData.today) setData(dashData)
       setTeamKpi(Array.isArray(kpiData) ? kpiData : [])
-    }).finally(() => setLoading(false))
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <DashboardLoading />
-  if (!data) return null
+  if (!data) return (
+    <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3">
+      <div className="text-4xl">📊</div>
+      <p className="text-sm">載入總覽資料失敗，請重新整理頁面</p>
+      <button onClick={() => window.location.reload()} className="text-xs text-blue-500 underline">重新整理</button>
+    </div>
+  )
 
   const kpiWithTarget = teamKpi.filter(k => k.hasTarget)
   const companyTarget = kpiWithTarget.reduce((s, k) => s + k.targets.revenue, 0)

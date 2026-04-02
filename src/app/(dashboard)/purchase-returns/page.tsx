@@ -13,6 +13,8 @@ import {
 import { Loader2, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 
 interface ReturnItem {
   id: string; productId: string; quantity: number; unitCost: string; subtotal: string
@@ -253,34 +255,41 @@ function NewPurchaseReturnDialog({ open, onClose, onCreated }: { open: boolean; 
         <DialogHeader><DialogTitle>{dict.purchaseReturns.newReturn}</DialogTitle></DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.common.supplier} *</label>
-            <select value={form.supplierId} onChange={e => setForm(p => ({ ...p, supplierId: e.target.value, purchaseId: '' }))} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="">{dict.purchaseReturns.selectSupplier}</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.code ? `${s.code} - ` : ''}{s.name}</option>)}
-            </select>
+            <Label className="text-xs font-medium text-muted-foreground">{dict.common.supplier} *</Label>
+            <Select value={form.supplierId} onValueChange={v => setForm(p => ({ ...p, supplierId: v ?? '', purchaseId: '' }))}>
+              <SelectTrigger><SelectValue placeholder={dict.purchaseReturns.selectSupplier} /></SelectTrigger>
+              <SelectContent className="max-h-60 w-[360px]">
+                {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.code ? `${s.code} - ` : ''}{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.poLabel} *</label>
-            <select value={form.purchaseId} onChange={e => handlePurchaseChange(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="">{dict.purchaseReturns.selectPo}</option>
-              {filteredPurchases.map(po => <option key={po.id} value={po.id}>{po.poNo} — {po.supplier?.name ?? ''}</option>)}
-            </select>
+            <Label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.poLabel} *</Label>
+            <Select value={form.purchaseId} onValueChange={v => handlePurchaseChange(v ?? '')}>
+              <SelectTrigger><SelectValue placeholder={dict.purchaseReturns.selectPo} /></SelectTrigger>
+              <SelectContent className="max-h-60 w-[360px]">
+                {filteredPurchases.map(po => <SelectItem key={po.id} value={po.id}>{po.poNo} — {po.supplier?.name ?? ''}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.deductAmount}</label>
+            <Label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.deductAmount}</Label>
             <Input value={form.deductAmount} onChange={e => setForm(p => ({ ...p, deductAmount: e.target.value }))} placeholder={dict.common.optional} />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.debitNoteLabel}</label>
+            <Label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.debitNoteLabel}</Label>
             <Input value={form.debitNoteNo} onChange={e => setForm(p => ({ ...p, debitNoteNo: e.target.value }))} placeholder={dict.common.optional} />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.returnTypeLabel}</label>
-            <select value={form.returnType} onChange={e => setForm(p => ({ ...p, returnType: e.target.value }))} className="w-full rounded-md border px-3 py-2 text-sm">
-              <option value="RETURN">{dict.purchaseReturns.typeLabels.RETURN}</option>
-              <option value="EXCHANGE">{dict.purchaseReturns.typeLabels.EXCHANGE}</option>
-              <option value="PARTIAL">{dict.purchaseReturns.typeLabels.PARTIAL}</option>
-            </select>
+            <Label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.returnTypeLabel}</Label>
+            <Select value={form.returnType} onValueChange={v => setForm(p => ({ ...p, returnType: v ?? 'RETURN' }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="RETURN">{dict.purchaseReturns.typeLabels.RETURN}</SelectItem>
+                <SelectItem value="EXCHANGE">{dict.purchaseReturns.typeLabels.EXCHANGE}</SelectItem>
+                <SelectItem value="PARTIAL">{dict.purchaseReturns.typeLabels.PARTIAL}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">{dict.purchaseReturns.reason}</label>

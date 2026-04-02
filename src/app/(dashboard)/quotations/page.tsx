@@ -163,6 +163,21 @@ export default function QuotationsPage() {
     }
   }
 
+  async function handleSend(id: string) {
+    const res = await fetch(`/api/quotations/${id}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channels: ['email', 'line'] }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      toast.success(`報價單已發送（${data.sentChannels?.join('、') ?? ''}）`)
+      fetchQuotations()
+    } else {
+      toast.error(data.error ?? dict.common.operationFailed)
+    }
+  }
+
   async function handleDelete(id: string, no: string) {
     if (!confirm(`${dict.common.deleteConfirm}`)) return
     const res = await fetch(`/api/quotations/${id}`, { method: 'DELETE' })
@@ -324,10 +339,10 @@ export default function QuotationsPage() {
                               {dict.common.edit}
                             </DropdownMenuItem>
                           )}
-                          {q.status === 'DRAFT' && (
-                            <DropdownMenuItem onClick={() => updateStatus(q.id, 'SENT')}>
+                          {['DRAFT', 'APPROVED'].includes(q.status) && (
+                            <DropdownMenuItem onClick={() => handleSend(q.id)}>
                               <Send className="mr-2 h-4 w-4" />
-                              {dict.quotations.markAs}{dict.quotations.statuses.SENT}
+                              發送報價給客戶（Email / LINE）
                             </DropdownMenuItem>
                           )}
                           {q.status === 'SENT' && (

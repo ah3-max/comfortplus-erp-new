@@ -154,6 +154,7 @@ export async function POST(req: NextRequest) {
       shippingFee:           body.shippingFee    ? Number(body.shippingFee)    : 0,
       taxAmount:             body.taxAmount      ? Number(body.taxAmount)      : 0,
       totalAmount,
+      customerPoNo: body.customerPoNo || null,
       notes: body.notes || null,
       items: {
         create: body.items.map((item: {

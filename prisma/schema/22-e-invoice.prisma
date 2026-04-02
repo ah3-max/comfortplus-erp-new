@@ -18,6 +18,12 @@ model EInvoice {
 
   // 折讓
   creditNoteNumber  String?         // 折讓證明單號碼
+  creditNoteDate    DateTime?       // 折讓日期
+  creditNoteAmount  Decimal?        @db.Decimal(12, 2) // 折讓金額
+
+  // 作廢
+  voidReason        String?         // 作廢原因
+  voidedAt          DateTime?       // 作廢時間
 
   // 狀態
   status            EInvoiceStatus  @default(CREATED)

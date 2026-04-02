@@ -23,7 +23,7 @@ export async function POST(
       hasSample, sampleItems,
       hasQuote, hasOrder,
       opportunityId, isFollowUp,
-      attachments,
+      attachments, duration, competitorInfo,
     } = body
 
     if (!content) return NextResponse.json({ error: 'content is required' }, { status: 400 })
@@ -49,6 +49,8 @@ export async function POST(
         opportunityId: opportunityId ?? null,
         isFollowUp: isFollowUp !== undefined ? isFollowUp : true,
         attachments: attachments ? JSON.stringify(attachments) : null,
+        duration: duration ? Number(duration) : null,
+        competitorInfo: competitorInfo ?? null,
       },
     })
 

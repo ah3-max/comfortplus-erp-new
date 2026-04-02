@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { createAutoJournal } from '@/lib/auto-journal'
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
 
@@ -125,6 +126,18 @@ export async function POST(req: NextRequest) {
         data: { balance: { decrement: Number(amount) } },
       }),
     ])
+
+    // Auto journal: Dr 費用 / Cr 銀行存款（零用金支出入帳）
+    createAutoJournal({
+      type: 'EXPENSE_PAY',
+      referenceType: 'PETTY_CASH',
+      referenceId: record.id,
+      entryDate: new Date(date),
+      description: `零用金 ${record.recordNo} — ${description}`,
+      amount: Number(amount),
+      taxAmount: 0,
+      createdById: session.user.id,
+    }).catch(() => {})
 
     return NextResponse.json(record, { status: 201 })
   } catch (error) {

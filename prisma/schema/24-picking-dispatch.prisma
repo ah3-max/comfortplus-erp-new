@@ -62,6 +62,9 @@ model DispatchOrder {
   scheduledDate   DateTime?
   contactInfo     String?
   shippingAddress String?
+  vehicleNo       String?         // 車牌號碼
+  driverName      String?         // 司機姓名
+  driverPhone     String?         // 司機電話
   status          DispatchStatus  @default(PENDING)
 
   items           DispatchOrderItem[]

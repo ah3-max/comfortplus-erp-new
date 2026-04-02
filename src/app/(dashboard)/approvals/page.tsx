@@ -67,10 +67,10 @@ export default function ApprovalsPage() {
 
   const approvalStatuses = dict.approvals.statuses as Record<string, string>
   const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ReactNode }> = {
-    PENDING:   { label: approvalStatuses.PENDING ?? '待審核',   variant: 'secondary',    icon: <Clock className="h-3 w-3" /> },
-    APPROVED:  { label: approvalStatuses.APPROVED ?? '已批准',  variant: 'default',      icon: <CheckCircle2 className="h-3 w-3" /> },
-    REJECTED:  { label: approvalStatuses.REJECTED ?? '已拒絕',  variant: 'destructive',  icon: <XCircle className="h-3 w-3" /> },
-    CANCELLED: { label: approvalStatuses.CANCELLED ?? '已取消', variant: 'outline',      icon: <AlertTriangle className="h-3 w-3" /> },
+    PENDING:   { label: approvalStatuses.PENDING ?? '',   variant: 'secondary',    icon: <Clock className="h-3 w-3" /> },
+    APPROVED:  { label: approvalStatuses.APPROVED ?? '',  variant: 'default',      icon: <CheckCircle2 className="h-3 w-3" /> },
+    REJECTED:  { label: approvalStatuses.REJECTED ?? '',  variant: 'destructive',  icon: <XCircle className="h-3 w-3" /> },
+    CANCELLED: { label: approvalStatuses.CANCELLED ?? '', variant: 'outline',      icon: <AlertTriangle className="h-3 w-3" /> },
   }
 
   const ROLE_LABELS = (dict.orgChart?.roles ?? {}) as Record<string, string>

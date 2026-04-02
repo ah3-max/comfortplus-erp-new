@@ -32,10 +32,10 @@ interface Payment {
   id: string
   paymentNo: string
   direction: PaymentDirection
-  type: PaymentType
+  paymentType: PaymentType
   amount: string
   paymentDate: string
-  method: string | null
+  paymentMethod: string | null
   bankAccount: string | null
   referenceNo: string | null
   invoiceNo: string | null
@@ -109,11 +109,14 @@ export default function PaymentsPage() {
     PAYMENT_METHODS.map(m => [m.value, m.label]),
   )
 
+  interface BankAccount { id: string; accountName: string; bankName: string; accountNo: string }
+
   const [payments, setPayments]       = useState<Payment[]>([])
   const [customers, setCustomers]     = useState<Customer[]>([])
   const [suppliers, setSuppliers]     = useState<Supplier[]>([])
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([])
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading]         = useState(true)
 
   const [tab, setTab] = useState<'INCOMING' | 'OUTGOING'>('INCOMING')
@@ -159,15 +162,17 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/customers').then(r => r.json()),
-      fetch('/api/suppliers').then(r => r.json()),
-      fetch('/api/orders').then(r => r.json()),
-      fetch('/api/purchases').then(r => r.json()),
-    ]).then(([c, s, o, p]) => {
+      fetch('/api/customers?pageSize=200').then(r => r.json()),
+      fetch('/api/suppliers?pageSize=200').then(r => r.json()),
+      fetch('/api/orders?pageSize=200').then(r => r.json()),
+      fetch('/api/purchases?pageSize=200').then(r => r.json()),
+      fetch('/api/finance/bank-accounts').then(r => r.json()),
+    ]).then(([c, s, o, p, ba]) => {
       setCustomers(Array.isArray(c) ? c : (c.data ?? []))
       setSuppliers(Array.isArray(s) ? s : (s.data ?? []))
       setSalesOrders(Array.isArray(o) ? o : (o.data ?? []))
       setPurchaseOrders(Array.isArray(p) ? p : (p.data ?? []))
+      setBankAccounts(Array.isArray(ba) ? ba : (ba.data ?? []))
     })
   }, [])
 
@@ -175,16 +180,11 @@ export default function PaymentsPage() {
   const now = new Date()
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-  const allIncoming = payments.filter(p => p.direction === 'INCOMING')
-  const allOutgoing = payments.filter(p => p.direction === 'OUTGOING')
-
   const monthPayments = payments.filter(p => p.paymentDate.substring(0, 7) === thisMonth)
-  const monthIncoming = monthPayments.filter(p => p.direction === 'INCOMING')
-    .reduce((sum, p) => sum + Number(p.amount), 0)
-  const monthOutgoing = monthPayments.filter(p => p.direction === 'OUTGOING')
-    .reduce((sum, p) => sum + Number(p.amount), 0)
-  const totalIncoming = allIncoming.reduce((sum, p) => sum + Number(p.amount), 0)
-  const totalOutgoing = allOutgoing.reduce((sum, p) => sum + Number(p.amount), 0)
+  const monthTotal = monthPayments.reduce((sum, p) => sum + Number(p.amount), 0)
+  const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0)
+  const totalCount = payments.length
+  const monthCount = monthPayments.length
 
   /* ─── Create ────────────────────────────────────────────── */
   function openCreate() {
@@ -245,7 +245,7 @@ export default function PaymentsPage() {
   function openEdit(p: Payment) {
     setEditTarget(p)
     setEditForm({
-      method:      p.method ?? '',
+      method:      p.paymentMethod ?? '',
       bankAccount: p.bankAccount ?? '',
       referenceNo: p.referenceNo ?? '',
       invoiceNo:   p.invoiceNo ?? '',
@@ -388,23 +388,16 @@ export default function PaymentsPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-green-50 p-2.5">
-              <ArrowDownLeft className="h-5 w-5 text-green-600" />
+            <div className={`rounded-lg p-2.5 ${tab === 'INCOMING' ? 'bg-green-50' : 'bg-red-50'}`}>
+              {tab === 'INCOMING'
+                ? <ArrowDownLeft className="h-5 w-5 text-green-600" />
+                : <ArrowUpRight className="h-5 w-5 text-red-600" />}
             </div>
             <div>
-              <p className="text-sm text-slate-500">{pp.cardMonthIncoming}</p>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(monthIncoming)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="rounded-lg bg-red-50 p-2.5">
-              <ArrowUpRight className="h-5 w-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-500">{pp.cardMonthOutgoing}</p>
-              <p className="text-xl font-bold text-red-600">{formatCurrency(monthOutgoing)}</p>
+              <p className="text-sm text-slate-500">{tab === 'INCOMING' ? pp.cardMonthIncoming : pp.cardMonthOutgoing}</p>
+              <p className={`text-xl font-bold ${tab === 'INCOMING' ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(monthTotal)}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -414,23 +407,30 @@ export default function PaymentsPage() {
               <Receipt className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">{dict.paymentsExt.totalReceived}</p>
-              <p className="text-xl font-bold text-amber-600">
-                {tab === 'INCOMING' ? formatCurrency(totalIncoming) : '—'}
-              </p>
+              <p className="text-sm text-slate-500">{tab === 'INCOMING' ? (dict.paymentsExt.totalReceived) : (dict.paymentsExt.totalPaid)}</p>
+              <p className="text-xl font-bold text-amber-600">{formatCurrency(totalAmount)}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-blue-50 p-2.5">
+              <Banknote className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500">總筆數</p>
+              <p className="text-xl font-bold text-blue-600">{totalCount}</p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="rounded-lg bg-purple-50 p-2.5">
-              <Banknote className="h-5 w-5 text-purple-600" />
+              <Receipt className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm text-slate-500">{dict.paymentsExt.totalPaid}</p>
-              <p className="text-xl font-bold text-purple-600">
-                {tab === 'OUTGOING' ? formatCurrency(totalOutgoing) : '—'}
-              </p>
+              <p className="text-sm text-slate-500">本月筆數</p>
+              <p className="text-xl font-bold text-purple-600">{monthCount}</p>
             </div>
           </CardContent>
         </Card>
@@ -499,7 +499,7 @@ export default function PaymentsPage() {
             ) : (
               filteredPayments.map(p => {
                 const dir = DIRECTION_CONFIG[p.direction]
-                const typ = TYPE_CONFIG[p.type] ?? { label: p.type, color: 'bg-slate-100 text-slate-600' }
+                const typ = TYPE_CONFIG[p.paymentType] ?? { label: p.paymentType, color: 'bg-slate-100 text-slate-600' }
                 const counterparty = p.direction === 'INCOMING'
                   ? p.customer?.name
                   : p.supplier?.name
@@ -526,7 +526,7 @@ export default function PaymentsPage() {
                       {linkedOrder ?? '—'}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {p.method ? (METHOD_LABELS[p.method] ?? p.method) : '—'}
+                      {p.paymentMethod ? (METHOD_LABELS[p.paymentMethod] ?? p.paymentMethod) : '—'}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{p.invoiceNo ?? '—'}</TableCell>
                     <TableCell onClick={e => e.stopPropagation()}>
@@ -557,7 +557,7 @@ export default function PaymentsPage() {
 
       {/* ─── Create Dialog ────────────────────────────────── */}
       <Dialog open={createOpen} onOpenChange={o => !o && setCreateOpen(false)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>{dict.paymentsExt.newPayment}</DialogTitle>
           </DialogHeader>
@@ -648,10 +648,10 @@ export default function PaymentsPage() {
                     onValueChange={v => cf('customerId', v === '_none' ? '' : (v ?? ''))}
                   >
                     <SelectTrigger><SelectValue placeholder={pp.selectCustomer} /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-64 w-[400px]">
                       <SelectItem value="_none">— {pp.selectCustomer} —</SelectItem>
                       {customers.map(c => (
-                        <SelectItem key={c.id} value={c.id}>{c.code} - {c.name}</SelectItem>
+                        <SelectItem key={c.id} value={c.id}>{c.code} — {c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -685,10 +685,10 @@ export default function PaymentsPage() {
                     onValueChange={v => cf('supplierId', v === '_none' ? '' : (v ?? ''))}
                   >
                     <SelectTrigger><SelectValue placeholder={pp.selectSupplier} /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-64 w-[400px]">
                       <SelectItem value="_none">— {pp.selectSupplier} —</SelectItem>
                       {suppliers.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.code} - {s.name}</SelectItem>
+                        <SelectItem key={s.id} value={s.id}>{s.code} — {s.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -718,9 +718,26 @@ export default function PaymentsPage() {
             {/* Bank Account */}
             <div className="space-y-1.5">
               <Label>{dict.paymentsExt.bankAccount}</Label>
-              <Input value={createForm.bankAccount}
-                onChange={e => cf('bankAccount', e.target.value)}
-                placeholder={pp.bankPlaceholder} />
+              {bankAccounts.length > 0 ? (
+                <Select
+                  value={createForm.bankAccount || '_none'}
+                  onValueChange={v => cf('bankAccount', v === '_none' ? '' : (v ?? ''))}
+                >
+                  <SelectTrigger><SelectValue placeholder="選擇銀行帳戶" /></SelectTrigger>
+                  <SelectContent className="max-h-48 w-[400px]">
+                    <SelectItem value="_none">— 不指定 —</SelectItem>
+                    {bankAccounts.map(b => (
+                      <SelectItem key={b.id} value={b.accountNo}>
+                        {b.bankName} — {b.accountName} ({b.accountNo})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input value={createForm.bankAccount}
+                  onChange={e => cf('bankAccount', e.target.value)}
+                  placeholder={pp.bankPlaceholder} />
+              )}
             </div>
 
             {/* Reference No + Invoice No */}

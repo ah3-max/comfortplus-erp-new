@@ -49,7 +49,7 @@ const emptyForm = (): FormData => ({
   sku: '', name: '', category: '',
   series: '', size: '', packagingType: '',
   piecesPerPack: '', packsPerBox: '',
-  specification: '', unit: '包', barcode: '',
+  specification: '', unit: '', barcode: '',
   costPrice: '', floorPrice: '',
   sellingPrice: '', channelPrice: '', wholesalePrice: '',
   minSellPrice: '', oemBasePrice: '',
@@ -71,15 +71,31 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
   const canSeeCost    = CAN_SEE_COST.includes(role)
   const canSeeManager = CAN_SEE_MANAGER.includes(role)
 
-  // These are data values stored in DB — kept as-is for system consistency
-  const categories    = ['紙尿布', '護墊', '清潔用品', '護理用品', '防護用品', '輔具', '其他']
-  const units         = ['包', '盒', '件', '個', '捲', '瓶', '袋']
-  const seriesOptions = ['經濟款', '日間型', '夜間型', '透氣型', 'OEM']
-  const sizeOptions   = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '均一']
-  const packagingOptions = ['單包', '箱', 'OEM專版', '補充包']
+  const pp = dict.productsPage
+  const categoryValues   = pp.categoryValues
+  const categoryLabels   = pp.categoryLabels
+  const unitValues       = pp.unitValues
+  const unitLabels       = pp.unitLabels
+  const seriesValues     = pp.seriesValues
+  const seriesLabels     = pp.seriesLabels
+  const sizeValues       = pp.sizeValues
+  const sizeLabels       = pp.sizeLabels
+  const packagingValues  = pp.packagingValues
+  const packagingLabels  = pp.packagingLabels
 
   const [form, setForm] = useState<FormData>(emptyForm())
   const [loading, setLoading] = useState(false)
+
+  /** 自動產生 SKU: 類別代碼 + 時間戳 */
+  function generateSku() {
+    const categoryMap: Record<string, string> = {
+      '紙尿布': 'ADL', '護墊': 'PAD', '清潔用品': 'CLN',
+      '護理用品': 'CRE', '防護用品': 'PRT', '輔具': 'AID', '其他': 'OTH',
+    }
+    const prefix = categoryMap[form.category] || 'PRD'
+    const ts = Date.now().toString(36).toUpperCase().slice(-6)
+    set('sku', `${prefix}-${ts}`)
+  }
 
   useEffect(() => {
     if (open && product) {
@@ -147,14 +163,14 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
     ? (((Number(form.sellingPrice) - Number(form.costPrice)) / Number(form.sellingPrice)) * 100).toFixed(1)
     : null
 
-  const sel = (field: keyof FormData, options: string[], placeholder?: string) => (
+  const sel = (field: keyof FormData, values: readonly string[], labels: readonly string[], placeholder?: string) => (
     <select
       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       value={form[field] as string}
       onChange={e => set(field, e.target.value)}
     >
       <option value="">{placeholder ?? fl.pleaseSelect}</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
+      {values.map((v, i) => <option key={v} value={v}>{labels[i] ?? v}</option>)}
     </select>
   )
 
@@ -173,8 +189,16 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label>SKU <span className="text-red-500">*</span></Label>
-                <Input value={form.sku} onChange={e => set('sku', e.target.value)}
-                  placeholder="ADL-M-001" disabled={isEdit} required />
+                <div className="flex gap-1.5">
+                  <Input value={form.sku} onChange={e => set('sku', e.target.value)}
+                    placeholder="ADL-M-001" disabled={isEdit} required className="flex-1" />
+                  {!isEdit && (
+                    <Button type="button" variant="outline" size="sm" className="shrink-0 text-xs h-9"
+                      onClick={generateSku}>
+                      自動產生
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.barcode}</Label>
@@ -182,7 +206,7 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.category}</Label>
-                {sel('category', categories, fl.selectCategory)}
+                {sel('category', categoryValues, categoryLabels, fl.selectCategory)}
               </div>
               <div className="col-span-3 space-y-1.5">
                 <Label>{fl.productName}</Label>
@@ -190,15 +214,15 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.series}</Label>
-                {sel('series', seriesOptions)}
+                {sel('series', seriesValues, seriesLabels)}
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.size}</Label>
-                {sel('size', sizeOptions)}
+                {sel('size', sizeValues, sizeLabels)}
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.packagingType}</Label>
-                {sel('packagingType', packagingOptions)}
+                {sel('packagingType', packagingValues, packagingLabels)}
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.specification}</Label>
@@ -206,7 +230,7 @@ export function ProductForm({ open, onClose, onSuccess, product }: ProductFormPr
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.unit}</Label>
-                {sel('unit', units)}
+                {sel('unit', unitValues, unitLabels)}
               </div>
               <div className="space-y-1.5">
                 <Label>{fl.piecesPerPack}</Label>

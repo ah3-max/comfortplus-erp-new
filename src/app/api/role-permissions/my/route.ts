@@ -65,7 +65,7 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'purchases', 'purchaseRequests', 'rfq', 'suppliers', 'production',
     'materialRequisitions', 'productionReceipts', 'qc', 'packaging',
     'seaFreight', 'importProjects', 'purchasePlans',
-    'payments', 'apAging', 'budget',
+    'payments', 'apAging', 'disbursements', 'budget',
     'reports', 'documents', 'announcements',
   ],
   FINANCE: [
@@ -73,7 +73,7 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'orders', 'salesInvoices', 'eInvoices',
     'products',
     'contracts', 'fixedAssets', 'budget', 'expenses', 'finance',
-    'channels', 'retail', 'payments', 'arAging', 'apAging', 'priceTiers', 'discountRules',
+    'channels', 'retail', 'payments', 'arAging', 'receipts', 'apAging', 'disbursements', 'priceTiers', 'discountRules',
     'approvals', 'reports', 'documents', 'auditLog', 'announcements',
   ],
 }

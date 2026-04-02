@@ -93,6 +93,7 @@ export async function POST(req: NextRequest) {
         volume:        body.volume  || null,
         storageNotes:  body.storageNotes || null,
         description:   body.description  || null,
+        isActive:      body.isActive !== undefined ? Boolean(body.isActive) : true,
       },
     })
 

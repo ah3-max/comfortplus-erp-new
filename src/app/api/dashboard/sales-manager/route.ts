@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { handleApiError } from '@/lib/api-error'
 
 export async function GET() {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -70,9 +72,15 @@ export async function GET() {
   ])
 
   // ── Funnel: quotes → orders conversion ─────────────────────
-  const [monthQuotes, monthConvertedQuotes] = await Promise.all([
+  const [monthQuotes, monthSentQuotes, monthAcceptedQuotes, monthConvertedQuotes] = await Promise.all([
     prisma.quotation.count({
       where: { createdById: { in: teamIds }, createdAt: { gte: startOfMonth } },
+    }),
+    prisma.quotation.count({
+      where: { createdById: { in: teamIds }, createdAt: { gte: startOfMonth }, status: { in: ['SENT', 'ACCEPTED', 'CONVERTED'] } },
+    }),
+    prisma.quotation.count({
+      where: { createdById: { in: teamIds }, createdAt: { gte: startOfMonth }, status: { in: ['ACCEPTED', 'CONVERTED'] } },
     }),
     prisma.quotation.count({
       where: { createdById: { in: teamIds }, createdAt: { gte: startOfMonth }, status: 'CONVERTED' },
@@ -127,6 +135,8 @@ export async function GET() {
     salesRanking,
     funnel: {
       quotes: monthQuotes,
+      sent: monthSentQuotes,
+      accepted: monthAcceptedQuotes,
       converted: monthConvertedQuotes,
       conversionRate,
     },
@@ -142,4 +152,7 @@ export async function GET() {
       calls: teamCalls,
     },
   })
+  } catch (error) {
+    return handleApiError(error, 'dashboard.salesManager.GET')
+  }
 }

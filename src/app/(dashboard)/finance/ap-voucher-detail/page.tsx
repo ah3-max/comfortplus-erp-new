@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,17 +22,18 @@ interface VoucherData {
   rows: VoucherRow[]
 }
 
-const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  NOT_DUE:     { label: '未到期', cls: 'bg-green-100 text-green-700' },
-  DUE:         { label: '已到期', cls: 'bg-red-100 text-red-700' },
-  PARTIAL_PAID:{ label: '部分付款', cls: 'bg-amber-100 text-amber-700' },
-  PAID:        { label: '已付清', cls: 'bg-slate-100 text-slate-600' },
+const STATUS_CLS: Record<string, string> = {
+  NOT_DUE:     'bg-green-100 text-green-700',
+  DUE:         'bg-red-100 text-red-700',
+  PARTIAL_PAID:'bg-amber-100 text-amber-700',
+  PAID:        'bg-slate-100 text-slate-600',
 }
 
 function fmt(n: number) { return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
 
 export default function APVoucherDetailPage() {
   const { dict } = useI18n()
+  const fp = dict.financePages
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
   const [startDate, setStartDate] = useState(firstOfYear)
@@ -53,13 +54,15 @@ export default function APVoucherDetailPage() {
     finally { setLoading(false) }
   }, [startDate, endDate, status])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">應付憑證明細</h1>
-          <p className="text-sm text-muted-foreground">應付帳款發票及付款狀態明細</p>
+          <h1 className="text-2xl font-bold text-slate-900">{fp.apVoucherTitle}</h1>
+          <p className="text-sm text-muted-foreground">{fp.apVoucherDesc}</p>
         </div>
         {data && (
           <Button variant="outline" size="sm" onClick={() => window.print()}>
@@ -69,21 +72,21 @@ export default function APVoucherDetailPage() {
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4 print:hidden">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateStart}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateEnd}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">{dict.common.status}</label>
           <select value={status} onChange={e => setStatus(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
             <option value="">{dict.common.all}</option>
-            <option value="NOT_DUE">未到期</option>
-            <option value="DUE">已到期</option>
-            <option value="PARTIAL_PAID">部分付款</option>
-            <option value="PAID">已付清</option>
+            <option value="NOT_DUE">{fp.statusNotDue}</option>
+            <option value="DUE">{fp.statusDue}</option>
+            <option value="PARTIAL_PAID">{fp.apStatusPartialPaid}</option>
+            <option value="PAID">{fp.apStatusPaid}</option>
           </select>
         </div>
         <Button onClick={fetchData} disabled={loading}>{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{dict.common.search}</Button>
@@ -92,10 +95,10 @@ export default function APVoucherDetailPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: '應付筆數', value: String(data.summary.count) },
-              { label: '應付總額', value: `$${fmt(data.summary.totalAmount)}`, color: 'text-slate-900' },
-              { label: '已付金額', value: `$${fmt(data.summary.totalPaid)}`, color: 'text-green-600' },
-              { label: '未付餘額', value: `$${fmt(data.summary.totalBalance)}`, color: data.summary.totalBalance > 0 ? 'text-red-600 font-bold' : 'text-slate-700' },
+              { label: fp.apSummaryCount, value: String(data.summary.count) },
+              { label: fp.apSummaryTotal, value: `$${fmt(data.summary.totalAmount)}`, color: 'text-slate-900' },
+              { label: fp.apSummaryPaid, value: `$${fmt(data.summary.totalPaid)}`, color: 'text-green-600' },
+              { label: fp.apSummaryBalance, value: `$${fmt(data.summary.totalBalance)}`, color: data.summary.totalBalance > 0 ? 'text-red-600 font-bold' : 'text-slate-700' },
             ].map(c => (
               <div key={c.label} className="rounded-lg border bg-white p-3">
                 <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
@@ -107,25 +110,26 @@ export default function APVoucherDetailPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-28">發票號</TableHead>
-                  <TableHead className="w-24">開票日期</TableHead>
-                  <TableHead className="w-24">到期日</TableHead>
-                  <TableHead>供應商名稱</TableHead>
-                  <TableHead className="w-24">採購單號</TableHead>
-                  <TableHead className="w-16">幣別</TableHead>
-                  <TableHead className="text-right w-28">應付金額</TableHead>
-                  <TableHead className="text-right w-28 text-green-700">已付金額</TableHead>
-                  <TableHead className="text-right w-28">未付餘額</TableHead>
-                  <TableHead className="w-24">狀態</TableHead>
+                  <TableHead className="w-28">{fp.arColInvoice}</TableHead>
+                  <TableHead className="w-24">{fp.arColIssueDate}</TableHead>
+                  <TableHead className="w-24">{fp.arColDueDate}</TableHead>
+                  <TableHead>{fp.apColSupplier}</TableHead>
+                  <TableHead className="w-24">{fp.apColPoNo}</TableHead>
+                  <TableHead className="w-16">{fp.apColCurrency}</TableHead>
+                  <TableHead className="text-right w-28">{fp.apColAmount}</TableHead>
+                  <TableHead className="text-right w-28 text-green-700">{fp.apColPaid}</TableHead>
+                  <TableHead className="text-right w-28">{fp.apColBalance}</TableHead>
+                  <TableHead className="w-24">{fp.arColStatus}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="py-12 text-center text-muted-foreground">無應付憑證記錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="py-12 text-center text-muted-foreground">{fp.apNoRecords}</TableCell></TableRow>
                 ) : (
                   <>
                     {data.rows.map(row => {
-                      const sc = STATUS_CONFIG[row.status] ?? { label: row.status, cls: 'bg-slate-100 text-slate-600' }
+                      const apStatusLabels: Record<string, string> = { NOT_DUE: fp.statusNotDue, DUE: fp.statusDue, PARTIAL_PAID: fp.apStatusPartialPaid, PAID: fp.apStatusPaid }
+                      const sc = { label: apStatusLabels[row.status] ?? row.status, cls: STATUS_CLS[row.status] ?? 'bg-slate-100 text-slate-600' }
                       return (
                         <TableRow key={row.id} className={`text-sm hover:bg-slate-50/40 ${row.status === 'PAID' ? 'opacity-60' : ''}`}>
                           <TableCell className="font-mono text-xs">{row.invoiceNo || '—'}</TableCell>
@@ -152,7 +156,7 @@ export default function APVoucherDetailPage() {
                       )
                     })}
                     <TableRow className="border-t-2 bg-slate-50 font-semibold text-sm">
-                      <TableCell colSpan={6}>合計 {data.summary.count} 筆</TableCell>
+                      <TableCell colSpan={6}>{fp.arTotalLabel.replace('{n}', String(data.summary.count))}</TableCell>
                       <TableCell className="text-right font-mono">${fmt(data.summary.totalAmount)}</TableCell>
                       <TableCell className="text-right font-mono text-green-700">${fmt(data.summary.totalPaid)}</TableCell>
                       <TableCell className="text-right font-mono text-red-600">${fmt(data.summary.totalBalance)}</TableCell>

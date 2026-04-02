@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { CustomerForm, customerTypes, devStatusOptions, regionOptions } from '@/components/customers/customer-form'
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, Phone, MessageCircle, Users } from 'lucide-react'
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Loader2, Phone, MessageCircle, Users, AlertCircle, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
@@ -45,6 +45,7 @@ interface Customer {
   contactPerson: string | null; phone: string | null; lineId: string | null
   email: string | null; address: string | null; region: string | null
   taxId: string | null; paymentTerms: string | null; creditLimit: string | null
+  healthScore: number | null
   grade: string | null; devStatus: string; source: string | null
   salesRepId: string | null; salesRep: { id: string; name: string } | null
   keyAccountMgr?: { id: string; name: string } | null
@@ -52,6 +53,8 @@ interface Customer {
   winRate: number | null; estimatedMonthlyVolume: string | null
   notes: string | null; isActive: boolean; createdAt: string
   _count: { visitRecords: number; callRecords: number; salesOrders: number }
+  avgPaymentDays: number | null   // S-14
+  overdueCount: number            // S-15
 }
 
 export default function CustomersPage() {
@@ -163,6 +166,11 @@ export default function CustomersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/customers/order-frequency">
+            <Button variant="outline" size="sm">
+              <Users className="mr-2 h-4 w-4" />訂單頻率
+            </Button>
+          </Link>
           <Button variant="outline" onClick={() => setQuickOpen(true)}>
             <Phone className="mr-2 h-4 w-4" />
             {dict.customersExt.quickProspect}
@@ -241,7 +249,14 @@ export default function CustomersPage() {
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{c.salesRep?.name ?? dict.common.unassigned}</span>
-                  <span>{c._count.salesOrders} {dict.customersExt.orders} · {c._count.visitRecords} {dict.customersExt.visits}</span>
+                  <div className="flex items-center gap-2">
+                    {c.healthScore !== null && (
+                      <span className={`font-medium ${c.healthScore >= 80 ? 'text-emerald-600' : c.healthScore >= 60 ? 'text-yellow-600' : 'text-red-500'}`}>
+                        ❤️ {c.healthScore}
+                      </span>
+                    )}
+                    <span>{c._count.salesOrders} {dict.customersExt.orders} · {c._count.visitRecords} {dict.customersExt.visits}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -258,6 +273,9 @@ export default function CustomersPage() {
               <TableHead>{dict.customers.name}</TableHead>
               <TableHead className="w-24">{dict.customers.type}</TableHead>
               <TableHead className="w-16">{dict.customers.grade}</TableHead>
+              <TableHead className="w-16 text-center">健康分</TableHead>
+              <TableHead className="w-16 text-center">付款天</TableHead>
+              <TableHead className="w-16 text-center">逾期AR</TableHead>
               <TableHead className="w-20">{dict.customers.devStatus}</TableHead>
               <TableHead className="w-16">{dict.customers.region}</TableHead>
               <TableHead>{dict.customers.contact}</TableHead>
@@ -268,11 +286,11 @@ export default function CustomersPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={10} className="py-16 text-center">
+              <TableRow><TableCell colSpan={12} className="py-16 text-center">
                 <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
               </TableCell></TableRow>
             ) : customers.length === 0 ? (
-              <TableRow><TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
+              <TableRow><TableCell colSpan={12} className="py-16 text-center text-muted-foreground">
                 {search || filterType || filterRegion || filterStatus ? dict.customersExt.noResults : dict.customersExt.noCustomers}
               </TableCell></TableRow>
             ) : customers.map(c => (
@@ -294,6 +312,29 @@ export default function CustomersPage() {
                   {c.grade
                     ? <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold ${gradeColors[c.grade] ?? ''}`}>{c.grade}</span>
                     : <span className="text-muted-foreground text-sm">—</span>}
+                </TableCell>
+                <TableCell className="text-center">
+                  {c.healthScore !== null ? (
+                    <span className={`text-xs font-bold ${c.healthScore >= 80 ? 'text-emerald-600' : c.healthScore >= 60 ? 'text-yellow-600' : 'text-red-500'}`}>
+                      {c.healthScore}
+                    </span>
+                  ) : <span className="text-muted-foreground text-sm">—</span>}
+                </TableCell>
+                {/* S-14 平均付款天數 */}
+                <TableCell className="text-center">
+                  {c.avgPaymentDays !== null ? (
+                    <span className={`text-xs font-medium flex items-center justify-center gap-0.5 ${c.avgPaymentDays <= 30 ? 'text-emerald-600' : c.avgPaymentDays <= 60 ? 'text-amber-600' : 'text-red-500'}`}>
+                      <Clock className="h-3 w-3" />{c.avgPaymentDays}天
+                    </span>
+                  ) : <span className="text-muted-foreground text-sm">—</span>}
+                </TableCell>
+                {/* S-15 逾期應收紅色警示 */}
+                <TableCell className="text-center">
+                  {c.overdueCount > 0 ? (
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-600">
+                      <AlertCircle className="h-3 w-3" />{c.overdueCount}
+                    </span>
+                  ) : <span className="text-muted-foreground text-sm">—</span>}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className={`text-xs ${devStatusColors[c.devStatus] ?? ''}`}>

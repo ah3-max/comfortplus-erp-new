@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
 import { notifyByRole } from '@/lib/notify'
 import { generateSequenceNo } from '@/lib/sequence'
+import { createAutoJournal } from '@/lib/auto-journal'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -54,7 +55,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const currentOrder = await prisma.salesOrder.findUnique({
       where: { id },
       include: {
-        items: { include: { product: { select: { name: true, sku: true, unit: true, sellingPrice: true } } } },
+        items: { include: { product: { select: { name: true, sku: true, unit: true, sellingPrice: true, costPrice: true } } } },
         customer: { select: { name: true } },
       },
     })
@@ -62,6 +63,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const oldStatus = currentOrder.status
     const newStatus = body.status as string
+
+    // 3-7: State machine validation
+    const ORDER_TRANSITIONS: Record<string, string[]> = {
+      DRAFT:           ['PENDING', 'CANCELLED'],
+      PENDING:         ['CONFIRMED', 'CANCELLED'],
+      CONFIRMED:       ['ALLOCATING', 'CANCELLED'],
+      ALLOCATING:      ['READY_TO_SHIP', 'CONFIRMED'],
+      READY_TO_SHIP:   ['SHIPPED', 'PARTIAL_SHIPPED', 'ALLOCATING'],
+      PARTIAL_SHIPPED: ['SHIPPED', 'READY_TO_SHIP'],
+      SHIPPED:         ['SIGNED'],
+      SIGNED:          ['COMPLETED'],
+      RETURNING:       ['RETURNED'],
+    }
+    const allowedTransitions = ORDER_TRANSITIONS[oldStatus as string]
+    if (allowedTransitions && !allowedTransitions.includes(newStatus)) {
+      return NextResponse.json({ error: `訂單狀態不允許從 ${oldStatus} 轉換為 ${newStatus}` }, { status: 400 })
+    }
+
+    // 3-6: Resolve warehouse code from order's warehouseId (fall back to MAIN)
+    let warehouseCode = 'MAIN'
+    if (currentOrder.warehouseId) {
+      const wh = await prisma.warehouse.findUnique({ where: { id: currentOrder.warehouseId }, select: { code: true } })
+      if (wh?.code) warehouseCode = wh.code
+    }
 
     const order = await prisma.$transaction(async (tx) => {
       /*
@@ -77,7 +102,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           const rows = await tx.$queryRaw<Array<{ id: string; availableQty: number }>>`
             SELECT id, "availableQty" FROM "Inventory"
             WHERE "productId" = ${item.productId}
-              AND warehouse = 'MAIN'
+              AND warehouse = ${warehouseCode}
               AND category = 'FINISHED_GOODS'
             FOR UPDATE
           `
@@ -101,7 +126,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           const rows = await tx.$queryRaw<Array<{ id: string }>>`
             SELECT id FROM "Inventory"
             WHERE "productId" = ${item.productId}
-              AND warehouse = 'MAIN'
+              AND warehouse = ${warehouseCode}
               AND category = 'FINISHED_GOODS'
             FOR UPDATE
           `
@@ -133,9 +158,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         priority: 'HIGH',
       }).catch(() => {})
 
-      // Auto-create SalesInvoice (idempotent)
+      // Auto-create SalesInvoice (idempotent) — 3-1: use order warehouse or look up default
       const existingInvoice = await prisma.salesInvoice.findFirst({ where: { sourceOrderId: id } })
-      if (!existingInvoice && currentOrder.warehouseId) {
+      let invoiceWarehouseId = currentOrder.warehouseId
+      if (!invoiceWarehouseId) {
+        const defaultWh = await prisma.warehouse.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'asc' }, select: { id: true } })
+        invoiceWarehouseId = defaultWh?.id ?? null
+      }
+      if (!existingInvoice && invoiceWarehouseId) {
         const TAX_RATE = 0.05
         const invoiceNumber = await generateSequenceNo('SALES_INVOICE')
         const invoiceItems = currentOrder.items.map(item => {
@@ -169,7 +199,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             customerId: currentOrder.customerId,
             salesPersonId: currentOrder.createdById,
             handlerId: session.user.id,
-            warehouseId: currentOrder.warehouseId,
+            warehouseId: invoiceWarehouseId,
             sourceOrderId: id,
             subtotal,
             taxAmount,
@@ -180,6 +210,66 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           },
         })
       }
+    }
+
+    // 1-1: Auto-create AR on order confirmation (idempotent)
+    if (newStatus === 'CONFIRMED') {
+      const existingAR = await prisma.accountsReceivable.findFirst({ where: { orderId: id } })
+      if (!existingAR) {
+        const dueDate = new Date()
+        dueDate.setDate(dueDate.getDate() + 30)
+        await prisma.accountsReceivable.create({
+          data: {
+            customerId: currentOrder.customerId,
+            orderId: id,
+            invoiceNo: currentOrder.orderNo,
+            invoiceDate: new Date(),
+            dueDate,
+            amount: currentOrder.totalAmount ?? 0,
+          },
+        })
+      }
+
+      // 1-3: Auto journal — SALES_CONFIRM
+      createAutoJournal({
+        type: 'SALES_CONFIRM',
+        referenceType: 'SALES_ORDER',
+        referenceId: id,
+        entryDate: new Date(),
+        description: `訂單確認 ${currentOrder.orderNo}`,
+        amount: Number(currentOrder.subtotal ?? currentOrder.totalAmount ?? 0),
+        taxAmount: Number(currentOrder.taxAmount ?? 0),
+        createdById: session.user.id,
+      }).catch(() => {})
+
+      // SALES_COGS: Dr 銷貨成本 / Cr 存貨（計算並儲存 costOfGoods）
+      const calculatedCog = currentOrder.items.reduce(
+        (s, i) => s + Number(i.quantity) * Number(i.product?.costPrice ?? 0), 0
+      )
+      if (calculatedCog > 0) {
+        await prisma.salesOrder.update({ where: { id }, data: { costOfGoods: calculatedCog } })
+        createAutoJournal({
+          type: 'SALES_COGS',
+          referenceType: 'SALES_ORDER_COGS',
+          referenceId: id,
+          entryDate: new Date(),
+          description: `銷貨成本 ${currentOrder.orderNo}`,
+          amount: 0,
+          cogAmount: calculatedCog,
+          createdById: session.user.id,
+        }).catch(() => {})
+      }
+    }
+
+    // CANCELLED → 刪除未付清 AR + 作廢銷貨單
+    if (newStatus === 'CANCELLED') {
+      await prisma.accountsReceivable.deleteMany({
+        where: { orderId: id, status: { not: 'PAID' } },
+      })
+      await prisma.salesInvoice.updateMany({
+        where: { sourceOrderId: id, status: { in: ['DRAFT', 'CONFIRMED'] } },
+        data: { status: 'CANCELLED' },
+      })
     }
 
     // Audit log
@@ -246,6 +336,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       shippingFee:    body.shippingFee    !== undefined ? Number(body.shippingFee)    : undefined,
       taxAmount:      body.taxAmount      !== undefined ? Number(body.taxAmount)      : undefined,
       totalAmount,
+      customerPoNo: body.customerPoNo !== undefined ? (body.customerPoNo || null) : undefined,
       notes: body.notes || null,
       items: {
         create: body.items.map((item: {
@@ -264,6 +355,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     },
     include: { items: true },
   })
+
+  logAudit({
+    userId: session.user.id,
+    userName: session.user.name ?? '',
+    userRole: (session.user as { role?: string }).role ?? '',
+    module: 'orders',
+    action: 'UPDATE',
+    entityType: 'SalesOrder',
+    entityId: id,
+    entityLabel: existing.orderNo,
+    changes: {
+      totalAmount: { before: Number(existing.totalAmount), after: totalAmount },
+      items: { before: null, after: 'modified' },
+    },
+  }).catch(() => {})
 
   return NextResponse.json(order)
   } catch (error) {

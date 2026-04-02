@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -25,14 +25,15 @@ interface TransferData {
   rows: TransferRow[]
 }
 
-const METHOD_LABEL: Record<string, string> = {
-  TRANSFER: '匯款', CHECK: '支票', CASH: '現金', ONLINE: '網銀', OTHER: '其他',
-}
 
 function fmt(n: number) { return n.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
 
 export default function PaymentTransferListPage() {
   const { dict } = useI18n()
+  const fp = dict.financePages
+  const methodLabel: Record<string, string> = {
+    TRANSFER: fp.ptMethodTransfer, CHECK: fp.ptMethodCheck, CASH: fp.ptMethodCash, ONLINE: fp.ptMethodOnline, OTHER: fp.ptMethodOther,
+  }
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
   const [startDate, setStartDate] = useState(firstOfMonth)
@@ -53,13 +54,15 @@ export default function PaymentTransferListPage() {
     finally { setLoading(false) }
   }, [startDate, endDate, bankAccount])
 
+  useEffect(() => { fetchData() }, [fetchData])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
         <Link href="/finance" className="text-muted-foreground hover:text-slate-700"><ChevronLeft className="h-5 w-5" /></Link>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">付款單轉帳清單</h1>
-          <p className="text-sm text-muted-foreground">應付帳款匯款及轉帳明細，供銀行批次匯款使用</p>
+          <h1 className="text-2xl font-bold text-slate-900">{fp.ptTitle}</h1>
+          <p className="text-sm text-muted-foreground">{fp.ptDesc}</p>
         </div>
         {data && (
           <Button variant="outline" size="sm" onClick={() => window.print()}>
@@ -69,20 +72,20 @@ export default function PaymentTransferListPage() {
       </div>
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4 print:hidden">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">開始</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateStart}</label>
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">結束</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.dateEnd}</label>
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border px-3 py-2 text-sm" />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">銀行帳號</label>
+          <label className="text-xs font-medium text-muted-foreground">{fp.ptBankLabel}</label>
           <input
             type="text"
             value={bankAccount}
             onChange={e => setBankAccount(e.target.value)}
-            placeholder="搜尋銀行帳號…"
+            placeholder={fp.ptBankPlaceholder}
             className="rounded-md border px-3 py-2 text-sm w-44"
           />
         </div>
@@ -92,16 +95,16 @@ export default function PaymentTransferListPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 print:gap-2">
             <div className="rounded-lg border bg-white p-3">
-              <p className="text-xs text-muted-foreground mb-1">付款筆數</p>
+              <p className="text-xs text-muted-foreground mb-1">{fp.ptSummaryCount}</p>
               <p className="text-base font-mono">{data.summary.count}</p>
             </div>
             <div className="rounded-lg border bg-white p-3">
-              <p className="text-xs text-muted-foreground mb-1">付款總額</p>
+              <p className="text-xs text-muted-foreground mb-1">{fp.ptSummaryTotal}</p>
               <p className="text-base font-mono text-red-600 font-bold">${fmt(data.summary.totalAmount)}</p>
             </div>
             {data.summary.byBank.length > 0 && (
               <div className="rounded-lg border bg-white p-3 col-span-2 sm:col-span-1">
-                <p className="text-xs text-muted-foreground mb-1">依銀行帳號</p>
+                <p className="text-xs text-muted-foreground mb-1">{fp.ptSummaryByBank}</p>
                 <div className="space-y-0.5">
                   {data.summary.byBank.map(b => (
                     <div key={b.bankAccount} className="flex justify-between text-xs">
@@ -117,20 +120,20 @@ export default function PaymentTransferListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-28">付款單號</TableHead>
-                  <TableHead className="w-24">付款日期</TableHead>
-                  <TableHead>供應商名稱</TableHead>
-                  <TableHead className="w-32">銀行帳號</TableHead>
-                  <TableHead className="w-20">方式</TableHead>
-                  <TableHead className="w-16">幣別</TableHead>
-                  <TableHead className="text-right w-28">金額</TableHead>
-                  <TableHead className="w-24">發票號</TableHead>
-                  <TableHead>備註</TableHead>
+                  <TableHead className="w-28">{fp.ptColPaymentNo}</TableHead>
+                  <TableHead className="w-24">{fp.ptColDate}</TableHead>
+                  <TableHead>{fp.ptColSupplier}</TableHead>
+                  <TableHead className="w-32">{fp.ptColBankAccount}</TableHead>
+                  <TableHead className="w-20">{fp.ptColMethod}</TableHead>
+                  <TableHead className="w-16">{fp.ptColCurrency}</TableHead>
+                  <TableHead className="text-right w-28">{fp.ptColAmount}</TableHead>
+                  <TableHead className="w-24">{fp.ptColInvoice}</TableHead>
+                  <TableHead>{fp.ptColNotes}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={9} className="py-12 text-center text-muted-foreground">無付款轉帳記錄</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="py-12 text-center text-muted-foreground">{fp.ptNoRecords}</TableCell></TableRow>
                 ) : (
                   <>
                     {data.rows.map(row => (
@@ -145,7 +148,7 @@ export default function PaymentTransferListPage() {
                         <TableCell className="font-mono text-xs text-muted-foreground">{row.bankAccount || '—'}</TableCell>
                         <TableCell>
                           <Badge className="bg-slate-100 text-slate-700 text-xs">
-                            {METHOD_LABEL[row.paymentMethod] ?? row.paymentMethod}
+                            {methodLabel[row.paymentMethod] ?? row.paymentMethod}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs">
@@ -159,7 +162,7 @@ export default function PaymentTransferListPage() {
                       </TableRow>
                     ))}
                     <TableRow className="border-t-2 bg-slate-50 font-semibold text-sm">
-                      <TableCell colSpan={6}>合計 {data.summary.count} 筆</TableCell>
+                      <TableCell colSpan={6}>{fp.arTotalLabel.replace('{n}', String(data.summary.count))}</TableCell>
                       <TableCell className="text-right font-mono text-red-600">${fmt(data.summary.totalAmount)}</TableCell>
                       <TableCell colSpan={2} />
                     </TableRow>

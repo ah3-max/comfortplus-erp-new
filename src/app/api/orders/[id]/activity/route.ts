@@ -43,11 +43,14 @@ export async function GET(
     const actionLabels: Record<string, string> = {
       create: '建立訂單',
       update: '更新訂單',
+      UPDATE: '更新訂單',
       confirm: '確認訂單',
       cancel: '取消訂單',
       complete: '完成訂單',
       payment: '登錄付款',
       status_change: '狀態變更',
+      STATUS_CHANGE: '狀態變更',
+      PAYMENT_UPDATE: '登錄付款',
     }
 
     const events: {
@@ -72,16 +75,29 @@ export async function GET(
       const title = actionLabels[action] ?? `操作：${action}`
       let detail: string | undefined
       if (log.changes && typeof log.changes === 'object') {
-        const changes = log.changes as Record<string, { from?: unknown; to?: unknown }>
+        const changes = log.changes as Record<string, { before?: unknown; after?: unknown; from?: unknown; to?: unknown }>
         const parts: string[] = []
-        if (changes.status) parts.push(`狀態：${changes.status.from ?? '—'} → ${changes.status.to}`)
-        if (changes.paidAmount) parts.push(`已收款：${Number(changes.paidAmount.to).toLocaleString()}`)
+        if (changes.status) {
+          const before = changes.status.before ?? changes.status.from ?? '—'
+          const after  = changes.status.after  ?? changes.status.to  ?? '—'
+          parts.push(`狀態：${before} → ${after}`)
+        }
+        if (changes.paidAmount) {
+          const after = changes.paidAmount.after ?? changes.paidAmount.to ?? 0
+          parts.push(`已收款：${Number(after).toLocaleString()}`)
+        }
+        if (changes.items) parts.push('品項已修改')
+        if (changes.totalAmount) {
+          const after = changes.totalAmount.after ?? changes.totalAmount.to ?? 0
+          parts.push(`總金額：${Number(after).toLocaleString()}`)
+        }
         if (parts.length) detail = parts.join('、')
       }
+      const eventType = (action === 'payment' || action === 'PAYMENT_UPDATE') ? 'payment' : 'audit'
       events.push({
         id: log.id,
         timestamp: log.timestamp.toISOString(),
-        type: action === 'payment' ? 'payment' : 'audit',
+        type: eventType,
         actor: log.userName,
         title,
         detail,

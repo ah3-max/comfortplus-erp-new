@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +44,8 @@ export default function DailyMonthlySummaryPage() {
     } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [mode, startDate, endDate])
+
+  useEffect(() => { fetchData() }, [fetchData])
 
   const chartData = data?.rows.map(r => ({
     name: r.label,

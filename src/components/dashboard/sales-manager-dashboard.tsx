@@ -18,7 +18,7 @@ interface SalesManagerData {
   today: { orders: number; revenue: number }
   month: { revenue: number; growth: number | null; orders: number }
   salesRanking: { userId: string; name: string; revenue: number; orders: number }[]
-  funnel: { quotes: number; converted: number; conversionRate: number }
+  funnel: { quotes: number; sent: number; accepted: number; converted: number; conversionRate: number }
   pending: { quotations: number; discounts: number }
   customerHealth: { unvisitedCount: number }
   activity: { visits: number; calls: number }
@@ -52,14 +52,20 @@ export function SalesManagerDashboard() {
       fetch('/api/sales-targets?team=true').then(r => r.json()),
       fetch('/api/sales-daily-report/summary').then(r => r.ok ? r.json() : null),
     ]).then(([managerData, targetData, summaryData]) => {
-      setData(managerData)
+      if (managerData?.team) setData(managerData)
       setTargets(Array.isArray(targetData) ? targetData : [])
       setReportSummary(summaryData)
-    }).finally(() => setLoading(false))
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <DashboardLoading />
-  if (!data) return null
+  if (!data) return (
+    <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
+      <AlertTriangle className="h-8 w-8 text-amber-500" />
+      <p>儀表板載入失敗，請重新整理</p>
+      <button onClick={() => window.location.reload()} className="text-sm underline">重新載入</button>
+    </div>
+  )
 
   const { team, today, month, salesRanking, funnel, pending, customerHealth, activity } = data
   const pendingTotal = pending.quotations + pending.discounts
@@ -181,16 +187,16 @@ export function SalesManagerDashboard() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 <FileText className="h-4 w-4 text-blue-500" />
-                今日日報
+                {dict.roleDashboard.todayDailyReport}
                 <span className={`text-xs font-normal px-2 py-0.5 rounded-full ${
                   reportSummary.submittedCount === reportSummary.totalCount
                     ? 'bg-green-100 text-green-700'
                     : 'bg-amber-100 text-amber-700'
                 }`}>
-                  {reportSummary.submittedCount} / {reportSummary.totalCount} 人已提交
+                  {reportSummary.submittedCount} / {reportSummary.totalCount} {dict.roleDashboard.staffSubmitted}
                 </span>
               </CardTitle>
-              <Link href="/sales-daily-report" className="text-xs text-blue-600 hover:underline">查看全部 →</Link>
+              <Link href="/sales-daily-report" className="text-xs text-blue-600 hover:underline">{dict.roleDashboard.viewAll} →</Link>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -205,11 +211,11 @@ export function SalesManagerDashboard() {
                     <span className="text-sm font-medium">{rep.name}</span>
                     {submitted ? (
                       <span className="flex items-center gap-0.5 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
-                        <CheckCircle2 className="h-3 w-3" />已提交
+                        <CheckCircle2 className="h-3 w-3" />{dict.roleDashboard.submitted}
                       </span>
                     ) : (
                       <span className="flex items-center gap-0.5 text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full">
-                        <Clock className="h-3 w-3" />未提交
+                        <Clock className="h-3 w-3" />{dict.roleDashboard.notSubmitted}
                       </span>
                     )}
                   </div>
@@ -267,27 +273,40 @@ export function SalesManagerDashboard() {
               {dict.roleDashboard.funnelAnalysis}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <p className="text-5xl font-bold text-indigo-600">{funnel.conversionRate}%</p>
-              <p className="text-xs text-muted-foreground mt-1">{dict.roleDashboard.quoteToOrderRate}</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{dict.roleDashboard.monthQuotes}</span>
-                <span className="font-bold">{funnel.quotes}</span>
-              </div>
-              <div className="h-3 rounded-full bg-slate-100">
-                <div className="h-3 rounded-full bg-indigo-500" style={{ width: '100%' }} />
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{dict.roleDashboard.converted}</span>
-                <span className="font-bold text-green-600">{funnel.converted}</span>
-              </div>
-              <div className="h-3 rounded-full bg-slate-100">
-                <div className="h-3 rounded-full bg-green-500" style={{ width: `${funnel.conversionRate}%` }} />
-              </div>
-            </div>
+          <CardContent className="space-y-3">
+            {/* Funnel stages */}
+            {(() => {
+              const stages = [
+                { label: '建立報價', count: funnel.quotes,    color: 'bg-indigo-500', pct: 100 },
+                { label: '已發送',   count: funnel.sent,      color: 'bg-blue-500',   pct: funnel.quotes > 0 ? Math.round(funnel.sent / funnel.quotes * 100) : 0 },
+                { label: '客戶接受', count: funnel.accepted,  color: 'bg-violet-500', pct: funnel.quotes > 0 ? Math.round(funnel.accepted / funnel.quotes * 100) : 0 },
+                { label: '轉訂單',   count: funnel.converted, color: 'bg-green-500',  pct: funnel.conversionRate },
+              ]
+              return (
+                <div className="space-y-2.5">
+                  {stages.map((s, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground font-medium">{s.label}</span>
+                        <span className="font-bold tabular-nums">{s.count} <span className="font-normal text-muted-foreground">({s.pct}%)</span></span>
+                      </div>
+                      <div className="h-6 rounded bg-slate-100 overflow-hidden flex items-center">
+                        <div className={`h-6 rounded ${s.color} transition-all duration-700 flex items-center justify-end pr-2`}
+                          style={{ width: `${Math.max(s.pct, s.count > 0 ? 8 : 0)}%` }}>
+                          {s.pct >= 20 && <span className="text-[10px] text-white font-bold">{s.pct}%</span>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-1 border-t flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">{dict.roleDashboard.quoteToOrderRate}</span>
+                    <span className={`text-lg font-bold ${funnel.conversionRate >= 50 ? 'text-green-600' : funnel.conversionRate >= 25 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {funnel.conversionRate}%
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
           </CardContent>
         </Card>
 

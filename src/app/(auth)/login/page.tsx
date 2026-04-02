@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [quickLoading, setQuickLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
 
   async function doLogin(e: string, p: string, isQuick = false) {
     setError('')
@@ -38,6 +39,11 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     doLogin(email, password)
+  }
+
+  async function handleGoogleSignIn() {
+    setGoogleLoading(true)
+    await signIn('google', { callbackUrl: '/dashboard' })
   }
 
   return (
@@ -98,7 +104,7 @@ export default function LoginPage() {
           {error && (
             <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-md">{error}</p>
           )}
-          <Button type="submit" className="w-full" disabled={loading || quickLoading}>
+          <Button type="submit" className="w-full" disabled={loading || quickLoading || googleLoading}>
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -108,6 +114,23 @@ export default function LoginPage() {
               dict.login.submit
             )}
           </Button>
+
+          {process.env.NEXT_PUBLIC_GOOGLE_ENABLED === 'true' && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={loading || quickLoading || googleLoading}
+              onClick={handleGoogleSignIn}
+            >
+              {googleLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Globe className="mr-2 h-4 w-4" />
+              )}
+              使用 Google 帳號登入
+            </Button>
+          )}
 
           <div className="relative my-1">
             <div className="absolute inset-0 flex items-center">

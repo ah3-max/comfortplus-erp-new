@@ -24,6 +24,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         items: {
           include: { product: { select: { sku: true, name: true, unit: true, weight: true } } },
         },
+        proofOfDeliveries: {
+          select: { id: true, photoUrl: true, signerName: true, signedAt: true, anomalyNote: true, isCompleted: true },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     })
 

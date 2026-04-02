@@ -78,24 +78,7 @@ interface Pagination {
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
 
-const CATEGORIES = [
-  { value: 'OIL', label: '油費' },
-  { value: 'MEAL', label: '餐費' },
-  { value: 'TRANSPORT', label: '交通' },
-  { value: 'OFFICE', label: '辦公用品' },
-  { value: 'MAINTENANCE', label: '保養維修' },
-  { value: 'POSTAGE', label: '郵資' },
-  { value: 'CLEANING', label: '清潔' },
-  { value: 'OTHER', label: '其他' },
-]
-
-const STATUS_FILTERS = [
-  { value: '', label: '全部' },
-  { value: 'PENDING', label: '待審核' },
-  { value: 'CONFIRMED', label: '已確認' },
-  { value: 'REJECTED', label: '已駁回' },
-  { value: 'REIMBURSED', label: '已報銷' },
-]
+const CATEGORY_VALUES = ['OIL', 'MEAL', 'TRANSPORT', 'OFFICE', 'MAINTENANCE', 'POSTAGE', 'CLEANING', 'OTHER']
 
 const STATUS_BADGE: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -104,16 +87,9 @@ const STATUS_BADGE: Record<string, string> = {
   REIMBURSED: 'bg-green-100 text-green-700 border-green-200',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: '待審核',
-  CONFIRMED: '已確認',
-  REJECTED: '已駁回',
-  REIMBURSED: '已報銷',
-}
+// Status labels are provided via dict.pettyCash (see getStatusLabel inside component)
 
-const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
-  CATEGORIES.map(c => [c.value, c.label])
-)
+// Category labels are provided via dict.pettyCashCategories (see getCategoryLabel inside component)
 
 const CATEGORY_BADGE: Record<string, string> = {
   OIL: 'bg-orange-100 text-orange-700',
@@ -150,12 +126,32 @@ function defaultForm() {
 /* ─── Main Page ──────────────────────────────────────────────────────────────── */
 
 export default function PettyCashPage() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { dict } = useI18n()
   const { data: session } = useSession()
   const role = (session?.user as { role?: string })?.role ?? ''
   const userId = (session?.user as { id?: string })?.id ?? ''
   const isAdmin = ADMIN_ROLES.includes(role)
+
+  const pc = dict.pettyCash
+  const catDict = dict.pettyCashCategories
+  const getCategoryLabel = (key: string): string => (catDict as Record<string, string>)[key] ?? key
+  const getStatusLabel = (key: string): string => {
+    const map: Record<string, string> = {
+      PENDING: pc.statusPending,
+      CONFIRMED: pc.statusConfirmedLabel,
+      REJECTED: pc.statusRejectedLabel,
+      REIMBURSED: pc.statusReimbursedLabel,
+    }
+    return map[key] ?? key
+  }
+  const STATUS_FILTERS = [
+    { value: '', label: pc.filterAll },
+    { value: 'PENDING', label: pc.filterPending },
+    { value: 'CONFIRMED', label: pc.filterConfirmed },
+    { value: 'REJECTED', label: pc.filterRejected },
+    { value: 'REIMBURSED', label: pc.filterReimbursed },
+  ]
+  const CATEGORIES_I18N = CATEGORY_VALUES.map(v => ({ value: v, label: getCategoryLabel(v) }))
 
   /* ── State ── */
   const [funds, setFunds] = useState<Fund[]>([])
@@ -273,7 +269,7 @@ export default function PettyCashPage() {
       const res = await fetch('/api/upload', { method: 'POST', body: fd })
       if (!res.ok) {
         const d = await res.json()
-        toast.error(d.error ?? '上傳失敗')
+        toast.error(d.error ?? pc.uploadFailed)
         return
       }
       const d = await res.json()
@@ -281,9 +277,9 @@ export default function PettyCashPage() {
         ...f,
         receiptPhotos: [...f.receiptPhotos, { url: d.url, label: file.name }],
       }))
-      toast.success('照片上傳成功')
+      toast.success(pc.uploadSuccess)
     } catch {
-      toast.error('上傳失敗，請稍後重試')
+      toast.error(pc.uploadRetry)
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -296,9 +292,9 @@ export default function PettyCashPage() {
 
   /* ── Save record (create or edit) ── */
   async function handleSave() {
-    if (!form.fundId) { toast.error('請選擇帳戶'); return }
-    if (!form.description) { toast.error('請填寫說明'); return }
-    if (!form.amount || Number(form.amount) <= 0) { toast.error('請填寫有效金額'); return }
+    if (!form.fundId) { toast.error(pc.validationNoFund); return }
+    if (!form.description) { toast.error(pc.validationNoDesc); return }
+    if (!form.amount || Number(form.amount) <= 0) { toast.error(pc.validationNoAmount); return }
 
     setSaving(true)
     const payload = {
@@ -331,7 +327,7 @@ export default function PettyCashPage() {
       }
 
       if (res.ok) {
-        toast.success(editRecord ? '記錄已更新' : '記錄已建立')
+        toast.success(editRecord ? pc.updateSuccess : pc.createSuccess)
         setShowNewDialog(false)
         setEditRecord(null)
         fetchRecords()
@@ -339,10 +335,10 @@ export default function PettyCashPage() {
         fetchPendingCount()
       } else {
         const d = await res.json()
-        toast.error(d.error ?? '儲存失敗')
+        toast.error(d.error ?? pc.saveFailed)
       }
     } catch {
-      toast.error('儲存失敗，請稍後重試')
+      toast.error(pc.saveRetry)
     } finally {
       setSaving(false)
     }
@@ -362,17 +358,17 @@ export default function PettyCashPage() {
         }),
       })
       if (res.ok) {
-        toast.success('審核完成')
+        toast.success(pc.reviewSuccess)
         setReviewRecord(null)
         fetchRecords()
         fetchFunds()
         fetchPendingCount()
       } else {
         const d = await res.json()
-        toast.error(d.error ?? '審核失敗')
+        toast.error(d.error ?? pc.reviewFailed)
       }
     } catch {
-      toast.error('審核失敗，請稍後重試')
+      toast.error(pc.reviewRetry)
     } finally {
       setReviewing(false)
     }
@@ -380,20 +376,20 @@ export default function PettyCashPage() {
 
   /* ── Delete record ── */
   async function handleDelete(rec: PettyCashRecord) {
-    if (!confirm(`確定要刪除記錄 ${rec.recordNo}？`)) return
+    if (!confirm(pc.deleteConfirm.replace('{recordNo}', rec.recordNo))) return
     try {
       const res = await fetch(`/api/petty-cash/${rec.id}`, { method: 'DELETE' })
       if (res.ok) {
-        toast.success('記錄已刪除')
+        toast.success(pc.deleteSuccess)
         fetchRecords()
         fetchFunds()
         fetchPendingCount()
       } else {
         const d = await res.json()
-        toast.error(d.error ?? '刪除失敗')
+        toast.error(d.error ?? pc.deleteFailed)
       }
     } catch {
-      toast.error('刪除失敗，請稍後重試')
+      toast.error(pc.deleteRetry)
     }
   }
 
@@ -409,16 +405,16 @@ export default function PettyCashPage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">零用金管理</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{pc.title}</h1>
           {myFund ? (
             <p className="text-sm text-muted-foreground mt-0.5">
               <Wallet className="inline h-4 w-4 mr-1 text-blue-500" />
-              {myFund.name} 餘額：
+              {myFund.name} {pc.myBalanceLabel}
               <span className="font-semibold text-slate-800">{fmtAmount(myFund.balance)}</span>
-              　上限：{fmtAmount(myFund.limit)}
+              　{pc.myLimitLabel}{fmtAmount(myFund.limit)}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">管理零用金支出記錄與報銷流程</p>
+            <p className="text-sm text-muted-foreground">{pc.subtitle}</p>
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -428,7 +424,7 @@ export default function PettyCashPage() {
               className="bg-amber-50 text-amber-700 border-amber-300 text-sm px-3 py-1 cursor-pointer"
               onClick={() => setStatusFilter('PENDING')}
             >
-              待審核 {pendingCount} 筆
+              {pc.pendingBadge.replace('{n}', String(pendingCount))}
             </Badge>
           )}
           <Button
@@ -436,7 +432,7 @@ export default function PettyCashPage() {
             onClick={openNewDialog}
           >
             <Plus className="h-4 w-4 mr-1" />
-            新增支出
+            {pc.addExpense}
           </Button>
         </div>
       </div>
@@ -465,11 +461,11 @@ export default function PettyCashPage() {
             {/* Category dropdown */}
             <Select value={categoryFilter || 'ALL'} onValueChange={v => { if (v) setCategoryFilter(v === 'ALL' ? '' : v) }}>
               <SelectTrigger className="w-36 min-h-[44px]">
-                <SelectValue placeholder="類別" />
+                <SelectValue placeholder={pc.categoryLabel} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">全部類別</SelectItem>
-                {CATEGORIES.map(c => (
+                <SelectItem value="ALL">{pc.allCategories}</SelectItem>
+                {CATEGORIES_I18N.map(c => (
                   <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -503,7 +499,7 @@ export default function PettyCashPage() {
       ) : records.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Wallet className="mx-auto h-10 w-10 mb-3 opacity-30" />
-          <p>尚無零用金記錄</p>
+          <p>{pc.noRecords}</p>
         </div>
       ) : (
         <>
@@ -512,14 +508,14 @@ export default function PettyCashPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50">
-                  <TableHead className="w-24">日期</TableHead>
-                  <TableHead>帳戶</TableHead>
-                  <TableHead className="w-24">類別</TableHead>
-                  <TableHead>說明</TableHead>
-                  <TableHead className="text-right w-28">金額</TableHead>
-                  <TableHead className="w-20 text-center">憑證</TableHead>
-                  <TableHead className="w-24">狀態</TableHead>
-                  <TableHead className="w-20">操作</TableHead>
+                  <TableHead className="w-24">{pc.colDate}</TableHead>
+                  <TableHead>{pc.colAccount}</TableHead>
+                  <TableHead className="w-24">{pc.colCategory}</TableHead>
+                  <TableHead>{pc.colDescription}</TableHead>
+                  <TableHead className="text-right w-28">{pc.colAmount}</TableHead>
+                  <TableHead className="w-20 text-center">{pc.colReceipt}</TableHead>
+                  <TableHead className="w-24">{pc.colStatus}</TableHead>
+                  <TableHead className="w-20">{pc.colActions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -534,7 +530,7 @@ export default function PettyCashPage() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`text-xs ${CATEGORY_BADGE[rec.category] ?? ''}`}>
-                        {CATEGORY_LABEL[rec.category] ?? rec.category}
+                        {getCategoryLabel(rec.category)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">
@@ -554,7 +550,7 @@ export default function PettyCashPage() {
                         variant="outline"
                         className={`text-xs ${STATUS_BADGE[rec.status] ?? ''}`}
                       >
-                        {STATUS_LABELS[rec.status] ?? rec.status}
+                        {getStatusLabel(rec.status)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -566,7 +562,7 @@ export default function PettyCashPage() {
                           {canEdit(rec) && (
                             <DropdownMenuItem onClick={() => openEditDialog(rec)}>
                               <Pencil className="h-4 w-4 mr-2" />
-                              編輯
+                              {pc.editAction}
                             </DropdownMenuItem>
                           )}
                           {isAdmin && rec.status === 'PENDING' && (
@@ -577,7 +573,7 @@ export default function PettyCashPage() {
                               }}
                             >
                               <CheckCircle2 className="h-4 w-4 mr-2" />
-                              財務審核
+                              {pc.reviewAction}
                             </DropdownMenuItem>
                           )}
                           {(isAdmin || (rec.submittedById === userId && rec.status === 'PENDING')) && (
@@ -586,7 +582,7 @@ export default function PettyCashPage() {
                               onClick={() => handleDelete(rec)}
                             >
                               <XCircle className="h-4 w-4 mr-2" />
-                              刪除
+                              {pc.deleteAction}
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>
@@ -607,12 +603,12 @@ export default function PettyCashPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="outline" className={`text-xs ${CATEGORY_BADGE[rec.category] ?? ''}`}>
-                          {CATEGORY_LABEL[rec.category] ?? rec.category}
+                          {getCategoryLabel(rec.category)}
                         </Badge>
                         <Badge variant="outline" className={`text-xs ${STATUS_BADGE[rec.status] ?? ''}`}>
-                          {STATUS_LABELS[rec.status] ?? rec.status}
+                          {getStatusLabel(rec.status)}
                         </Badge>
-                        <span className="text-xs text-muted-foreground">{rec.hasReceipt ? '✅ 有憑證' : '⏳ 待憑證'}</span>
+                        <span className="text-xs text-muted-foreground">{rec.hasReceipt ? pc.hasReceipt : pc.noReceipt}</span>
                       </div>
                       <p className="mt-1 font-medium text-sm truncate">{rec.description}</p>
                       {rec.vendor && <p className="text-xs text-muted-foreground truncate">{rec.vendor}</p>}
@@ -657,8 +653,9 @@ export default function PettyCashPage() {
 
           {/* Pagination info */}
           <p className="text-sm text-muted-foreground text-center">
-            共 {pagination.total} 筆記錄
-            {pagination.totalPages > 1 && `，第 ${pagination.page} / ${pagination.totalPages} 頁`}
+            {pagination.totalPages > 1
+              ? pc.paginationInfo.replace('{total}', String(pagination.total)).replace('{page}', String(pagination.page)).replace('{totalPages}', String(pagination.totalPages))
+              : pc.paginationTotal.replace('{total}', String(pagination.total))}
           </p>
         </>
       )}
@@ -672,24 +669,24 @@ export default function PettyCashPage() {
       >
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editRecord ? '編輯支出記錄' : '新增支出記錄'}</DialogTitle>
+            <DialogTitle>{editRecord ? pc.editDialogTitle : pc.newDialogTitle}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-1">
             {/* 帳戶 */}
             <div className="space-y-1">
-              <Label>帳戶 <span className="text-red-500">*</span></Label>
+              <Label>{pc.accountRequired}</Label>
               <Select
                 value={form.fundId}
                 onValueChange={v => { if (v) setForm(f => ({ ...f, fundId: v })) }}
               >
                 <SelectTrigger className="min-h-[44px]">
-                  <SelectValue placeholder="選擇零用金帳戶" />
+                  <SelectValue placeholder={pc.accountPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {funds.filter(f => f.isActive).map(f => (
                     <SelectItem key={f.id} value={f.id}>
-                      {f.name}（{f.holderName}）— 餘額 {fmtAmount(f.balance)}
+                      {f.name}（{f.holderName}）— {pc.myBalanceLabel} {fmtAmount(f.balance)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -699,7 +696,7 @@ export default function PettyCashPage() {
             <div className="grid grid-cols-2 gap-3">
               {/* 日期 */}
               <div className="space-y-1">
-                <Label>日期 <span className="text-red-500">*</span></Label>
+                <Label>{pc.dateRequired}</Label>
                 <Input
                   type="date"
                   className="min-h-[44px]"
@@ -710,7 +707,7 @@ export default function PettyCashPage() {
 
               {/* 類別 */}
               <div className="space-y-1">
-                <Label>類別 <span className="text-red-500">*</span></Label>
+                <Label>{pc.categoryRequired}</Label>
                 <Select
                   value={form.category}
                   onValueChange={v => { if (v) setForm(f => ({ ...f, category: v })) }}
@@ -719,7 +716,7 @@ export default function PettyCashPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(c => (
+                    {CATEGORIES_I18N.map(c => (
                       <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -729,11 +726,11 @@ export default function PettyCashPage() {
 
             {/* 說明 */}
             <div className="space-y-1">
-              <Label>說明 <span className="text-red-500">*</span></Label>
+              <Label>{pc.descriptionRequired}</Label>
               <Textarea
                 className="resize-none"
                 rows={2}
-                placeholder="請說明支出用途"
+                placeholder={pc.descriptionPlaceholder}
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               />
@@ -741,7 +738,7 @@ export default function PettyCashPage() {
 
             {/* 金額 */}
             <div className="space-y-1">
-              <Label>金額（NT$） <span className="text-red-500">*</span></Label>
+              <Label>{pc.amountRequired}</Label>
               <Input
                 type="number"
                 min="1"
@@ -756,10 +753,10 @@ export default function PettyCashPage() {
             <div className="grid grid-cols-2 gap-3">
               {/* 商家 */}
               <div className="space-y-1">
-                <Label>商家</Label>
+                <Label>{pc.vendorLabel}</Label>
                 <Input
                   className="min-h-[44px]"
-                  placeholder="商家名稱"
+                  placeholder={pc.vendorPlaceholder}
                   value={form.vendor}
                   onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))}
                 />
@@ -767,10 +764,10 @@ export default function PettyCashPage() {
 
               {/* 發票號碼 */}
               <div className="space-y-1">
-                <Label>發票號碼</Label>
+                <Label>{pc.receiptNoLabel}</Label>
                 <Input
                   className="min-h-[44px]"
-                  placeholder="AB-12345678"
+                  placeholder={pc.receiptNoPlaceholder}
                   value={form.receiptNo}
                   onChange={e => setForm(f => ({ ...f, receiptNo: e.target.value }))}
                 />
@@ -779,11 +776,11 @@ export default function PettyCashPage() {
 
             {/* 備注 */}
             <div className="space-y-1">
-              <Label>備注</Label>
+              <Label>{pc.notesLabel}</Label>
               <Textarea
                 className="resize-none"
                 rows={2}
-                placeholder="其他備注（選填）"
+                placeholder={pc.notesPlaceholder}
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
               />
@@ -791,7 +788,7 @@ export default function PettyCashPage() {
 
             {/* 上傳收據照片 */}
             <div className="space-y-2">
-              <Label>收據照片</Label>
+              <Label>{pc.receiptPhotosLabel}</Label>
 
               {/* Thumbnail previews */}
               {form.receiptPhotos.length > 0 && (
@@ -840,9 +837,9 @@ export default function PettyCashPage() {
                   ) : (
                     <ImageIcon className="h-4 w-4 mr-2" />
                   )}
-                  {uploading ? '上傳中…' : '選擇照片'}
+                  {uploading ? pc.uploadingBtn : pc.uploadPhotoBtn}
                 </Button>
-                <span className="text-xs text-muted-foreground">支援 JPG / PNG / WebP，每張上限 10MB</span>
+                <span className="text-xs text-muted-foreground">{pc.uploadHint}</span>
               </div>
             </div>
           </div>
@@ -853,7 +850,7 @@ export default function PettyCashPage() {
               className="min-h-[44px]"
               onClick={() => { setShowNewDialog(false); setEditRecord(null) }}
             >
-              取消
+              {pc.cancelBtn}
             </Button>
             <Button
               className="min-h-[44px]"
@@ -861,7 +858,7 @@ export default function PettyCashPage() {
               disabled={saving || uploading}
             >
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editRecord ? '儲存變更' : '建立記錄'}
+              {editRecord ? pc.saveChangesBtn : pc.createBtn}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -871,7 +868,7 @@ export default function PettyCashPage() {
       <Dialog open={!!reviewRecord} onOpenChange={open => { if (!open) setReviewRecord(null) }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>財務審核</DialogTitle>
+            <DialogTitle>{pc.reviewDialogTitle}</DialogTitle>
           </DialogHeader>
 
           {reviewRecord && (
@@ -879,57 +876,57 @@ export default function PettyCashPage() {
               {/* Record details (readonly) */}
               <div className="rounded-lg bg-slate-50 border p-3 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">單號</span>
+                  <span className="text-muted-foreground">{pc.reviewField_recordNo}</span>
                   <span className="font-mono">{reviewRecord.recordNo}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">日期</span>
+                  <span className="text-muted-foreground">{pc.reviewField_date}</span>
                   <span>{reviewRecord.date.slice(0, 10)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">帳戶</span>
+                  <span className="text-muted-foreground">{pc.reviewField_account}</span>
                   <span>{reviewRecord.fund.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">提交人</span>
+                  <span className="text-muted-foreground">{pc.reviewField_submitter}</span>
                   <span>{reviewRecord.submittedBy.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">類別</span>
+                  <span className="text-muted-foreground">{pc.reviewField_category}</span>
                   <Badge variant="outline" className={`text-xs ${CATEGORY_BADGE[reviewRecord.category] ?? ''}`}>
-                    {CATEGORY_LABEL[reviewRecord.category] ?? reviewRecord.category}
+                    {getCategoryLabel(reviewRecord.category)}
                   </Badge>
                 </div>
                 <div className="flex justify-between items-start gap-2">
-                  <span className="text-muted-foreground flex-shrink-0">說明</span>
+                  <span className="text-muted-foreground flex-shrink-0">{pc.reviewField_description}</span>
                   <span className="text-right">{reviewRecord.description}</span>
                 </div>
                 {reviewRecord.vendor && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">商家</span>
+                    <span className="text-muted-foreground">{pc.reviewField_vendor}</span>
                     <span>{reviewRecord.vendor}</span>
                   </div>
                 )}
                 {reviewRecord.receiptNo && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">發票號碼</span>
+                    <span className="text-muted-foreground">{pc.reviewField_receiptNo}</span>
                     <span className="font-mono">{reviewRecord.receiptNo}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-center border-t pt-2 mt-2">
-                  <span className="text-muted-foreground">金額</span>
+                  <span className="text-muted-foreground">{pc.reviewField_amount}</span>
                   <span className="font-bold text-base">{fmtAmount(reviewRecord.amount)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">憑證</span>
-                  <span>{reviewRecord.hasReceipt ? '✅ 已附' : '⏳ 未附'}</span>
+                  <span className="text-muted-foreground">{pc.reviewField_receipt}</span>
+                  <span>{reviewRecord.hasReceipt ? pc.receiptAttached : pc.receiptMissing}</span>
                 </div>
               </div>
 
               {/* Receipt photo thumbnails */}
               {reviewRecord.receiptPhotos && reviewRecord.receiptPhotos.length > 0 && (
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">收據照片</p>
+                  <p className="text-sm text-muted-foreground">{pc.receiptPhotosTitle}</p>
                   <div className="flex flex-wrap gap-2">
                     {reviewRecord.receiptPhotos.map((photo, idx) => (
                       <a key={idx} href={photo.url} target="_blank" rel="noreferrer">
@@ -947,7 +944,7 @@ export default function PettyCashPage() {
 
               {/* Review decision */}
               <div className="space-y-1">
-                <Label>審核結果 <span className="text-red-500">*</span></Label>
+                <Label>{pc.reviewResultLabel}</Label>
                 <Select
                   value={reviewForm.status}
                   onValueChange={v => { if (v) setReviewForm(f => ({ ...f, status: v })) }}
@@ -956,20 +953,20 @@ export default function PettyCashPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CONFIRMED">✅ 已確認</SelectItem>
-                    <SelectItem value="REJECTED">❌ 已駁回</SelectItem>
-                    <SelectItem value="REIMBURSED">💰 已報銷</SelectItem>
+                    <SelectItem value="CONFIRMED">{pc.statusConfirmed}</SelectItem>
+                    <SelectItem value="REJECTED">{pc.statusRejected}</SelectItem>
+                    <SelectItem value="REIMBURSED">{pc.statusReimbursed}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Review note */}
               <div className="space-y-1">
-                <Label>審核備注</Label>
+                <Label>{pc.reviewNoteLabel}</Label>
                 <Textarea
                   className="resize-none"
                   rows={3}
-                  placeholder="審核說明（選填）"
+                  placeholder={pc.reviewNotePlaceholder}
                   value={reviewForm.reviewNote}
                   onChange={e => setReviewForm(f => ({ ...f, reviewNote: e.target.value }))}
                 />
@@ -983,7 +980,7 @@ export default function PettyCashPage() {
               className="min-h-[44px]"
               onClick={() => setReviewRecord(null)}
             >
-              取消
+              {pc.cancelBtn}
             </Button>
             <Button
               className="min-h-[44px]"
@@ -991,7 +988,7 @@ export default function PettyCashPage() {
               disabled={reviewing}
             >
               {reviewing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              確認送出
+              {pc.submitReviewBtn}
             </Button>
           </DialogFooter>
         </DialogContent>

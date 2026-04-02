@@ -170,6 +170,12 @@ model Customer {
   // ── P3-4 售後管理 ────────────────────────────────────
   afterSalesOrders     AfterSalesOrder[]      @relation("AfterSalesCustomer")
 
+  // ── 機構巡迴排程 ────────────────────────────────────
+  institutionTours     InstitutionTour[]      @relation("TourCustomer")
+  tourAutoSchedule     Boolean               @default(false)  // 是否啟用自動排程
+  tourAutoAssigneeId   String?               // 自動建單時指派的人員（null=使用 salesRepId）
+  tourAutoAssignee     User?                 @relation("TourAutoAssignee", fields: [tourAutoAssigneeId], references: [id])
+
   @@index([salesRepId, isActive])
   @@index([devStatus, isActive])
   @@index([type, isActive])

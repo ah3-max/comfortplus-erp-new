@@ -34,12 +34,19 @@ export function FinanceDashboard() {
 
   useEffect(() => {
     fetch('/api/dashboard/finance').then(r => r.json())
-      .then(setData)
+      .then(d => { if (d?.receivable) setData(d) })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
 
   if (loading) return <DashboardLoading />
-  if (!data) return null
+  if (!data) return (
+    <div className="flex flex-col items-center justify-center h-48 gap-3 text-muted-foreground">
+      <AlertTriangle className="h-8 w-8 text-amber-500" />
+      <p>儀表板載入失敗，請重新整理</p>
+      <button onClick={() => window.location.reload()} className="text-sm underline">重新載入</button>
+    </div>
+  )
 
   const { receivable, payable, arAging, todayCollections, monthSummary, overdueCustomers, pendingReconciliation } = data
 

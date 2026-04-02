@@ -153,15 +153,48 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: '只能編輯草稿傳票' }, { status: 400 })
     }
 
-    // Update draft
-    const updated = await prisma.journalEntry.update({
-      where: { id },
-      data: {
-        description: body.description ?? undefined,
-        notes: body.notes ?? undefined,
-        entryDate: body.entryDate ? new Date(body.entryDate) : undefined,
-      },
+    // Update draft — 支援更新分錄行
+    const updateData: Record<string, unknown> = {}
+    if (body.description !== undefined) updateData.description = body.description
+    if (body.notes !== undefined)       updateData.notes = body.notes
+    if (body.entryDate)                 updateData.entryDate = new Date(body.entryDate)
+
+    if (body.lines?.length) {
+      const totalDebit  = body.lines.reduce((s: number, l: { debit?: number }) => s + (l.debit ?? 0), 0)
+      const totalCredit = body.lines.reduce((s: number, l: { credit?: number }) => s + (l.credit ?? 0), 0)
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        return NextResponse.json({ error: `借貸不平衡：借方 ${totalDebit} ≠ 貸方 ${totalCredit}` }, { status: 400 })
+      }
+      updateData.totalDebit  = totalDebit
+      updateData.totalCredit = totalCredit
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      if (body.lines?.length) {
+        await tx.journalEntryLine.deleteMany({ where: { entryId: id } })
+        await tx.journalEntryLine.createMany({
+          data: body.lines.map((l: { accountId: string; debit?: number; credit?: number; description?: string }, idx: number) => ({
+            entryId: id,
+            accountId: l.accountId,
+            debit: l.debit ?? 0,
+            credit: l.credit ?? 0,
+            description: l.description ?? null,
+            lineNo: idx + 1,
+          })),
+        })
+      }
+      return tx.journalEntry.update({
+        where: { id },
+        data: updateData,
+        include: { lines: { include: { account: { select: { code: true, name: true } } }, orderBy: { lineNo: 'asc' } } },
+      })
     })
+
+    logAudit({
+      userId: session.user.id, userName: session.user.name ?? '', userRole: role,
+      module: 'journal-entries', action: 'UPDATE', entityType: 'JournalEntry',
+      entityId: id, entityLabel: current.entryNo,
+    }).catch(() => {})
 
     return NextResponse.json(updated)
   } catch (error) {

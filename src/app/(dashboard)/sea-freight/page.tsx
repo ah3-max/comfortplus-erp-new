@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +16,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import {
   Plus, Loader2, Ship, Anchor, MapPin, Calendar, ArrowRight,
-  Pencil, Container, FileText, Trash2,
+  Pencil, Container, FileText, Trash2, Upload, ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -47,6 +47,7 @@ interface SeaFreight {
   customsCost: number | null
   notes: string | null
   createdAt: string
+  documentsJson: Array<{ type: string; url: string; fileName: string; uploadedAt: string }> | null
 }
 
 interface ProductionOrder { id: string; orderNo: string }
@@ -202,6 +203,22 @@ export default function SeaFreightPage() {
   const [productionOrders, setProductionOrders] = useState<ProductionOrder[]>([])
   const [purchaseOrders, setPurchaseOrders]     = useState<PurchaseOrder[]>([])
 
+  // Document upload state
+  const [editingDocs, setEditingDocs] = useState<Array<{ type: string; url: string; fileName: string; uploadedAt: string }>>([])
+  const [docUploading, setDocUploading] = useState(false)
+  const [docType, setDocType] = useState('BL')
+  const docInputRef = useRef<HTMLInputElement | null>(null)
+
+  const DOC_TYPES = [
+    { value: 'BL', label: '提單 (B/L)' },
+    { value: 'INVOICE', label: '商業發票' },
+    { value: 'PACKING_LIST', label: '裝箱單' },
+    { value: 'CERT_ORIGIN', label: '產地證明' },
+    { value: 'COA', label: '品質證書 (CoA)' },
+    { value: 'CUSTOMS', label: '報關文件' },
+    { value: 'OTHER', label: '其他' },
+  ]
+
   // ── Fetch ────────────────────────────────────────────────────────────
 
   const fetchRecords = useCallback(async () => {
@@ -300,7 +317,39 @@ export default function SeaFreightPage() {
       customsCost: record.customsCost?.toString() ?? '',
       notes: record.notes ?? '',
     })
+    setEditingDocs(record.documentsJson ?? [])
     setEditOpen(true)
+  }
+
+  async function handleDocUpload(file: File) {
+    if (!editingId) return
+    setDocUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('docType', docType)
+      const res = await fetch(`/api/sea-freight/${editingId}/documents`, { method: 'POST', body: fd })
+      if (!res.ok) throw new Error((await res.json()).error ?? '上傳失敗')
+      const data = await res.json()
+      setEditingDocs(data.documentsJson ?? [])
+      toast.success(`${data.typeLabel} 上傳成功`)
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : '上傳失敗') }
+    finally { setDocUploading(false) }
+  }
+
+  async function handleDocDelete(url: string) {
+    if (!editingId) return
+    try {
+      const res = await fetch(`/api/sea-freight/${editingId}/documents`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setEditingDocs(data.documentsJson ?? [])
+      toast.success('文件已刪除')
+    } catch { toast.error('刪除失敗') }
   }
 
   async function handleEdit() {
@@ -818,6 +867,51 @@ export default function SeaFreightPage() {
                   placeholder="0"
                 />
               </div>
+            </div>
+
+            {/* L-13: Documents upload section */}
+            <div className="space-y-2 border rounded-lg p-3">
+              <div className="text-xs font-medium text-gray-500 flex items-center gap-1">
+                <FileText size={13} />單據管理（提單/發票/裝箱單/產地證明）
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={docType}
+                  onChange={e => setDocType(e.target.value)}
+                  className="h-8 rounded border text-xs px-2 flex-1 focus:outline-none"
+                >
+                  {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+                <input
+                  ref={docInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp,.xls,.xlsx"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleDocUpload(f) }}
+                />
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1 shrink-0"
+                  disabled={docUploading} onClick={() => docInputRef.current?.click()}>
+                  <Upload size={12} />{docUploading ? '上傳中...' : '上傳'}
+                </Button>
+              </div>
+              {editingDocs.length > 0 ? (
+                <div className="space-y-1">
+                  {editingDocs.map((doc, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs bg-gray-50 rounded px-2 py-1">
+                      <span className="text-gray-500 shrink-0">{DOC_TYPES.find(t => t.value === doc.type)?.label ?? doc.type}</span>
+                      <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                        className="flex-1 truncate text-blue-600 hover:underline flex items-center gap-1">
+                        {doc.fileName} <ExternalLink size={10} />
+                      </a>
+                      <button onClick={() => handleDocDelete(doc.url)} className="text-gray-400 hover:text-red-500">
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs text-gray-400 text-center py-1">尚未上傳任何單據</div>
+              )}
             </div>
 
             {/* Notes */}

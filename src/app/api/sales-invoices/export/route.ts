@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import ExcelJS from 'exceljs'
+import { buildScopeContext, invoiceScope } from '@/lib/scope'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -13,8 +14,12 @@ export async function GET(req: NextRequest) {
   const dateFrom = searchParams.get('dateFrom') ?? ''
   const dateTo   = searchParams.get('dateTo') ?? ''
 
+  // 5-5: scope — SALES/CS only export their own invoices
+  const ctx = buildScopeContext(session as { user: { id: string; role: string } })
+
   const invoices = await prisma.salesInvoice.findMany({
     where: {
+      ...invoiceScope(ctx),
       ...(search && {
         OR: [
           { invoiceNumber: { contains: search, mode: 'insensitive' } },

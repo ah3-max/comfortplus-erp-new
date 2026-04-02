@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Loader2, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -36,6 +36,8 @@ export default function MonthlyCostPage() {
     } catch { toast.error(dict.common.loadFailed) }
     finally { setLoading(false) }
   }, [year, dict])
+
+  useEffect(() => { fetchData() }, [fetchData])
 
   return (
     <div className="space-y-5">

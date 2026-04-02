@@ -751,7 +751,7 @@ export default function ProductDetailPage() {
               onClick={() => setSuppliersExpanded(!suppliersExpanded)}
             >
               <Factory className="h-4 w-4 text-muted-foreground" />{dict.productDetail.oemSupplierMgmt}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">({productSuppliers.length} 家)</span>
+              <span className="ml-1 text-xs font-normal text-muted-foreground">({productSuppliers.length}{dict.productDetail.suppliersUnit})</span>
               {suppliersExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             </button>
             {suppliersExpanded && (

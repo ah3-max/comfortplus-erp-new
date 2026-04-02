@@ -43,9 +43,7 @@ const typeColors: Record<string, string> = {
   REVENUE: 'bg-green-100 text-green-700',
   EXPENSE: 'bg-red-100 text-red-700',
 }
-const typeLabels: Record<string, string> = {
-  ASSET: '資產', LIABILITY: '負債', EQUITY: '權益', REVENUE: '收入', EXPENSE: '費用',
-}
+// Account type labels provided via dict.generalLedgerExt.typeLabels
 
 function fmt(n: number) {
   if (n === 0) return '—'
@@ -59,6 +57,7 @@ function fmtBalance(n: number) {
 
 export default function GeneralLedgerPage() {
   const { dict } = useI18n()
+  const gl = dict.generalLedgerExt
   const today = new Date().toISOString().slice(0, 10)
   const firstOfYear = `${new Date().getFullYear()}-01-01`
 
@@ -98,21 +97,21 @@ export default function GeneralLedgerPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{dict.nav.generalLedger}</h1>
-          <p className="text-sm text-muted-foreground">按科目查看所有傳票分錄及累計餘額</p>
+          <p className="text-sm text-muted-foreground">{gl.subtitle}</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-white p-4">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">科目</label>
+          <label className="text-xs font-medium text-muted-foreground">{gl.accountLabel}</label>
           <select
             value={selectedId}
             onChange={e => setSelectedId(e.target.value)}
             className="rounded-md border px-3 py-2 text-sm min-w-[260px]"
             disabled={loadingAccounts}
           >
-            <option value="">{dict.common.select}科目...</option>
+            <option value="">{dict.common.select}{gl.accountPlaceholder}</option>
             {accounts.map(a => (
               <option key={a.id} value={a.id}>{a.code} {a.name}</option>
             ))}
@@ -138,16 +137,16 @@ export default function GeneralLedgerPage() {
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2 rounded-lg border bg-white px-4 py-3">
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[data.account.type] ?? ''}`}>
-              {typeLabels[data.account.type] ?? data.account.type}
+              {(gl.typeLabels as Record<string, string>)[data.account.type] ?? data.account.type}
             </span>
             <span className="font-mono font-semibold">{data.account.code}</span>
             <span className="font-medium">{data.account.name}</span>
           </div>
           {[
-            { label: '期初餘額', value: data.openingBalance },
-            { label: '本期借方', value: data.periodDebitTotal },
-            { label: '本期貸方', value: data.periodCreditTotal },
-            { label: '期末餘額', value: data.closingBalance, bold: true },
+            { label: gl.openingBalance, value: data.openingBalance },
+            { label: gl.periodDebit, value: data.periodDebitTotal },
+            { label: gl.periodCredit, value: data.periodCreditTotal },
+            { label: gl.closingBalance, value: data.closingBalance, bold: true },
           ].map(card => (
             <div key={card.label} className="rounded-lg border bg-white px-4 py-3 min-w-[120px]">
               <p className="text-xs text-muted-foreground mb-0.5">{card.label}</p>
@@ -169,13 +168,13 @@ export default function GeneralLedgerPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="w-24">日期</TableHead>
-                <TableHead className="w-32">傳票號</TableHead>
-                <TableHead>摘要</TableHead>
-                <TableHead className="w-20 text-center">類型</TableHead>
-                <TableHead className="text-right w-32">借方</TableHead>
-                <TableHead className="text-right w-32">貸方</TableHead>
-                <TableHead className="text-right w-36">累計餘額</TableHead>
+                <TableHead className="w-24">{gl.colDate}</TableHead>
+                <TableHead className="w-32">{gl.colVoucherNo}</TableHead>
+                <TableHead>{gl.colSummary}</TableHead>
+                <TableHead className="w-20 text-center">{gl.colType}</TableHead>
+                <TableHead className="text-right w-32">{gl.colDebit}</TableHead>
+                <TableHead className="text-right w-32">{gl.colCredit}</TableHead>
+                <TableHead className="text-right w-36">{gl.colRunningBalance}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -183,7 +182,7 @@ export default function GeneralLedgerPage() {
               <TableRow className="bg-slate-50/80 italic text-muted-foreground text-sm">
                 <TableCell>{data.period.startDate}</TableCell>
                 <TableCell>—</TableCell>
-                <TableCell>期初餘額</TableCell>
+                <TableCell>{gl.openingBalanceRow}</TableCell>
                 <TableCell />
                 <TableCell />
                 <TableCell />
@@ -195,7 +194,7 @@ export default function GeneralLedgerPage() {
               {data.rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
-                    本期間無傳票記錄
+                    {gl.noRecords}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -228,7 +227,7 @@ export default function GeneralLedgerPage() {
               {data.rows.length > 0 && (
                 <TableRow className="border-t-2 bg-slate-100 font-semibold text-sm">
                   <TableCell colSpan={3} className="text-slate-700">
-                    合計（{data.rows.length} 筆）
+                    {gl.closingRow.replace('{n}', String(data.rows.length))}
                   </TableCell>
                   <TableCell />
                   <TableCell className="text-right font-mono">{fmt(data.periodDebitTotal)}</TableCell>
@@ -243,7 +242,7 @@ export default function GeneralLedgerPage() {
         </div>
       ) : (
         <div className="rounded-lg border bg-white py-16 text-center text-muted-foreground">
-          {dict.common.select}科目並點擊{dict.reportsExt.generate}
+          {gl.prompt} {dict.reportsExt.generate}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -45,6 +45,8 @@ export default function PurchaseAnalysisPage() {
     } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [view, startDate, endDate])
+
+  useEffect(() => { query() }, [query])
 
   const tooltipFmt = (v: unknown) => typeof v === 'number' ? fmt(v) : String(v ?? '')
 

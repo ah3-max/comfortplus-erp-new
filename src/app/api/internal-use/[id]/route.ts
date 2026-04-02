@@ -35,7 +35,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params
     const body = await req.json()
-    const current = await prisma.internalUse.findUnique({ where: { id }, include: { items: true } })
+    const current = await prisma.internalUse.findUnique({
+      where: { id },
+      include: { items: true, warehouse: { select: { code: true } } },
+    })
     if (!current) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const role = (session.user as { role?: string }).role ?? ''
@@ -65,13 +68,29 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ error: '只能出庫已審核的單據' }, { status: 400 })
       }
 
+      const whCode = current.warehouse?.code ?? current.warehouseId
       await prisma.$transaction(async (tx) => {
-        // Deduct inventory
+        // Deduct inventory + create InventoryTransaction
         for (const item of current.items) {
-          await tx.inventory.updateMany({
-            where: { productId: item.productId, warehouse: current.warehouseId },
-            data: { quantity: { decrement: item.quantity }, availableQty: { decrement: item.quantity } },
+          const inv = await tx.inventory.findFirst({
+            where: { productId: item.productId, warehouse: whCode, category: 'FINISHED_GOODS' },
           })
+          if (inv) {
+            await tx.inventory.update({
+              where: { id: inv.id },
+              data: { quantity: { decrement: item.quantity }, availableQty: { decrement: item.quantity } },
+            })
+            await tx.inventoryTransaction.create({
+              data: {
+                productId: item.productId, warehouse: whCode, category: 'FINISHED_GOODS',
+                type: 'OUT', quantity: item.quantity,
+                beforeQty: inv.quantity, afterQty: inv.quantity - item.quantity,
+                referenceType: 'INTERNAL_USE', referenceId: id,
+                notes: `內部領用 ${current.useNo}`,
+                createdById: session.user.id,
+              },
+            })
+          }
         }
         await tx.internalUse.update({
           where: { id },

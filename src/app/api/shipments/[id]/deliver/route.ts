@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { notify } from '@/lib/notify'
 import { handleApiError } from '@/lib/api-error'
+import { buildScopeContext, isOwnDataOnly } from '@/lib/scope'
 
 /**
  * POST /api/shipments/[id]/deliver
@@ -39,6 +40,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (!shipment) return NextResponse.json({ error: '找不到出貨單' }, { status: 404 })
 
+    // 5-1: scope check — SALES/CS can only confirm delivery for their own orders
+    const ctx = buildScopeContext(session as { user: { id: string; role: string } })
+    if (isOwnDataOnly(ctx.role) && shipment.order.createdBy?.id !== ctx.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Update shipment status
     await prisma.shipment.update({
       where: { id },
@@ -48,6 +55,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         signStatus: body.signatureUrl ? 'SIGNED' : 'PENDING',
       },
     })
+
+    // Check if all shipments for the order are DELIVERED → update order to SIGNED
+    if (shipment.orderId) {
+      const allShipments = await prisma.shipment.findMany({
+        where: { orderId: shipment.orderId },
+        select: { id: true, status: true },
+      })
+      const allDelivered = allShipments.every(s => s.id === id || s.status === 'DELIVERED')
+      if (allDelivered) {
+        await prisma.salesOrder.update({
+          where: { id: shipment.orderId },
+          data: { status: 'SIGNED' },
+        })
+      }
+    }
 
     // Create ProofOfDelivery record (supports multiple photos)
     for (const photo of body.photos) {

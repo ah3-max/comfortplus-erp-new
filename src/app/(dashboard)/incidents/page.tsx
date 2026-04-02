@@ -678,7 +678,7 @@ function VisitLogsTab({ incidentId, visitLogs, setVisitLogs, open, setOpen, user
   const { dict } = useI18n()
   const ic = dict.incidents
   const [saving, setSaving] = useState(false)
-  const emptyForm = () => ({ visitDate: new Date().toISOString().slice(0,10), visitType: '現場',
+  const emptyForm = () => ({ visitDate: new Date().toISOString().slice(0,10), visitType: (ic.visitTypes as Record<string,string>).onSite,
     participants: '', onSiteObservation: '', skinConditionNote: '', careProcessNote: '',
     productUsageNote: '', staffFeedback: '', immediateSuggestion: '', nextFollowupDate: '' })
   const [form, setForm] = useState(emptyForm())

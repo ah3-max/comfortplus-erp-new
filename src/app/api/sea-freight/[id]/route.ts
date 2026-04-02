@@ -11,14 +11,34 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const body = await req.json()
 
+  // 3-7: State machine validation for SeaFreight
+  const FREIGHT_TRANSITIONS: Record<string, string[]> = {
+    PENDING:         ['BOOKED', 'CANCELLED'],
+    BOOKED:          ['FACTORY_EXIT', 'CONSOLIDATED', 'LOADED', 'CANCELLED'],
+    FACTORY_EXIT:    ['CONSOLIDATED', 'LOADED'],
+    CONSOLIDATED:    ['LOADED'],
+    LOADED:          ['CUSTOMS_DECLARE', 'IN_TRANSIT'],
+    CUSTOMS_DECLARE: ['CUSTOMS_CLEARED'],
+    CUSTOMS_CLEARED: ['IN_TRANSIT'],
+    IN_TRANSIT:      ['ARRIVED'],
+    ARRIVED:         ['CUSTOMS_DEST', 'DEVANNING', 'RECEIVED'],
+    CUSTOMS_DEST:    ['DEVANNING'],
+    DEVANNING:       ['DELIVERING', 'RECEIVED'],
+    DELIVERING:      ['RECEIVED'],
+  }
+
   // Check if status is changing to RECEIVED (到倉)
   const isArrivingAtWarehouse = body.status === 'RECEIVED'
 
-  // If arriving, fetch current status first to avoid duplicate inbound
-  let previousStatus: string | null = null
-  if (isArrivingAtWarehouse) {
-    const current = await prisma.seaFreight.findUnique({ where: { id }, select: { status: true } })
-    previousStatus = current?.status ?? null
+  // Always fetch current status for validation and dedup checks
+  const currentFreight = await prisma.seaFreight.findUnique({ where: { id }, select: { status: true } })
+  const previousStatus = currentFreight?.status ?? null
+
+  if (body.status && previousStatus) {
+    const allowed = FREIGHT_TRANSITIONS[previousStatus]
+    if (allowed && !allowed.includes(body.status)) {
+      return NextResponse.json({ error: `海運狀態不允許從 ${previousStatus} 轉換為 ${body.status}` }, { status: 400 })
+    }
   }
 
   const freight = await prisma.seaFreight.update({
@@ -112,6 +132,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           })
         }
       }
+    }
+  }
+
+  // 3-2: Auto-create QualityCheck(PENDING) on arrival (idempotent)
+  if (isArrivingAtWarehouse && previousStatus !== 'RECEIVED' && freight.purchaseOrder) {
+    const existingQc = await prisma.qualityCheck.findFirst({
+      where: { purchaseOrderId: freight.purchaseOrder.id, qcStatus: 'PENDING', inspectionType: 'INCOMING' },
+    })
+    if (!existingQc) {
+      const qcCount = await prisma.qualityCheck.count()
+      const today = new Date()
+      const dateStr = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`
+      const qcNo = `QC${dateStr}${String(qcCount + 1).padStart(4,'0')}`
+      await prisma.qualityCheck.create({
+        data: {
+          qcNo,
+          inspectionType: 'INCOMING',
+          qcStatus: 'PENDING',
+          purchaseOrderId: freight.purchaseOrder.id,
+          notes: `海運到倉 QC — ${freight.freightNo} / ${freight.purchaseOrder.poNo}`,
+        },
+      })
     }
   }
 

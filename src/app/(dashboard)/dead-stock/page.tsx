@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -57,6 +57,8 @@ export default function DeadStockPage() {
     } catch { toast.error(dict.common.queryFailed) }
     finally { setLoading(false) }
   }, [noMovementDays, warehouse])
+
+  useEffect(() => { query() }, [query])
 
   const filtered = riskFilter === 'ALL' ? data : data.filter(r => r.riskLevel === riskFilter)
 
