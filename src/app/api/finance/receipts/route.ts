@@ -65,6 +65,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { arId, amount, receiptDate, receiptMethod, bankLast5, notes } = body
 
+    // Period guard
+    if (receiptDate) {
+      const { assertPeriodOpen } = await import('@/lib/period-guard')
+      await assertPeriodOpen(new Date(receiptDate))
+    }
+
     if (!arId) return NextResponse.json({ error: '請選擇應收帳款' }, { status: 400 })
     if (!amount || Number(amount) <= 0) return NextResponse.json({ error: '請填寫收款金額' }, { status: 400 })
     if (!receiptDate) return NextResponse.json({ error: '請填寫收款日期' }, { status: 400 })

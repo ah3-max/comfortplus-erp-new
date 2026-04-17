@@ -95,6 +95,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '請填寫帳戶、日期、類別、說明及金額' }, { status: 400 })
     }
 
+    // Period guard
+    const { assertPeriodOpen } = await import('@/lib/period-guard')
+    await assertPeriodOpen(new Date(date))
+
     const fund = await prisma.pettyCashFund.findUnique({ where: { id: fundId } })
     if (!fund) return NextResponse.json({ error: '零用金帳戶不存在' }, { status: 404 })
     if (!fund.isActive) return NextResponse.json({ error: '零用金帳戶已停用' }, { status: 400 })

@@ -47,6 +47,7 @@ async function main() {
     { type: 'PURCHASE_RETURN',  prefix: 'PRR' },
     { type: 'VAT_FILING',       prefix: 'VAT' },
     { type: 'STATEMENT',        prefix: 'STM' },
+    { type: 'SETTLEMENT',       prefix: 'SET' },
     { type: 'INSTITUTION_TOUR', prefix: 'TOUR' },
     { type: 'INBOUND', prefix: 'IN' },
   ]
@@ -391,6 +392,7 @@ async function main() {
   const extraUsers = [
     { email: 'manager@comfortplus.com', name: '業務主管', role: 'SALES_MANAGER', password: 'manager1234' },
     { email: 'warehouse@comfortplus.com', name: '倉管人員', role: 'WAREHOUSE', password: 'warehouse1234' },
+    { email: 'wm@comfortplus.com', name: '倉庫主管', role: 'WAREHOUSE_MANAGER', password: 'wm12345678' },
     { email: 'finance@comfortplus.com', name: '財務人員', role: 'FINANCE', password: 'finance1234' },
     { email: 'gm@comfortplus.com', name: '總經理', role: 'GM', password: 'gm12345678' },
     { email: 'procurement@comfortplus.com', name: '採購人員', role: 'PROCUREMENT', password: 'procurement1234' },
@@ -1253,6 +1255,7 @@ async function main() {
         { name: '銷售訂單簽核流程', module: 'ORDER', description: '金額 > 50萬需主管核准', steps: [{ stepOrder: 1, stepName: '業務主管審核', approverRole: 'SALES_MANAGER' }, { stepOrder: 2, stepName: '總經理核准', approverRole: 'GM' }] },
         { name: '採購請購單簽核', module: 'PURCHASE_REQUEST', description: '所有請購單需採購主管確認', steps: [{ stepOrder: 1, stepName: '採購主管確認', approverRole: 'PROCUREMENT' }, { stepOrder: 2, stepName: '財務審核', approverRole: 'FINANCE' }] },
         { name: '內部領用單審批', module: 'INTERNAL_USE', description: '內部領用需主管批准', steps: [{ stepOrder: 1, stepName: '倉管主管審核', approverRole: 'WAREHOUSE_MANAGER' }] },
+        { name: '費用報銷審核', module: 'EXPENSE_REPORT', description: '費用報銷需主管+財務二關審核', steps: [{ stepOrder: 1, stepName: '部門主管核准', approverRole: 'SALES_MANAGER' }, { stepOrder: 2, stepName: '財務審核', approverRole: 'FINANCE' }] },
       ]
       for (const tmpl of templates) {
         const exists = await prisma.approvalTemplate.findFirst({ where: { name: tmpl.name, module: tmpl.module } })
@@ -1271,6 +1274,27 @@ async function main() {
       console.log('✅ ApprovalTemplate 建立完成 (3 筆)')
     }
   } catch (e) { console.error('❌ ApprovalTemplate 失敗:', e) }
+
+  // ========== ExpenseCategoryMapping ==========
+  try {
+    const mappings = [
+      { category: 'TRANSPORT',     accountCode: '6300', accountName: '交通費' },
+      { category: 'MEAL',          accountCode: '6290', accountName: '伙食費' },
+      { category: 'HOTEL',         accountCode: '6220', accountName: '租金費用' },
+      { category: 'OFFICE',        accountCode: '6270', accountName: '文具用品' },
+      { category: 'ENTERTAINMENT', accountCode: '6130', accountName: '交際費' },
+      { category: 'TRAINING',      accountCode: '6350', accountName: '訓練費' },
+      { category: 'OTHER',         accountCode: '6390', accountName: '其他管理費用' },
+    ]
+    for (const m of mappings) {
+      await prisma.expenseCategoryMapping.upsert({
+        where: { category: m.category },
+        create: m,
+        update: { accountCode: m.accountCode, accountName: m.accountName },
+      })
+    }
+    console.log('✅ ExpenseCategoryMapping 建立完成 (7 筆)')
+  } catch (e) { console.error('❌ ExpenseCategoryMapping 失敗:', e) }
 
   // ========== KnowledgeBaseEntry ==========
   try {
@@ -2003,6 +2027,7 @@ async function main() {
   console.log('manager@comfortplus.com     / manager1234     (業務主管)')
   console.log('sales@comfortplus.com       / sales1234       (業務專員)')
   console.log('warehouse@comfortplus.com   / warehouse1234   (倉管人員)')
+  console.log('wm@comfortplus.com          / wm12345678      (倉庫主管)')
   console.log('finance@comfortplus.com     / finance1234     (財務人員)')
   console.log('procurement@comfortplus.com / procurement1234 (採購人員)')
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')

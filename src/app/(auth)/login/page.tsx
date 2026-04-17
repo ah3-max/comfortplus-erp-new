@@ -147,7 +147,7 @@ export default function LoginPage() {
               { label: 'GM', email: 'gm@comfortplus.com', pw: 'gm12345678' },
               { label: '業務主管', email: 'manager@comfortplus.com', pw: 'manager1234' },
               { label: '業務', email: 'sales@comfortplus.com', pw: 'sales1234' },
-              { label: '倉儲主管', email: 'wm@comfortplus.com', pw: 'warehouse1234' },
+              { label: '倉儲主管', email: 'wm@comfortplus.com', pw: 'wm12345678' },
               { label: '倉庫', email: 'warehouse@comfortplus.com', pw: 'warehouse1234' },
               { label: '財務', email: 'finance@comfortplus.com', pw: 'finance1234' },
               { label: '採購', email: 'procurement@comfortplus.com', pw: 'procurement1234' },

@@ -77,6 +77,7 @@ src/lib/
 | manager@comfortplus.com | manager1234 | SALES_MANAGER |
 | sales@comfortplus.com | sales1234 | SALES |
 | warehouse@comfortplus.com | warehouse1234 | WAREHOUSE |
+| wm@comfortplus.com | wm12345678 | WAREHOUSE_MANAGER |
 | finance@comfortplus.com | finance1234 | FINANCE |
 | procurement@comfortplus.com | procurement1234 | PROCUREMENT |
 

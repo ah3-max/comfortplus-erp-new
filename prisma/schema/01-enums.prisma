@@ -902,3 +902,9 @@ enum WmsOutboundStatus {
   SHIPPED     // 已出庫
   CANCELLED   // 已取消
 }
+
+enum InputTaxSourceType {
+  CUSTOMS            // 進口報單（海關）
+  DOMESTIC_INVOICE   // 國內統一發票
+  RECEIPT            // 收據（免稅/小額）
+}

@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
+import { PeriodLockedError } from '@/lib/period-guard'
 
 const IS_PROD = process.env.NODE_ENV === 'production'
 
@@ -47,6 +48,11 @@ export function handleApiError(error: unknown, module?: string): NextResponse {
 
   // Always log full error server-side
   logger.error(module ?? 'api', err.message, err)
+
+  // Period locked errors → 423 Locked
+  if (error instanceof PeriodLockedError) {
+    return NextResponse.json({ error: err.message }, { status: 423 })
+  }
 
   // Prisma-specific errors
   const prismaCode = (error as { code?: string })?.code

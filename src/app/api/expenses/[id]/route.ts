@@ -169,20 +169,51 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json(report)
     }
 
-    // ── Default: update fields (title, notes) ──
+    // ── Default: update fields (title, notes, items) ──
     if (existing.status !== 'DRAFT') {
       return NextResponse.json({ error: '只有草稿狀態可以編輯' }, { status: 400 })
     }
 
-    const report = await prisma.expenseReport.update({
-      where: { id },
-      data: {
-        title: body.title ?? existing.title,
-        notes: body.notes ?? existing.notes,
-        department: body.department !== undefined ? body.department : existing.department,
-      },
-      include: { items: true },
-    })
+    // If items provided, replace all items
+    let report
+    if (Array.isArray(body.items)) {
+      const validItems = (body.items as Array<{ date: string; category: string; description: string; amount: number }>)
+        .filter(i => i.description && Number(i.amount) > 0)
+      const totalAmount = validItems.reduce((s, i) => s + Number(i.amount), 0)
+
+      report = await prisma.$transaction(async tx => {
+        await tx.expenseItem.deleteMany({ where: { reportId: id } })
+        return tx.expenseReport.update({
+          where: { id },
+          data: {
+            title: body.title ?? existing.title,
+            notes: body.notes ?? existing.notes,
+            department: body.department !== undefined ? body.department : existing.department,
+            totalAmount,
+            items: {
+              create: validItems.map((item, idx) => ({
+                date: new Date(item.date),
+                category: item.category,
+                description: item.description,
+                amount: item.amount,
+                lineNo: idx + 1,
+              })),
+            },
+          },
+          include: { items: { orderBy: { lineNo: 'asc' } } },
+        })
+      })
+    } else {
+      report = await prisma.expenseReport.update({
+        where: { id },
+        data: {
+          title: body.title ?? existing.title,
+          notes: body.notes ?? existing.notes,
+          department: body.department !== undefined ? body.department : existing.department,
+        },
+        include: { items: { orderBy: { lineNo: 'asc' } } },
+      })
+    }
 
     logAudit({
       userId: session.user.id,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Component, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Loader2, Plus, Trash2, Search, LayoutTemplate, Save, FolderOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
+import { usePriceResolver } from '@/hooks/use-price-resolver'
 
 // ── 報價範本 (localStorage-based) ──────────────────────────────────────────────
 const TEMPLATE_KEY = 'quotation_templates_v1'
@@ -93,6 +94,29 @@ const emptyItem = (): LineItem => ({
   costPrice: 0,
 })
 
+class QuotationFormErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4 space-y-3">
+            <p className="font-bold text-red-600">表單錯誤（Debug）</p>
+            <pre className="text-xs bg-slate-100 p-3 rounded overflow-auto max-h-64">
+              {(this.state.error as Error).message}
+              {'\n\n'}
+              {(this.state.error as Error).stack}
+            </pre>
+            <button onClick={() => this.setState({ error: null })} className="text-sm text-blue-600 underline">關閉</button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export function QuotationForm({ open, onClose, onSuccess, quotation }: QuotationFormProps) {
   const { dict } = useI18n()
   const fl = dict.formLabels
@@ -128,6 +152,10 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
   const [templatePanelOpen, setTemplatePanelOpen] = useState(false)
   const [templates, setTemplates] = useState<QuotationTemplate[]>([])
 
+  // Price resolver: auto-fill customer-specific prices
+  const { resolvePrices, resolvePrice, prices: resolvedPrices } = usePriceResolver(customerId || null)
+  const [priceOverrides, setPriceOverrides] = useState<Set<number>>(new Set()) // indices where user manually changed price
+
   useEffect(() => {
     if (!open) {
       setCustomerId(quotation?.customerId ?? '')
@@ -144,7 +172,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
       })) ?? [emptyItem()])
       return
     }
-    fetch('/api/customers').then((r) => r.json()).then(setCustomers)
+    fetch('/api/customers').then((r) => r.json()).then(d => setCustomers(d.data ?? d))
   }, [open])
 
   useEffect(() => {
@@ -175,14 +203,32 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
       c.code.toLowerCase().includes(customerSearch.toLowerCase())
   )
 
-  function selectCustomer(c: Customer) {
+  async function selectCustomer(c: Customer) {
     setSelectedCustomer(c)
     setCustomerId(c.id)
     setShowCustomerList(false)
     setCustomerSearch('')
+    setPriceOverrides(new Set())
+
+    // Auto-fill prices for existing items
+    const productIds = items.map(i => i.productId).filter(Boolean)
+    if (productIds.length > 0) {
+      const resolved = await resolvePrices(productIds)
+      setItems(prev => prev.map(item => {
+        const rp = resolved[item.productId]
+        return rp ? { ...item, unitPrice: rp.price } : item
+      }))
+    }
   }
 
-  function selectProduct(product: Product, index: number) {
+  async function selectProduct(product: Product, index: number) {
+    // Try to resolve customer-specific price
+    let unitPrice = Number(product.sellingPrice)
+    if (customerId) {
+      const rp = await resolvePrice(product.id)
+      if (rp && rp.price > 0) unitPrice = rp.price
+    }
+
     setItems((prev) =>
       prev.map((item, i) =>
         i === index
@@ -192,12 +238,13 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
               productName: product.name,
               productSku: product.sku,
               unit: product.unit,
-              unitPrice: Number(product.sellingPrice),
+              unitPrice,
               costPrice: Number(product.costPrice),
             }
           : item
       )
     )
+    setPriceOverrides(prev => { const s = new Set(prev); s.delete(index); return s })
     setActiveItemIndex(null)
     setProductSearch('')
   }
@@ -206,6 +253,9 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     )
+    if (field === 'unitPrice') {
+      setPriceOverrides(prev => new Set(prev).add(index))
+    }
   }
 
   function addItem() {
@@ -295,6 +345,7 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
   }
 
   return (
+    <QuotationFormErrorBoundary>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -512,15 +563,30 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
                           />
                         </td>
                         <td className="px-3 py-2">
-                          <Input
-                            type="number"
-                            className="h-8 w-full"
-                            value={item.unitPrice === 0 ? '' : item.unitPrice}
-                            placeholder="0"
-                            onChange={(e) => updateItem(index, 'unitPrice', Number(e.target.value))}
-                            min={0}
-                            step={1}
-                          />
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number"
+                              className="h-8 w-full"
+                              value={item.unitPrice === 0 ? '' : item.unitPrice}
+                              placeholder="0"
+                              onChange={(e) => updateItem(index, 'unitPrice', Number(e.target.value))}
+                              min={0}
+                              step={1}
+                            />
+                            {item.productId && resolvedPrices[item.productId] && !priceOverrides.has(index) && (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 whitespace-nowrap">
+                                {resolvedPrices[item.productId].source === 'SPECIAL' ? 'VIP'
+                                  : resolvedPrices[item.productId].source === 'TIER' ? resolvedPrices[item.productId].priceLevel
+                                  : resolvedPrices[item.productId].source === 'LIST' ? '目錄'
+                                  : '預設'}
+                              </Badge>
+                            )}
+                            {priceOverrides.has(index) && item.productId && resolvedPrices[item.productId] && (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 whitespace-nowrap text-amber-600 border-amber-300">
+                                已改
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-2">
                           <Input
@@ -603,5 +669,6 @@ export function QuotationForm({ open, onClose, onSuccess, quotation }: Quotation
         </form>
       </DialogContent>
     </Dialog>
+    </QuotationFormErrorBoundary>
   )
 }

@@ -12,11 +12,22 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const search = searchParams.get('search') ?? ''
   const status = searchParams.get('status') ?? ''
+  const month = searchParams.get('month') ?? ''   // YYYY-MM
   const page = Math.max(1, Number(searchParams.get('page') ?? 1))
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
 
   const role = (session.user as { role?: string }).role ?? ''
   const isFinance = ['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)
+
+  // Month date range
+  let dateRange: { gte: Date; lt: Date } | undefined
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    const [y, m] = month.split('-').map(Number)
+    dateRange = {
+      gte: new Date(y, m - 1, 1),
+      lt:  new Date(y, m, 1),
+    }
+  }
 
   const where = {
     // 非財務人員只能看自己提交的
@@ -28,6 +39,7 @@ export async function GET(req: NextRequest) {
       ],
     }),
     ...(status && { status }),
+    ...(dateRange && { createdAt: dateRange }),
   }
 
   const [data, total] = await Promise.all([
@@ -36,6 +48,17 @@ export async function GET(req: NextRequest) {
       include: {
         items: true,
         submittedBy: { select: { id: true, name: true } },
+        approvedBy: { select: { id: true, name: true } },
+        approvalRequest: {
+          select: {
+            currentStep: true,
+            status: true,
+            steps: {
+              select: { stepOrder: true, stepName: true, status: true, approver: { select: { name: true } }, actedAt: true },
+              orderBy: { stepOrder: 'asc' as const },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: pageSize,
@@ -62,6 +85,14 @@ export async function POST(req: NextRequest) {
     }
     if (!body.items?.length) {
       return NextResponse.json({ error: '請至少新增一筆費用項目' }, { status: 400 })
+    }
+
+    // Period guard: check earliest item date
+    const itemDates = (body.items as Array<{ date?: string }>).filter(i => i.date).map(i => new Date(i.date!))
+    if (itemDates.length > 0) {
+      const { assertPeriodOpen } = await import('@/lib/period-guard')
+      const earliest = new Date(Math.min(...itemDates.map(d => d.getTime())))
+      await assertPeriodOpen(earliest)
     }
 
     const totalAmount = body.items.reduce(

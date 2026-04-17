@@ -77,6 +77,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '缺少必填欄位' }, { status: 400 })
     }
 
+    // Period guard: reject writes to closed/locked periods
+    const { assertPeriodOpen } = await import('@/lib/period-guard')
+    await assertPeriodOpen(new Date(entryDate))
+
     // Validate debit = credit
     const totalDebit = lines.reduce((s: number, l: { debit?: number }) => s + (l.debit ?? 0), 0)
     const totalCredit = lines.reduce((s: number, l: { credit?: number }) => s + (l.credit ?? 0), 0)

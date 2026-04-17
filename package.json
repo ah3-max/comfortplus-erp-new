@@ -1,10 +1,9 @@
-
 {
   "name": "comfortplus-erp",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3100 -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "seed": "npx tsx prisma/seed.ts"
@@ -21,6 +20,7 @@
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "dotenv": "^17.3.1",
     "exceljs": "^4.4.0",
     "lucide-react": "^0.577.0",

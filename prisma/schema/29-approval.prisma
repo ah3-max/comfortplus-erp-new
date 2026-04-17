@@ -41,9 +41,10 @@ model ApprovalRequest {
   notes         String?
   updatedAt     DateTime  @updatedAt
 
-  template    ApprovalTemplate? @relation(fields: [templateId], references: [id])
-  requestedBy User              @relation("ApprovalRequestedBy", fields: [requestedById], references: [id])
-  steps       ApprovalStep[]
+  template        ApprovalTemplate? @relation(fields: [templateId], references: [id])
+  requestedBy     User              @relation("ApprovalRequestedBy", fields: [requestedById], references: [id])
+  steps           ApprovalStep[]
+  expenseReports  ExpenseReport[]   @relation("ExpenseApprovalRequest")
 }
 
 model ApprovalStep {

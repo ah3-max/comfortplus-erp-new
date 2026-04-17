@@ -16,6 +16,9 @@ model User {
   lineUserId   String?   @unique  // LINE Messaging API 綁定 userId（e.g. U1234...）
   hireDate     DateTime?          // 到職日
   resignDate   DateTime?          // 離職日
+  bankAccountNo   String?         // 員工銀行帳號（報銷打款用）
+  bankCode        String?         // 銀行代碼（3碼）
+  bankAccountName String?         // 戶名
   isActive     Boolean   @default(true)
   tokenVersion Int       @default(0)  // 遞增此值可立即撤銷所有 session
   notes        String?
@@ -76,6 +79,9 @@ model User {
   financeAttachments   FinanceAttachment[]   @relation("FinAttachUploadedBy")
   customerChangeLogs   CustomerChangeLog[]   @relation("CustomerChangeBy")
   recallNotifyBy       RecallNotification[]  @relation("RecallNotifiedBy")
+
+  // ── 沖帳作業 ────────────────────────────────────────
+  settlementsCreated     SettlementBatch[]   @relation("SettlementCreatedBy")
 
   // ── 業務行事曆 ─────────────────────────────────────
   ownedBusinessEvents    BusinessEvent[]     @relation("BizEventOwner")

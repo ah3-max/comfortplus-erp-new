@@ -170,6 +170,9 @@ model Customer {
   // ── P3-4 售後管理 ────────────────────────────────────
   afterSalesOrders     AfterSalesOrder[]      @relation("AfterSalesCustomer")
 
+  // ── 沖帳作業 ────────────────────────────────────────
+  settlements          SettlementBatch[]      @relation("CustomerSettlements")
+
   // ── 機構巡迴排程 ────────────────────────────────────
   institutionTours     InstitutionTour[]      @relation("TourCustomer")
   tourAutoSchedule     Boolean               @default(false)  // 是否啟用自動排程

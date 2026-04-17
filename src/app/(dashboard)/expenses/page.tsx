@@ -7,21 +7,27 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Loader2, Plus, Search, Receipt, CheckCircle2, XCircle, DollarSign, Clock, Trash2 } from 'lucide-react'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
+import { Loader2, Plus, Search, Receipt, CheckCircle2, XCircle, DollarSign, Clock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
-interface ExpenseItem { id?: string; date: string; category: string; description: string; amount: number; receiptUrl?: string; lineNo: number }
+interface ExpenseItem { id?: string; date: string; category: string; description: string; amount: number; receiptUrl?: string; lineNo: number; glAccountCode?: string | null }
+interface ApprovalStepInfo { stepOrder: number; stepName: string; status: string; approver?: { name: string } | null; actedAt?: string | null }
 interface ExpenseReport {
   id: string; reportNo: string; title: string; status: string; totalAmount: number; currency: string
   submittedAt: string | null; approvedAt: string | null; paidAt: string | null
   submittedBy: { name: string }; approvedBy?: { name: string } | null
+  approvalRequest?: { currentStep: number; steps: ApprovalStepInfo[] } | null
+  journalEntryId?: string | null
   items: ExpenseItem[]
 }
 
@@ -50,10 +56,35 @@ export default function ExpensesPage() {
   const role = (session?.user as { role?: string })?.role ?? ''
   const isFinance = ['SUPER_ADMIN', 'GM', 'FINANCE'].includes(role)
 
+  const now = new Date()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
   const [reports, setReports] = useState<ExpenseReport[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [month, setMonth] = useState(currentMonth)
+
+  // Generate last 24 months for dropdown
+  const monthOptions = Array.from({ length: 24 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`
+    return { val, label }
+  })
+
+  function prevMonth() {
+    const [y, m] = month.split('-').map(Number)
+    const d = new Date(y, m - 2, 1)
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
+
+  function nextMonth() {
+    const [y, m] = month.split('-').map(Number)
+    const d = new Date(y, m, 1)
+    const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (next <= currentMonth) setMonth(next)
+  }
 
   const [showDialog, setShowDialog] = useState(false)
   const [detailReport, setDetailReport] = useState<ExpenseReport | null>(null)
@@ -63,17 +94,19 @@ export default function ExpensesPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [editingReport, setEditingReport] = useState<ExpenseReport | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
     const qs = new URLSearchParams()
     if (search) qs.set('search', search)
     if (statusFilter) qs.set('status', statusFilter)
+    if (month) qs.set('month', month)
     fetch(`/api/expenses?${qs}`)
       .then(r => r.json())
       .then(d => setReports(d.data ?? []))
       .finally(() => setLoading(false))
-  }, [search, statusFilter])
+  }, [search, statusFilter, month])
 
   useEffect(() => { load() }, [load])
 
@@ -91,6 +124,38 @@ export default function ExpensesPage() {
     })
     setSaving(false)
     if (res.ok) { toast.success(ex.createSuccess); setShowDialog(false); load() }
+    else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
+  }
+
+  function openEdit(r: ExpenseReport) {
+    setEditingReport(r)
+    setForm({ title: r.title, department: '', notes: '' })
+    setItems(r.items.map(i => ({
+      id: i.id,
+      date: i.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+      category: i.category,
+      description: i.description,
+      amount: Number(i.amount),
+      lineNo: i.lineNo,
+    })))
+    setDetailReport(null)
+  }
+
+  async function handleUpdate() {
+    if (!editingReport) return
+    setSaving(true)
+    const res = await fetch(`/api/expenses/${editingReport.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: form.title,
+        department: form.department || null,
+        notes: form.notes,
+        items: items.filter(i => i.description && i.amount > 0),
+      }),
+    })
+    setSaving(false)
+    if (res.ok) { toast.success('已儲存'); setEditingReport(null); load() }
     else { const d = await res.json(); toast.error(d.error ?? dict.common.saveFailed) }
   }
 
@@ -151,13 +216,40 @@ export default function ExpensesPage() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Month picker */}
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={prevMonth}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Select value={month} onValueChange={v => v && setMonth(v)}>
+            <SelectTrigger className="w-36 h-9">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map(o => (
+                <SelectItem key={o.val} value={o.val}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline" size="icon" className="h-9 w-9"
+            onClick={nextMonth}
+            disabled={month >= currentMonth}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Search */}
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder={dict.common.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
+          <Input className="pl-9 h-9" placeholder={dict.common.searchPlaceholder} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
+
+        {/* Status filter */}
         <Select value={statusFilter || 'all'} onValueChange={(v: string | null) => setStatusFilter((v ?? '') === 'all' ? '' : (v ?? ''))}>
-          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{dict.common.all}</SelectItem>
             {Object.entries(ex.statuses).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
@@ -170,29 +262,50 @@ export default function ExpensesPage() {
       ) : reports.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">{dict.expenses.noExpenses}</div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {reports.map(r => {
-            const stLabel = ex.statuses[r.status as ExSt] ?? r.status
-            const stColor = ex.statusColors[r.status as keyof typeof ex.statusColors] ?? ''
-            return (
-              <Card key={r.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setDetailReport(r)}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium">{r.title}</CardTitle>
-                    <Badge variant="outline" className={stColor}>{stLabel}</Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground font-mono">{r.reportNo}</p>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold">${fmt(Number(r.totalAmount))}</span>
-                    <span className="text-xs text-muted-foreground">{r.submittedBy.name}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>單號</TableHead>
+                  <TableHead>標題</TableHead>
+                  <TableHead>申請人</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead>提交日期</TableHead>
+                  <TableHead className="text-right">金額</TableHead>
+                  <TableHead className="w-16"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {reports.map(r => {
+                  const stLabel = ex.statuses[r.status as ExSt] ?? r.status
+                  const stColor = ex.statusColors[r.status as keyof typeof ex.statusColors] ?? ''
+                  return (
+                    <TableRow key={r.id} className="cursor-pointer hover:bg-slate-50" onClick={() => setDetailReport(r)}>
+                      <TableCell className="font-mono text-sm text-slate-500">{r.reportNo}</TableCell>
+                      <TableCell className="font-medium">{r.title}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{r.submittedBy.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={stColor}>{stLabel}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">
+                        {r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('zh-TW') : '—'}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-semibold">
+                        ${fmt(Number(r.totalAmount))}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={e => { e.stopPropagation(); setDetailReport(r) }}>
+                          查看
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       {/* Create dialog */}
@@ -271,6 +384,86 @@ export default function ExpensesPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit dialog (DRAFT only) */}
+      <Dialog open={!!editingReport} onOpenChange={open => !open && setEditingReport(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>編輯請款單</DialogTitle>
+            <p className="text-xs text-muted-foreground font-mono">{editingReport?.reportNo}</p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>{ex.titleLabel} <span className="text-red-500">*</span></Label>
+                <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <Label>{ex.departmentLabel}</Label>
+                <Select value={form.department || '_none'} onValueChange={(v: string | null) => setForm(f => ({ ...f, department: v === '_none' || !v ? '' : v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="選擇部門" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— 選擇部門 —</SelectItem>
+                    {DEPARTMENT_OPTIONS.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>{ex.itemsLabel}</Label>
+                <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}</Button>
+              </div>
+              {items.map((item, i) => (
+                <div key={i} className="rounded-md border p-3 space-y-2 bg-slate-50/60">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">日期</Label>
+                      <Input type="date" value={item.date} className="mt-0.5 h-9"
+                        onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, date: e.target.value } : x))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">費用類別</Label>
+                      <Select value={item.category} onValueChange={(v: string | null) => setItems(prev => prev.map((x, j) => j === i ? { ...x, category: v ?? 'OTHER' } : x))}>
+                        <SelectTrigger className="h-9 mt-0.5"><SelectValue /></SelectTrigger>
+                        <SelectContent>{CATEGORY_VALUES.map(v => <SelectItem key={v} value={v}>{ex.categories[v as ExCat] ?? v}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">事由說明</Label>
+                    <Input className="mt-0.5 h-9" value={item.description}
+                      onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground">金額（元）</Label>
+                      <Input type="number" className="mt-0.5 h-9" value={item.amount || ''}
+                        onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, amount: Number(e.target.value) } : x))} />
+                    </div>
+                    {items.length > 1 && (
+                      <Button variant="ghost" size="sm" className="mt-4 text-red-500 hover:text-red-600"
+                        onClick={() => setItems(prev => prev.filter((_, j) => j !== i))}>
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end pt-1">
+                <span className="text-sm font-bold text-slate-700">{dict.common.total}：<span className="text-lg text-blue-700">${fmt(total)}</span></span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingReport(null)}>{dict.common.cancel}</Button>
+            <Button onClick={handleUpdate} disabled={saving || !form.title}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              儲存變更
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Detail dialog */}
       <Dialog open={!!detailReport} onOpenChange={() => setDetailReport(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -285,6 +478,24 @@ export default function ExpensesPage() {
                   <Badge variant="outline" className={ex.statusColors[detailReport.status as keyof typeof ex.statusColors] ?? ''}>{ex.statuses[detailReport.status as ExSt] ?? detailReport.status}</Badge>
                   <span className="text-xl font-bold">${fmt(Number(detailReport.totalAmount))}</span>
                 </div>
+                {/* Approval progress */}
+                {detailReport.approvalRequest?.steps && detailReport.approvalRequest.steps.length > 0 && (
+                  <div className="flex items-center gap-1 text-xs">
+                    <span className="text-muted-foreground mr-1">審核進度：</span>
+                    {detailReport.approvalRequest.steps.map((step, i) => (
+                      <span key={i} className="flex items-center gap-0.5">
+                        {i > 0 && <span className="text-muted-foreground mx-0.5">→</span>}
+                        <span className={step.status === 'APPROVED' ? 'text-green-600 font-medium' : step.status === 'PENDING' ? 'text-amber-600' : 'text-muted-foreground'}>
+                          {step.stepName}
+                          {step.status === 'APPROVED' ? ' ✓' : step.status === 'PENDING' ? ' ⏳' : ''}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {detailReport.journalEntryId && (
+                  <p className="text-xs text-blue-600">暫估傳票已建立</p>
+                )}
                 <div className="rounded-md border divide-y">
                   {detailReport.items.map((item, i) => (
                     <div key={i} className="px-3 py-2 flex items-center justify-between text-sm">
@@ -292,6 +503,7 @@ export default function ExpensesPage() {
                         <span className="text-muted-foreground mr-2">{item.date?.slice(0, 10)}</span>
                         <Badge variant="outline" className="text-xs mr-2">{ex.categories[item.category as ExCat] ?? item.category}</Badge>
                         {item.description}
+                        {item.glAccountCode && <span className="text-xs text-muted-foreground ml-1">({item.glAccountCode})</span>}
                       </div>
                       <span className="font-medium">${fmt(Number(item.amount))}</span>
                     </div>
@@ -309,6 +521,9 @@ export default function ExpensesPage() {
                       <Button size="sm" variant="outline" className="text-red-600 gap-1" disabled={deleting}
                         onClick={() => handleDelete(detailReport.id)}>
                         {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}{ex.deleteBtn}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openEdit(detailReport)}>
+                        編輯
                       </Button>
                       <Button size="sm" onClick={() => doAction(detailReport.id, 'SUBMIT')}>{dict.common.submit}</Button>
                     </>

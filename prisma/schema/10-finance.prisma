@@ -51,8 +51,9 @@ model AccountsReceivable {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  receipts       ReceiptRecord[]
-  collectionLogs CollectionLog[]
+  receipts         ReceiptRecord[]
+  collectionLogs   CollectionLog[]
+  settlementItems  SettlementItem[] @relation("SettlementAR")
 }
 
 // ── 收款紀錄（沖銷 AR）────────────────────────────────
@@ -95,12 +96,15 @@ model AccountsPayable {
   batchNo        String?
   productId      String?
   seaFreightId   String?
+  fxGainLoss     Decimal? @db.Decimal(12, 2)  // 匯兌損益（付款後計算：實付匯率 - 入帳匯率）× 外幣金額
   notes          String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   disbursements    DisbursementRecord[]
   supplierInvoices SupplierInvoice[] @relation("APSupplierInvoice")
+  inputTaxItems    InputTaxItem[]    @relation("APInputTax")
+  settlementItems  SettlementItem[] @relation("SettlementAP")
 }
 
 // ── 付款紀錄（沖銷 AP）────────────────────────────────
@@ -115,6 +119,7 @@ model DisbursementRecord {
   exchangeRate  Decimal?         @db.Decimal(8, 4)
   amount        Decimal          @db.Decimal(12, 2)
   bankInfo      String?
+  remittanceUrl String?          // T/T 水單（PDF/圖片），透過 /api/upload 上傳
   notes         String?
   createdById   String
   createdAt     DateTime         @default(now())
@@ -319,4 +324,46 @@ model CollectionLog {
   createdById     String
   createdBy       User     @relation("CollectionCreatedBy", fields: [createdById], references: [id])
   createdAt       DateTime @default(now())
+}
+
+// ========== 沖帳作業 Settlement ==========
+model SettlementBatch {
+  id            String           @id @default(cuid())
+  batchNo       String           @unique
+  direction     PaymentDirection // INCOMING / OUTGOING
+  customerId    String?
+  customer      Customer?        @relation("CustomerSettlements", fields: [customerId], references: [id])
+  supplierId    String?
+  supplier      Supplier?        @relation("SupplierSettlements", fields: [supplierId], references: [id])
+  totalAmount   Decimal          @db.Decimal(12, 2)
+  paymentDate   DateTime
+  paymentMethod String?          // TRANSFER / CHECK / CASH
+  bankAccountId String?
+  referenceNo   String?          // 匯款單號/支票號
+  notes         String?
+  status        String           @default("CONFIRMED") // CONFIRMED / VOIDED
+  createdById   String
+  createdBy     User             @relation("SettlementCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime         @default(now())
+  items         SettlementItem[]
+
+  @@index([customerId])
+  @@index([supplierId])
+  @@index([paymentDate])
+}
+
+model SettlementItem {
+  id       String              @id @default(cuid())
+  batchId  String
+  batch    SettlementBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  arId     String?
+  ar       AccountsReceivable? @relation("SettlementAR", fields: [arId], references: [id])
+  apId     String?
+  ap       AccountsPayable?    @relation("SettlementAP", fields: [apId], references: [id])
+  amount   Decimal             @db.Decimal(12, 2)
+  lineNo   Int
+
+  @@index([batchId])
+  @@index([arId])
+  @@index([apId])
 }

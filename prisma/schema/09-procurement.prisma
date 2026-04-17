@@ -56,6 +56,9 @@ model Supplier {
 
   // ── 進貨退貨 ────────────────────────────────────────
   purchaseReturns    PurchaseReturn[]
+
+  // ── 沖帳作業 ────────────────────────────────────────
+  settlements        SettlementBatch[]     @relation("SupplierSettlements")
 }
 
 // 歷史採購價格

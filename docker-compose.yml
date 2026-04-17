@@ -41,6 +41,8 @@ services:
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
       AUTH_TRUST_HOST: "true"
+    ports:
+      - "3100:3000"
     networks:
       - internal
     deploy:

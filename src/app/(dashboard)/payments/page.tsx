@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -99,6 +100,8 @@ const emptyForm = {
 export default function PaymentsPage() {
   const { dict } = useI18n()
   const pp = dict.paymentsPage
+  const searchParams = useSearchParams()
+  const directionParam = searchParams.get('direction') as PaymentDirection | null
 
   /* Build payment method arrays inside component from dict */
   const PAYMENT_METHODS = PAYMENT_METHOD_KEYS.map(k => ({
@@ -119,7 +122,9 @@ export default function PaymentsPage() {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([])
   const [loading, setLoading]         = useState(true)
 
-  const [tab, setTab] = useState<'INCOMING' | 'OUTGOING'>('INCOMING')
+  const [tab, setTab] = useState<'INCOMING' | 'OUTGOING'>(
+    directionParam === 'OUTGOING' ? 'OUTGOING' : 'INCOMING'
+  )
 
   // filters
   const [filterDateFrom, setFilterDateFrom] = useState('')

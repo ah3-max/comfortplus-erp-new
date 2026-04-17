@@ -30,8 +30,18 @@ interface AuditLogEntry {
   user: { name: string; role: string }
 }
 
-const MODULES = ['customers', 'orders', 'inventory', 'qc', 'incidents', 'payments', 'quotations']
-const ACTIONS = ['CREATE', 'UPDATE', 'DELETE', 'APPROVE', 'PRICE_CHANGE', 'QC_RELEASE', 'INVENTORY_ADJUST']
+const MODULES = [
+  'customers', 'orders', 'quotations', 'sales-invoices', 'sales-returns',
+  'inventory', 'inbound', 'wms', 'qc', 'production',
+  'purchases', 'suppliers', 'payments', 'receipts', 'expenses', 'petty-cash',
+  'hr', 'users', 'settings', 'incidents', 'approvals',
+]
+const ACTIONS = [
+  'CREATE', 'UPDATE', 'DELETE',
+  'APPROVE', 'REJECT', 'SUBMIT',
+  'PRICE_CHANGE', 'QC_RELEASE', 'INVENTORY_ADJUST',
+  'LOGIN', 'LOGOUT', 'PASSWORD_CHANGE',
+]
 
 const ACTION_COLOR: Record<string, string> = {
   CREATE: 'bg-green-100 text-green-800 border-green-300',
@@ -74,6 +84,7 @@ export default function AuditLogPage() {
   // Filters
   const [module, setModule] = useState('')
   const [action, setAction] = useState('')
+  const [userName, setUserName] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
@@ -93,6 +104,7 @@ export default function AuditLogPage() {
       const params = new URLSearchParams()
       if (module) params.set('module', module)
       if (action) params.set('action', action)
+      if (userName) params.set('userName', userName)
       if (dateFrom) params.set('from', dateFrom)
       if (dateTo) params.set('to', dateTo)
       params.set('limit', String(PAGE_SIZE))
@@ -192,6 +204,18 @@ export default function AuditLogPage() {
               </select>
             </div>
 
+            {/* User name */}
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">用戶名稱</label>
+              <Input
+                placeholder="搜尋用戶..."
+                className="h-9 w-36"
+                value={userName}
+                onChange={e => setUserName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              />
+            </div>
+
             {/* Date from */}
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">{t('common.date')} (from)</label>
@@ -267,89 +291,95 @@ export default function AuditLogPage() {
                       const isExpanded = expanded.has(log.id)
                       const hasChanges = log.changes && Object.keys(log.changes).length > 0
                       return (
-                        <tr key={log.id} className="border-b last:border-0 hover:bg-muted/30">
-                          {/* Expand toggle */}
-                          <td className="py-2 pr-1">
-                            {hasChanges ? (
-                              <button
-                                onClick={() => toggleExpand(log.id)}
-                                className="rounded p-0.5 hover:bg-muted"
-                              >
-                                {isExpanded
-                                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                              </button>
-                            ) : (
-                              <span className="inline-block w-5" />
-                            )}
-                          </td>
+                        <>
+                          <tr key={log.id} className="border-b hover:bg-muted/30">
+                            {/* Expand toggle */}
+                            <td className="py-2 pr-1">
+                              {hasChanges ? (
+                                <button
+                                  onClick={() => toggleExpand(log.id)}
+                                  className="rounded p-0.5 hover:bg-muted"
+                                >
+                                  {isExpanded
+                                    ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                    : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                                </button>
+                              ) : (
+                                <span className="inline-block w-5" />
+                              )}
+                            </td>
 
-                          {/* Timestamp */}
-                          <td className="py-2 pr-3 whitespace-nowrap text-xs">
-                            {fmtDate(log.timestamp)}
-                          </td>
+                            {/* Timestamp */}
+                            <td className="py-2 pr-3 whitespace-nowrap text-xs">
+                              {fmtDate(log.timestamp)}
+                            </td>
 
-                          {/* User */}
-                          <td className="py-2 pr-3">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium">{log.userName}</span>
-                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ROLE_COLOR[log.userRole] ?? ''}`}>
-                                {log.userRole}
+                            {/* User */}
+                            <td className="py-2 pr-3">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium">{log.userName}</span>
+                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ROLE_COLOR[log.userRole] ?? ''}`}>
+                                  {log.userRole}
+                                </Badge>
+                              </div>
+                            </td>
+
+                            {/* Module */}
+                            <td className="py-2 pr-3">
+                              <Badge variant="outline" className={`text-[10px] ${MODULE_COLOR[log.module] ?? ''}`}>
+                                {log.module}
                               </Badge>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* Module */}
-                          <td className="py-2 pr-3">
-                            <Badge variant="outline" className={`text-[10px] ${MODULE_COLOR[log.module] ?? ''}`}>
-                              {log.module}
-                            </Badge>
-                          </td>
+                            {/* Action */}
+                            <td className="py-2 pr-3">
+                              <Badge variant="outline" className={`text-[10px] ${ACTION_COLOR[log.action] ?? 'bg-gray-100 text-gray-800'}`}>
+                                {log.action}
+                              </Badge>
+                            </td>
 
-                          {/* Action */}
-                          <td className="py-2 pr-3">
-                            <Badge variant="outline" className={`text-[10px] ${ACTION_COLOR[log.action] ?? 'bg-gray-100 text-gray-800'}`}>
-                              {log.action}
-                            </Badge>
-                          </td>
+                            {/* Entity */}
+                            <td className="py-2 pr-3">
+                              <span className="text-xs text-muted-foreground">{log.entityType}</span>
+                              {log.entityLabel && (
+                                <span className="ml-1 font-medium">{log.entityLabel}</span>
+                              )}
+                            </td>
 
-                          {/* Entity */}
-                          <td className="py-2 pr-3">
-                            <span className="text-xs text-muted-foreground">{log.entityType}</span>
-                            {log.entityLabel && (
-                              <span className="ml-1 font-medium">{log.entityLabel}</span>
-                            )}
-                          </td>
+                            {/* IP */}
+                            <td className="py-2 pr-3 text-xs text-muted-foreground">
+                              {log.ipAddress ?? '-'}
+                            </td>
+                          </tr>
 
-                          {/* IP */}
-                          <td className="py-2 pr-3 text-xs text-muted-foreground">
-                            {log.ipAddress ?? '-'}
-                          </td>
-                        </tr>
+                          {/* Inline expanded changes row */}
+                          {isExpanded && hasChanges && (
+                            <tr key={`${log.id}-changes`} className="bg-muted/20 border-b">
+                              <td />
+                              <td colSpan={6} className="pb-3 pt-1 pr-3">
+                                <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
+                                  變更內容 — {log.entityLabel ?? log.entityId}
+                                  {log.reason && <span className="ml-2 font-normal text-muted-foreground">({log.reason})</span>}
+                                </p>
+                                <div className="space-y-1">
+                                  {Object.entries(log.changes!).map(([field, diff]) => (
+                                    <div key={field} className="flex gap-2 text-xs">
+                                      <span className="font-medium min-w-[120px] text-muted-foreground">{field}</span>
+                                      <span className="text-red-600 line-through">{JSON.stringify(diff.before)}</span>
+                                      <span className="text-slate-400 mx-1">→</span>
+                                      <span className="text-green-600">{JSON.stringify(diff.after)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       )
                     })}
                   </tbody>
                 </table>
               </div>
-
-              {/* Expanded changes - rendered below the table for each expanded row */}
-              {logs.filter(l => expanded.has(l.id) && l.changes).map(log => (
-                <div key={`changes-${log.id}`} className="mt-2 mb-3 rounded-lg border bg-muted/20 p-3">
-                  <p className="mb-2 text-xs font-semibold text-muted-foreground">
-                    Changes - {log.entityLabel ?? log.entityId}
-                    {log.reason && <span className="ml-2 font-normal">({log.reason})</span>}
-                  </p>
-                  <div className="space-y-1">
-                    {Object.entries(log.changes!).map(([field, diff]) => (
-                      <div key={field} className="flex gap-2 text-xs">
-                        <span className="font-medium min-w-[100px]">{field}:</span>
-                        <span className="text-red-600 line-through">{JSON.stringify(diff.before)}</span>
-                        <span className="text-green-600">{JSON.stringify(diff.after)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
 
               {/* Pagination */}
               {totalPages > 1 && (

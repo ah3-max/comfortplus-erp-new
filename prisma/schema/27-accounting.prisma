@@ -45,7 +45,8 @@ model FiscalPeriod {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  journalEntries JournalEntry[]
+  journalEntries  JournalEntry[]
+  expenseReports  ExpenseReport[] @relation("ExpensePeriod")
 
   @@index([year, month])
   @@index([status])
@@ -79,6 +80,7 @@ model JournalEntry {
   lines                JournalEntryLine[]
   contractSchedules    ContractPaySchedule[]        @relation("ContractJournalEntry")
   assetDepreciations   FixedAssetDepreciation[]     @relation("AssetDepreciationJournal")
+  expenseReport        ExpenseReport?               @relation("ExpenseJournal")
 
   @@index([entryDate, status])
   @@index([referenceType, referenceId])
@@ -189,6 +191,29 @@ model VatFiling {
   @@index([status])
 }
 
+// 進項稅額明細（VatFiling 的逐筆來源）
+model InputTaxItem {
+  id            String             @id @default(cuid())
+  vendorName    String
+  vendorTaxId   String?
+  invoiceNo     String
+  invoiceDate   DateTime           @db.Date
+  subtotal      Decimal            @db.Decimal(12, 2)
+  taxAmount     Decimal            @db.Decimal(12, 2)
+  totalAmount   Decimal            @db.Decimal(12, 2)
+  sourceType    InputTaxSourceType
+  taxPeriod     String             // 格式：2025-01，對應雙月申報期
+  attachmentUrl String?
+  apId          String?
+  ap            AccountsPayable?   @relation("APInputTax", fields: [apId], references: [id])
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([taxPeriod])
+  @@index([apId])
+  @@index([invoiceNo])
+}
+
 // 傳票分錄
 model JournalEntryLine {
   id          String             @id @default(cuid())
@@ -203,4 +228,14 @@ model JournalEntryLine {
 
   @@index([entryId])
   @@index([accountId])
+}
+
+// ========== 費用科目對應 ==========
+model ExpenseCategoryMapping {
+  id          String   @id @default(cuid())
+  category    String   @unique  // TRANSPORT / MEAL / HOTEL / OFFICE / ENTERTAINMENT / TRAINING / OTHER
+  accountCode String            // 對應 AccountingAccount.code (6300/6290/...)
+  accountName String            // 冗餘欄位方便顯示
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
 }

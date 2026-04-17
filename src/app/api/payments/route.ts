@@ -55,6 +55,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '請填寫收/付方向、類型、金額與日期' }, { status: 400 })
     }
 
+    // Period guard
+    const { assertPeriodOpen } = await import('@/lib/period-guard')
+    await assertPeriodOpen(new Date(body.paymentDate))
+
     const paymentNo = await generateSequenceNo('PAYMENT')
 
     const payment = await prisma.$transaction(async (tx) => {

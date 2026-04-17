@@ -5,6 +5,7 @@
  */
 import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
+import { assertPeriodOpen } from '@/lib/period-guard'
 
 export type AutoJournalType =
   | 'SALES_CONFIRM'       // 銷貨確認：Dr 應收帳款 / Cr 銷貨收入 + Cr 銷項稅額
@@ -67,6 +68,9 @@ async function getAccountIds(codes: string[]): Promise<Map<string, string>> {
  * Returns null if entry already exists (idempotent).
  */
 export async function createAutoJournal(params: AutoJournalParams): Promise<string | null> {
+  // Guard: reject writes to closed/locked periods
+  await assertPeriodOpen(params.entryDate)
+
   const { type, referenceType, referenceId, entryDate, description, amount, createdById } = params
   const taxAmount = params.taxAmount ?? Math.round(amount * VAT_RATE)
   const totalWithTax = amount + taxAmount

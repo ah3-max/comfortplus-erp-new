@@ -9,7 +9,8 @@ export async function GET(req: NextRequest) {
 
   // Check role
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { role: true } })
-  if (!['SUPER_ADMIN', 'GM'].includes(user?.role ?? '')) {
+  const ALLOWED_ROLES = ['SUPER_ADMIN', 'GM', 'SALES_MANAGER', 'FINANCE', 'WAREHOUSE_MANAGER', 'PROCUREMENT']
+  if (!ALLOWED_ROLES.includes(user?.role ?? '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
   const module = searchParams.get('module')
   const action = searchParams.get('action')
   const userId = searchParams.get('userId')
+  const userName = searchParams.get('userName')
   const entityType = searchParams.get('entityType')
   const dateFrom = searchParams.get('from')
   const dateTo = searchParams.get('to')
@@ -27,6 +29,7 @@ export async function GET(req: NextRequest) {
   if (module) where.module = module
   if (action) where.action = action
   if (userId) where.userId = userId
+  if (userName) where.userName = { contains: userName, mode: 'insensitive' }
   if (entityType) where.entityType = entityType
   if (dateFrom || dateTo) {
     where.timestamp = {}
