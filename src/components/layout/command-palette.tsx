@@ -11,7 +11,6 @@ import en from '@/lib/i18n/locales/en'
 import th from '@/lib/i18n/locales/th'
 import {
   navGroups,
-  financeNavGroups,
   isSubGroup,
   type NavItem,
   type NavGroup,
@@ -57,7 +56,7 @@ function dedupe(items: FlatItem[]): FlatItem[] {
   return items.filter(i => (seen.has(i.href) ? false : (seen.add(i.href), true)))
 }
 
-const ALL_ITEMS = dedupe([...flatten(navGroups), ...flatten(financeNavGroups)])
+const ALL_ITEMS = dedupe(flatten(navGroups))
 
 function readNav(obj: unknown, key: string): string {
   const nav = (obj as { nav?: Record<string, string> })?.nav
