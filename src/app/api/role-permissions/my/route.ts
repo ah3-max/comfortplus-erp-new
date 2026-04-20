@@ -69,12 +69,31 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'reports', 'documents', 'announcements',
   ],
   FINANCE: [
-    'dashboard',
-    'orders', 'salesInvoices', 'eInvoices',
+    'dashboard', 'announcements',
+    // AR
+    'orders', 'salesInvoices', 'salesReturns', 'eInvoices',
+    'receipts', 'arAging', 'settlement', 'creditManagement',
+    // AP
+    'payments', 'apAging', 'disbursements',
+    'expenses', 'pettyCash',
+    // Bank
+    'bankAccounts', 'bankReconcile', 'cheques', 'cashBook',
+    // Ledger
+    'generalLedger', 'accountDetail', 'vatLedger',
+    'inputTax', 'vatSummary', 'vatFilings',
+    // Finance dashboard
+    'finance',
+    // Reports
+    'monthlyPL', 'cashFlowStatement', 'paymentSummary', 'receiptSummary', 'advancePaymentSummary', 'managementSummary',
+    'grossMargin', 'salesAnalysis', 'reports',
+    // Period close
+    'autoJournal', 'periodClose',
+    // Channels & pricing
+    'channels', 'priceTiers', 'discountRules', 'customerPricing',
+    // Products (read for AR verification)
     'products',
-    'contracts', 'fixedAssets', 'budget', 'expenses', 'finance',
-    'channels', 'retail', 'payments', 'arAging', 'receipts', 'apAging', 'disbursements', 'priceTiers', 'discountRules',
-    'approvals', 'reports', 'documents', 'auditLog', 'announcements',
+    // System
+    'approvals', 'documents', 'auditLog',
   ],
 }
 

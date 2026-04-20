@@ -29,10 +29,11 @@ const ALL_MODULES = [
   'generalLedger', 'accountDetail', 'cashBook', 'vatLedger',
   // Finance — Reports
   'monthlyPL', 'cashFlowStatement', 'paymentSummary', 'receiptSummary', 'advancePaymentSummary', 'managementSummary',
-  // Finance — Settings
-  'bankAccounts', 'cheques', 'vatFilings', 'periodClose', 'autoJournal',
+  // Finance — Settings & extras
+  'bankAccounts', 'bankReconcile', 'cheques', 'vatFilings', 'vatSummary', 'inputTax', 'periodClose', 'autoJournal',
+  'settlement', 'customerPricing',
   // Channels
-  'channels', 'priceTiers', 'discountRules',
+  'channels', 'priceTiers', 'discountRules', 'expenseCategories',
   // Analysis — Sales
   'reports', 'salesAnalysis', 'grossMargin', 'salespersonPerformance', 'competitorPrices',
   // Analysis — Ops
@@ -121,21 +122,29 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'reports', 'documents', 'announcements',
   ],
   FINANCE: [
-    'dashboard',
-    'orders', 'salesInvoices', 'eInvoices', 'salesReturns',
-    'products',
-    // Finance — all sections
-    'finance', 'payments', 'receipts', 'expenses', 'pettyCash',
-    'arAging', 'apAging', 'disbursements', 'creditManagement',
-    'generalLedger', 'accountDetail', 'cashBook', 'vatLedger',
+    'dashboard', 'announcements',
+    // AR
+    'orders', 'salesInvoices', 'salesReturns', 'eInvoices',
+    'receipts', 'arAging', 'settlement', 'creditManagement',
+    // AP
+    'payments', 'apAging', 'disbursements',
+    'expenses', 'pettyCash',
+    // Bank
+    'bankAccounts', 'bankReconcile', 'cheques', 'cashBook',
+    // Ledger
+    'finance', 'generalLedger', 'accountDetail', 'vatLedger',
+    'inputTax', 'vatSummary', 'vatFilings',
+    // Reports
     'monthlyPL', 'cashFlowStatement', 'paymentSummary', 'receiptSummary', 'advancePaymentSummary', 'managementSummary',
-    'bankAccounts', 'cheques', 'vatFilings', 'periodClose', 'autoJournal',
+    'grossMargin', 'salesAnalysis', 'reports',
+    // Period close
+    'autoJournal', 'periodClose',
     // Channels & pricing
-    'channels', 'priceTiers', 'discountRules',
-    // Analysis
-    'grossMargin', 'salesAnalysis',
+    'channels', 'priceTiers', 'discountRules', 'customerPricing',
+    // Products (read for AR verification)
+    'products',
     // System
-    'approvals', 'reports', 'documents', 'auditLog', 'announcements',
+    'approvals', 'documents', 'auditLog',
   ],
 }
 

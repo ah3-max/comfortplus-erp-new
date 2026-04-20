@@ -17,9 +17,9 @@ import {
   MapPinned, ReceiptText, BriefcaseBusiness, HandCoins, Megaphone,
   Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp,
   Clock, DollarSign, CheckCircle2, Tag, Send, BellRing, Hash, DatabaseZap,
-  Printer, AlertTriangle, BadgeDollarSign, FileCheck,
+  Printer, AlertTriangle, BadgeDollarSign, FileCheck, Search,
 } from 'lucide-react'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 /* ── Types ── */
@@ -270,6 +270,146 @@ export const navGroups: NavGroup[] = [
   },
 ]
 
+/* ── Finance Role Nav (workflow-ordered) ── */
+export const financeNavGroups: NavGroup[] = [
+  /* 1. 今日工作台 */
+  {
+    labelKey: 'groupFinDaily',
+    items: [
+      { href: '/dashboard',   key: 'dashboard',     icon: LayoutDashboard },
+      { href: '/finance',     key: 'finance',        icon: BarChart3 },
+      { href: '/approvals',   key: 'approvals',      icon: GitPullRequestArrow },
+      { href: '/announcements', key: 'announcements', icon: Megaphone },
+    ],
+  },
+
+  /* 2. 應收管理 */
+  {
+    labelKey: 'groupFinAR',
+    items: [
+      {
+        subLabelKey: 'subIncome',
+        items: [
+          { href: '/orders',         key: 'orders',         icon: ShoppingCart },
+          { href: '/sales-invoices', key: 'salesInvoices',  icon: Receipt },
+          { href: '/sales-returns',  key: 'salesReturns',   icon: RotateCcw },
+          { href: '/e-invoices',     key: 'eInvoices',      icon: FileText },
+        ],
+      },
+      {
+        subLabelKey: 'subCollections',
+        items: [
+          { href: '/receipts',           key: 'receipts',          icon: CheckCircle2 },
+          { href: '/ar-aging',           key: 'arAging',           icon: Receipt },
+          { href: '/finance/settlement', key: 'settlement',        icon: FileCheck },
+          { href: '/credit-management',  key: 'creditManagement',  icon: BadgeAlert },
+        ],
+      },
+    ],
+  },
+
+  /* 3. 應付管理 */
+  {
+    labelKey: 'groupFinAP',
+    items: [
+      {
+        subLabelKey: 'subDisbursements',
+        items: [
+          { href: '/payments',      key: 'payments',      icon: CreditCard },
+          { href: '/ap-aging',      key: 'apAging',       icon: Receipt },
+          { href: '/disbursements', key: 'disbursements', icon: HandCoins },
+        ],
+      },
+      {
+        subLabelKey: 'subExpense',
+        items: [
+          { href: '/expenses',    key: 'expenses',   icon: ReceiptText },
+          { href: '/petty-cash',  key: 'pettyCash',  icon: Wallet },
+        ],
+      },
+    ],
+  },
+
+  /* 4. 銀行與現金 */
+  {
+    labelKey: 'groupFinBank',
+    items: [
+      { href: '/bank-accounts',          key: 'bankAccounts',  icon: Landmark },
+      { href: '/finance/bank/reconcile', key: 'bankReconcile', icon: Scale },
+      { href: '/cheques',                key: 'cheques',       icon: FileText },
+      { href: '/finance/cash-book',      key: 'cashBook',      icon: CreditCard },
+    ],
+  },
+
+  /* 5. 總帳 */
+  {
+    labelKey: 'groupFinLedger',
+    items: [
+      {
+        subLabelKey: 'subLedger',
+        items: [
+          { href: '/finance/general-ledger', key: 'generalLedger', icon: BookOpen },
+          { href: '/finance/account-detail', key: 'accountDetail', icon: BookOpen },
+          { href: '/finance/vat-ledger',     key: 'vatLedger',     icon: Receipt },
+        ],
+      },
+      {
+        subLabelKey: 'subTax',
+        items: [
+          { href: '/finance/input-tax', key: 'inputTax',   icon: ReceiptText },
+          { href: '/finance/vat',       key: 'vatSummary', icon: Calculator },
+          { href: '/vat-filings',       key: 'vatFilings', icon: Receipt },
+        ],
+      },
+    ],
+  },
+
+  /* 6. 財務報表 */
+  {
+    labelKey: 'groupFinReports',
+    items: [
+      { href: '/finance/monthly-pl',              key: 'monthlyPL',             icon: BarChart3 },
+      { href: '/finance/cash-flow-statement',     key: 'cashFlowStatement',     icon: BarChart3 },
+      { href: '/finance/payment-summary',         key: 'paymentSummary',        icon: CreditCard },
+      { href: '/finance/receipt-summary',         key: 'receiptSummary',        icon: Receipt },
+      { href: '/finance/advance-payment-summary', key: 'advancePaymentSummary', icon: HandCoins },
+      { href: '/finance/management-summary',      key: 'managementSummary',     icon: PieChart },
+      { href: '/gross-margin',                    key: 'grossMargin',           icon: DollarSign },
+      { href: '/sales-analysis',                  key: 'salesAnalysis',         icon: TrendingUp },
+      { href: '/reports',                         key: 'reports',               icon: PieChart },
+    ],
+  },
+
+  /* 7. 期末作業 */
+  {
+    labelKey: 'groupFinPeriod',
+    items: [
+      { href: '/auto-journal', key: 'autoJournal', icon: Zap },
+      { href: '/period-close', key: 'periodClose', icon: CalendarCheck2 },
+    ],
+  },
+
+  /* 8. 通路定價 */
+  {
+    labelKey: 'groupChannels',
+    items: [
+      { href: '/channels',          key: 'channels',        icon: Store },
+      { href: '/price-tiers',       key: 'priceTiers',      icon: Layers },
+      { href: '/discount-rules',    key: 'discountRules',   icon: HandCoins },
+      { href: '/customer-pricing',  key: 'customerPricing', icon: BadgeDollarSign },
+    ],
+  },
+
+  /* 9. 系統 */
+  {
+    labelKey: 'groupSystem',
+    items: [
+      { href: '/documents', key: 'documents', icon: FileArchive },
+      { href: '/audit-log', key: 'auditLog',  icon: Shield },
+    ],
+  },
+]
+
 /* ── Helpers ── */
 const STORAGE_KEY = 'sidebar-collapsed-groups'
 const STORAGE_SUB_KEY = 'sidebar-collapsed-subs'
@@ -298,8 +438,11 @@ export function Sidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [allowedModules, setAllowedModules] = useState<string[] | null>(null)
+  const [userRole, setUserRole] = useState<string | null>(null)
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({})
   const [subOpen, setSubOpen] = useState<Record<string, boolean>>({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
   const { dict } = useI18n()
 
   // Load persisted state
@@ -308,11 +451,14 @@ export function Sidebar() {
     setSubOpen(loadCollapsed(STORAGE_SUB_KEY))
   }, [])
 
-  // Load user's allowed modules
+  // Load user's allowed modules and role
   useEffect(() => {
     fetch('/api/role-permissions/my')
       .then(r => r.json())
-      .then(d => setAllowedModules(d.allowedModules ?? ['*']))
+      .then(d => {
+        setAllowedModules(d.allowedModules ?? ['*'])
+        setUserRole(d.role ?? null)
+      })
       .catch(() => setAllowedModules(['*']))
   }, [])
 
@@ -366,7 +512,9 @@ export function Sidebar() {
   const canAccess = (key: string) =>
     !allowedModules || allowedModules.includes('*') || allowedModules.includes(key)
 
-  const filteredGroups = navGroups
+  const activeGroups = userRole === 'FINANCE' ? financeNavGroups : navGroups
+
+  const filteredGroups = activeGroups
     .map(group => ({
       ...group,
       label: (dict.nav as Record<string, string>)[group.labelKey] ?? group.labelKey,
@@ -383,6 +531,21 @@ export function Sidebar() {
     .filter(group => group.items.length > 0)
 
   const navLabel = (key: string) => (dict.nav as Record<string, string>)[key] ?? key
+
+  // Flat list of all visible items for search
+  const allVisibleItems: Array<{ item: NavItem; groupLabel: string }> = filteredGroups.flatMap(group =>
+    group.items.flatMap(entry =>
+      isSubGroup(entry)
+        ? entry.items.map(item => ({ item, groupLabel: group.label }))
+        : [{ item: entry as NavItem, groupLabel: group.label }]
+    )
+  )
+
+  const searchResults = searchQuery.trim()
+    ? allVisibleItems.filter(({ item }) =>
+        (navLabel(item.key) + item.href).toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : null
 
   function renderNavItem(item: NavItem) {
     const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -422,9 +585,64 @@ export function Sidebar() {
         )}
       </div>
 
+      {/* Search bar */}
+      {!collapsed && (
+        <div className="px-2 pt-2 pb-1">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              ref={searchRef}
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={(dict.nav as Record<string, string>).navSearch ?? '搜尋功能...'}
+              className="w-full rounded-md bg-slate-800 py-1.5 pl-8 pr-3 text-xs text-slate-300 placeholder-slate-500 outline-none ring-0 focus:ring-1 focus:ring-blue-500 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs leading-none"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Nav */}
       <nav className="flex-1 min-h-0 overflow-y-auto p-2">
-        {filteredGroups.map((group, gi) => {
+        {/* Search results */}
+        {searchResults && !collapsed && (
+          <div className="space-y-0.5">
+            {searchResults.length === 0 ? (
+              <p className="px-3 py-4 text-center text-xs text-slate-500">找不到符合的功能</p>
+            ) : (
+              searchResults.map(({ item, groupLabel }) => {
+                const active = pathname === item.href || pathname.startsWith(item.href + '/')
+                return (
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setSearchQuery('')}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                        active ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      <span className="flex-1 truncate">{navLabel(item.key)}</span>
+                      <span className="shrink-0 text-[10px] text-slate-600">{groupLabel}</span>
+                    </Link>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
+
+        {/* Normal grouped nav (hidden when searching) */}
+        {!searchResults && filteredGroups.map((group, gi) => {
           const isOpen = groupOpen[group.labelKey] !== false // default open
           return (
             <div key={group.labelKey} className={gi > 0 ? 'mt-1' : ''}>
