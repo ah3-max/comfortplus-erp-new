@@ -300,7 +300,9 @@ const zhTW = {
     subSalesReports: '銷售分析',
     subOpsReports: '營運分析',
     // 財務角色專屬群組
-    navSearch: '搜尋功能...',
+    navSearch: '搜尋功能... ( / )',
+    pinnedSection: '釘選',
+    customizeMenu: '自訂選單',
     groupFinDaily: '今日工作台',
     groupFinQuick: '快速操作',
     groupFinAR: '應收管理',

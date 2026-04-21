@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>ComfortPlus ERP — Sidebar Mockup (FINANCE)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  body { font-family: -apple-system, "PingFang TC", "Noto Sans TC", system-ui, sans-serif; }
+  /* 讓 star hover 平滑出現 */
+  .nav-item .star-btn { opacity: 0; transition: opacity .12s ease; }
+  .nav-item:hover .star-btn { opacity: 1; }
+  /* pinned 區塊微動畫 */
+  .pin-flash { animation: flash .6s ease; }
+  @keyframes flash {
+    0%   { background-color: #fef3c7; }
+    100% { background-color: transparent; }
+  }
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- 說明欄 -->
+<div class="bg-amber-50 border-b border-amber-200 px-6 py-3 text-sm text-amber-900 flex items-center gap-4">
+  <span class="font-semibold">📐 Mockup 操作說明</span>
+  <span>• Hover 任何選單項目 → 右側出現 ⭐</span>
+  <span>• 點 ⭐ 可將項目釘選到最上方「我的釘選」</span>
+  <span>• 點「⚙ 自訂選單」可拖拉排序（此版未實作拖拉，只展示視覺）</span>
+</div>
+
+<div class="flex h-[calc(100vh-48px)]">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="w-[260px] bg-white border-r border-slate-200 flex flex-col shrink-0">
+
+    <!-- Logo -->
+    <div class="h-16 flex items-center px-5 border-b border-slate-200 relative">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm mr-2">C+</div>
+      <div>
+        <div class="font-bold text-slate-900 text-[15px]">ComfortPlus</div>
+        <div class="text-[11px] text-slate-500 -mt-0.5">財務工作台</div>
+      </div>
+      <span id="saved-indicator" class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 opacity-0 transition-opacity duration-150">
+        ✓ 已記住
+      </span>
+    </div>
+
+    <!-- 全域搜尋 -->
+    <div class="px-3 pt-4 pb-3">
+      <button class="w-full h-10 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm flex items-center px-3 gap-2 transition">
+        <i data-lucide="search" class="w-4 h-4"></i>
+        <span class="flex-1 text-left">搜尋功能、客戶、單號...</span>
+        <kbd class="text-[10px] bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-500">⌘K</kbd>
+      </button>
+    </div>
+
+    <!-- 主選單捲動區 -->
+    <nav class="flex-1 overflow-y-auto px-2 pb-4" id="nav-root">
+
+      <!-- === 我的釘選（預設展開） === -->
+      <div class="mt-2" data-group="pinned">
+        <div class="flex items-center justify-between px-3 py-1.5">
+          <span class="text-[11px] font-semibold text-amber-600 tracking-wider uppercase flex items-center gap-1">
+            <i data-lucide="star" class="w-3 h-3 fill-amber-500 text-amber-500"></i>
+            我的釘選
+          </span>
+        </div>
+        <div id="pinned-list" class="space-y-0.5"></div>
+        <div id="pinned-empty" class="text-[12px] text-slate-400 px-3 py-2 italic">
+          hover 下方項目點 ⭐ 即可釘選
+        </div>
+      </div>
+
+      <div class="border-t border-slate-100 my-3"></div>
+
+      <!-- === 群組：日常作業 === -->
+      <div class="group-block" data-group="daily">
+        <button class="group-header w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase hover:text-slate-700">
+          <span>日常作業</span>
+          <i data-lucide="chevron-down" class="chev w-3.5 h-3.5 transition-transform"></i>
+        </button>
+        <div class="space-y-0.5 group-items">
+          <!-- items injected by JS for consistency -->
+        </div>
+      </div>
+
+      <!-- === 群組：應收帳款（當月節奏） === -->
+      <div class="group-block mt-3" data-group="ar">
+        <button class="group-header w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase hover:text-slate-700">
+          <span>應收 / 收款</span>
+          <i data-lucide="chevron-down" class="chev w-3.5 h-3.5 transition-transform"></i>
+        </button>
+        <div class="space-y-0.5 group-items"></div>
+      </div>
+
+      <!-- === 群組：應付帳款 === -->
+      <div class="group-block mt-3" data-group="ap">
+        <button class="group-header w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase hover:text-slate-700">
+          <span>應付 / 付款</span>
+          <i data-lucide="chevron-down" class="chev w-3.5 h-3.5 transition-transform"></i>
+        </button>
+        <div class="space-y-0.5 group-items"></div>
+      </div>
+
+      <!-- === 群組：月結 / 報表（每兩月節奏） === -->
+      <div class="group-block mt-3" data-group="period">
+        <button class="group-header w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase hover:text-slate-700">
+          <span>月結 / 報表</span>
+          <i data-lucide="chevron-down" class="chev w-3.5 h-3.5 transition-transform"></i>
+        </button>
+        <div class="space-y-0.5 group-items"></div>
+      </div>
+
+      <!-- === 群組：帳務基礎 === -->
+      <div class="group-block mt-3" data-group="ledger">
+        <button class="group-header w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-500 tracking-wider uppercase hover:text-slate-700">
+          <span>帳務基礎</span>
+          <i data-lucide="chevron-down" class="chev w-3.5 h-3.5 transition-transform"></i>
+        </button>
+        <div class="space-y-0.5 group-items"></div>
+      </div>
+
+    </nav>
+
+    <!-- 底部 -->
+    <div class="border-t border-slate-200 p-3 space-y-1">
+      <button class="w-full h-9 rounded-lg hover:bg-slate-100 text-slate-600 text-[13px] flex items-center px-3 gap-2 transition">
+        <i data-lucide="settings-2" class="w-4 h-4"></i>
+        自訂選單
+      </button>
+      <button class="w-full h-9 rounded-lg hover:bg-slate-100 text-slate-600 text-[13px] flex items-center px-3 gap-2 transition">
+        <i data-lucide="log-out" class="w-4 h-4"></i>
+        登出
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ============ 主畫面（假內容）============ -->
+  <main class="flex-1 overflow-auto p-10">
+    <div class="max-w-4xl">
+      <h1 class="text-2xl font-bold text-slate-900">Sidebar Mockup 預覽</h1>
+      <p class="text-slate-600 mt-2 leading-7">
+        這是 FINANCE 角色側邊欄的 mockup，呈現釘選互動、收款/付款大按鈕、以及依工作節奏重排的群組。
+        請在左側 sidebar 上 hover 任一項目試試 ⭐ 互動。
+      </p>
+      <div class="mt-6 grid grid-cols-2 gap-4">
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <div class="text-[11px] text-slate-500 uppercase tracking-wider">設計重點</div>
+          <ul class="mt-3 text-sm text-slate-700 space-y-2 list-disc list-inside">
+            <li>字體放大（item 14px，原 12-13px）</li>
+            <li>預設只展開「當前頁所在的群組」</li>
+            <li>釘選區預設為空，使用者自訂</li>
+            <li>當前頁用左側 indicator bar + indigo 背景</li>
+            <li>釘選區用琥珀色區隔，視覺上浮出</li>
+          </ul>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-200 p-5">
+          <div class="text-[11px] text-slate-500 uppercase tracking-wider">互動原則</div>
+          <ul class="mt-3 text-sm text-slate-700 space-y-2 list-disc list-inside">
+            <li>Hover 才出現 ⭐，含已釘選項目也不常駐</li>
+            <li>釘選區永遠在最上方，Fitts's Law</li>
+            <li>群組展開/收合狀態會記住（localStorage）</li>
+            <li>第一次進來只展開一個群組，降低視覺負擔</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* ── 資料 ── */
+const MENU = {
+  daily: {
+    open: true,
+    items: [
+      { key:'dashboard',     label:'儀表板',       icon:'layout-dashboard' },
+      { key:'dailyReminder', label:'每日提醒',     icon:'bell-ring' },
+      { key:'calendar',      label:'行事曆',       icon:'calendar-days' },
+    ],
+  },
+  ar: {
+    open: false,
+    items: [
+      { key:'salesInvoices',  label:'銷貨單',         icon:'receipt' },
+      { key:'eInvoices',      label:'電子發票',       icon:'file-text' },
+      { key:'arCollections',  label:'收款登錄',       icon:'hand-coins', badge:12 },
+      { key:'arReconcile',    label:'AR 沖帳',        icon:'scale' },
+      { key:'arAging',        label:'AR 帳齡分析',    icon:'clock' },
+    ],
+  },
+  ap: {
+    open: false,
+    items: [
+      { key:'purchaseInvoices', label:'進項發票',       icon:'file-archive', badge:5 },
+      { key:'apPayments',       label:'付款登錄',       icon:'send' },
+      { key:'apReconcile',      label:'AP 沖帳',        icon:'scale' },
+      { key:'expenseReimburse', label:'費用報銷',       icon:'wallet' },
+    ],
+  },
+  period: {
+    open: false,
+    items: [
+      { key:'taxReport401',  label:'401 申報', icon:'printer', highlight:true },
+      { key:'closePeriod',   label:'月底關帳', icon:'calendar-check-2' },
+      { key:'reports',       label:'財務報表', icon:'bar-chart-3' },
+      { key:'pnl',           label:'損益表',   icon:'trending-up' },
+      { key:'balanceSheet',  label:'資產負債', icon:'landmark' },
+    ],
+  },
+  ledger: {
+    open: false,
+    items: [
+      { key:'journals',     label:'傳票管理',   icon:'book-open' },
+      { key:'accounts',     label:'會計科目',   icon:'hash' },
+      { key:'bankAccounts', label:'銀行帳戶',   icon:'credit-card' },
+      { key:'pricing',      label:'客戶定價',   icon:'tag' },
+    ],
+  },
+};
+
+const GROUP_LABELS = {
+  daily:'日常作業', ar:'應收 / 收款', ap:'應付 / 付款',
+  period:'月結 / 報表', ledger:'帳務基礎',
+};
+
+/* 模擬當前頁：AR 沖帳 */
+const CURRENT_KEY = 'arReconcile';
+
+/* ── 狀態 ── */
+const PIN_KEY = 'mockup_pinned_v2';
+const OPEN_KEY = 'mockup_groups_open_v2';
+let pinned = JSON.parse(localStorage.getItem(PIN_KEY) || '[]');
+
+/* 群組展開狀態：localStorage 優先；沒紀錄時，只展開「當前頁所在群組」 */
+function initialOpenState() {
+  let saved = null;
+  try { saved = localStorage.getItem(OPEN_KEY); } catch (e) { console.warn('[sidebar] localStorage read failed', e); }
+  console.log('[sidebar] loaded open state:', saved);
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { console.warn('[sidebar] parse failed', e); }
+  }
+  const state = {};
+  Object.keys(MENU).forEach(gk => {
+    state[gk] = MENU[gk].items.some(it => it.key === CURRENT_KEY);
+  });
+  return state;
+}
+const openState = initialOpenState();
+Object.keys(MENU).forEach(gk => { MENU[gk].open = !!openState[gk]; });
+function persistOpen() {
+  const s = {};
+  Object.keys(MENU).forEach(gk => { s[gk] = MENU[gk].open; });
+  const str = JSON.stringify(s);
+  try {
+    localStorage.setItem(OPEN_KEY, str);
+    console.log('[sidebar] saved open state:', s);
+    flashSavedIndicator();
+  } catch (e) {
+    console.error('[sidebar] localStorage write failed', e);
+  }
+}
+function flashSavedIndicator() {
+  const el = document.getElementById('saved-indicator');
+  if (!el) return;
+  el.classList.remove('opacity-0');
+  el.classList.add('opacity-100');
+  clearTimeout(flashSavedIndicator._t);
+  flashSavedIndicator._t = setTimeout(() => {
+    el.classList.remove('opacity-100');
+    el.classList.add('opacity-0');
+  }, 1200);
+}
+
+/* ── 渲染 item ── */
+function renderItem(item, groupKey, { inPinned=false } = {}) {
+  const isActive = item.key === CURRENT_KEY;
+  const isPinned = pinned.includes(item.key);
+  return `
+    <a href="#" data-key="${item.key}" data-group="${groupKey}"
+       class="nav-item group flex items-center gap-2.5 px-3 py-2 rounded-lg text-[14px] relative
+              ${isActive
+                ? 'bg-indigo-50 text-indigo-700 font-semibold'
+                : 'text-slate-700 hover:bg-slate-100'}">
+      ${isActive ? '<span class="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-indigo-600"></span>' : ''}
+      <i data-lucide="${item.icon}" class="w-[18px] h-[18px] ${isActive?'text-indigo-600':'text-slate-500'} ${item.highlight?'text-amber-600':''}"></i>
+      <span class="flex-1 ${item.highlight?'text-amber-700 font-medium':''}">${item.label}</span>
+      ${item.badge ? `<span class="text-[11px] bg-rose-500 text-white rounded-full px-1.5 min-w-[20px] text-center">${item.badge}</span>` : ''}
+      <button class="star-btn pin-toggle" data-key="${item.key}" title="${inPinned || isPinned ? '取消釘選' : '加入釘選'}">
+        <i data-lucide="star" class="w-4 h-4 ${(inPinned || isPinned)?'fill-amber-400 text-amber-500':'text-slate-400'}"></i>
+      </button>
+    </a>
+  `;
+}
+
+/* ── 渲染 pinned 區 ── */
+function renderPinned() {
+  const list = document.getElementById('pinned-list');
+  const empty = document.getElementById('pinned-empty');
+  const flat = [];
+  Object.entries(MENU).forEach(([gk,g]) => g.items.forEach(it => { if (pinned.includes(it.key)) flat.push({it,gk}); }));
+  if (flat.length === 0) { list.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  list.innerHTML = flat.map(({it,gk}) => renderItem(it, gk, { inPinned:true })).join('');
+}
+
+/* ── 渲染所有群組 ── */
+function renderGroups() {
+  document.querySelectorAll('.group-block').forEach(block => {
+    const gk = block.dataset.group;
+    if (!MENU[gk]) return;
+    const container = block.querySelector('.group-items');
+    container.innerHTML = MENU[gk].items.map(it => renderItem(it, gk)).join('');
+    // header chevron 狀態
+    const chev = block.querySelector('.group-header .chev');
+    if (!MENU[gk].open) {
+      if (chev) chev.style.transform = 'rotate(-90deg)';
+      container.style.display = 'none';
+    } else {
+      if (chev) chev.style.transform = '';
+      container.style.display = '';
+    }
+  });
+}
+
+/* ── 事件 ── */
+function bindEvents() {
+  // 釘選 / 取消釘選
+  document.body.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pin-toggle');
+    if (btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const key = btn.dataset.key;
+      if (pinned.includes(key)) pinned = pinned.filter(k => k !== key);
+      else pinned.push(key);
+      localStorage.setItem(PIN_KEY, JSON.stringify(pinned));
+      rerender();
+      // flash 效果
+      setTimeout(() => {
+        const pinList = document.getElementById('pinned-list');
+        if (pinList) pinList.classList.add('pin-flash');
+        setTimeout(() => pinList && pinList.classList.remove('pin-flash'), 600);
+      }, 10);
+      return;
+    }
+    // 群組收合
+    const header = e.target.closest('.group-header');
+    if (header) {
+      const block = header.closest('.group-block');
+      const gk = block.dataset.group;
+      MENU[gk].open = !MENU[gk].open;
+      const container = block.querySelector('.group-items');
+      const chev = header.querySelector('.chev');
+      if (MENU[gk].open) {
+        container.style.display = '';
+        if (chev) chev.style.transform = '';
+      } else {
+        container.style.display = 'none';
+        if (chev) chev.style.transform = 'rotate(-90deg)';
+      }
+      persistOpen();
+    }
+  });
+}
+
+function rerender() {
+  renderPinned();
+  renderGroups();
+  lucide.createIcons();
+}
+
+rerender();
+bindEvents();
+</script>
+</body>
+</html>

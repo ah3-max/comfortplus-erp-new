@@ -19,7 +19,7 @@ import {
   Clock, DollarSign, CheckCircle2, Tag, Send, BellRing, Hash, DatabaseZap,
   Printer, AlertTriangle, BadgeDollarSign, FileCheck, Search,
 } from 'lucide-react'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 /* ── Types ── */
@@ -411,26 +411,24 @@ export const financeNavGroups: NavGroup[] = [
 ]
 
 /* ── Helpers ── */
-const STORAGE_KEY = 'sidebar-collapsed-groups'
-const STORAGE_SUB_KEY = 'sidebar-collapsed-subs'
+const LEGACY_GROUPS_KEY = 'sidebar-collapsed-groups'
+const LEGACY_SUBS_KEY = 'sidebar-collapsed-subs'
+const PIN_LIMIT = 7
 
-function loadCollapsed(key: string): Record<string, boolean> {
-  if (typeof window === 'undefined') return {}
-  try { return JSON.parse(localStorage.getItem(key) || '{}') } catch { return {} }
-}
-function saveCollapsed(key: string, state: Record<string, boolean>) {
-  try { localStorage.setItem(key, JSON.stringify(state)) } catch {}
+function storageKey(prefix: string, role: string | null): string {
+  return `${prefix}_${role ?? 'default'}`
 }
 
-function getAllNavItems(groups: NavGroup[]): NavItem[] {
-  const items: NavItem[] = []
-  for (const g of groups) {
-    for (const entry of g.items) {
-      if (isSubGroup(entry)) items.push(...entry.items)
-      else items.push(entry)
-    }
-  }
-  return items
+function loadJson<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) as T : fallback
+  } catch { return fallback }
+}
+
+function saveJson(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
 }
 
 /* ── Component ── */
@@ -441,17 +439,16 @@ export function Sidebar() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({})
   const [subOpen, setSubOpen] = useState<Record<string, boolean>>({})
+  const [pinned, setPinned] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [hydrated, setHydrated] = useState(false)
+  const [pinWarning, setPinWarning] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const { dict } = useI18n()
 
-  // Load persisted state
-  useEffect(() => {
-    setGroupOpen(loadCollapsed(STORAGE_KEY))
-    setSubOpen(loadCollapsed(STORAGE_SUB_KEY))
-  }, [])
+  const activeGroups = userRole === 'FINANCE' ? financeNavGroups : navGroups
 
-  // Load user's allowed modules and role
+  // Load permissions
   useEffect(() => {
     fetch('/api/role-permissions/my')
       .then(r => r.json())
@@ -462,41 +459,69 @@ export function Sidebar() {
       .catch(() => setAllowedModules(['*']))
   }, [])
 
-  const toggleGroup = useCallback((key: string) => {
-    setGroupOpen(prev => {
-      const next = { ...prev, [key]: !prev[key] }
-      saveCollapsed(STORAGE_KEY, next)
-      return next
-    })
-  }, [])
-
-  const toggleSub = useCallback((key: string) => {
-    setSubOpen(prev => {
-      const next = { ...prev, [key]: !prev[key] }
-      saveCollapsed(STORAGE_SUB_KEY, next)
-      return next
-    })
-  }, [])
-
-  // Auto-expand group containing current page
+  // Hydrate persisted state once role is known. First-visit fallback:
+  // only expand the group containing the current page.
   useEffect(() => {
-    for (const group of navGroups) {
+    if (hydrated) return
+    if (allowedModules === null) return
+    const role = userRole ?? 'default'
+    const gKey = storageKey('sidebar_groups_open', role)
+    const sKey = storageKey('sidebar_subs_open', role)
+    const pKey = storageKey('sidebar_pinned', role)
+
+    let groups = loadJson<Record<string, boolean> | null>(gKey, null)
+    let subs = loadJson<Record<string, boolean> | null>(sKey, null)
+
+    if (groups === null) {
+      // Migrate from legacy key if present
+      const legacy = loadJson<Record<string, boolean> | null>(LEGACY_GROUPS_KEY, null)
+      if (legacy && Object.keys(legacy).length > 0) {
+        groups = legacy
+      } else {
+        // First-visit fallback: expand only current-page group
+        const fallback: Record<string, boolean> = {}
+        for (const g of activeGroups) {
+          const allItems = g.items.flatMap(e => isSubGroup(e) ? e.items : [e])
+          if (allItems.some(i => pathname === i.href || pathname.startsWith(i.href + '/'))) {
+            fallback[g.labelKey] = true
+            break
+          }
+        }
+        groups = fallback
+      }
+      saveJson(gKey, groups)
+    }
+    if (subs === null) {
+      const legacySubs = loadJson<Record<string, boolean> | null>(LEGACY_SUBS_KEY, null)
+      subs = legacySubs ?? {}
+    }
+
+    setGroupOpen(groups)
+    setSubOpen(subs)
+    setPinned(loadJson<string[]>(pKey, []))
+    setHydrated(true)
+  }, [userRole, allowedModules, hydrated, pathname, activeGroups])
+
+  // Auto-expand group containing current page when pathname changes
+  useEffect(() => {
+    if (!hydrated) return
+    const role = userRole ?? 'default'
+    for (const group of activeGroups) {
       const allItems = group.items.flatMap(e => isSubGroup(e) ? e.items : [e])
       if (allItems.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))) {
         if (!groupOpen[group.labelKey]) {
           setGroupOpen(prev => {
             const next = { ...prev, [group.labelKey]: true }
-            saveCollapsed(STORAGE_KEY, next)
+            saveJson(storageKey('sidebar_groups_open', role), next)
             return next
           })
         }
-        // also expand sub-group
         for (const entry of group.items) {
           if (isSubGroup(entry) && entry.items.some(i => pathname === i.href || pathname.startsWith(i.href + '/'))) {
-            if (!subOpen[entry.subLabelKey]) {
+            if (subOpen[entry.subLabelKey] === false) {
               setSubOpen(prev => {
                 const next = { ...prev, [entry.subLabelKey]: true }
-                saveCollapsed(STORAGE_SUB_KEY, next)
+                saveJson(storageKey('sidebar_subs_open', role), next)
                 return next
               })
             }
@@ -506,71 +531,171 @@ export function Sidebar() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname])
+  }, [pathname, hydrated])
 
-  // Filter nav groups based on permissions
-  const canAccess = (key: string) =>
-    !allowedModules || allowedModules.includes('*') || allowedModules.includes(key)
+  const toggleGroup = useCallback((key: string) => {
+    const role = userRole ?? 'default'
+    setGroupOpen(prev => {
+      const next = { ...prev, [key]: !(prev[key] ?? false) }
+      saveJson(storageKey('sidebar_groups_open', role), next)
+      return next
+    })
+  }, [userRole])
 
-  const activeGroups = userRole === 'FINANCE' ? financeNavGroups : navGroups
+  const toggleSub = useCallback((key: string) => {
+    const role = userRole ?? 'default'
+    setSubOpen(prev => {
+      const current = prev[key] !== false // default open
+      const next = { ...prev, [key]: !current }
+      saveJson(storageKey('sidebar_subs_open', role), next)
+      return next
+    })
+  }, [userRole])
 
-  const filteredGroups = activeGroups
-    .map(group => ({
-      ...group,
-      label: (dict.nav as Record<string, string>)[group.labelKey] ?? group.labelKey,
-      items: group.items
-        .map(entry => {
-          if (isSubGroup(entry)) {
-            const filtered = entry.items.filter(i => canAccess(i.key))
-            return filtered.length > 0 ? { ...entry, items: filtered } : null
-          }
-          return canAccess(entry.key) ? entry : null
-        })
-        .filter(Boolean) as NavGroupEntry[],
-    }))
-    .filter(group => group.items.length > 0)
+  const togglePin = useCallback((itemKey: string) => {
+    const role = userRole ?? 'default'
+    setPinned(prev => {
+      const exists = prev.includes(itemKey)
+      let next: string[]
+      if (exists) {
+        next = prev.filter(k => k !== itemKey)
+      } else {
+        if (prev.length >= PIN_LIMIT) {
+          setPinWarning(true)
+          setTimeout(() => setPinWarning(false), 2000)
+          return prev
+        }
+        next = [...prev, itemKey]
+      }
+      saveJson(storageKey('sidebar_pinned', role), next)
+      return next
+    })
+  }, [userRole])
 
-  const navLabel = (key: string) => (dict.nav as Record<string, string>)[key] ?? key
+  const canAccess = useCallback((key: string) =>
+    !allowedModules || allowedModules.includes('*') || allowedModules.includes(key),
+  [allowedModules])
 
-  // Flat list of all visible items for search
-  const allVisibleItems: Array<{ item: NavItem; groupLabel: string }> = filteredGroups.flatMap(group =>
-    group.items.flatMap(entry =>
-      isSubGroup(entry)
-        ? entry.items.map(item => ({ item, groupLabel: group.label }))
-        : [{ item: entry as NavItem, groupLabel: group.label }]
-    )
+  const filteredGroups = useMemo(() => {
+    return activeGroups
+      .map(group => ({
+        ...group,
+        label: (dict.nav as Record<string, string>)[group.labelKey] ?? group.labelKey,
+        items: group.items
+          .map(entry => {
+            if (isSubGroup(entry)) {
+              const filtered = entry.items.filter(i => canAccess(i.key))
+              return filtered.length > 0 ? { ...entry, items: filtered } : null
+            }
+            return canAccess(entry.key) ? entry : null
+          })
+          .filter(Boolean) as NavGroupEntry[],
+      }))
+      .filter(group => group.items.length > 0)
+  }, [activeGroups, canAccess, dict])
+
+  const navLabel = useCallback(
+    (key: string) => (dict.nav as Record<string, string>)[key] ?? key,
+    [dict]
   )
 
-  const searchResults = searchQuery.trim()
-    ? allVisibleItems.filter(({ item }) =>
-        (navLabel(item.key) + item.href).toLowerCase().includes(searchQuery.toLowerCase())
+  const allVisibleItems = useMemo(() => {
+    return filteredGroups.flatMap(group =>
+      group.items.flatMap(entry =>
+        isSubGroup(entry)
+          ? entry.items.map(item => ({ item, groupLabel: group.label }))
+          : [{ item: entry as NavItem, groupLabel: group.label }]
       )
-    : null
+    )
+  }, [filteredGroups])
 
-  function renderNavItem(item: NavItem) {
+  const pinnedItems = useMemo(() => {
+    const lookup = new Map(allVisibleItems.map(({ item }) => [item.key, item]))
+    return pinned.map(k => lookup.get(k)).filter((x): x is NavItem => !!x)
+  }, [pinned, allVisibleItems])
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return null
+    return allVisibleItems.filter(({ item }) =>
+      (navLabel(item.key) + item.href).toLowerCase().includes(q)
+    )
+  }, [searchQuery, allVisibleItems, navLabel])
+
+  // Keyboard shortcut: `/` or ⌘K / Ctrl+K to focus search
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null
+      const inField = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable
+
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        if (collapsed) setCollapsed(false)
+        setTimeout(() => searchRef.current?.focus(), 0)
+        return
+      }
+      if (e.key === '/' && !inField && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        if (collapsed) setCollapsed(false)
+        setTimeout(() => searchRef.current?.focus(), 0)
+        return
+      }
+      if (e.key === 'Escape' && document.activeElement === searchRef.current) {
+        setSearchQuery('')
+        searchRef.current?.blur()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [collapsed])
+
+  function renderNavItem(item: NavItem, opts: { inPinned?: boolean } = {}) {
     const active = pathname === item.href || pathname.startsWith(item.href + '/')
+    const isPinned = pinned.includes(item.key)
     return (
-      <Link
-        key={item.href}
-        href={item.href}
-        className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
-          active
-            ? 'bg-blue-600 text-white'
-            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+      <div key={item.href + (opts.inPinned ? '-pin' : '')} className="group/nav relative">
+        <Link
+          href={item.href}
+          title={collapsed ? navLabel(item.key) : undefined}
+          className={cn(
+            'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[15px] font-medium transition-colors',
+            active
+              ? 'bg-blue-600 text-white'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-white',
+            !collapsed && 'pr-8'
+          )}
+        >
+          <item.icon className="h-[18px] w-[18px] shrink-0" />
+          {!collapsed && <span className="flex-1 truncate">{navLabel(item.key)}</span>}
+        </Link>
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(item.key) }}
+            title={isPinned ? '取消釘選' : '釘選到頂部'}
+            aria-label={isPinned ? '取消釘選' : '釘選到頂部'}
+            className={cn(
+              'absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded transition-opacity',
+              'opacity-0 group-hover/nav:opacity-100 focus:opacity-100',
+              isPinned ? 'text-yellow-400 hover:text-yellow-300' : 'text-slate-500 hover:text-yellow-400'
+            )}
+          >
+            <Star className={cn('h-3.5 w-3.5', isPinned && 'fill-current')} />
+          </button>
         )}
-      >
-        <item.icon className="h-4 w-4 shrink-0" />
-        {!collapsed && <span className="truncate">{navLabel(item.key)}</span>}
-      </Link>
+      </div>
     )
   }
+
+  const isLoading = allowedModules === null
+  const pinnedLabel = (dict.nav as Record<string, string>).pinnedSection ?? '釘選'
+  const customizeLabel = (dict.nav as Record<string, string>).customizeMenu ?? '自訂選單'
 
   return (
     <aside
       className={cn(
         'relative flex flex-col h-screen bg-slate-900 text-white transition-all duration-300',
-        collapsed ? 'w-16' : 'w-60'
+        collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Logo */}
@@ -589,119 +714,164 @@ export function Sidebar() {
       {!collapsed && (
         <div className="px-2 pt-2 pb-1">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 pointer-events-none" />
             <input
               ref={searchRef}
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={(dict.nav as Record<string, string>).navSearch ?? '搜尋功能...'}
-              className="w-full rounded-md bg-slate-800 py-1.5 pl-8 pr-3 text-xs text-slate-300 placeholder-slate-500 outline-none ring-0 focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full rounded-md bg-slate-800 py-2 pl-9 pr-10 text-sm text-slate-200 placeholder-slate-500 outline-none ring-0 focus:ring-1 focus:ring-blue-500 transition-all"
             />
-            {searchQuery && (
+            {searchQuery ? (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs leading-none"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm leading-none"
+                aria-label="清除搜尋"
               >
                 ✕
               </button>
+            ) : (
+              <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-500 font-mono">
+                /
+              </kbd>
             )}
           </div>
+          {pinWarning && (
+            <p className="mt-1 px-1 text-[11px] text-amber-400">
+              釘選最多 {PIN_LIMIT} 個，請先取消其他再加入
+            </p>
+          )}
         </div>
       )}
 
       {/* Nav */}
       <nav className="flex-1 min-h-0 overflow-y-auto p-2">
-        {/* Search results */}
-        {searchResults && !collapsed && (
-          <div className="space-y-0.5">
-            {searchResults.length === 0 ? (
-              <p className="px-3 py-4 text-center text-xs text-slate-500">找不到符合的功能</p>
-            ) : (
-              searchResults.map(({ item, groupLabel }) => {
-                const active = pathname === item.href || pathname.startsWith(item.href + '/')
-                return (
-                  <div key={item.href}>
+        {isLoading ? (
+          <div className="space-y-2 px-1 pt-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="h-9 rounded-lg bg-slate-800/50 animate-pulse" />
+            ))}
+          </div>
+        ) : searchResults ? (
+          !collapsed && (
+            <div className="space-y-0.5">
+              {searchResults.length === 0 ? (
+                <p className="px-3 py-4 text-center text-sm text-slate-500">找不到符合的功能</p>
+              ) : (
+                searchResults.map(({ item, groupLabel }) => {
+                  const active = pathname === item.href || pathname.startsWith(item.href + '/')
+                  return (
                     <Link
+                      key={item.href}
                       href={item.href}
                       onClick={() => setSearchQuery('')}
                       className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+                        'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[15px] font-medium transition-colors',
                         active ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                       )}
                     >
-                      <item.icon className="h-4 w-4 shrink-0" />
+                      <item.icon className="h-[18px] w-[18px] shrink-0" />
                       <span className="flex-1 truncate">{navLabel(item.key)}</span>
-                      <span className="shrink-0 text-[10px] text-slate-600">{groupLabel}</span>
+                      <span className="shrink-0 text-[11px] text-slate-600">{groupLabel}</span>
                     </Link>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        )}
-
-        {/* Normal grouped nav (hidden when searching) */}
-        {!searchResults && filteredGroups.map((group, gi) => {
-          const isOpen = groupOpen[group.labelKey] !== false // default open
-          return (
-            <div key={group.labelKey} className={gi > 0 ? 'mt-1' : ''}>
-              {/* Group header — clickable to expand/collapse */}
-              {!collapsed ? (
-                <button
-                  onClick={() => toggleGroup(group.labelKey)}
-                  className="flex w-full items-center justify-between px-3 pb-0.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
-                >
-                  <span>{group.label}</span>
-                  <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
-                </button>
-              ) : (
-                gi > 0 && <div className="mx-3 mb-1.5 mt-1.5 border-t border-slate-700" />
-              )}
-
-              {/* Group items */}
-              {(collapsed || isOpen) && (
-                <div className="space-y-0.5">
-                  {group.items.map(entry => {
-                    if (isSubGroup(entry)) {
-                      const subIsOpen = subOpen[entry.subLabelKey] !== false
-                      return (
-                        <div key={entry.subLabelKey}>
-                          {/* Sub-group header */}
-                          {!collapsed && (
-                            <button
-                              onClick={() => toggleSub(entry.subLabelKey)}
-                              className="flex w-full items-center gap-2 px-3 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-300 transition-colors"
-                            >
-                              <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', !subIsOpen && '-rotate-90')} />
-                              <span>{navLabel(entry.subLabelKey)}</span>
-                              <span className="ml-auto text-[10px] text-slate-600">{entry.items.length}</span>
-                            </button>
-                          )}
-                          {(collapsed || subIsOpen) && (
-                            <div className={cn('space-y-0.5', !collapsed && 'pl-2')}>
-                              {entry.items.map(renderNavItem)}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    }
-                    return renderNavItem(entry)
-                  })}
-                </div>
+                  )
+                })
               )}
             </div>
           )
-        })}
+        ) : (
+          <>
+            {/* Pinned section */}
+            {!collapsed && pinnedItems.length > 0 && (
+              <div className="mb-2">
+                <div className="flex items-center px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <Star className="mr-1.5 h-3 w-3 fill-current text-yellow-400" />
+                  <span>{pinnedLabel}</span>
+                  <span className="ml-auto text-slate-600">{pinnedItems.length}/{PIN_LIMIT}</span>
+                </div>
+                <div className="space-y-0.5">
+                  {pinnedItems.map(item => renderNavItem(item, { inPinned: true }))}
+                </div>
+                <div className="mx-3 my-2 border-t border-slate-800" />
+              </div>
+            )}
+
+            {/* Grouped nav */}
+            {filteredGroups.map((group, gi) => {
+              const isOpen = groupOpen[group.labelKey] ?? false
+              return (
+                <div key={group.labelKey} className={gi > 0 ? 'mt-2' : ''}>
+                  {!collapsed ? (
+                    <button
+                      onClick={() => toggleGroup(group.labelKey)}
+                      className="flex w-full items-center justify-between px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                    >
+                      <span>{group.label}</span>
+                      <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
+                    </button>
+                  ) : (
+                    gi > 0 && <div className="mx-3 mb-1.5 mt-1.5 border-t border-slate-700" />
+                  )}
+
+                  {(collapsed || isOpen) && (
+                    <div className="space-y-0.5">
+                      {group.items.map(entry => {
+                        if (isSubGroup(entry)) {
+                          const subIsOpen = subOpen[entry.subLabelKey] !== false
+                          return (
+                            <div key={entry.subLabelKey}>
+                              {!collapsed && (
+                                <button
+                                  onClick={() => toggleSub(entry.subLabelKey)}
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-slate-500 hover:text-slate-300 transition-colors"
+                                >
+                                  <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', !subIsOpen && '-rotate-90')} />
+                                  <span>{navLabel(entry.subLabelKey)}</span>
+                                  <span className="ml-auto text-[11px] text-slate-600">{entry.items.length}</span>
+                                </button>
+                              )}
+                              {(collapsed || subIsOpen) && (
+                                <div className={cn('space-y-0.5', !collapsed && 'pl-3')}>
+                                  {entry.items.map(item => renderNavItem(item))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }
+                        return renderNavItem(entry)
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </>
+        )}
       </nav>
+
+      {/* Customize menu entry (P2 placeholder) */}
+      {!collapsed && !isLoading && (
+        <div className="border-t border-slate-700 px-2 pt-2">
+          <button
+            type="button"
+            onClick={() => alert(`${customizeLabel}：拖拉排序尚未實作。目前可用 hover ⭐ 釘選常用功能到頂部。`)}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300"
+          >
+            <Settings className="h-[18px] w-[18px] shrink-0" />
+            <span>{customizeLabel}</span>
+          </button>
+        </div>
+      )}
 
       {/* Logout */}
       <div className="border-t border-slate-700 p-2">
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-red-600/20 hover:text-red-400"
+          title={collapsed ? dict.header.logout : undefined}
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[15px] font-medium text-slate-400 transition-colors hover:bg-red-600/20 hover:text-red-400"
         >
-          <LogOut className="h-4.5 w-4.5 shrink-0" />
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
           {!collapsed && <span>{dict.header.logout}</span>}
         </button>
       </div>
@@ -709,6 +879,7 @@ export function Sidebar() {
       {/* Collapse button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
+        title={collapsed ? '展開側欄' : '收合側欄'}
         className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
       >
         {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
