@@ -502,36 +502,35 @@ export function Sidebar() {
     setHydrated(true)
   }, [userRole, allowedModules, hydrated, pathname, activeGroups])
 
-  // Auto-expand group containing current page when pathname changes
+  // Auto-expand group (and sub-group) containing current page when pathname changes.
+  // Uses functional setState so we always read the freshest state, not a stale closure.
   useEffect(() => {
     if (!hydrated) return
     const role = userRole ?? 'default'
     for (const group of activeGroups) {
       const allItems = group.items.flatMap(e => isSubGroup(e) ? e.items : [e])
-      if (allItems.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))) {
-        if (!groupOpen[group.labelKey]) {
-          setGroupOpen(prev => {
-            const next = { ...prev, [group.labelKey]: true }
-            saveJson(storageKey('sidebar_groups_open', role), next)
+      const hit = allItems.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+      if (!hit) continue
+
+      setGroupOpen(prev => {
+        if (prev[group.labelKey]) return prev
+        const next = { ...prev, [group.labelKey]: true }
+        saveJson(storageKey('sidebar_groups_open', role), next)
+        return next
+      })
+      for (const entry of group.items) {
+        if (isSubGroup(entry) && entry.items.some(i => pathname === i.href || pathname.startsWith(i.href + '/'))) {
+          setSubOpen(prev => {
+            if (prev[entry.subLabelKey] !== false) return prev // already open (default or explicit true)
+            const next = { ...prev, [entry.subLabelKey]: true }
+            saveJson(storageKey('sidebar_subs_open', role), next)
             return next
           })
         }
-        for (const entry of group.items) {
-          if (isSubGroup(entry) && entry.items.some(i => pathname === i.href || pathname.startsWith(i.href + '/'))) {
-            if (subOpen[entry.subLabelKey] === false) {
-              setSubOpen(prev => {
-                const next = { ...prev, [entry.subLabelKey]: true }
-                saveJson(storageKey('sidebar_subs_open', role), next)
-                return next
-              })
-            }
-          }
-        }
-        break
       }
+      break
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, hydrated])
+  }, [pathname, hydrated, userRole, activeGroups])
 
   const toggleGroup = useCallback((key: string) => {
     const role = userRole ?? 'default'
@@ -785,10 +784,10 @@ export function Sidebar() {
             {/* Pinned section */}
             {!collapsed && pinnedItems.length > 0 && (
               <div className="mb-2">
-                <div className="flex items-center px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  <Star className="mr-1.5 h-3 w-3 fill-current text-yellow-400" />
+                <div className="flex items-center px-3 pb-1 pt-1 text-sm font-semibold text-slate-300">
+                  <Star className="mr-1.5 h-3.5 w-3.5 fill-current text-yellow-400" />
                   <span>{pinnedLabel}</span>
-                  <span className="ml-auto text-slate-600">{pinnedItems.length}/{PIN_LIMIT}</span>
+                  <span className="ml-auto text-[11px] font-normal text-slate-500">{pinnedItems.length}/{PIN_LIMIT}</span>
                 </div>
                 <div className="space-y-0.5">
                   {pinnedItems.map(item => renderNavItem(item, { inPinned: true }))}
@@ -805,7 +804,7 @@ export function Sidebar() {
                   {!collapsed ? (
                     <button
                       onClick={() => toggleGroup(group.labelKey)}
-                      className="flex w-full items-center justify-between px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition-colors"
+                      className="flex w-full items-center justify-between px-3 pb-1 pt-3 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
                     >
                       <span>{group.label}</span>
                       <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
