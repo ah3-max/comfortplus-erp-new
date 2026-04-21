@@ -656,6 +656,8 @@ export function Sidebar() {
         <Link
           href={item.href}
           title={collapsed ? navLabel(item.key) : undefined}
+          aria-current={active ? 'page' : undefined}
+          aria-label={collapsed ? navLabel(item.key) : undefined}
           className={cn(
             'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[15px] font-medium transition-colors',
             active
@@ -710,7 +712,7 @@ export function Sidebar() {
       </div>
 
       {/* Search bar */}
-      {!collapsed && (
+      {!collapsed ? (
         <div className="px-2 pt-2 pb-1">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 pointer-events-none" />
@@ -720,6 +722,7 @@ export function Sidebar() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={(dict.nav as Record<string, string>).navSearch ?? '搜尋功能...'}
+              aria-label="搜尋功能"
               className="w-full rounded-md bg-slate-800 py-2 pl-9 pr-10 text-sm text-slate-200 placeholder-slate-500 outline-none ring-0 focus:ring-1 focus:ring-blue-500 transition-all"
             />
             {searchQuery ? (
@@ -737,10 +740,25 @@ export function Sidebar() {
             )}
           </div>
           {pinWarning && (
-            <p className="mt-1 px-1 text-[11px] text-amber-400">
+            <p className="mt-1 px-1 text-[11px] text-amber-400" role="alert">
               釘選最多 {PIN_LIMIT} 個，請先取消其他再加入
             </p>
           )}
+        </div>
+      ) : (
+        <div className="flex justify-center px-2 pt-2 pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              setCollapsed(false)
+              setTimeout(() => searchRef.current?.focus(), 0)
+            }}
+            title="搜尋功能 (⌘K / /)"
+            aria-label="展開側邊欄並搜尋功能"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+          >
+            <Search className="h-[18px] w-[18px]" />
+          </button>
         </div>
       )}
 
@@ -765,6 +783,7 @@ export function Sidebar() {
                       key={item.href}
                       href={item.href}
                       onClick={() => setSearchQuery('')}
+                      aria-current={active ? 'page' : undefined}
                       className={cn(
                         'flex items-center gap-2.5 rounded-lg px-3 py-2 text-[15px] font-medium transition-colors',
                         active ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
@@ -799,30 +818,41 @@ export function Sidebar() {
             {/* Grouped nav */}
             {filteredGroups.map((group, gi) => {
               const isOpen = groupOpen[group.labelKey] ?? false
+              const groupCount = group.items.reduce(
+                (n, e) => n + (isSubGroup(e) ? e.items.length : 1),
+                0
+              )
+              const panelId = `nav-group-${group.labelKey}`
               return (
                 <div key={group.labelKey} className={gi > 0 ? 'mt-2' : ''}>
                   {!collapsed ? (
                     <button
                       onClick={() => toggleGroup(group.labelKey)}
-                      className="flex w-full items-center justify-between px-3 pb-1 pt-3 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      className="flex w-full items-center px-3 pb-1 pt-3 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
                     >
                       <span>{group.label}</span>
-                      <ChevronDown className={cn('h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
+                      <span className="ml-2 text-[11px] font-normal text-slate-500">{groupCount}</span>
+                      <ChevronDown className={cn('ml-auto h-3 w-3 transition-transform', !isOpen && '-rotate-90')} />
                     </button>
                   ) : (
                     gi > 0 && <div className="mx-3 mb-1.5 mt-1.5 border-t border-slate-700" />
                   )}
 
                   {(collapsed || isOpen) && (
-                    <div className="space-y-0.5">
+                    <div id={panelId} className="space-y-0.5">
                       {group.items.map(entry => {
                         if (isSubGroup(entry)) {
                           const subIsOpen = subOpen[entry.subLabelKey] !== false
+                          const subPanelId = `nav-sub-${entry.subLabelKey}`
                           return (
                             <div key={entry.subLabelKey}>
                               {!collapsed && (
                                 <button
                                   onClick={() => toggleSub(entry.subLabelKey)}
+                                  aria-expanded={subIsOpen}
+                                  aria-controls={subPanelId}
                                   className="flex w-full items-center gap-2 px-3 py-1.5 text-[13px] font-medium text-slate-500 hover:text-slate-300 transition-colors"
                                 >
                                   <ChevronDown className={cn('h-2.5 w-2.5 transition-transform', !subIsOpen && '-rotate-90')} />
@@ -831,7 +861,7 @@ export function Sidebar() {
                                 </button>
                               )}
                               {(collapsed || subIsOpen) && (
-                                <div className={cn('space-y-0.5', !collapsed && 'pl-3')}>
+                                <div id={subPanelId} className={cn('space-y-0.5', !collapsed && 'pl-3')}>
                                   {entry.items.map(item => renderNavItem(item))}
                                 </div>
                               )}
@@ -879,6 +909,8 @@ export function Sidebar() {
       <button
         onClick={() => setCollapsed(!collapsed)}
         title={collapsed ? '展開側欄' : '收合側欄'}
+        aria-label={collapsed ? '展開側欄' : '收合側欄'}
+        aria-expanded={!collapsed}
         className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
       >
         {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
