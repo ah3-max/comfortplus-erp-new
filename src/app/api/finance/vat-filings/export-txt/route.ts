@@ -3,16 +3,20 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
 import {
-  buildOutputLine, buildInputLine, buildSummaryLine,
+  buildOutputLine, buildInputLine,
   formatRocPeriod,
+  resolveOutputFormatCode, resolveInputFormatCode, resolveDeductionCode,
+  validateExportData,
 } from '@/lib/vat-401-format'
 
 const FINANCE_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
 
 /**
  * GET /api/finance/vat-filings/export-txt?period=2026-03
+ * GET /api/finance/vat-filings/export-txt?period=2026-03&mode=validate
  *
- * Generates a Taiwan 401 VAT filing TXT media file for the given bimonthly period.
+ * mode=validate → returns JSON { outputCount, inputCount, warnings[] }
+ * (default)     → returns 401 media TXT file (81-byte fixed-width, CRLF)
  */
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -22,24 +26,24 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const period = new URL(req.url).searchParams.get('period')
+    const url = new URL(req.url)
+    const period = url.searchParams.get('period')
+    const mode = url.searchParams.get('mode')
+
     if (!period || !/^\d{4}-\d{2}$/.test(period)) {
       return NextResponse.json({ error: 'period 格式應為 YYYY-MM（如 2026-03）' }, { status: 400 })
     }
 
     const [year, month] = period.split('-').map(Number)
 
-    // Align to bimonthly: odd start month
     const startMonth = month % 2 === 0 ? month - 1 : month
     const endMonth = startMonth + 1
     const startDate = new Date(year, startMonth - 1, 1)
     const endDate = new Date(year, endMonth, 0, 23, 59, 59)
     const inputPeriodKey = `${year}-${String(startMonth).padStart(2, '0')}`
 
-    // Company tax ID from env
     const companyTaxId = process.env.COMPANY_TAX_ID ?? '00000000'
 
-    // ── Output invoices (銷項) ──
     const outputInvoices = await prisma.eInvoice.findMany({
       where: {
         date: { gte: startDate, lte: endDate },
@@ -56,7 +60,6 @@ export async function GET(req: NextRequest) {
       orderBy: { date: 'asc' },
     })
 
-    // ── Input items (進項) ──
     const inputItems = await prisma.inputTaxItem.findMany({
       where: { taxPeriod: inputPeriodKey },
       select: {
@@ -70,66 +73,71 @@ export async function GET(req: NextRequest) {
       orderBy: { invoiceDate: 'asc' },
     })
 
-    // ── Build lines ──
+    // ── Validate mode ──
+    if (mode === 'validate') {
+      const warnings = validateExportData(outputInvoices, inputItems)
+      const outputAmount = outputInvoices.reduce((s, i) => s + Number(i.subtotal), 0)
+      const outputTax = outputInvoices.reduce((s, i) => s + Number(i.taxAmount), 0)
+      const inputAmount = inputItems.reduce((s, i) => s + Number(i.subtotal), 0)
+      const inputTax = inputItems.reduce((s, i) => s + Number(i.taxAmount), 0)
+
+      return NextResponse.json({
+        period: inputPeriodKey,
+        companyTaxId,
+        outputCount: outputInvoices.length,
+        inputCount: inputItems.length,
+        outputAmount: Math.round(outputAmount),
+        outputTax: Math.round(outputTax),
+        inputAmount: Math.round(inputAmount),
+        inputTax: Math.round(inputTax),
+        netTax: Math.round(outputTax - inputTax),
+        warnings,
+      })
+    }
+
+    // ── Build TXT lines (81-byte fixed-width) ──
     const lines: string[] = []
 
-    // Output lines (Record Type 2)
     for (const inv of outputInvoices) {
       lines.push(buildOutputLine({
+        formatCode: resolveOutputFormatCode(inv.invoiceType, inv.buyerTaxId),
         sellerTaxId: companyTaxId,
         buyerTaxId: inv.buyerTaxId ?? '00000000',
         invoiceNo: inv.invoiceNumber,
         invoiceDate: new Date(inv.date),
         salesAmount: Number(inv.subtotal),
         taxAmount: Number(inv.taxAmount),
-        taxType: '1', // 應稅 5%
+        taxType: '1',
       }))
     }
 
-    // Input lines (Record Type 3)
     for (const item of inputItems) {
-      const deductionCode = item.sourceType === 'CUSTOMS' ? '1' as const
-        : item.sourceType === 'DOMESTIC_INVOICE' ? '1' as const
-        : '3' as const // RECEIPT → 不可扣抵（保守預設）
       lines.push(buildInputLine({
+        formatCode: resolveInputFormatCode(item.sourceType),
         buyerTaxId: companyTaxId,
         sellerTaxId: item.vendorTaxId ?? '00000000',
         invoiceNo: item.invoiceNo,
         invoiceDate: new Date(item.invoiceDate),
         purchaseAmount: Number(item.subtotal),
         taxAmount: Number(item.taxAmount),
-        deductionCode,
+        deductionCode: resolveDeductionCode(item.sourceType),
       }))
     }
 
-    // Summary (Record Type 1, last line)
-    const outputAmount = outputInvoices.reduce((s, i) => s + Number(i.subtotal), 0)
-    const outputTax = outputInvoices.reduce((s, i) => s + Number(i.taxAmount), 0)
-    const inputAmount = inputItems.reduce((s, i) => s + Number(i.subtotal), 0)
-    const inputTax = inputItems.reduce((s, i) => s + Number(i.taxAmount), 0)
-    const netTax = outputTax - inputTax
-
-    const rocPeriod = formatRocPeriod(year, startMonth)
-
-    lines.push(buildSummaryLine({
-      taxId: companyTaxId,
-      periodCode: rocPeriod,
-      outputCount: outputInvoices.length,
-      outputAmount: Math.round(outputAmount),
-      outputTax: Math.round(outputTax),
-      inputCount: inputItems.length,
-      inputAmount: Math.round(inputAmount),
-      inputTax: Math.round(inputTax),
-      netTax: Math.round(netTax),
-    }))
+    if (lines.length === 0) {
+      return NextResponse.json({ error: '本期無進銷項資料可匯出' }, { status: 404 })
+    }
 
     const content = lines.join('\r\n')
+    const rocPeriod = formatRocPeriod(year, startMonth)
     const fileName = `401_${rocPeriod}.txt`
 
     return new Response(content, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Content-Disposition': `attachment; filename="${fileName}"`,
+        'X-Vat-Output-Count': String(outputInvoices.length),
+        'X-Vat-Input-Count': String(inputItems.length),
       },
     })
   } catch (error) {

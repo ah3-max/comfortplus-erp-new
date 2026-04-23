@@ -10,7 +10,10 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Loader2, ChevronDown, ChevronRight, Printer, RefreshCw, FileDown } from 'lucide-react'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog'
+import { Loader2, ChevronDown, ChevronRight, Printer, RefreshCw, FileDown, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
@@ -44,6 +47,19 @@ interface VatSummary {
   inputTax: number
   netTax: number
   status: 'PAYABLE' | 'REFUNDABLE'
+}
+
+interface ExportValidation {
+  period: string
+  companyTaxId: string
+  outputCount: number
+  inputCount: number
+  outputAmount: number
+  outputTax: number
+  inputAmount: number
+  inputTax: number
+  netTax: number
+  warnings: Array<{ line: number; field: string; message: string }>
 }
 
 interface VatData {
@@ -94,6 +110,9 @@ export default function VatSummaryPage() {
   const [loading, setLoading] = useState(false)
   const [showOutput, setShowOutput] = useState(false)
   const [showInput, setShowInput]   = useState(false)
+  const [exportDialog, setExportDialog] = useState(false)
+  const [exportValidation, setExportValidation] = useState<ExportValidation | null>(null)
+  const [exportLoading, setExportLoading] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
   const fetchData = useCallback(async () => {
@@ -117,6 +136,36 @@ export default function VatSummaryPage() {
     window.print()
   }
 
+  async function handleExportClick() {
+    if (!period) return
+    setExportLoading(true)
+    setExportValidation(null)
+    try {
+      const res = await fetch(`/api/finance/vat-filings/export-txt?period=${period}&mode=validate`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        toast.error(body?.error ?? '驗證失敗')
+        return
+      }
+      const validation: ExportValidation = await res.json()
+      setExportValidation(validation)
+      setExportDialog(true)
+    } catch {
+      toast.error('驗證失敗')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+
+  function handleExportConfirm() {
+    const link = document.createElement('a')
+    link.href = `/api/finance/vat-filings/export-txt?period=${period}`
+    link.download = ''
+    link.click()
+    setExportDialog(false)
+    toast.success('401 媒體檔已下載')
+  }
+
   const s = data?.summary
 
   return (
@@ -136,15 +185,11 @@ export default function VatSummaryPage() {
             <Printer className="h-3.5 w-3.5" />
             列印 / PDF
           </Button>
-          <Button variant="outline" size="sm" disabled={!data} className="gap-1.5"
-            onClick={() => {
-              if (!period) return
-              const link = document.createElement('a')
-              link.href = `/api/finance/vat-filings/export-txt?period=${period}`
-              link.download = ''
-              link.click()
-            }}>
-            <FileDown className="h-3.5 w-3.5" />
+          <Button variant="outline" size="sm" disabled={!data || exportLoading} className="gap-1.5"
+            onClick={handleExportClick}>
+            {exportLoading
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <FileDown className="h-3.5 w-3.5" />}
             匯出 401 TXT
           </Button>
         </div>
@@ -371,6 +416,93 @@ export default function VatSummaryPage() {
           <p>請選擇申報期以載入資料</p>
         </div>
       )}
+
+      {/* Export preview dialog */}
+      <Dialog open={exportDialog} onOpenChange={setExportDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>匯出 401 媒體申報檔</DialogTitle>
+            <DialogDescription>
+              確認以下資料無誤後下載 TXT 檔，匯入營業稅離線建檔系統
+            </DialogDescription>
+          </DialogHeader>
+
+          {exportValidation && (
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-slate-50 p-3 text-sm space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">申報期</span>
+                  <span className="font-mono font-medium">{exportValidation.period}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">公司統編</span>
+                  <span className="font-mono font-medium">{exportValidation.companyTaxId}</span>
+                </div>
+                <div className="border-t my-1.5" />
+                <div className="flex justify-between">
+                  <span className="text-slate-500">銷項筆數</span>
+                  <span className="font-mono">{exportValidation.outputCount} 筆</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">銷項稅額</span>
+                  <span className="font-mono text-blue-600">{fmt(exportValidation.outputTax)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">進項筆數</span>
+                  <span className="font-mono">{exportValidation.inputCount} 筆</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">進項稅額</span>
+                  <span className="font-mono text-green-600">{fmt(exportValidation.inputTax)}</span>
+                </div>
+                <div className="border-t my-1.5" />
+                <div className="flex justify-between font-medium">
+                  <span>應繳 / 可退</span>
+                  <span className={`font-mono ${exportValidation.netTax >= 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                    {fmt(exportValidation.netTax)}
+                  </span>
+                </div>
+              </div>
+
+              {exportValidation.companyTaxId === '00000000' && (
+                <div className="flex items-start gap-2 rounded-lg border border-orange-200 bg-orange-50 p-2.5 text-sm text-orange-700">
+                  <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <span>公司統編未設定（COMPANY_TAX_ID），匯出將使用 00000000</span>
+                </div>
+              )}
+
+              {exportValidation.warnings.length > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    {exportValidation.warnings.length} 項警告
+                  </div>
+                  <div className="max-h-32 overflow-y-auto rounded border bg-orange-50 p-2 text-xs text-orange-700 space-y-0.5">
+                    {exportValidation.warnings.map((w, i) => (
+                      <div key={i}>{w.message}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {exportValidation.warnings.length === 0 && exportValidation.companyTaxId !== '00000000' && (
+                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-2.5 text-sm text-green-700">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  資料驗證通過，可以匯出
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialog(false)}>取消</Button>
+            <Button onClick={handleExportConfirm} className="gap-1.5">
+              <FileDown className="h-4 w-4" />
+              下載 TXT
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Print styles */}
       <style>{`
