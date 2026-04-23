@@ -804,7 +804,7 @@ export default function PettyCashPage() {
                       <button
                         type="button"
                         onClick={() => removePhoto(idx)}
-                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center opacity-60 hover:opacity-100 transition-opacity"
                       >
                         <X className="h-3 w-3" />
                       </button>

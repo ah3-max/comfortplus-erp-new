@@ -572,7 +572,7 @@ export default function CustomerPricingPage() {
                                     )}
                                   </TableCell>
                                   <TableCell className="py-3.5">
-                                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-end gap-1 opacity-60 hover:opacity-100 transition-opacity">
                                       <button onClick={() => openEditPrice(sp)}
                                         className="p-2 hover:bg-slate-100 rounded-md active:scale-[0.95]" title={cp.editPrice ?? '編輯定價'}>
                                         <Pencil className="h-4 w-4 text-slate-500" />

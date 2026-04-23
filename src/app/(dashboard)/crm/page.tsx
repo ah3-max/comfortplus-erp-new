@@ -1049,7 +1049,7 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
                             <span className={`${days > 14 ? 'text-red-600 font-medium' : days > 7 ? 'text-amber-600' : 'text-slate-500'}`}>
                               {cp.daysAgo.replace('{days}', String(days))}
                             </span>
-                            <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                            <ChevronRight className="h-3 w-3 text-muted-foreground opacity-60 hover:opacity-100" />
                           </div>
                         </Link>
                       )

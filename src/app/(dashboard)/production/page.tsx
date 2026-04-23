@@ -591,7 +591,7 @@ export default function ProductionPage() {
                     </div>
                     <button
                       onClick={() => openEdit(o)}
-                      className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground opacity-60 hover:opacity-100 transition-opacity"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>

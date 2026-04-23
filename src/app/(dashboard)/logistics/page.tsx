@@ -288,7 +288,7 @@ function ProvidersTab() {
                     {p.regions && <p className="text-xs text-muted-foreground mt-0.5">{p.regions}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
                   <button onClick={() => openEdit(p)}
                     className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground">
                     <Pencil className="h-3.5 w-3.5" />

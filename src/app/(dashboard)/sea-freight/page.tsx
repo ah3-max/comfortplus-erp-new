@@ -463,7 +463,7 @@ export default function SeaFreightPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => openEdit(r)}
                     className="p-1.5 rounded hover:bg-slate-100 text-muted-foreground"

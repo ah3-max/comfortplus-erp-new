@@ -619,7 +619,7 @@ function AttachmentsTab({ incidentId, attachments, setAttachments }: {
                   <div className="h-14 w-14 rounded border bg-slate-100 flex items-center justify-center text-xs text-slate-500">{f.name.split('.').pop()}</div>
                 )}
                 <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
-                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-60 hover:opacity-100">
                   <X className="h-2.5 w-2.5" />
                 </button>
               </div>

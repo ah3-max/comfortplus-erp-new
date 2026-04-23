@@ -860,7 +860,7 @@ export default function QuickInputPage() {
                       <button
                         type="button"
                         onClick={() => removeSessionFile(file.id)}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity shadow-sm"
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-60 hover:opacity-100 active:opacity-100 transition-opacity shadow-sm"
                       >
                         <X className="w-3 h-3" />
                       </button>

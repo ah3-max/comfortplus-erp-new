@@ -610,7 +610,7 @@ export default function CalendarPage() {
 
                           {/* Edit / Delete — only for biz events */}
                           {e.isEditable && (
-                            <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="ml-auto flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
                               <button
                                 onClick={() => openEditDialog(e)}
                                 className="p-1 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
