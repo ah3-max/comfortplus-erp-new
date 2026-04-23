@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
 import { createAutoJournal } from '@/lib/auto-journal'
+import { generateSequenceNo } from '@/lib/sequence'
 
 const FINANCE_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
 
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
     const newPaid = Number(ar.paidAmount) + Number(amount)
     const newStatus = newPaid >= Number(ar.amount) ? 'PAID' : 'PARTIAL_PAID'
 
+    const paymentNo = await generateSequenceNo('PAYMENT')
     const [receipt] = await prisma.$transaction([
       prisma.receiptRecord.create({
         data: {
@@ -111,6 +113,21 @@ export async function POST(req: NextRequest) {
         data: {
           paidAmount: newPaid,
           status: newStatus,
+        },
+      }),
+      prisma.paymentRecord.create({
+        data: {
+          paymentNo,
+          direction: 'INCOMING',
+          paymentType: 'FULL',
+          customerId: ar.customerId,
+          salesOrderId: ar.orderId ?? null,
+          amount: Number(amount),
+          paymentDate: new Date(receiptDate),
+          paymentMethod: receiptMethod ?? null,
+          bankAccount: bankLast5 ?? null,
+          notes: notes ?? null,
+          createdById: session.user.id,
         },
       }),
     ])

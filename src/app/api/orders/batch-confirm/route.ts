@@ -133,15 +133,21 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Auto-create AR (idempotent)
+      // Auto-create AR (idempotent) — pull invoiceNo from linked SalesInvoice, fall back to orderNo
       const existingAR = await prisma.accountsReceivable.findFirst({ where: { orderId } })
       if (!existingAR) {
+        const linkedInvoice = await prisma.salesInvoice.findFirst({
+          where: { sourceOrderId: orderId },
+          select: { invoiceNumber: true },
+        })
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + 30)
         await prisma.accountsReceivable.create({
           data: {
             customerId: order.customerId,
             orderId,
+            invoiceNo: linkedInvoice?.invoiceNumber ?? order.orderNo,
+            invoiceDate: new Date(),
             amount: Number(order.totalAmount),
             paidAmount: 0,
             dueDate,

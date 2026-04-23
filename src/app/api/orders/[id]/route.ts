@@ -216,13 +216,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (newStatus === 'CONFIRMED') {
       const existingAR = await prisma.accountsReceivable.findFirst({ where: { orderId: id } })
       if (!existingAR) {
+        const linkedInvoice = await prisma.salesInvoice.findFirst({
+          where: { sourceOrderId: id },
+          select: { invoiceNumber: true },
+        })
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + 30)
         await prisma.accountsReceivable.create({
           data: {
             customerId: currentOrder.customerId,
             orderId: id,
-            invoiceNo: currentOrder.orderNo,
+            invoiceNo: linkedInvoice?.invoiceNumber ?? currentOrder.orderNo,
             invoiceDate: new Date(),
             dueDate,
             amount: currentOrder.totalAmount ?? 0,

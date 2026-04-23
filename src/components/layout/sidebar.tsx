@@ -142,56 +142,31 @@ export const navGroups: NavGroup[] = [
       {
         subLabelKey: 'subFinCore',
         items: [
-          { href: '/finance',           key: 'finance',          icon: BarChart3 },
-          { href: '/payments',          key: 'payments',         icon: CreditCard },
-          { href: '/expenses',          key: 'expenses',         icon: ReceiptText },
-          { href: '/petty-cash',        key: 'pettyCash',        icon: Wallet },
+          { href: '/finance',    key: 'finance',  icon: BarChart3 },
+          { href: '/payments',   key: 'payments', icon: CreditCard },
+          { href: '/receipts',   key: 'receipts', icon: CheckCircle2 },
+          { href: '/expenses',   key: 'expenses', icon: ReceiptText },
         ],
       },
       {
         subLabelKey: 'subArAp',
         items: [
-          { href: '/finance/accounts-receivable', key: 'accountsReceivable', icon: ClipboardList },
-          { href: '/finance/accounts-payable',    key: 'accountsPayable',    icon: ClipboardList },
-          { href: '/ar-aging',          key: 'arAging',          icon: Receipt },
-          { href: '/ap-aging',          key: 'apAging',          icon: Receipt },
-          { href: '/receipts',          key: 'receipts',         icon: CheckCircle2 },
-          { href: '/disbursements',     key: 'disbursements',    icon: CreditCard },
-          { href: '/finance/settlement', key: 'settlement',      icon: FileCheck },
-          { href: '/credit-management', key: 'creditManagement', icon: BadgeAlert },
+          { href: '/ar-aging',   key: 'arAging',  icon: Receipt },
+          { href: '/ap-aging',   key: 'apAging',  icon: Receipt },
         ],
       },
       {
         subLabelKey: 'subLedgers',
         items: [
           { href: '/finance/general-ledger', key: 'generalLedger', icon: BookOpen },
-          { href: '/finance/account-detail', key: 'accountDetail', icon: BookOpen },
-          { href: '/finance/cash-book',      key: 'cashBook',      icon: CreditCard },
-          { href: '/finance/vat-ledger',     key: 'vatLedger',     icon: Receipt },
-          { href: '/finance/input-tax',      key: 'inputTax',      icon: ReceiptText },
-        ],
-      },
-      {
-        subLabelKey: 'subOperations',
-        items: [
-          { href: '/finance/monthly-pl',              key: 'monthlyPL',             icon: BarChart3 },
-          { href: '/finance/cash-flow-statement',     key: 'cashFlowStatement',     icon: BarChart3 },
-          { href: '/finance/payment-summary',         key: 'paymentSummary',        icon: CreditCard },
-          { href: '/finance/receipt-summary',         key: 'receiptSummary',        icon: Receipt },
-          { href: '/finance/advance-payment-summary', key: 'advancePaymentSummary', icon: HandCoins },
-          { href: '/finance/management-summary',      key: 'managementSummary',     icon: PieChart },
+          { href: '/finance/monthly-pl',     key: 'monthlyPL',     icon: BarChart3 },
         ],
       },
       {
         subLabelKey: 'subFinSettings',
         items: [
-          { href: '/bank-accounts',          key: 'bankAccounts',   icon: Landmark },
-          { href: '/finance/bank/reconcile', key: 'bankReconcile',  icon: Scale },
-          { href: '/cheques',                key: 'cheques',        icon: FileText },
-          { href: '/vat-filings',            key: 'vatFilings',     icon: Receipt },
-          { href: '/finance/vat',            key: 'vatSummary',     icon: Calculator },
-          { href: '/period-close',           key: 'periodClose',    icon: CalendarCheck2 },
-          { href: '/auto-journal',           key: 'autoJournal',    icon: Zap },
+          { href: '/vat-filings',  key: 'vatFilings',  icon: Receipt },
+          { href: '/period-close', key: 'periodClose', icon: CalendarCheck2 },
         ],
       },
     ],
@@ -239,8 +214,6 @@ export const navGroups: NavGroup[] = [
     labelKey: 'groupService',
     items: [
       { href: '/after-sales', key: 'afterSales', icon: HeartHandshake },
-      { href: '/care',        key: 'care',       icon: HeartHandshake },
-      { href: '/knowledge',   key: 'knowledge',  icon: BookOpen },
     ],
   },
 
@@ -248,10 +221,8 @@ export const navGroups: NavGroup[] = [
   {
     labelKey: 'groupOrg',
     items: [
-      { href: '/hr',             key: 'hr',            icon: UserSquare2 },
       { href: '/org-chart',      key: 'orgChart',      icon: Network },
       { href: '/announcements',  key: 'announcements', icon: Megaphone },
-      { href: '/asset-loans',    key: 'assetLoans',    icon: BriefcaseBusiness },
       { href: '/region-mapping', key: 'regionMapping', icon: MapPinned },
     ],
   },
@@ -272,143 +243,37 @@ export const navGroups: NavGroup[] = [
   },
 ]
 
-/* ── Finance Role Nav (workflow-ordered) ── */
+/* ── Finance Role Nav (workflow-ordered, core 10) ── */
 export const financeNavGroups: NavGroup[] = [
   /* 1. 今日工作台 */
   {
     labelKey: 'groupFinDaily',
     items: [
-      { href: '/dashboard',   key: 'dashboard',     icon: LayoutDashboard },
-      { href: '/finance',     key: 'finance',        icon: BarChart3 },
-      { href: '/approvals',   key: 'approvals',      icon: GitPullRequestArrow },
-      { href: '/announcements', key: 'announcements', icon: Megaphone },
+      { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
+      { href: '/finance',   key: 'finance',   icon: BarChart3 },
     ],
   },
 
-  /* 2. 應收管理 */
+  /* 2. 日常收付 */
   {
     labelKey: 'groupFinAR',
     items: [
-      {
-        subLabelKey: 'subIncome',
-        items: [
-          { href: '/orders',         key: 'orders',         icon: ShoppingCart },
-          { href: '/sales-invoices', key: 'salesInvoices',  icon: Receipt },
-          { href: '/sales-returns',  key: 'salesReturns',   icon: RotateCcw },
-          { href: '/e-invoices',     key: 'eInvoices',      icon: FileText },
-        ],
-      },
-      {
-        subLabelKey: 'subCollections',
-        items: [
-          { href: '/finance/accounts-receivable', key: 'accountsReceivable', icon: ClipboardList },
-          { href: '/receipts',           key: 'receipts',          icon: CheckCircle2 },
-          { href: '/ar-aging',           key: 'arAging',           icon: Receipt },
-          { href: '/finance/settlement', key: 'settlement',        icon: FileCheck },
-          { href: '/credit-management',  key: 'creditManagement',  icon: BadgeAlert },
-        ],
-      },
+      { href: '/receipts',  key: 'receipts', icon: CheckCircle2 },
+      { href: '/payments',  key: 'payments', icon: CreditCard },
+      { href: '/expenses',  key: 'expenses', icon: ReceiptText },
+      { href: '/ar-aging',  key: 'arAging',  icon: Receipt },
+      { href: '/ap-aging',  key: 'apAging',  icon: Receipt },
     ],
   },
 
-  /* 3. 應付管理 */
-  {
-    labelKey: 'groupFinAP',
-    items: [
-      {
-        subLabelKey: 'subDisbursements',
-        items: [
-          { href: '/finance/accounts-payable', key: 'accountsPayable', icon: ClipboardList },
-          { href: '/payments',      key: 'payments',      icon: CreditCard },
-          { href: '/ap-aging',      key: 'apAging',       icon: Receipt },
-          { href: '/disbursements', key: 'disbursements', icon: HandCoins },
-        ],
-      },
-      {
-        subLabelKey: 'subExpense',
-        items: [
-          { href: '/expenses',    key: 'expenses',   icon: ReceiptText },
-          { href: '/petty-cash',  key: 'pettyCash',  icon: Wallet },
-        ],
-      },
-    ],
-  },
-
-  /* 4. 銀行與現金 */
-  {
-    labelKey: 'groupFinBank',
-    items: [
-      { href: '/bank-accounts',          key: 'bankAccounts',  icon: Landmark },
-      { href: '/finance/bank/reconcile', key: 'bankReconcile', icon: Scale },
-      { href: '/cheques',                key: 'cheques',       icon: FileText },
-      { href: '/finance/cash-book',      key: 'cashBook',      icon: CreditCard },
-    ],
-  },
-
-  /* 5. 總帳 */
+  /* 3. 帳務報表 */
   {
     labelKey: 'groupFinLedger',
     items: [
-      {
-        subLabelKey: 'subLedger',
-        items: [
-          { href: '/finance/general-ledger', key: 'generalLedger', icon: BookOpen },
-          { href: '/finance/account-detail', key: 'accountDetail', icon: BookOpen },
-          { href: '/finance/vat-ledger',     key: 'vatLedger',     icon: Receipt },
-        ],
-      },
-      {
-        subLabelKey: 'subTax',
-        items: [
-          { href: '/finance/input-tax', key: 'inputTax',   icon: ReceiptText },
-          { href: '/finance/vat',       key: 'vatSummary', icon: Calculator },
-          { href: '/vat-filings',       key: 'vatFilings', icon: Receipt },
-        ],
-      },
-    ],
-  },
-
-  /* 6. 財務報表 */
-  {
-    labelKey: 'groupFinReports',
-    items: [
-      { href: '/finance/monthly-pl',              key: 'monthlyPL',             icon: BarChart3 },
-      { href: '/finance/cash-flow-statement',     key: 'cashFlowStatement',     icon: BarChart3 },
-      { href: '/finance/payment-summary',         key: 'paymentSummary',        icon: CreditCard },
-      { href: '/finance/receipt-summary',         key: 'receiptSummary',        icon: Receipt },
-      { href: '/finance/advance-payment-summary', key: 'advancePaymentSummary', icon: HandCoins },
-      { href: '/finance/management-summary',      key: 'managementSummary',     icon: PieChart },
-      { href: '/gross-margin',                    key: 'grossMargin',           icon: DollarSign },
-      { href: '/sales-analysis',                  key: 'salesAnalysis',         icon: TrendingUp },
-      { href: '/reports',                         key: 'reports',               icon: PieChart },
-    ],
-  },
-
-  /* 7. 期末作業 */
-  {
-    labelKey: 'groupFinPeriod',
-    items: [
-      { href: '/auto-journal', key: 'autoJournal', icon: Zap },
-      { href: '/period-close', key: 'periodClose', icon: CalendarCheck2 },
-    ],
-  },
-
-  /* 8. 通路定價 */
-  {
-    labelKey: 'groupChannels',
-    items: [
-      { href: '/channels',          key: 'channels',        icon: Store },
-      { href: '/discount-rules',    key: 'discountRules',   icon: HandCoins },
-      { href: '/customer-pricing',  key: 'customerPricing', icon: BadgeDollarSign },
-    ],
-  },
-
-  /* 9. 系統 */
-  {
-    labelKey: 'groupSystem',
-    items: [
-      { href: '/documents', key: 'documents', icon: FileArchive },
-      { href: '/audit-log', key: 'auditLog',  icon: Shield },
+      { href: '/finance/general-ledger', key: 'generalLedger', icon: BookOpen },
+      { href: '/finance/monthly-pl',     key: 'monthlyPL',     icon: BarChart3 },
+      { href: '/vat-filings',            key: 'vatFilings',    icon: Receipt },
+      { href: '/period-close',           key: 'periodClose',   icon: CalendarCheck2 },
     ],
   },
 ]

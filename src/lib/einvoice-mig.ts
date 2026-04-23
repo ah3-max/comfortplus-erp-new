@@ -508,7 +508,7 @@ export function mapEInvoiceToF0401(
         taxType: '1' as TaxTypeCode,
       }]
 
-  const invoiceTypeCode: InvoiceTypeCode = isB2B ? '07' : '07'
+  const invoiceTypeCode: InvoiceTypeCode = isB2B ? '07' : '08'
 
   return {
     main: {

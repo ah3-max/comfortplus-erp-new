@@ -39,9 +39,9 @@ const ALL_MODULES = [
   // Analysis — Ops
   'purchaseAnalysis', 'supplierPerformance', 'deliveryPerformance', 'inventoryMovement', 'deadStock',
   // Service
-  'afterSales', 'care', 'knowledge',
-  // HR & Admin
-  'hr', 'orgChart', 'announcements', 'assetLoans', 'regionMapping',
+  'afterSales',
+  // Admin
+  'orgChart', 'announcements', 'regionMapping',
   // System
   'approvals', 'documents', 'warehouses', 'auditLog', 'users', 'settings', 'migration',
 ]
@@ -63,23 +63,16 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'products', 'inventory', 'shipments',
     'channels', 'payments', 'arAging', 'expenses',
     'salesAnalysis', 'grossMargin', 'salespersonPerformance', 'competitorPrices',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'reports', 'documents', 'announcements',
   ],
   SALES: [
-    'dashboard', 'dailyReminder', 'crm', 'institutionTours', 'calendar',
-    'customers', 'keyAccounts',
-    'pipeline', 'kpi', 'tasks', 'salesDailyReport', 'meetingRecords',
-    'quotations', 'orders', 'salesInvoices',
-    'products', 'shipments',
-    'salesAnalysis', 'competitorPrices',
-    'afterSales', 'care', 'knowledge',
-    'approvals', 'announcements',
+    'dashboard', 'customers', 'quotations', 'orders', 'crm',
   ],
   CARE_SUPERVISOR: [
     'dashboard', 'dailyReminder', 'crm', 'institutionTours', 'calendar',
     'customers', 'keyAccounts', 'incidents', 'tasks',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'announcements',
   ],
   ECOMMERCE: [
@@ -94,7 +87,7 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   CS: [
     'dashboard', 'crm', 'calendar',
     'customers', 'orders', 'tasks',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'announcements',
   ],
   WAREHOUSE_MANAGER: [
@@ -122,29 +115,11 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'reports', 'documents', 'announcements',
   ],
   FINANCE: [
-    'dashboard', 'announcements',
-    // AR
-    'orders', 'salesInvoices', 'salesReturns', 'eInvoices',
-    'receipts', 'arAging', 'settlement', 'creditManagement',
-    // AP
-    'payments', 'apAging', 'disbursements',
-    'expenses', 'pettyCash',
-    // Bank
-    'bankAccounts', 'bankReconcile', 'cheques', 'cashBook',
-    // Ledger
-    'finance', 'generalLedger', 'accountDetail', 'vatLedger',
-    'inputTax', 'vatSummary', 'vatFilings',
-    // Reports
-    'monthlyPL', 'cashFlowStatement', 'paymentSummary', 'receiptSummary', 'advancePaymentSummary', 'managementSummary',
-    'grossMargin', 'salesAnalysis', 'reports',
-    // Period close
-    'autoJournal', 'periodClose',
-    // Channels & pricing
-    'channels', 'priceTiers', 'discountRules', 'customerPricing',
-    // Products (read for AR verification)
-    'products',
-    // System
-    'approvals', 'documents', 'auditLog',
+    'dashboard', 'finance',
+    'receipts', 'payments', 'expenses',
+    'arAging', 'apAging',
+    'generalLedger', 'monthlyPL',
+    'vatFilings', 'periodClose',
   ],
 }
 
