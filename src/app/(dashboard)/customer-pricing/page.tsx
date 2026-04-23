@@ -70,11 +70,11 @@ export default function CustomerPricingPage() {
 
   /* ── Customer search ── */
   const [customerSearch, setCustomerSearch] = useState('')
-  const [allCustomers, setAllCustomers] = useState<Customer[]>([])
-  const [showList, setShowList] = useState(false)
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
   const [regionFilter, setRegionFilter] = useState<RegionKey | ''>('')
+  const [hasSearched, setHasSearched] = useState(false)
 
   /* ── Pricing data ── */
   const [specialPrices, setSpecialPrices] = useState<SpecialPriceRecord[]>([])
@@ -104,34 +104,27 @@ export default function CustomerPricingPage() {
 
   const [saving, setSaving] = useState(false)
 
-  /* ── Load all customers on mount ── */
-  useEffect(() => {
-    (async () => {
-      setSearchLoading(true)
-      try {
-        const res = await fetch('/api/customers?pageSize=100')
-        const json = await res.json()
-        setAllCustomers(json.data ?? [])
-      } finally { setSearchLoading(false) }
-    })()
+  /* ── Fetch customers from API (debounced) ── */
+  const fetchCustomers = useCallback(async (search: string, area: string) => {
+    setSearchLoading(true)
+    try {
+      const params = new URLSearchParams({ pageSize: '20' })
+      if (search.trim()) params.set('search', search.trim())
+      if (area) params.set('area', area)
+      const res = await fetch(`/api/customers?${params}`)
+      const json = await res.json()
+      setCustomers(json.data ?? [])
+      setHasSearched(true)
+    } finally { setSearchLoading(false) }
   }, [])
 
-  /* ── Derived: filtered customer list ── */
-  const filteredCustomers = useMemo(() => {
-    let list = allCustomers
-    if (regionFilter) {
-      list = list.filter(c => getRegion(c.address) === regionFilter)
-    }
-    if (customerSearch.trim()) {
-      const q = customerSearch.toLowerCase()
-      list = list.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.code.toLowerCase().includes(q) ||
-        (c.taxId && c.taxId.includes(q))
-      )
-    }
-    return list
-  }, [allCustomers, customerSearch, regionFilter])
+  useEffect(() => {
+    if (selectedCustomer) return
+    const hasInput = customerSearch.trim() || regionFilter
+    if (!hasInput) { setCustomers([]); setHasSearched(false); return }
+    const timer = setTimeout(() => fetchCustomers(customerSearch, regionFilter), 300)
+    return () => clearTimeout(timer)
+  }, [customerSearch, regionFilter, selectedCustomer, fetchCustomers])
 
   /* ── Load special prices for a customer ── */
   const loadPricingData = useCallback(async (custId: string) => {
@@ -147,8 +140,8 @@ export default function CustomerPricingPage() {
     const res = await fetch(`/api/customers/${c.id}`)
     const full = await res.json()
     setSelectedCustomer(full)
-    setShowList(false)
     setCustomerSearch('')
+    setCustomers([])
     setProductFilter('')
     setCategoryFilter('')
     loadPricingData(c.id)
@@ -333,8 +326,7 @@ export default function CustomerPricingPage() {
                   className="pl-12 h-12 text-base rounded-xl border-slate-300 shadow-sm focus:border-blue-400 focus:ring-blue-400"
                   placeholder={cp.searchPlaceholder ?? '搜尋客戶名稱 / 代碼 / 統編...'}
                   value={customerSearch}
-                  onChange={e => { setCustomerSearch(e.target.value); setShowList(true) }}
-                  onFocus={() => setShowList(true)}
+                  onChange={e => setCustomerSearch(e.target.value)}
                 />
                 {customerSearch && (
                   <button className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-100"
@@ -359,10 +351,15 @@ export default function CustomerPricingPage() {
               </div>
             </div>
 
-            {/* Customer list */}
-            {searchLoading && allCustomers.length === 0 ? (
+            {/* Customer results */}
+            {!hasSearched && !searchLoading ? (
+              <div className="text-center py-20 text-muted-foreground">
+                <Building2 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p className="text-base">請輸入關鍵字搜尋，或選擇地區瀏覽客戶</p>
+              </div>
+            ) : searchLoading ? (
               <div className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /></div>
-            ) : filteredCustomers.length === 0 ? (
+            ) : customers.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <p className="text-base">無符合條件的客戶</p>
               </div>
@@ -370,12 +367,15 @@ export default function CustomerPricingPage() {
               <div className="rounded-xl border shadow-sm overflow-hidden">
                 <div className="bg-slate-50 px-5 py-3 border-b flex items-center justify-between">
                   <span className="text-sm font-medium text-slate-600">
-                    共 {filteredCustomers.length} 家客戶
+                    {customers.length >= 20 ? '前 20 筆結果' : `共 ${customers.length} 家客戶`}
                     {regionFilter && <span>（{REGIONS.find(r => r.key === regionFilter)?.label}）</span>}
                   </span>
+                  {customers.length >= 20 && (
+                    <span className="text-xs text-muted-foreground">可輸入更精確的關鍵字縮小範圍</span>
+                  )}
                 </div>
                 <div className="max-h-[420px] overflow-auto divide-y">
-                  {filteredCustomers.map(c => {
+                  {customers.map(c => {
                     const region = getRegion(c.address)
                     return (
                       <button key={c.id}
