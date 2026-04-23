@@ -542,7 +542,8 @@ export default function CRMPage() {
   const [tab, setTab] = useState<Tab>('alerts')
   const [quickLogCustomer, setQuickLogCustomer] = useState<AlertCustomer | null>(null)
   const [devStatusFilter, setDevStatusFilter] = useState<string>('')
-  const [importing, setImporting] = useState(false)
+  const [importing, setImporting] = useState<'contact' | 'sample' | null>(null)
+  const [importMenuOpen, setImportMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -563,13 +564,15 @@ export default function CRMPage() {
 
   useEffect(() => { load() }, [load])
 
-  async function importExcel(file: File | undefined) {
+  async function importExcel(file: File | undefined, type: 'contact' | 'sample') {
     if (!file) return
-    setImporting(true)
+    const endpoint = type === 'contact' ? '/api/follow-up-logs/import' : '/api/samples/import'
+    const label = type === 'contact' ? '聯繫紀錄' : '樣品紀錄'
+    setImporting(type)
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const res = await fetch('/api/follow-up-logs/import', { method: 'POST', body: fd })
+      const res = await fetch(endpoint, { method: 'POST', body: fd })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { toast.error(data.error ?? '匯入失敗'); return }
       const { created = 0, skipped = 0, errors = [] } = data as {
@@ -580,15 +583,16 @@ export default function CRMPage() {
         const more = errors.length > 3 ? `\n（另有 ${errors.length - 3} 筆錯誤）` : ''
         toast.error(`匯入 ${created} 筆，${errors.length} 筆失敗：\n${preview}${more}`, { duration: 10000 })
       } else {
-        toast.success(`✅ 成功匯入 ${created} 筆聯繫紀錄${skipped > 0 ? `（略過 ${skipped} 筆空列）` : ''}`)
+        toast.success(`✅ 成功匯入 ${created} 筆${label}${skipped > 0 ? `（略過 ${skipped} 筆空列）` : ''}`)
       }
       load()
     } catch (e) {
       toast.error(`匯入失敗：${(e as Error).message}`)
     } finally {
-      setImporting(false)
+      setImporting(null)
       // Clear file input so same file can be re-picked
-      const el = document.getElementById('follow-up-import-file') as HTMLInputElement | null
+      const inputId = type === 'contact' ? 'follow-up-import-file' : 'sample-import-file'
+      const el = document.getElementById(inputId) as HTMLInputElement | null
       if (el) el.value = ''
     }
   }
@@ -628,23 +632,47 @@ export default function CRMPage() {
           <p className="text-xs text-muted-foreground">{dict.crmPage.subtitle}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm"
-            onClick={() => document.getElementById('follow-up-import-file')?.click()}
-            disabled={importing}>
-            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>📥</span>}
-            <span className="ml-1 hidden sm:inline">匯入</span>
-          </Button>
-          <input
-            type="file"
-            id="follow-up-import-file"
-            accept=".xlsx,.xls"
-            className="hidden"
-            onChange={(e) => importExcel(e.target.files?.[0])}
-          />
-          <a href="/api/follow-up-logs/import" download title="下載範本"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-md text-sm hover:bg-slate-100 text-slate-600">
-            <FileText className="h-4 w-4" />
-          </a>
+          {/* Import menu — choose between contact logs or sample records */}
+          <div className="relative">
+            <Button variant="outline" size="sm"
+              onClick={() => setImportMenuOpen(v => !v)}
+              disabled={importing !== null}>
+              {importing !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>📥</span>}
+              <span className="ml-1 hidden sm:inline">匯入 Excel</span>
+            </Button>
+            {importMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setImportMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 w-56 rounded-md border bg-white shadow-lg py-1 text-sm">
+                  <button type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2"
+                    onClick={() => { setImportMenuOpen(false); document.getElementById('follow-up-import-file')?.click() }}>
+                    📞 聯繫紀錄
+                  </button>
+                  <button type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2"
+                    onClick={() => { setImportMenuOpen(false); document.getElementById('sample-import-file')?.click() }}>
+                    📦 樣品紀錄
+                  </button>
+                  <div className="border-t my-1" />
+                  <a href="/api/follow-up-logs/import" download
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-muted-foreground text-xs"
+                    onClick={() => setImportMenuOpen(false)}>
+                    <FileText className="h-3 w-3" />聯繫紀錄範本
+                  </a>
+                  <a href="/api/samples/import" download
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-muted-foreground text-xs"
+                    onClick={() => setImportMenuOpen(false)}>
+                    <FileText className="h-3 w-3" />樣品紀錄範本
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+          <input type="file" id="follow-up-import-file" accept=".xlsx,.xls" className="hidden"
+            onChange={(e) => importExcel(e.target.files?.[0], 'contact')} />
+          <input type="file" id="sample-import-file" accept=".xlsx,.xls" className="hidden"
+            onChange={(e) => importExcel(e.target.files?.[0], 'sample')} />
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
           </Button>
