@@ -542,7 +542,7 @@ export default function CRMPage() {
   const [tab, setTab] = useState<Tab>('alerts')
   const [quickLogCustomer, setQuickLogCustomer] = useState<AlertCustomer | null>(null)
   const [devStatusFilter, setDevStatusFilter] = useState<string>('')
-  const [importing, setImporting] = useState<'contact' | 'sample' | null>(null)
+  const [importing, setImporting] = useState<'contact' | 'sample' | 'tour' | null>(null)
   const [importMenuOpen, setImportMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
@@ -564,10 +564,16 @@ export default function CRMPage() {
 
   useEffect(() => { load() }, [load])
 
-  async function importExcel(file: File | undefined, type: 'contact' | 'sample') {
+  async function importExcel(file: File | undefined, type: 'contact' | 'sample' | 'tour') {
     if (!file) return
-    const endpoint = type === 'contact' ? '/api/follow-up-logs/import' : '/api/samples/import'
-    const label = type === 'contact' ? '聯繫紀錄' : '樣品紀錄'
+    const endpointMap = {
+      contact: '/api/follow-up-logs/import',
+      sample:  '/api/samples/import',
+      tour:    '/api/institution-tours/import',
+    }
+    const labelMap = { contact: '聯繫紀錄', sample: '樣品紀錄', tour: '拜訪排程' }
+    const endpoint = endpointMap[type]
+    const label = labelMap[type]
     setImporting(type)
     try {
       const fd = new FormData()
@@ -591,8 +597,12 @@ export default function CRMPage() {
     } finally {
       setImporting(null)
       // Clear file input so same file can be re-picked
-      const inputId = type === 'contact' ? 'follow-up-import-file' : 'sample-import-file'
-      const el = document.getElementById(inputId) as HTMLInputElement | null
+      const inputIdMap = {
+        contact: 'follow-up-import-file',
+        sample:  'sample-import-file',
+        tour:    'tour-import-file',
+      }
+      const el = document.getElementById(inputIdMap[type]) as HTMLInputElement | null
       if (el) el.value = ''
     }
   }
@@ -654,6 +664,11 @@ export default function CRMPage() {
                     onClick={() => { setImportMenuOpen(false); document.getElementById('sample-import-file')?.click() }}>
                     📦 樣品紀錄
                   </button>
+                  <button type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2"
+                    onClick={() => { setImportMenuOpen(false); document.getElementById('tour-import-file')?.click() }}>
+                    🗓️ 拜訪排程
+                  </button>
                   <div className="border-t my-1" />
                   <a href="/api/follow-up-logs/import" download
                     className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-muted-foreground text-xs"
@@ -665,6 +680,11 @@ export default function CRMPage() {
                     onClick={() => setImportMenuOpen(false)}>
                     <FileText className="h-3 w-3" />樣品紀錄範本
                   </a>
+                  <a href="/api/institution-tours/import" download
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-muted-foreground text-xs"
+                    onClick={() => setImportMenuOpen(false)}>
+                    <FileText className="h-3 w-3" />拜訪排程範本
+                  </a>
                 </div>
               </>
             )}
@@ -673,6 +693,8 @@ export default function CRMPage() {
             onChange={(e) => importExcel(e.target.files?.[0], 'contact')} />
           <input type="file" id="sample-import-file" accept=".xlsx,.xls" className="hidden"
             onChange={(e) => importExcel(e.target.files?.[0], 'sample')} />
+          <input type="file" id="tour-import-file" accept=".xlsx,.xls" className="hidden"
+            onChange={(e) => importExcel(e.target.files?.[0], 'tour')} />
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
           </Button>
