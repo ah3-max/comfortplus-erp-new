@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useI18n } from '@/lib/i18n/context'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Loader2, Plus, Search, Receipt, CheckCircle2, XCircle, DollarSign, Clock, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, Plus, Search, Receipt, CheckCircle2, XCircle, DollarSign, Clock, Trash2, ChevronLeft, ChevronRight, Camera } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface ExpenseItem { id?: string; date: string; category: string; description: string; amount: number; receiptUrl?: string; lineNo: number; glAccountCode?: string | null }
@@ -98,6 +98,8 @@ export default function ExpensesPage() {
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [editingReport, setEditingReport] = useState<ExpenseReport | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -187,6 +189,67 @@ export default function ExpensesPage() {
 
   function addItem() {
     setItems(prev => [...prev, { date: new Date().toISOString().slice(0, 10), category: 'OTHER', description: '', amount: 0, lineNo: prev.length + 1 }])
+  }
+
+  async function handleScanReceipt(file: File) {
+    setScanning(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/ai/receipt-scan', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error ?? 'AI 辨識失敗'); return }
+
+      const d = json.data as {
+        vendor?: string; date?: string; totalAmount?: number
+        items?: Array<{ description?: string; amount?: number; category?: string }>
+        notes?: string
+      }
+
+      if (d.vendor && !form.title) {
+        setForm(f => ({ ...f, title: d.vendor ?? '' }))
+      }
+
+      const scannedItems: ExpenseItem[] = (d.items ?? [])
+        .filter(si => si.description || si.amount)
+        .map((si, idx) => ({
+          date: d.date ?? new Date().toISOString().slice(0, 10),
+          category: CATEGORY_VALUES.includes(si.category ?? '') ? si.category! : 'OTHER',
+          description: si.description ?? '',
+          amount: Number(si.amount) || 0,
+          lineNo: idx + 1,
+        }))
+
+      if (scannedItems.length === 0 && d.totalAmount) {
+        scannedItems.push({
+          date: d.date ?? new Date().toISOString().slice(0, 10),
+          category: 'OTHER',
+          description: d.vendor ?? '收據辨識',
+          amount: d.totalAmount,
+          lineNo: 1,
+        })
+      }
+
+      if (scannedItems.length > 0) {
+        const hasEmpty = items.length === 1 && !items[0].description && !items[0].amount
+        if (hasEmpty) {
+          setItems(scannedItems)
+        } else {
+          setItems(prev => [
+            ...prev,
+            ...scannedItems.map((si, idx) => ({ ...si, lineNo: prev.length + idx + 1 })),
+          ])
+        }
+        toast.success(`已辨識 ${scannedItems.length} 筆明細`)
+      } else {
+        toast.warning('未辨識到明細，請手動輸入')
+      }
+    } catch {
+      toast.error('AI 辨識失敗，請重試')
+    } finally {
+      setScanning(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   const total = items.reduce((s, i) => s + (i.amount || 0), 0)
@@ -385,7 +448,15 @@ export default function ExpensesPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{ex.itemsLabel}</Label>
-                <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}</Button>
+                <div className="flex gap-1.5">
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleScanReceipt(f) }} />
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={scanning}>
+                    {scanning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Camera className="h-3.5 w-3.5 mr-1" />}
+                    {scanning ? 'AI 辨識中…' : '掃描收據'}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}</Button>
+                </div>
               </div>
               {items.map((item, i) => (
                 <div key={i} className="rounded-md border p-3 space-y-2 bg-slate-50/60 relative">
@@ -464,7 +535,13 @@ export default function ExpensesPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>{ex.itemsLabel}</Label>
-                <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}</Button>
+                <div className="flex gap-1.5">
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={scanning}>
+                    {scanning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Camera className="h-3.5 w-3.5 mr-1" />}
+                    {scanning ? 'AI 辨識中…' : '掃描收據'}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={addItem}><Plus className="h-3.5 w-3.5 mr-1" />{dict.common.add}</Button>
+                </div>
               </div>
               {items.map((item, i) => (
                 <div key={i} className="rounded-md border p-3 space-y-2 bg-slate-50/60">

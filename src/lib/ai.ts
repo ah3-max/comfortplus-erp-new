@@ -28,6 +28,16 @@ export interface AiCompletionOptions {
   provider?: 'ollama' | 'anthropic'
 }
 
+export interface AiVisionOptions {
+  systemPrompt: string
+  userText: string
+  imageBase64: string
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+  temperature?: number
+  maxTokens?: number
+  provider?: 'ollama' | 'anthropic'
+}
+
 export interface AiCompletionResult {
   content: string
   provider: string
@@ -186,6 +196,68 @@ async function anthropicChat(options: AiCompletionOptions): Promise<AiCompletion
   }
 }
 
+// ── Vision Providers ─────────────────────────────────────────────────────────
+
+async function anthropicVision(options: AiVisionOptions): Promise<AiCompletionResult> {
+  const config = getConfig()
+  const { default: Anthropic } = await import('@anthropic-ai/sdk')
+  const client = new Anthropic()
+
+  const response = await client.messages.create({
+    model: config.anthropic.model,
+    max_tokens: options.maxTokens ?? 4096,
+    system: options.systemPrompt,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: options.mimeType, data: options.imageBase64 } },
+        { type: 'text', text: options.userText },
+      ],
+    }],
+  })
+
+  return {
+    content: response.content.filter(b => b.type === 'text').map(b => b.text).join(''),
+    provider: 'anthropic',
+    model: config.anthropic.model,
+    usage: { promptTokens: response.usage.input_tokens, completionTokens: response.usage.output_tokens },
+  }
+}
+
+async function ollamaVision(options: AiVisionOptions): Promise<AiCompletionResult> {
+  const config = getConfig()
+  const visionModel = process.env.OLLAMA_VISION_MODEL ?? 'llava:13b'
+
+  const res = await fetch(`${config.ollama.baseUrl}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: visionModel,
+      messages: [
+        { role: 'system', content: options.systemPrompt },
+        { role: 'user', content: options.userText, images: [options.imageBase64] },
+      ],
+      stream: false,
+      options: { temperature: options.temperature ?? 0.2, num_predict: options.maxTokens ?? 4096 },
+    }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Ollama vision error (${res.status}): ${text}`)
+  }
+
+  const data = await res.json()
+  return {
+    content: data.message?.content ?? '',
+    provider: 'ollama',
+    model: visionModel,
+    usage: data.prompt_eval_count != null
+      ? { promptTokens: data.prompt_eval_count ?? 0, completionTokens: data.eval_count ?? 0 }
+      : undefined,
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -199,6 +271,16 @@ export async function aiChat(options: AiCompletionOptions): Promise<AiCompletion
   }
 
   return ollamaChat(options)
+}
+
+/**
+ * Send an image + text prompt for vision tasks (receipt OCR, etc.).
+ * Defaults to Anthropic for best accuracy; set OLLAMA_VISION_MODEL to use local.
+ */
+export async function aiVisionChat(options: AiVisionOptions): Promise<AiCompletionResult> {
+  const provider = options.provider ?? getConfig().provider
+  if (provider === 'anthropic') return anthropicVision(options)
+  return ollamaVision(options)
 }
 
 /**
