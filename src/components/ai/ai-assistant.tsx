@@ -75,6 +75,7 @@ export function AiAssistant() {
   const [analyzing, setAnalyzing] = useState<string | null>(null)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
+  const [wipeBefore, setWipeBefore] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -185,16 +186,18 @@ export function AiAssistant() {
 
     if (isExcel) {
       // Excel: offer 3 import targets as inline choices
+      setWipeBefore(false) // reset each time
       setMessages(prev => [
         ...prev,
         { role: 'user', content: '', file: { name: file.name, size: file.size } },
         {
           role: 'assistant',
-          content: `收到「${file.name}」(${kb} KB)。要匯入為哪一類？`,
+          content: `收到「${file.name}」(${kb} KB)。要匯入為哪一類？\n\n提示：勾下方「先清舊資料再匯入」會刪除你之前建的同類紀錄，再把這個 Excel 當作乾淨來源匯入。`,
           choices: [
             { label: '📞 聯繫紀錄', action: 'import', value: 'contact' },
             { label: '📦 樣品紀錄', action: 'import', value: 'sample' },
             { label: '🗓️ 拜訪排程', action: 'import', value: 'tour' },
+            { label: '☑️ 先清舊資料', action: 'toggle-wipe' },
           ],
         },
       ])
@@ -221,8 +224,31 @@ export function AiAssistant() {
     }
     const labels = { contact: '聯繫紀錄', sample: '樣品紀錄', tour: '拜訪排程' }
 
+    // Double-confirm before wiping
+    if (wipeBefore) {
+      const ok = confirm(`確定要先清除你所有的「${labels[type]}」，再把這個 Excel 的資料匯入嗎？此動作不可復原。`)
+      if (!ok) return
+    }
+
     setLoading(true)
+    let wipedCount = 0
     try {
+      // Step 1: optional wipe (scope=mine, safe)
+      if (wipeBefore) {
+        const wipeRes = await fetch('/api/admin/wipe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targets: [type], confirm: 'WIPE', scope: 'mine' }),
+        })
+        const wipeData = await wipeRes.json().catch(() => ({}))
+        if (!wipeRes.ok) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `❌ 清舊資料失敗：${wipeData.error ?? '未知錯誤'}` }])
+          return
+        }
+        wipedCount = Number(wipeData.deleted?.[type] ?? 0)
+      }
+
+      // Step 2: import
       const fd = new FormData()
       fd.append('file', pendingFile)
       const res = await fetch(endpoints[type], { method: 'POST', body: fd })
@@ -234,7 +260,9 @@ export function AiAssistant() {
       const { created = 0, skipped = 0, errors = [] } = data as {
         created: number; skipped: number; errors: { row: number; reason: string }[]
       }
-      let msg = `✅ 已匯入 ${created} 筆${labels[type]}`
+      let msg = ''
+      if (wipeBefore) msg += `🗑️ 已清除舊資料 ${wipedCount} 筆\n`
+      msg += `✅ 已匯入 ${created} 筆${labels[type]}`
       if (skipped > 0) msg += `（略過 ${skipped} 筆空列）`
       if (errors.length > 0) {
         msg += `\n\n⚠️ ${errors.length} 筆失敗：\n` +
@@ -253,6 +281,7 @@ export function AiAssistant() {
       setMessages(prev => [...prev, { role: 'assistant', content: `❌ 匯入失敗：${(e as Error).message}` }])
     } finally {
       setPendingFile(null)
+      setWipeBefore(false)
       setLoading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
@@ -261,6 +290,9 @@ export function AiAssistant() {
   function onChoiceClick(c: { action: string; value?: string }) {
     if (c.action === 'import' && c.value) {
       runImport(c.value as 'contact' | 'sample' | 'tour')
+    }
+    if (c.action === 'toggle-wipe') {
+      setWipeBefore(v => !v)
     }
   }
 
@@ -460,14 +492,27 @@ export function AiAssistant() {
                       <div className="whitespace-pre-wrap">{msg.content}</div>
                       {msg.choices && msg.choices.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
-                          {msg.choices.map((c, j) => (
-                            <button key={j} type="button"
-                              onClick={() => onChoiceClick(c)}
-                              disabled={loading}
-                              className="inline-flex items-center gap-1 rounded-lg bg-violet-600 text-white px-3 py-2 text-xs font-medium hover:bg-violet-700 active:scale-[0.97] transition-all shadow-sm disabled:opacity-50">
-                              {c.label}
-                            </button>
-                          ))}
+                          {msg.choices.map((c, j) => {
+                            const isToggle = c.action === 'toggle-wipe'
+                            const isActive = isToggle && wipeBefore
+                            return (
+                              <button key={j} type="button"
+                                onClick={() => onChoiceClick(c)}
+                                disabled={loading}
+                                className={cn(
+                                  'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium active:scale-[0.97] transition-all shadow-sm disabled:opacity-50',
+                                  isToggle
+                                    ? isActive
+                                      ? 'bg-red-600 text-white hover:bg-red-700'
+                                      : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                                    : 'bg-violet-600 text-white hover:bg-violet-700',
+                                )}>
+                                {isToggle
+                                  ? (isActive ? '☑️ 會先清舊資料' : '☐ 先清舊資料')
+                                  : c.label}
+                              </button>
+                            )
+                          })}
                         </div>
                       )}
                       {msg.actions && msg.actions.length > 0 && (
