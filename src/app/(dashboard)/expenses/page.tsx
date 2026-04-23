@@ -64,6 +64,9 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [month, setMonth] = useState(currentMonth)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   // Generate last 24 months for dropdown
   const monthOptions = Array.from({ length: 24 }, (_, i) => {
@@ -98,15 +101,19 @@ export default function ExpensesPage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    const qs = new URLSearchParams()
+    const qs = new URLSearchParams({ page: String(page), pageSize: '30' })
     if (search) qs.set('search', search)
     if (statusFilter) qs.set('status', statusFilter)
     if (month) qs.set('month', month)
     fetch(`/api/expenses?${qs}`)
       .then(r => r.json())
-      .then(d => setReports(d.data ?? []))
+      .then(d => {
+        setReports(d.data ?? [])
+        setTotalPages(d.pagination?.totalPages ?? 1)
+        setTotalCount(d.pagination?.total ?? 0)
+      })
       .finally(() => setLoading(false))
-  }, [search, statusFilter, month])
+  }, [search, statusFilter, month, page])
 
   useEffect(() => { load() }, [load])
 
@@ -184,10 +191,20 @@ export default function ExpensesPage() {
 
   const total = items.reduce((s, i) => s + (i.amount || 0), 0)
 
+  const monthTotal = reports.reduce((s, r) => s + Number(r.totalAmount), 0)
+  const paidTotal = reports.filter(r => r.status === 'PAID').reduce((s, r) => s + Number(r.totalAmount), 0)
+
+  const categoryTotals = reports
+    .flatMap(r => r.items)
+    .reduce<Record<string, number>>((acc, item) => {
+      acc[item.category] = (acc[item.category] ?? 0) + Number(item.amount)
+      return acc
+    }, {})
+
   const summaryCards = [
     { label: ex.pendingReview, value: reports.filter(r => r.status === 'SUBMITTED').length, icon: Clock, color: 'text-blue-600' },
     { label: ex.statuses.APPROVED, value: reports.filter(r => r.status === 'APPROVED').length, icon: CheckCircle2, color: 'text-green-600' },
-    { label: ex.totalAmount, value: `$${fmt(reports.reduce((s, r) => s + Number(r.totalAmount), 0))}`, icon: DollarSign, color: 'text-slate-900' },
+    { label: ex.totalAmount, value: `$${fmt(monthTotal)}`, icon: DollarSign, color: 'text-slate-900' },
   ]
 
   return (
@@ -215,6 +232,25 @@ export default function ExpensesPage() {
           </Card>
         ))}
       </div>
+
+      {/* Monthly category breakdown */}
+      {Object.keys(categoryTotals).length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(categoryTotals)
+            .sort((a, b) => b[1] - a[1])
+            .map(([cat, amount]) => (
+              <Badge key={cat} variant="outline" className="px-2.5 py-1 text-xs gap-1.5">
+                {ex.categories[cat as ExCat] ?? cat}
+                <span className="font-semibold">${fmt(amount)}</span>
+              </Badge>
+            ))}
+          {paidTotal > 0 && (
+            <Badge variant="secondary" className="px-2.5 py-1 text-xs gap-1.5 bg-green-50 text-green-700">
+              已付 ${fmt(paidTotal)}
+            </Badge>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 flex-wrap">
         {/* Month picker */}
@@ -306,6 +342,23 @@ export default function ExpensesPage() {
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            第 {page}/{totalPages} 頁，共 {totalCount} 筆
+          </p>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* Create dialog */}
@@ -494,7 +547,11 @@ export default function ExpensesPage() {
                   </div>
                 )}
                 {detailReport.journalEntryId && (
-                  <p className="text-xs text-blue-600">暫估傳票已建立</p>
+                  <a href={`/finance/general-ledger?journalId=${detailReport.journalEntryId}`}
+                    className="text-xs text-blue-600 hover:underline cursor-pointer inline-flex items-center gap-1"
+                    onClick={e => e.stopPropagation()}>
+                    查看傳票 →
+                  </a>
                 )}
                 <div className="rounded-md border divide-y">
                   {detailReport.items.map((item, i) => (

@@ -143,7 +143,6 @@ export const navGroups: NavGroup[] = [
         items: [
           { href: '/finance',           key: 'finance',          icon: BarChart3 },
           { href: '/payments',          key: 'payments',         icon: CreditCard },
-          { href: '/receipts',          key: 'receipts',         icon: CheckCircle2 },
           { href: '/expenses',          key: 'expenses',         icon: ReceiptText },
           { href: '/petty-cash',        key: 'pettyCash',        icon: Wallet },
         ],
@@ -151,11 +150,14 @@ export const navGroups: NavGroup[] = [
       {
         subLabelKey: 'subArAp',
         items: [
+          { href: '/finance/accounts-receivable', key: 'accountsReceivable', icon: ClipboardList },
+          { href: '/finance/accounts-payable',    key: 'accountsPayable',    icon: ClipboardList },
           { href: '/ar-aging',          key: 'arAging',          icon: Receipt },
           { href: '/ap-aging',          key: 'apAging',          icon: Receipt },
+          { href: '/receipts',          key: 'receipts',         icon: CheckCircle2 },
           { href: '/disbursements',     key: 'disbursements',    icon: CreditCard },
-          { href: '/credit-management', key: 'creditManagement', icon: BadgeAlert },
           { href: '/finance/settlement', key: 'settlement',      icon: FileCheck },
+          { href: '/credit-management', key: 'creditManagement', icon: BadgeAlert },
         ],
       },
       {
@@ -298,6 +300,7 @@ export const financeNavGroups: NavGroup[] = [
       {
         subLabelKey: 'subCollections',
         items: [
+          { href: '/finance/accounts-receivable', key: 'accountsReceivable', icon: ClipboardList },
           { href: '/receipts',           key: 'receipts',          icon: CheckCircle2 },
           { href: '/ar-aging',           key: 'arAging',           icon: Receipt },
           { href: '/finance/settlement', key: 'settlement',        icon: FileCheck },
@@ -314,6 +317,7 @@ export const financeNavGroups: NavGroup[] = [
       {
         subLabelKey: 'subDisbursements',
         items: [
+          { href: '/finance/accounts-payable', key: 'accountsPayable', icon: ClipboardList },
           { href: '/payments',      key: 'payments',      icon: CreditCard },
           { href: '/ap-aging',      key: 'apAging',       icon: Receipt },
           { href: '/disbursements', key: 'disbursements', icon: HandCoins },
