@@ -17,6 +17,10 @@ interface Message {
   actions?: { label: string; href: string }[]
   /** Is this a skill result? */
   isSkill?: boolean
+  /** Inline click-to-run buttons (e.g., pick import type) */
+  choices?: { label: string; action: string; value?: string }[]
+  /** Attached file preview (for user messages showing a dropped file) */
+  file?: { name: string; size: number }
 }
 
 interface AnalysisType {
@@ -69,8 +73,11 @@ export function AiAssistant() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState<string | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [dragActive, setDragActive] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const pathname = usePathname()
 
   const scrollToBottom = useCallback(() => {
@@ -168,6 +175,102 @@ export function AiAssistant() {
     }
   }
 
+  // ── File attachment: drop Excel / photos / PDFs into the AI chat ──────────
+  function handleFileSelected(file: File | null) {
+    if (!file) return
+    setPendingFile(file)
+
+    const isExcel = /\.(xlsx|xls)$/i.test(file.name) || file.type.includes('spreadsheet')
+    const kb = (file.size / 1024).toFixed(0)
+
+    if (isExcel) {
+      // Excel: offer 3 import targets as inline choices
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: '', file: { name: file.name, size: file.size } },
+        {
+          role: 'assistant',
+          content: `收到「${file.name}」(${kb} KB)。要匯入為哪一類？`,
+          choices: [
+            { label: '📞 聯繫紀錄', action: 'import', value: 'contact' },
+            { label: '📦 樣品紀錄', action: 'import', value: 'sample' },
+            { label: '🗓️ 拜訪排程', action: 'import', value: 'tour' },
+          ],
+        },
+      ])
+    } else {
+      // Non-Excel: just note we got the file, not wired to anything yet
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: '', file: { name: file.name, size: file.size } },
+        {
+          role: 'assistant',
+          content: `收到「${file.name}」(${kb} KB)。目前聊天只支援 Excel 一鍵匯入（聯繫/樣品/拜訪），其他檔案請到對應頁面上傳。`,
+        },
+      ])
+      setPendingFile(null)
+    }
+  }
+
+  async function runImport(type: 'contact' | 'sample' | 'tour') {
+    if (!pendingFile) return
+    const endpoints = {
+      contact: '/api/follow-up-logs/import',
+      sample:  '/api/samples/import',
+      tour:    '/api/institution-tours/import',
+    }
+    const labels = { contact: '聯繫紀錄', sample: '樣品紀錄', tour: '拜訪排程' }
+
+    setLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', pendingFile)
+      const res = await fetch(endpoints[type], { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `❌ 匯入失敗：${data.error ?? '未知錯誤'}` }])
+        return
+      }
+      const { created = 0, skipped = 0, errors = [] } = data as {
+        created: number; skipped: number; errors: { row: number; reason: string }[]
+      }
+      let msg = `✅ 已匯入 ${created} 筆${labels[type]}`
+      if (skipped > 0) msg += `（略過 ${skipped} 筆空列）`
+      if (errors.length > 0) {
+        msg += `\n\n⚠️ ${errors.length} 筆失敗：\n` +
+          errors.slice(0, 5).map(e => `第 ${e.row} 列：${e.reason}`).join('\n') +
+          (errors.length > 5 ? `\n...（另 ${errors.length - 5} 筆）` : '')
+      }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: msg,
+        isSkill: true,
+        actions: type === 'tour'
+          ? [{ label: '查看排程', href: '/institution-tours' }, { label: 'CRM', href: '/crm' }]
+          : [{ label: '查看 CRM', href: '/crm' }],
+      }])
+    } catch (e) {
+      setMessages(prev => [...prev, { role: 'assistant', content: `❌ 匯入失敗：${(e as Error).message}` }])
+    } finally {
+      setPendingFile(null)
+      setLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function onChoiceClick(c: { action: string; value?: string }) {
+    if (c.action === 'import' && c.value) {
+      runImport(c.value as 'contact' | 'sample' | 'tour')
+    }
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    setDragActive(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFileSelected(file)
+  }
+
   async function runAnalysis(type: string) {
     setAnalyzing(type)
     setMessages(prev => [...prev, { role: 'user', content: `${dict.ai.runAnalysisPrefix}${ANALYSES.find(a => a.key === type)?.label}` }])
@@ -223,13 +326,28 @@ export function AiAssistant() {
 
       {/* Chat Panel */}
       {open && (
-        <div className={cn(
-          'fixed z-50 flex flex-col bg-white dark:bg-gray-900 shadow-2xl',
-          // Mobile: full screen
-          'inset-0 lg:inset-auto',
-          // Desktop: floating panel
-          'lg:bottom-6 lg:right-6 lg:w-[420px] lg:h-[600px] lg:max-h-[80vh] lg:rounded-2xl lg:border',
-        )}>
+        <div
+          onDragEnter={(e) => { e.preventDefault(); setDragActive(true) }}
+          onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+          onDragLeave={(e) => { e.preventDefault(); setDragActive(false) }}
+          onDrop={onDrop}
+          className={cn(
+            'fixed z-50 flex flex-col bg-white dark:bg-gray-900 shadow-2xl',
+            // Mobile: full screen
+            'inset-0 lg:inset-auto',
+            // Desktop: floating panel
+            'lg:bottom-6 lg:right-6 lg:w-[420px] lg:h-[600px] lg:max-h-[80vh] lg:rounded-2xl lg:border',
+          )}>
+          {/* Drag-drop overlay */}
+          {dragActive && (
+            <div className="absolute inset-0 z-50 rounded-2xl border-4 border-dashed border-violet-400 bg-violet-50/90 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <div className="text-5xl mb-2">📎</div>
+                <p className="text-lg font-semibold text-violet-700">放開上傳 Excel</p>
+                <p className="text-xs text-violet-600 mt-1">聯繫/樣品/拜訪紀錄三選一</p>
+              </div>
+            </div>
+          )}
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-violet-600 to-indigo-700 text-white lg:rounded-t-2xl">
             <div className="flex items-center gap-2">
@@ -340,6 +458,18 @@ export function AiAssistant() {
                   {msg.role === 'assistant' ? (
                     <>
                       <div className="whitespace-pre-wrap">{msg.content}</div>
+                      {msg.choices && msg.choices.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+                          {msg.choices.map((c, j) => (
+                            <button key={j} type="button"
+                              onClick={() => onChoiceClick(c)}
+                              disabled={loading}
+                              className="inline-flex items-center gap-1 rounded-lg bg-violet-600 text-white px-3 py-2 text-xs font-medium hover:bg-violet-700 active:scale-[0.97] transition-all shadow-sm disabled:opacity-50">
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {msg.actions && msg.actions.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2 border-t border-emerald-200 pt-3">
                           {msg.actions.map((action, j) => (
@@ -353,6 +483,14 @@ export function AiAssistant() {
                         </div>
                       )}
                     </>
+                  ) : msg.file ? (
+                    <div className="flex items-center gap-2">
+                      <span>📎</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">{msg.file.name}</div>
+                        <div className="text-xs opacity-75">{(msg.file.size / 1024).toFixed(0)} KB</div>
+                      </div>
+                    </div>
                   ) : (
                     msg.content
                   )}
@@ -375,6 +513,22 @@ export function AiAssistant() {
           {/* Input */}
           <div className="border-t p-3 pb-[env(safe-area-inset-bottom,12px)]">
             <div className="flex items-end gap-2">
+              {/* Attachment button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                title="上傳 Excel（聯繫 / 樣品 / 拜訪紀錄）"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all disabled:opacity-50"
+              >
+                <span className="text-xl">📎</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(e) => { handleFileSelected(e.target.files?.[0] ?? null); e.target.value = '' }}
+              />
               <textarea
                 ref={inputRef}
                 value={input}

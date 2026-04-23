@@ -642,13 +642,14 @@ export default function CRMPage() {
           <p className="text-xs text-muted-foreground">{dict.crmPage.subtitle}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {/* Import menu — choose between contact logs or sample records */}
+          {/* Import menu — prominent blue button so it's easy to find */}
           <div className="relative">
-            <Button variant="outline" size="sm"
+            <Button
               onClick={() => setImportMenuOpen(v => !v)}
-              disabled={importing !== null}>
-              {importing !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>📥</span>}
-              <span className="ml-1 hidden sm:inline">匯入 Excel</span>
+              disabled={importing !== null}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium min-h-[44px] px-4 gap-1.5">
+              {importing !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base">📥</span>}
+              <span>匯入 Excel</span>
             </Button>
             {importMenuOpen && (
               <>
