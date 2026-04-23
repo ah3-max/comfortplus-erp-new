@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     const search      = searchParams.get('search')      ?? ''
     const type        = searchParams.get('type')        ?? ''
     const region      = searchParams.get('region')      ?? ''
+    const areaFilter  = searchParams.get('area')        ?? ''
     const devStatus   = searchParams.get('devStatus')   ?? ''
     const grade       = searchParams.get('grade')       ?? ''
     const salesRep    = searchParams.get('salesRep')    ?? ''
@@ -23,10 +24,18 @@ export async function GET(req: NextRequest) {
     // Data scope: SALES/CS only see their assigned customers
     const scope = customerScope(buildScopeContext(session as { user: { id: string; role: string } }))
 
-    const where = {
-      isActive: true,
-      ...scope,
-      ...(search && {
+    const AREA_CITIES: Record<string, string[]> = {
+      north:   ['台北', '新北', '基隆', '桃園', '新竹', '宜蘭'],
+      central: ['台中', '苗栗', '彰化', '南投', '雲林'],
+      south:   ['高雄', '台南', '嘉義', '屏東', '澎湖'],
+      east:    ['花蓮', '台東'],
+    }
+
+    const areaCities = areaFilter ? AREA_CITIES[areaFilter] : null
+
+    const andConditions: Record<string, unknown>[] = []
+    if (search) {
+      andConditions.push({
         OR: [
           { name:          { contains: search, mode: 'insensitive' as const } },
           { code:          { contains: search, mode: 'insensitive' as const } },
@@ -34,7 +43,20 @@ export async function GET(req: NextRequest) {
           { phone:         { contains: search, mode: 'insensitive' as const } },
           { taxId:         { contains: search, mode: 'insensitive' as const } },
         ],
-      }),
+      })
+    }
+    if (areaCities) {
+      andConditions.push({
+        OR: areaCities.map(city => ({
+          address: { contains: city, mode: 'insensitive' as const },
+        })),
+      })
+    }
+
+    const where = {
+      isActive: true,
+      ...scope,
+      ...(andConditions.length > 0 && { AND: andConditions }),
       ...(type      && { type:      type      as never }),
       ...(region    && { region: region as never }),
       ...(devStatus && { devStatus: devStatus as never }),

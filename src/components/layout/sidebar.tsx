@@ -199,7 +199,6 @@ export const navGroups: NavGroup[] = [
     labelKey: 'groupChannels',
     items: [
       { href: '/channels',          key: 'channels',        icon: Store },
-      { href: '/price-tiers',       key: 'priceTiers',      icon: Layers },
       { href: '/discount-rules',    key: 'discountRules',   icon: HandCoins },
       { href: '/customer-pricing',  key: 'customerPricing', icon: BadgeDollarSign },
     ],
@@ -394,7 +393,6 @@ export const financeNavGroups: NavGroup[] = [
     labelKey: 'groupChannels',
     items: [
       { href: '/channels',          key: 'channels',        icon: Store },
-      { href: '/price-tiers',       key: 'priceTiers',      icon: Layers },
       { href: '/discount-rules',    key: 'discountRules',   icon: HandCoins },
       { href: '/customer-pricing',  key: 'customerPricing', icon: BadgeDollarSign },
     ],

@@ -8,13 +8,12 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 import {
-  Search, Pencil, Trash2, Plus, Save, Building2, CreditCard,
-  DollarSign, Package, Loader2, Users,
+  Search, Pencil, Trash2, Plus, Save, Building2,
+  DollarSign, Package, Loader2, X,
 } from 'lucide-react'
 
 /* ─── Types ─── */
@@ -22,22 +21,39 @@ interface Customer {
   id: string; code: string; name: string; type: string
   taxId?: string | null; invoiceTitle?: string | null; invoiceAddress?: string | null
   paymentTerms?: string | null; creditLimit?: number | null; creditUsed?: number | null
+  address?: string | null
 }
 
-interface PriceTierProduct {
-  id: string; sku: string; name: string; category: string; unit: string
-  sellingPrice: string | number | null
-  priceTiers: Record<string, unknown> | null
+/* ─── Region helpers ─── */
+const REGIONS = [
+  { key: 'north', label: '北部', cities: ['台北', '新北', '基隆', '桃園', '新竹', '宜蘭'] },
+  { key: 'central', label: '中部', cities: ['台中', '苗栗', '彰化', '南投', '雲林'] },
+  { key: 'south', label: '南部', cities: ['高雄', '台南', '嘉義', '屏東', '澎湖'] },
+  { key: 'east', label: '東部', cities: ['花蓮', '台東'] },
+] as const
+
+type RegionKey = typeof REGIONS[number]['key']
+
+function getRegion(address: string | null | undefined): RegionKey | null {
+  if (!address) return null
+  for (const r of REGIONS) {
+    if (r.cities.some(c => address.startsWith(c) || address.includes(c + '市') || address.includes(c + '縣'))) return r.key
+  }
+  return null
 }
 
 interface SpecialPriceRecord {
   id: string; customerId: string; productId: string; price: string | number
   effectiveDate?: string | null; expiryDate?: string | null; notes?: string | null
-  product?: { id: string; sku: string; name: string; unit: string }
+  product?: {
+    id: string; sku: string; name: string; unit: string
+    category: string; sellingPrice: string | number | null
+  }
 }
 
-interface CustomerPriceLevelRecord {
-  customerId: string; priceLevel: string; notes?: string | null
+interface ProductOption {
+  id: string; sku: string; name: string; category: string; unit: string
+  sellingPrice: number | null
 }
 
 /* ─── Helpers ─── */
@@ -47,166 +63,163 @@ const fmt = (n: number | string | null | undefined) => {
   return isNaN(v) ? '—' : `$${v.toLocaleString()}`
 }
 
-const TIER_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] as const
-
 /* ─── Page ─── */
 export default function CustomerPricingPage() {
   const { dict } = useI18n()
   const cp = dict.customerPricing
-  const title = cp.title ?? dict.nav.customerPricing ?? '客戶定價管理'
 
-  /* ── Customer search state ── */
+  /* ── Customer search ── */
   const [customerSearch, setCustomerSearch] = useState('')
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([])
   const [showList, setShowList] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
+  const [regionFilter, setRegionFilter] = useState<RegionKey | ''>('')
 
   /* ── Pricing data ── */
-  const [priceLevel, setPriceLevel] = useState<string>('A')
-  const [originalPriceLevel, setOriginalPriceLevel] = useState<string>('A')
-  const [allProducts, setAllProducts] = useState<PriceTierProduct[]>([])
   const [specialPrices, setSpecialPrices] = useState<SpecialPriceRecord[]>([])
-  const [productFilter, setProductFilter] = useState('')
   const [dataLoading, setDataLoading] = useState(false)
 
-  /* ── Edit dialogs ── */
+  /* ── Filters ── */
+  const [productFilter, setProductFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+
+  /* ── Edit dialog ── */
   const [editInfoOpen, setEditInfoOpen] = useState(false)
   const [editForm, setEditForm] = useState({ taxId: '', invoiceTitle: '', invoiceAddress: '', paymentTerms: '', creditLimit: '' })
 
-  const [specialPriceDialog, setSpecialPriceDialog] = useState<{
-    open: boolean; mode: 'add' | 'edit'; productId: string; productName: string
-    price: string; effectiveDate: string; expiryDate: string; notes: string; existingId?: string
-  }>({ open: false, mode: 'add', productId: '', productName: '', price: '', effectiveDate: '', expiryDate: '', notes: '' })
+  /* ── Price dialog (add / edit) ── */
+  const [priceDialog, setPriceDialog] = useState<{
+    open: boolean; mode: 'add' | 'edit'
+    productId: string; productName: string; productSku: string
+    price: string; effectiveDate: string; expiryDate: string; notes: string
+    existingId?: string; catalogPrice?: number | null
+  }>({ open: false, mode: 'add', productId: '', productName: '', productSku: '', price: '', effectiveDate: '', expiryDate: '', notes: '' })
+
+  /* ── Add product search ── */
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([])
+  const [productSearchLoading, setProductSearchLoading] = useState(false)
 
   const [saving, setSaving] = useState(false)
 
-  /* ── Price level browsing ── */
-  interface LevelCustomer { id: string; name: string; code: string; type: string }
-  interface LevelGroup { level: string; customers: LevelCustomer[] }
-  const [levelGroups, setLevelGroups] = useState<LevelGroup[]>([])
-  const [activeLevelTab, setActiveLevelTab] = useState<string | null>(null)
-  const [levelLoading, setLevelLoading] = useState(false)
-  const [levelLoaded, setLevelLoaded] = useState(false)
-
-  const loadLevelGroups = useCallback(async () => {
-    if (levelLoaded) return
-    setLevelLoading(true)
-    try {
-      const res = await fetch('/api/customers/price-level?search=')
-      const json = await res.json()
-      const records: Array<{ priceLevel: string; customer: LevelCustomer }> = json.data ?? []
-      const grouped = new Map<string, LevelCustomer[]>()
-      for (const r of records) {
-        const arr = grouped.get(r.priceLevel) ?? []
-        arr.push(r.customer)
-        grouped.set(r.priceLevel, arr)
-      }
-      const groups: LevelGroup[] = TIER_LABELS
-        .filter(l => grouped.has(l))
-        .map(l => ({ level: l, customers: grouped.get(l)! }))
-      setLevelGroups(groups)
-      setLevelLoaded(true)
-    } finally { setLevelLoading(false) }
-  }, [levelLoaded])
-
-  /* ── Customer search ── */
+  /* ── Load all customers on mount ── */
   useEffect(() => {
-    if (!customerSearch.trim()) { setCustomers([]); return }
-    const timer = setTimeout(async () => {
+    (async () => {
       setSearchLoading(true)
       try {
-        const res = await fetch(`/api/customers?search=${encodeURIComponent(customerSearch)}&pageSize=20`)
+        const res = await fetch('/api/customers?pageSize=100')
         const json = await res.json()
-        setCustomers(json.data ?? [])
+        setAllCustomers(json.data ?? [])
       } finally { setSearchLoading(false) }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [customerSearch])
+    })()
+  }, [])
 
-  /* ── Load pricing data when customer selected ── */
+  /* ── Derived: filtered customer list ── */
+  const filteredCustomers = useMemo(() => {
+    let list = allCustomers
+    if (regionFilter) {
+      list = list.filter(c => getRegion(c.address) === regionFilter)
+    }
+    if (customerSearch.trim()) {
+      const q = customerSearch.toLowerCase()
+      list = list.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        (c.taxId && c.taxId.includes(q))
+      )
+    }
+    return list
+  }, [allCustomers, customerSearch, regionFilter])
+
+  /* ── Load special prices for a customer ── */
   const loadPricingData = useCallback(async (custId: string) => {
     setDataLoading(true)
     try {
-      const [tiersRes, specialRes, levelRes] = await Promise.all([
-        fetch('/api/price-tiers').then(r => r.json()),
-        fetch(`/api/special-prices?customerId=${custId}`).then(r => r.json()),
-        fetch(`/api/customers/price-level?search=`).then(r => r.json()),
-      ])
-      setAllProducts(tiersRes.data ?? [])
-      setSpecialPrices(specialRes.data ?? [])
-
-      const levels: CustomerPriceLevelRecord[] = levelRes.data ?? []
-      const cl = levels.find(l => l.customerId === custId)
-      const lv = cl?.priceLevel ?? 'A'
-      setPriceLevel(lv)
-      setOriginalPriceLevel(lv)
+      const res = await fetch(`/api/special-prices?customerId=${custId}`)
+      const json = await res.json()
+      setSpecialPrices(json.data ?? [])
     } finally { setDataLoading(false) }
   }, [])
 
   const selectCustomer = useCallback(async (c: Customer) => {
-    // Fetch full customer detail for taxId/invoiceTitle etc.
     const res = await fetch(`/api/customers/${c.id}`)
     const full = await res.json()
     setSelectedCustomer(full)
     setShowList(false)
     setCustomerSearch('')
+    setProductFilter('')
+    setCategoryFilter('')
     loadPricingData(c.id)
   }, [loadPricingData])
 
-  /* ── Derived: merged product pricing table ── */
-  const specialMap = useMemo(() => {
-    const m = new Map<string, SpecialPriceRecord>()
-    for (const sp of specialPrices) m.set(sp.productId, sp)
-    return m
+  /* ── Derived: categories from current special prices ── */
+  const categories = useMemo(() => {
+    const set = new Set<string>()
+    for (const sp of specialPrices) {
+      if (sp.product?.category) set.add(sp.product.category)
+    }
+    return Array.from(set).sort()
   }, [specialPrices])
 
-  const filteredProducts = useMemo(() => {
-    if (!productFilter.trim()) return allProducts
-    const q = productFilter.toLowerCase()
-    return allProducts.filter(p =>
-      p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
-    )
-  }, [allProducts, productFilter])
+  /* ── Derived: filtered and grouped products ── */
+  const groupedProducts = useMemo(() => {
+    let items = specialPrices.filter(sp => sp.product)
 
-  const getTierPrice = (product: PriceTierProduct): number | null => {
-    const tiers = product.priceTiers as Record<string, string | number | null> | null
-    if (!tiers) return null
-    const key = `price${priceLevel}`
-    const val = tiers[key]
-    if (val == null) return null
-    const n = Number(val)
-    return n > 0 ? n : null
-  }
-
-  const getFinalPrice = (product: PriceTierProduct): { price: number; source: string } => {
-    const sp = specialMap.get(product.id)
-    if (sp) {
-      const v = Number(sp.price)
-      if (v > 0) return { price: v, source: '特殊價' }
+    if (categoryFilter) {
+      items = items.filter(sp => sp.product!.category === categoryFilter)
     }
-    const tp = getTierPrice(product)
-    if (tp != null) return { price: tp, source: `${priceLevel}級價` }
-    const def = Number(product.sellingPrice ?? 0)
-    return { price: def, source: '目錄價' }
-  }
+    if (productFilter.trim()) {
+      const q = productFilter.toLowerCase()
+      items = items.filter(sp =>
+        sp.product!.sku.toLowerCase().includes(q) ||
+        sp.product!.name.toLowerCase().includes(q)
+      )
+    }
 
-  /* ── Save price level ── */
-  const savePriceLevel = async () => {
-    if (!selectedCustomer) return
-    setSaving(true)
+    const groups = new Map<string, SpecialPriceRecord[]>()
+    for (const sp of items) {
+      const cat = sp.product!.category || '其他'
+      const arr = groups.get(cat) ?? []
+      arr.push(sp)
+      groups.set(cat, arr)
+    }
+
+    for (const [, arr] of groups) {
+      arr.sort((a, b) => (a.product!.sku).localeCompare(b.product!.sku))
+    }
+
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b))
+  }, [specialPrices, categoryFilter, productFilter])
+
+  /* ── Product search for add dialog ── */
+  const loadProducts = useCallback(async (query: string) => {
+    setProductSearchLoading(true)
     try {
-      const res = await fetch('/api/customers/price-level', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [{ customerId: selectedCustomer.id, priceLevel }] }),
-      })
-      if (!res.ok) throw new Error('儲存失敗')
-      setOriginalPriceLevel(priceLevel)
-      toast.success('價格等級已更新')
-    } catch { toast.error('儲存失敗') }
-    finally { setSaving(false) }
-  }
+      const params = query.trim()
+        ? `search=${encodeURIComponent(query)}&fuzzy=1`
+        : ''
+      const res = await fetch(`/api/products?${params}`)
+      if (!res.ok) return
+      const json = await res.json()
+      const arr = Array.isArray(json) ? json : (json.data ?? [])
+      const list: ProductOption[] = arr.map((p: Record<string, unknown>) => ({
+        id: p.id, sku: p.sku, name: p.name,
+        category: (p.category as string) ?? '', unit: (p.unit as string) ?? '',
+        sellingPrice: p.sellingPrice ? Number(p.sellingPrice) : null,
+      }))
+      const existingIds = new Set(specialPrices.map(sp => sp.productId))
+      setProductOptions(list.filter(p => !existingIds.has(p.id)))
+    } finally { setProductSearchLoading(false) }
+  }, [specialPrices])
+
+  useEffect(() => {
+    if (!addDialogOpen) return
+    if (!productSearch.trim()) { loadProducts(''); return }
+    const timer = setTimeout(() => loadProducts(productSearch), 300)
+    return () => clearTimeout(timer)
+  }, [productSearch, addDialogOpen, loadProducts])
 
   /* ── Save customer info ── */
   const saveCustomerInfo = async () => {
@@ -224,7 +237,7 @@ export default function CustomerPricingPage() {
           creditLimit: editForm.creditLimit ? Number(editForm.creditLimit) : null,
         }),
       })
-      if (!res.ok) throw new Error('儲存失敗')
+      if (!res.ok) throw new Error()
       const updated = await res.json()
       setSelectedCustomer(prev => prev ? { ...prev, ...updated } : prev)
       setEditInfoOpen(false)
@@ -233,29 +246,42 @@ export default function CustomerPricingPage() {
     finally { setSaving(false) }
   }
 
-  /* ── Special price CRUD ── */
-  const openAddSpecialPrice = (product: PriceTierProduct) => {
-    setSpecialPriceDialog({
-      open: true, mode: 'add', productId: product.id, productName: `${product.sku} ${product.name}`,
-      price: '', effectiveDate: new Date().toISOString().slice(0, 10), expiryDate: '', notes: '',
+  /* ── Select product from add dialog → open price dialog ── */
+  const selectProductToAdd = (product: ProductOption) => {
+    setAddDialogOpen(false)
+    setProductSearch('')
+    setPriceDialog({
+      open: true, mode: 'add',
+      productId: product.id,
+      productName: product.name,
+      productSku: product.sku,
+      price: product.sellingPrice ? String(product.sellingPrice) : '',
+      effectiveDate: new Date().toISOString().slice(0, 10),
+      expiryDate: '', notes: '',
+      catalogPrice: product.sellingPrice,
     })
   }
 
-  const openEditSpecialPrice = (product: PriceTierProduct) => {
-    const sp = specialMap.get(product.id)
-    if (!sp) return
-    setSpecialPriceDialog({
-      open: true, mode: 'edit', productId: product.id, productName: `${product.sku} ${product.name}`,
-      price: String(Number(sp.price)), existingId: sp.id,
+  /* ── Open edit dialog for existing price ── */
+  const openEditPrice = (sp: SpecialPriceRecord) => {
+    setPriceDialog({
+      open: true, mode: 'edit',
+      productId: sp.productId,
+      productName: sp.product?.name ?? '',
+      productSku: sp.product?.sku ?? '',
+      price: String(Number(sp.price)),
       effectiveDate: sp.effectiveDate ? new Date(sp.effectiveDate).toISOString().slice(0, 10) : '',
       expiryDate: sp.expiryDate ? new Date(sp.expiryDate).toISOString().slice(0, 10) : '',
       notes: sp.notes ?? '',
+      existingId: sp.id,
+      catalogPrice: sp.product?.sellingPrice ? Number(sp.product.sellingPrice) : null,
     })
   }
 
-  const saveSpecialPrice = async () => {
+  /* ── Save price (add or edit) ── */
+  const savePrice = async () => {
     if (!selectedCustomer) return
-    const d = specialPriceDialog
+    const d = priceDialog
     if (!d.price || isNaN(Number(d.price))) { toast.error('請輸入有效金額'); return }
     setSaving(true)
     try {
@@ -269,152 +295,158 @@ export default function CustomerPricingPage() {
       const res = d.mode === 'edit' && d.existingId
         ? await fetch(`/api/special-prices?id=${d.existingId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
         : await fetch('/api/special-prices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      if (!res.ok) throw new Error('儲存失敗')
-      setSpecialPriceDialog(prev => ({ ...prev, open: false }))
-      toast.success(d.mode === 'add' ? '特殊價已新增' : '特殊價已更新')
-      // Reload special prices
-      const spRes = await fetch(`/api/special-prices?customerId=${selectedCustomer.id}`)
-      const spJson = await spRes.json()
-      setSpecialPrices(spJson.data ?? [])
+      if (!res.ok) throw new Error()
+      setPriceDialog(prev => ({ ...prev, open: false }))
+      toast.success(d.mode === 'add' ? '品項已新增' : '定價已更新')
+      loadPricingData(selectedCustomer.id)
     } catch { toast.error('儲存失敗') }
     finally { setSaving(false) }
   }
 
-  const deleteSpecialPrice = async (productId: string) => {
-    const sp = specialMap.get(productId)
-    if (!sp || !selectedCustomer) return
-    if (!confirm('確定刪除此特殊價？')) return
+  /* ── Delete price ── */
+  const deletePrice = async (sp: SpecialPriceRecord) => {
+    if (!selectedCustomer) return
+    if (!confirm(`確定移除「${sp.product?.name}」的定價？`)) return
     try {
       const res = await fetch(`/api/special-prices?id=${sp.id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('刪除失敗')
-      toast.success('特殊價已刪除')
+      if (!res.ok) throw new Error()
+      toast.success('已移除')
       setSpecialPrices(prev => prev.filter(s => s.id !== sp.id))
     } catch { toast.error('刪除失敗') }
   }
 
   /* ── Render ── */
   return (
-    <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold">{title}</h1>
+    <div className="space-y-5 p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto">
 
-      {/* ── Customer Search + Level Filter ── */}
-      <Card>
-        <CardContent className="pt-6 space-y-4">
-          <div className="flex gap-3 items-start">
-            {/* Search input */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder={cp.searchPlaceholder ?? '搜尋客戶名稱/代碼/統編...'}
-                value={selectedCustomer ? `${selectedCustomer.code} — ${selectedCustomer.name}` : customerSearch}
-                onChange={e => {
-                  if (selectedCustomer) { setSelectedCustomer(null); setAllProducts([]); setSpecialPrices([]); setActiveLevelTab(null) }
-                  setCustomerSearch(e.target.value)
-                  setShowList(true)
-                }}
-                onFocus={() => { if (customerSearch && !selectedCustomer) setShowList(true) }}
-              />
-              {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
-              {showList && customers.length > 0 && !selectedCustomer && (
-                <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
-                  {customers.map(c => (
-                    <button key={c.id} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex justify-between items-center text-sm"
-                      onClick={() => { selectCustomer(c); setActiveLevelTab(null) }}>
-                      <span><span className="font-medium">{c.code}</span> — {c.name}</span>
-                      <Badge variant="outline" className="text-xs">{c.type}</Badge>
-                    </button>
-                  ))}
-                </div>
-              )}
+      {/* ── Header + Search + Customer List ── */}
+      <div className="space-y-4">
+        <h1 className="text-2xl md:text-3xl font-bold">{cp.title ?? '客戶定價'}</h1>
+
+        {!selectedCustomer && (
+          <div className="space-y-4">
+            {/* Search + Region filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 max-w-2xl">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  className="pl-12 h-12 text-base rounded-xl border-slate-300 shadow-sm focus:border-blue-400 focus:ring-blue-400"
+                  placeholder={cp.searchPlaceholder ?? '搜尋客戶名稱 / 代碼 / 統編...'}
+                  value={customerSearch}
+                  onChange={e => { setCustomerSearch(e.target.value); setShowList(true) }}
+                  onFocus={() => setShowList(true)}
+                />
+                {customerSearch && (
+                  <button className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-100"
+                    onClick={() => setCustomerSearch('')}>
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {REGIONS.map(r => (
+                  <button key={r.key}
+                    className={`h-11 px-4 rounded-lg text-sm font-medium transition-colors active:scale-[0.97] ${
+                      regionFilter === r.key
+                        ? 'bg-slate-800 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    onClick={() => setRegionFilter(prev => prev === r.key ? '' : r.key)}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Level browse button */}
-            <Button variant="outline" className="shrink-0" onClick={() => {
-              if (activeLevelTab) { setActiveLevelTab(null) } else { loadLevelGroups(); setActiveLevelTab(levelGroups[0]?.level ?? 'A') }
-            }}>
-              <Users className="h-4 w-4 mr-1.5" />
-              {activeLevelTab ? '收起等級' : '依等級瀏覽'}
-            </Button>
-          </div>
-
-          {/* Level tabs */}
-          {activeLevelTab && (
-            <div className="space-y-3">
-              {levelLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> 載入中...
+            {/* Customer list */}
+            {searchLoading && allCustomers.length === 0 ? (
+              <div className="text-center py-16"><Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /></div>
+            ) : filteredCustomers.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <p className="text-base">無符合條件的客戶</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border shadow-sm overflow-hidden">
+                <div className="bg-slate-50 px-5 py-3 border-b flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-600">
+                    共 {filteredCustomers.length} 家客戶
+                    {regionFilter && <span>（{REGIONS.find(r => r.key === regionFilter)?.label}）</span>}
+                  </span>
                 </div>
-              ) : (
-                <>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {TIER_LABELS.map(l => {
-                      const group = levelGroups.find(g => g.level === l)
-                      const count = group?.customers.length ?? 0
-                      return (
-                        <button
-                          key={l}
-                          onClick={() => setActiveLevelTab(l)}
-                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                            activeLevelTab === l
-                              ? 'bg-slate-900 text-white'
-                              : count > 0
-                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                : 'bg-slate-50 text-slate-400'
-                          }`}
-                        >
-                          {l} 級{count > 0 && <span className="ml-1 text-xs opacity-75">({count})</span>}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {/* Customer list for selected level */}
-                  {(() => {
-                    const group = levelGroups.find(g => g.level === activeLevelTab)
-                    if (!group || group.customers.length === 0) {
-                      return <p className="text-sm text-muted-foreground py-3">此等級尚無客戶</p>
-                    }
+                <div className="max-h-[420px] overflow-auto divide-y">
+                  {filteredCustomers.map(c => {
+                    const region = getRegion(c.address)
                     return (
-                      <div className="rounded-md border max-h-52 overflow-auto">
-                        {group.customers.map(c => (
-                          <button key={c.id}
-                            className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex justify-between items-center text-sm border-b last:border-b-0"
-                            onClick={() => { selectCustomer(c as Customer); setActiveLevelTab(null) }}>
-                            <span><span className="font-medium">{c.code}</span> — {c.name}</span>
-                            <Badge variant="outline" className="text-xs">{c.type}</Badge>
-                          </button>
-                        ))}
-                      </div>
+                      <button key={c.id}
+                        className="w-full text-left px-5 py-4 hover:bg-blue-50/60 flex items-center justify-between active:scale-[0.995] transition-colors"
+                        onClick={() => selectCustomer(c)}>
+                        <div className="min-w-0">
+                          <div className="text-[15px]">
+                            <span className="font-mono text-sm text-muted-foreground mr-2">{c.code}</span>
+                            <span className="font-medium">{c.name}</span>
+                          </div>
+                          {c.address && (
+                            <p className="text-sm text-muted-foreground mt-0.5 truncate">{c.address}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 ml-4 shrink-0">
+                          {region && (
+                            <Badge variant="outline" className="text-xs">{REGIONS.find(r => r.key === region)?.label}</Badge>
+                          )}
+                          <Badge variant="secondary" className="text-xs">{c.type}</Badge>
+                        </div>
+                      </button>
                     )
-                  })()}
-                </>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-      {!selectedCustomer && !activeLevelTab && (
-        <div className="text-center py-20 text-muted-foreground">
-          {cp.noCustomerSelected ?? '請先選擇客戶，或點「依等級瀏覽」查看各等級客戶'}
-        </div>
-      )}
+        {/* Selected customer bar */}
+        {selectedCustomer && (
+          <div className="flex items-center gap-3 max-w-2xl">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                className="pl-12 h-12 text-base rounded-xl border-slate-300 shadow-sm"
+                value={`${selectedCustomer.code} — ${selectedCustomer.name}`}
+                readOnly
+              />
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-100 active:scale-[0.97]"
+                onClick={() => {
+                  setSelectedCustomer(null)
+                  setSpecialPrices([])
+                  setCustomerSearch('')
+                  setCategoryFilter('')
+                  setProductFilter('')
+                  setRegionFilter('')
+                }}
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {selectedCustomer && dataLoading && (
-        <div className="text-center py-20"><Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /></div>
+        <div className="text-center py-28"><Loader2 className="h-10 w-10 animate-spin mx-auto text-muted-foreground" /></div>
       )}
 
       {selectedCustomer && !dataLoading && (
         <>
           {/* ── Customer Info Card ── */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Building2 className="h-5 w-5" />
+          <Card className="shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <CardTitle className="flex items-center gap-2.5 text-xl">
+                <Building2 className="h-5 w-5 text-slate-600" />
                 {cp.basicInfo ?? '客戶基本資訊'}
               </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => {
+              <Button variant="outline" className="h-10 px-4 active:scale-[0.97]" onClick={() => {
                 setEditForm({
                   taxId: selectedCustomer.taxId ?? '',
                   invoiceTitle: selectedCustomer.invoiceTitle ?? '',
@@ -424,13 +456,13 @@ export default function CustomerPricingPage() {
                 })
                 setEditInfoOpen(true)
               }}>
-                <Pencil className="h-3.5 w-3.5 mr-1" /> {dict.common?.edit ?? '編輯'}
+                <Pencil className="h-4 w-4 mr-1.5" /> {dict.common?.edit ?? '編輯'}
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                <div><span className="text-muted-foreground">客戶名稱：</span>{selectedCustomer.name}</div>
-                <div><span className="text-muted-foreground">客戶代碼：</span>{selectedCustomer.code}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 text-[15px]">
+                <div><span className="text-muted-foreground">客戶名稱：</span><span className="font-medium">{selectedCustomer.name}</span></div>
+                <div><span className="text-muted-foreground">客戶代碼：</span><span className="font-mono">{selectedCustomer.code}</span></div>
                 <div><span className="text-muted-foreground">{cp.taxId ?? '統一編號'}：</span>{selectedCustomer.taxId || '—'}</div>
                 <div><span className="text-muted-foreground">{cp.invoiceTitle ?? '發票抬頭'}：</span>{selectedCustomer.invoiceTitle || '—'}</div>
                 <div className="sm:col-span-2"><span className="text-muted-foreground">{cp.invoiceAddress ?? '發票地址'}：</span>{selectedCustomer.invoiceAddress || '—'}</div>
@@ -441,118 +473,126 @@ export default function CustomerPricingPage() {
             </CardContent>
           </Card>
 
-          {/* ── Price Level ── */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CreditCard className="h-5 w-5" />
-                {cp.priceLevel ?? '價格等級'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <Label>{cp.currentLevel ?? '目前等級'}：</Label>
-                <Select value={priceLevel} onValueChange={v => { if (v) setPriceLevel(v) }}>
-                  <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TIER_LABELS.map(l => <SelectItem key={l} value={l}>{l} 級</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {priceLevel !== originalPriceLevel && (
-                  <Button size="sm" onClick={savePriceLevel} disabled={saving}>
-                    <Save className="h-3.5 w-3.5 mr-1" /> 儲存
-                  </Button>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  等級價依 ProductPriceTier 的 {priceLevel} 欄帶入
-                </span>
+          {/* ── Product Pricing ── */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-4 space-y-4">
+              {/* Title row */}
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2.5 text-xl">
+                  <Package className="h-5 w-5 text-slate-600" />
+                  {cp.productPricing ?? '簽約品項'}
+                  <Badge variant="secondary" className="ml-1 text-sm px-2.5 py-0.5">
+                    {specialPrices.length}
+                  </Badge>
+                </CardTitle>
+                <Button className="h-11 px-5 text-sm active:scale-[0.97]" onClick={() => { setAddDialogOpen(true); setProductSearch(''); setProductOptions([]) }}>
+                  <Plus className="h-4 w-4 mr-1.5" /> {cp.addProduct ?? '新增品項'}
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* ── Product Pricing Table ── */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Package className="h-5 w-5" />
-                {cp.productPricing ?? '商品定價一覽'}
-              </CardTitle>
-              <div className="text-sm text-muted-foreground">
-                共 {allProducts.length} 項商品，{specialPrices.length} 項特殊價
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input className="pl-9" placeholder="搜尋 SKU / 商品名稱..."
-                    value={productFilter} onChange={e => setProductFilter(e.target.value)} />
+              {/* Filters row */}
+              {specialPrices.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {categories.length > 1 && (
+                    <Select value={categoryFilter || '__all__'} onValueChange={v => setCategoryFilter(v === '__all__' ? '' : (v ?? ''))}>
+                      <SelectTrigger className="w-44 h-10">
+                        <SelectValue placeholder={cp.allCategories ?? '全部品類'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">{cp.allCategories ?? '全部品類'}</SelectItem>
+                        {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input className="pl-10 h-10 w-56" placeholder={cp.searchProduct ?? '搜尋品項...'}
+                      value={productFilter} onChange={e => setProductFilter(e.target.value)} />
+                  </div>
                 </div>
-              </div>
-
-              <div className="rounded-md border overflow-auto max-h-[600px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50">
-                      <TableHead className="w-24">SKU</TableHead>
-                      <TableHead>商品名稱</TableHead>
-                      <TableHead className="text-right w-24">{cp.catalogPrice ?? '目錄價'}</TableHead>
-                      <TableHead className="text-right w-24">{priceLevel}{cp.tierPrice ? ` ${cp.tierPrice}` : '級價'}</TableHead>
-                      <TableHead className="text-right w-32">{cp.specialPrice ?? '特殊價'}</TableHead>
-                      <TableHead className="text-right w-28">{cp.finalPrice ?? '最終價'}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">無商品資料</TableCell></TableRow>
-                    ) : filteredProducts.map(product => {
-                      const sp = specialMap.get(product.id)
-                      const tierPrice = getTierPrice(product)
-                      const final_ = getFinalPrice(product)
-                      return (
-                        <TableRow key={product.id} className="group">
-                          <TableCell className="font-mono text-xs">{product.sku}</TableCell>
-                          <TableCell>{product.name}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmt(product.sellingPrice)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{fmt(tierPrice)}</TableCell>
-                          <TableCell className="text-right">
-                            {sp ? (
-                              <div className="flex items-center justify-end gap-1">
-                                <span className="tabular-nums font-medium text-blue-700">{fmt(sp.price)}</span>
-                                <button onClick={() => openEditSpecialPrice(product)}
-                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded" title="編輯">
-                                  <Pencil className="h-3.5 w-3.5 text-slate-500" />
-                                </button>
-                                <button onClick={() => deleteSpecialPrice(product.id)}
-                                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded" title="刪除">
-                                  <Trash2 className="h-3.5 w-3.5 text-red-400" />
-                                </button>
-                              </div>
-                            ) : (
-                              <button onClick={() => openAddSpecialPrice(product)}
-                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-blue-600" title="新增特殊價">
-                                <Plus className="h-4 w-4" />
-                              </button>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <span className="tabular-nums font-semibold">{fmt(final_.price)}</span>
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                {final_.source}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <p className="text-xs text-muted-foreground mt-3">
-                最終價 = 特殊價 &gt; {priceLevel}級價 &gt; 目錄價（依優先順序取第一個有值的價格）
-              </p>
+              )}
+            </CardHeader>
+            <CardContent>
+              {specialPrices.length === 0 ? (
+                <div className="text-center py-20 text-muted-foreground">
+                  <Package className="h-14 w-14 mx-auto mb-4 opacity-30" />
+                  <p className="text-base">{cp.noProducts ?? '此客戶尚無簽約品項，請點右上「新增品項」開始設定'}</p>
+                </div>
+              ) : groupedProducts.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <p className="text-base">無符合篩選條件的品項</p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {groupedProducts.map(([category, items]) => (
+                    <div key={category}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className="text-base font-semibold text-slate-700">{category}</h3>
+                        <Badge variant="outline" className="text-xs">{items.length} 項</Badge>
+                        <div className="flex-1 border-b border-slate-200" />
+                      </div>
+                      <div className="rounded-lg border overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-slate-50/80">
+                              <TableHead className="w-32 text-[13px] py-3">SKU</TableHead>
+                              <TableHead className="text-[13px] py-3">品名</TableHead>
+                              <TableHead className="w-20 text-center text-[13px] py-3">單位</TableHead>
+                              <TableHead className="text-right w-32 text-[13px] py-3">{cp.catalogPrice ?? '目錄價'}</TableHead>
+                              <TableHead className="text-right w-32 text-[13px] py-3">{cp.customerPrice ?? '客戶價'}</TableHead>
+                              <TableHead className="text-right w-24 text-[13px] py-3">折讓</TableHead>
+                              <TableHead className="w-24 py-3" />
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {items.map(sp => {
+                              const catalog = sp.product?.sellingPrice ? Number(sp.product.sellingPrice) : null
+                              const custPrice = Number(sp.price)
+                              const discount = catalog && catalog > 0
+                                ? Math.round((1 - custPrice / catalog) * 100)
+                                : null
+                              return (
+                                <TableRow key={sp.id} className="group hover:bg-slate-50/50">
+                                  <TableCell className="font-mono text-sm py-3.5">{sp.product?.sku}</TableCell>
+                                  <TableCell className="py-3.5">
+                                    <span className="text-[15px]">{sp.product?.name}</span>
+                                    {sp.notes && (
+                                      <span className="ml-2 text-xs text-muted-foreground" title={sp.notes}>
+                                        ({sp.notes})
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-center text-sm text-muted-foreground py-3.5">{sp.product?.unit}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm text-muted-foreground py-3.5">{fmt(catalog)}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-base font-semibold text-blue-700 py-3.5">{fmt(custPrice)}</TableCell>
+                                  <TableCell className="text-right py-3.5">
+                                    {discount != null && discount > 0 && (
+                                      <Badge variant="outline" className="text-xs px-2 py-0.5 text-green-700 border-green-300">
+                                        -{discount}%
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="py-3.5">
+                                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => openEditPrice(sp)}
+                                        className="p-2 hover:bg-slate-100 rounded-md active:scale-[0.95]" title={cp.editPrice ?? '編輯定價'}>
+                                        <Pencil className="h-4 w-4 text-slate-500" />
+                                      </button>
+                                      <button onClick={() => deletePrice(sp)}
+                                        className="p-2 hover:bg-red-50 rounded-md active:scale-[0.95]" title="移除">
+                                        <Trash2 className="h-4 w-4 text-red-400" />
+                                      </button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
@@ -560,88 +600,153 @@ export default function CustomerPricingPage() {
 
       {/* ═══ Edit Customer Info Dialog ═══ */}
       <Dialog open={editInfoOpen} onOpenChange={setEditInfoOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{cp.basicInfo ?? '編輯客戶基本資訊'}</DialogTitle>
+            <DialogTitle className="text-lg">{cp.basicInfo ?? '編輯客戶基本資訊'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>{cp.taxId ?? '統一編號'}</Label>
-              <Input value={editForm.taxId} maxLength={8} placeholder="8 位數字"
+          <div className="space-y-5">
+            <div className="space-y-1.5">
+              <Label className="text-sm">{cp.taxId ?? '統一編號'}</Label>
+              <Input className="h-11" value={editForm.taxId} maxLength={8} placeholder="8 位數字"
                 onChange={e => setEditForm(f => ({ ...f, taxId: e.target.value }))} />
             </div>
-            <div>
-              <Label>{cp.invoiceTitle ?? '發票抬頭'}</Label>
-              <Input value={editForm.invoiceTitle}
+            <div className="space-y-1.5">
+              <Label className="text-sm">{cp.invoiceTitle ?? '發票抬頭'}</Label>
+              <Input className="h-11" value={editForm.invoiceTitle}
                 onChange={e => setEditForm(f => ({ ...f, invoiceTitle: e.target.value }))} />
             </div>
-            <div>
-              <Label>{cp.invoiceAddress ?? '發票地址'}</Label>
-              <Input value={editForm.invoiceAddress}
+            <div className="space-y-1.5">
+              <Label className="text-sm">{cp.invoiceAddress ?? '發票地址'}</Label>
+              <Input className="h-11" value={editForm.invoiceAddress}
                 onChange={e => setEditForm(f => ({ ...f, invoiceAddress: e.target.value }))} />
             </div>
-            <div>
-              <Label>{cp.paymentTerms ?? '付款條件'}</Label>
-              <Input value={editForm.paymentTerms} placeholder="例: 月結30天"
+            <div className="space-y-1.5">
+              <Label className="text-sm">{cp.paymentTerms ?? '付款條件'}</Label>
+              <Input className="h-11" value={editForm.paymentTerms} placeholder="例: 月結30天"
                 onChange={e => setEditForm(f => ({ ...f, paymentTerms: e.target.value }))} />
             </div>
-            <div>
-              <Label>{cp.creditLimit ?? '信用額度'}</Label>
-              <Input type="number" value={editForm.creditLimit} placeholder="0"
+            <div className="space-y-1.5">
+              <Label className="text-sm">{cp.creditLimit ?? '信用額度'}</Label>
+              <Input className="h-11" type="number" value={editForm.creditLimit} placeholder="0"
                 onChange={e => setEditForm(f => ({ ...f, creditLimit: e.target.value }))} />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditInfoOpen(false)}>取消</Button>
-            <Button onClick={saveCustomerInfo} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" className="h-11 px-5" onClick={() => setEditInfoOpen(false)}>取消</Button>
+            <Button className="h-11 px-5" onClick={saveCustomerInfo} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />}
               儲存
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ═══ Special Price Dialog ═══ */}
-      <Dialog open={specialPriceDialog.open} onOpenChange={v => setSpecialPriceDialog(p => ({ ...p, open: v }))}>
-        <DialogContent className="sm:max-w-md">
+      {/* ═══ Add Product Dialog ═══ */}
+      <Dialog open={addDialogOpen} onOpenChange={v => { setAddDialogOpen(v); if (!v) setProductSearch('') }}>
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>
-              {specialPriceDialog.mode === 'add' ? (cp.addSpecialPrice ?? '新增特殊價') : (cp.editSpecialPrice ?? '編輯特殊價')}
-            </DialogTitle>
+            <DialogTitle className="text-lg">{cp.addProduct ?? '新增品項'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label>商品</Label>
-              <Input value={specialPriceDialog.productName} disabled />
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input className="pl-12 h-12 text-base" placeholder="搜尋 SKU / 品名..."
+                value={productSearch} onChange={e => setProductSearch(e.target.value)} autoFocus />
+              {productSearchLoading && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-muted-foreground" />}
             </div>
-            <div>
-              <Label>{cp.specialPrice ?? '特殊價'} *</Label>
-              <Input type="number" min="0" step="0.01" value={specialPriceDialog.price}
-                onChange={e => setSpecialPriceDialog(p => ({ ...p, price: e.target.value }))}
-                autoFocus />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>{cp.effectiveDate ?? '生效日'}</Label>
-                <Input type="date" value={specialPriceDialog.effectiveDate}
-                  onChange={e => setSpecialPriceDialog(p => ({ ...p, effectiveDate: e.target.value }))} />
-              </div>
-              <div>
-                <Label>{cp.expiryDate ?? '到期日'}</Label>
-                <Input type="date" value={specialPriceDialog.expiryDate}
-                  onChange={e => setSpecialPriceDialog(p => ({ ...p, expiryDate: e.target.value }))} />
-              </div>
-            </div>
-            <div>
-              <Label>備註</Label>
-              <Input value={specialPriceDialog.notes}
-                onChange={e => setSpecialPriceDialog(p => ({ ...p, notes: e.target.value }))} />
+            <div className="rounded-lg border max-h-[400px] overflow-auto">
+              {productSearchLoading ? (
+                <div className="text-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </div>
+              ) : productOptions.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  {productSearch.trim() ? '無符合的產品，或已全部加入' : '載入中...'}
+                </div>
+              ) : (() => {
+                const grouped = new Map<string, ProductOption[]>()
+                for (const p of productOptions) {
+                  const cat = p.category || '其他'
+                  const arr = grouped.get(cat) ?? []
+                  arr.push(p)
+                  grouped.set(cat, arr)
+                }
+                return Array.from(grouped.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([cat, items]) => (
+                  <div key={cat}>
+                    <div className="sticky top-0 bg-slate-100 px-5 py-2 text-xs font-semibold text-slate-600 border-b">
+                      {cat}（{items.length}）
+                    </div>
+                    {items.map(p => (
+                      <button key={p.id}
+                        className="w-full text-left px-5 py-3.5 hover:bg-blue-50 flex items-center justify-between border-b last:border-b-0 active:scale-[0.99]"
+                        onClick={() => selectProductToAdd(p)}>
+                        <div className="text-[15px]">
+                          <span className="font-mono text-sm text-muted-foreground mr-2.5">{p.sku}</span>
+                          <span>{p.name}</span>
+                        </div>
+                        <span className="text-muted-foreground tabular-nums text-sm ml-4">{fmt(p.sellingPrice)}</span>
+                      </button>
+                    ))}
+                  </div>
+                ))
+              })()}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSpecialPriceDialog(p => ({ ...p, open: false }))}>取消</Button>
-            <Button onClick={saveSpecialPrice} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <DollarSign className="h-4 w-4 mr-1" />}
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Price Dialog (Add/Edit) ═══ */}
+      <Dialog open={priceDialog.open} onOpenChange={v => setPriceDialog(p => ({ ...p, open: v }))}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-lg">
+              {priceDialog.mode === 'add' ? (cp.addProduct ?? '新增品項定價') : (cp.editPrice ?? '編輯定價')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div>
+              <Label className="text-sm">品項</Label>
+              <div className="text-[15px] mt-1.5 p-3 bg-slate-50 rounded-lg">
+                <span className="font-mono text-sm text-muted-foreground mr-2">{priceDialog.productSku}</span>
+                {priceDialog.productName}
+                {priceDialog.catalogPrice != null && (
+                  <span className="ml-2 text-muted-foreground">（目錄價 {fmt(priceDialog.catalogPrice)}）</span>
+                )}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">{cp.customerPrice ?? '客戶價'} *</Label>
+              <Input className="h-12 text-lg tabular-nums" type="number" min="0" step="0.01" value={priceDialog.price}
+                onChange={e => setPriceDialog(p => ({ ...p, price: e.target.value }))}
+                autoFocus />
+              {priceDialog.catalogPrice != null && priceDialog.price && !isNaN(Number(priceDialog.price)) && Number(priceDialog.price) > 0 && (
+                <p className="text-sm text-muted-foreground mt-1.5">
+                  相對目錄價折讓 {Math.round((1 - Number(priceDialog.price) / priceDialog.catalogPrice) * 100)}%
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm">{cp.effectiveDate ?? '生效日'}</Label>
+                <Input className="h-11" type="date" value={priceDialog.effectiveDate}
+                  onChange={e => setPriceDialog(p => ({ ...p, effectiveDate: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">{cp.expiryDate ?? '到期日'}</Label>
+                <Input className="h-11" type="date" value={priceDialog.expiryDate}
+                  onChange={e => setPriceDialog(p => ({ ...p, expiryDate: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">備註</Label>
+              <Input className="h-11" value={priceDialog.notes}
+                onChange={e => setPriceDialog(p => ({ ...p, notes: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" className="h-11 px-5" onClick={() => setPriceDialog(p => ({ ...p, open: false }))}>取消</Button>
+            <Button className="h-11 px-5" onClick={savePrice} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <DollarSign className="h-4 w-4 mr-1.5" />}
               儲存
             </Button>
           </DialogFooter>

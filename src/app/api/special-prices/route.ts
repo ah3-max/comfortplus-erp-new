@@ -21,9 +21,9 @@ export async function GET(req: NextRequest) {
       },
       include: {
         customer: { select: { id: true, name: true, code: true } },
-        product: { select: { id: true, sku: true, name: true, unit: true } },
+        product: { select: { id: true, sku: true, name: true, unit: true, category: true, sellingPrice: true } },
       },
-      orderBy: { updatedAt: 'desc' },
+      orderBy: [{ product: { category: 'asc' } }, { product: { sku: 'asc' } }],
     })
 
     return NextResponse.json({ data })

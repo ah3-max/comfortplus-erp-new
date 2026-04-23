@@ -31,22 +31,43 @@ export async function GET(req: NextRequest) {
     const series   = searchParams.get('series') ?? ''
     const showAll  = searchParams.get('all') === '1'  // 採購/報價選品用：含停售
 
+    const fuzzy = searchParams.get('fuzzy') === '1'
+
+    let searchFilter: Record<string, unknown> | undefined
+    if (search) {
+      const baseConditions = [
+        { name: { contains: search, mode: 'insensitive' as const } },
+        { sku:  { contains: search, mode: 'insensitive' as const } },
+      ]
+
+      if (fuzzy) {
+        baseConditions.push(
+          { category: { contains: search, mode: 'insensitive' as const } } as never
+        )
+        const chars = [...new Set(search.split(''))].filter(c => c.trim())
+        if (chars.length >= 2 && chars.length <= 6) {
+          baseConditions.push({
+            AND: chars.map(ch => ({
+              name: { contains: ch, mode: 'insensitive' as const },
+            })),
+          } as never)
+        }
+      }
+
+      searchFilter = { OR: baseConditions }
+    }
+
     const products = await prisma.product.findMany({
       where: {
         ...(showAll ? {} : { isActive: true }),
-        ...(search && {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { sku:  { contains: search, mode: 'insensitive' } },
-          ],
-        }),
+        ...searchFilter,
         ...(category && { category }),
         ...(series   && { series }),
       },
       include: {
         inventory: { where: { warehouse: 'MAIN' } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
     })
 
     const role = session.user.role as string
