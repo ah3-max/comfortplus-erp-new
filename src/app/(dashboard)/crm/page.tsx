@@ -117,7 +117,11 @@ function fmtDate(d: string | null) {
 //  Reusable sub-components
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CustomerRow({ c, suffix }: { c: AlertCustomer; suffix?: React.ReactNode }) {
+function CustomerRow({ c, suffix, onQuickLog }: {
+  c: AlertCustomer
+  suffix?: React.ReactNode
+  onQuickLog?: (c: AlertCustomer) => void
+}) {
   const { dict } = useI18n()
   const days = daysSince(c.lastContactDate)
   const devStatusLabel: Record<string, string> = {
@@ -128,25 +132,154 @@ function CustomerRow({ c, suffix }: { c: AlertCustomer; suffix?: React.ReactNode
     CHURNED: dict.crmPage.devStatusChurned, REJECTED: dict.crmPage.devStatusRejected,
   }
   return (
-    <Link href={`/customers/${c.id}`}
-      className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 transition-colors group">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm">{c.name}</span>
-          <Badge variant="outline" className={`text-xs shrink-0 ${DEV_STATUS_COLOR[c.devStatus] ?? ''}`}>
-            {devStatusLabel[c.devStatus] ?? c.devStatus}
-          </Badge>
+    <div className="flex items-center border-b last:border-b-0 hover:bg-slate-50 transition-colors group">
+      <Link href={`/customers/${c.id}`}
+        className="flex-1 flex items-center justify-between px-3 py-2.5 min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-sm">{c.name}</span>
+            <Badge variant="outline" className={`text-xs shrink-0 ${DEV_STATUS_COLOR[c.devStatus] ?? ''}`}>
+              {devStatusLabel[c.devStatus] ?? c.devStatus}
+            </Badge>
+          </div>
+          <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
+            <span className="font-mono">{c.code}</span>
+            {c.salesRep && <span>{c.salesRep.name}</span>}
+            {c.phone && <span className="flex items-center gap-0.5"><Phone className="h-3 w-3" />{c.phone}</span>}
+            {days !== null && <span className="text-amber-600">{dict.crmPage.daysNoContact.replace('{days}', String(days))}</span>}
+            {suffix}
+          </div>
         </div>
-        <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
-          <span className="font-mono">{c.code}</span>
-          {c.salesRep && <span>{c.salesRep.name}</span>}
-          {c.phone && <span className="flex items-center gap-0.5"><Phone className="h-3 w-3" />{c.phone}</span>}
-          {days !== null && <span className="text-amber-600">{dict.crmPage.daysNoContact.replace('{days}', String(days))}</span>}
-          {suffix}
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-2 group-hover:text-slate-700" />
+      </Link>
+      {onQuickLog && (
+        <button type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickLog(c) }}
+          className="px-3 py-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-50 border-l flex items-center justify-center"
+          title="快速登錄追蹤">
+          <MessageCircle className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Quick Follow-up Dialog — 從 CRM 警示列直接登錄追蹤
+// ═══════════════════════════════════════════════════════════════════════════
+
+function QuickFollowUpDialog({ customer, open, onClose, onSaved }: {
+  customer: AlertCustomer | null
+  open: boolean
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [logType, setLogType] = useState<'CALL' | 'LINE' | 'EMAIL' | 'FIRST_VISIT' | 'SECOND_VISIT'>('CALL')
+  const [content, setContent] = useState('')
+  const [nextFollowUpDate, setNextFollowUpDate] = useState('')
+  const [nextAction, setNextAction] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Reset when customer changes
+  useEffect(() => {
+    if (open) {
+      setLogType('CALL')
+      setContent('')
+      setNextFollowUpDate('')
+      setNextAction('')
+    }
+  }, [open, customer?.id])
+
+  if (!open || !customer) return null
+
+  async function submit() {
+    if (!content.trim()) { toast.error('請填寫追蹤內容'); return }
+    if (!customer) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/customers/${customer.id}/followup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          logType,
+          method: logType === 'CALL' ? 'PHONE' : logType === 'LINE' ? 'LINE' : logType === 'EMAIL' ? 'EMAIL' : 'IN_PERSON',
+          content: content.trim(),
+          nextFollowUpDate: nextFollowUpDate || null,
+          nextAction: nextAction.trim() || null,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? '登錄失敗')
+      }
+      const data = await res.json()
+      toast.success(`已登錄追蹤${data.taskId ? '，已建立後續任務' : ''}`)
+      onSaved()
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '登錄失敗')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}>
+        <div>
+          <h3 className="text-lg font-semibold">快速登錄追蹤</h3>
+          <p className="text-sm text-muted-foreground">{customer.name}（{customer.code}）</p>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium">追蹤方式</label>
+            <div className="flex gap-2 mt-1 flex-wrap">
+              {([['CALL', '📞 電話'], ['LINE', '💬 LINE'], ['EMAIL', '📧 Email'], ['FIRST_VISIT', '🚗 拜訪']] as const).map(([v, label]) => (
+                <button key={v} type="button"
+                  onClick={() => setLogType(v as typeof logType)}
+                  className={`px-3 py-1.5 rounded-md text-sm border min-h-[44px] ${logType === v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">追蹤內容 *</label>
+            <textarea
+              className="w-full mt-1 rounded-md border px-3 py-2 text-sm min-h-[80px]"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="例如：客戶表示有興趣，要求下週提供報價與樣品..."
+              autoFocus />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium">下次追蹤日</label>
+              <Input type="date" value={nextFollowUpDate}
+                onChange={(e) => setNextFollowUpDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">下次動作</label>
+              <Input value={nextAction} onChange={(e) => setNextAction(e.target.value)}
+                placeholder="例如：送樣品" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2 border-t">
+          <Button variant="outline" onClick={onClose} disabled={saving}>取消</Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+            儲存
+          </Button>
         </div>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-2 group-hover:text-slate-700" />
-    </Link>
+    </div>
   )
 }
 
@@ -390,6 +523,7 @@ export default function CRMPage() {
   const [managerData, setManagerData] = useState<ManagerDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('alerts')
+  const [quickLogCustomer, setQuickLogCustomer] = useState<AlertCustomer | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -521,7 +655,7 @@ export default function CRMPage() {
               {/* Today follow-ups */}
               <AlertSection title={dict.crmPage.todayFollowupTitle} icon={<Clock className="h-4 w-4 text-blue-600" />}
                 count={alerts.todayFollowups.length} color="border-l-blue-400" emptyMsg={dict.crmPage.todayFollowupEmpty}>
-                {alerts.todayFollowups.map(c => <CustomerRow key={c.id} c={c} suffix={<span className="text-blue-600 font-medium">{dict.crmPage.todayFollowupLabel}</span>} />)}
+                {alerts.todayFollowups.map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={<span className="text-blue-600 font-medium">{dict.crmPage.todayFollowupLabel}</span>} />)}
               </AlertSection>
 
               {/* Overdue */}
@@ -529,14 +663,14 @@ export default function CRMPage() {
                 count={alerts.overdueFollowups.length} color="border-l-red-400" emptyMsg={dict.crmPage.overdueEmpty}>
                 {alerts.overdueFollowups.map(c => {
                   const d = daysSince(c.nextFollowUpDate)
-                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-red-600 font-medium">{dict.crmPage.overdueDays.replace('{d}', String(d))}</span> : undefined} />
+                  return <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={d !== null ? <span className="text-red-600 font-medium">{dict.crmPage.overdueDays.replace('{d}', String(d))}</span> : undefined} />
                 })}
               </AlertSection>
 
               {/* Uncontacted */}
               <AlertSection title={dict.crmPage.uncontactedTitle} icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
                 count={alerts.uncontacted.length} color="border-l-orange-400" emptyMsg={dict.crmPage.uncontactedEmpty}>
-                {alerts.uncontacted.map(c => <CustomerRow key={c.id} c={c} />)}
+                {alerts.uncontacted.map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} />)}
               </AlertSection>
 
               {/* Repurchase warning */}
@@ -545,7 +679,7 @@ export default function CRMPage() {
                 {alerts.repurchaseWarning.map(c => {
                   const lastOrder = c.salesOrders[0]
                   const d = daysSince(lastOrder?.orderDate ?? null)
-                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-rose-600">{dict.crmPage.repurchaseDays.replace('{d}', String(d))}</span> : undefined} />
+                  return <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={d !== null ? <span className="text-rose-600">{dict.crmPage.repurchaseDays.replace('{d}', String(d))}</span> : undefined} />
                 })}
               </AlertSection>
 
@@ -627,6 +761,13 @@ export default function CRMPage() {
           {tab === 'demand' && isManager && <DemandBoardTab />}
         </>
       )}
+
+      <QuickFollowUpDialog
+        customer={quickLogCustomer}
+        open={quickLogCustomer !== null}
+        onClose={() => setQuickLogCustomer(null)}
+        onSaved={load}
+      />
     </div>
   )
 }
