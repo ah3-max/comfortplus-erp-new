@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
 
@@ -97,6 +98,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               data: { balance: { increment: Number(record.amount) } },
             }),
           ])
+          logAudit({
+            userId: session.user.id, userName: session.user.name ?? '', userRole: role,
+            module: 'petty-cash', action: 'REJECT',
+            entityType: 'PettyCashRecord', entityId: id, entityLabel: record.recordNo,
+            changes: { status: { before: record.status, after: 'REJECTED' } },
+          }).catch(() => {})
           return NextResponse.json(updated)
         }
 
@@ -115,6 +122,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
               data: { balance: { increment: reimburseAmount } },
             }),
           ])
+          logAudit({
+            userId: session.user.id, userName: session.user.name ?? '', userRole: role,
+            module: 'petty-cash', action: 'REIMBURSE',
+            entityType: 'PettyCashRecord', entityId: id, entityLabel: `${record.recordNo} — ${reimburseAmount}`,
+            changes: { status: { before: record.status, after: 'REIMBURSED' } },
+          }).catch(() => {})
           return NextResponse.json(updated)
         }
       }
@@ -128,6 +141,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         submittedBy: { select: { name: true } },
       },
     })
+
+    if (updateData.status && updateData.status !== record.status) {
+      logAudit({
+        userId: session.user.id, userName: session.user.name ?? '', userRole: role,
+        module: 'petty-cash', action: 'STATUS_CHANGE',
+        entityType: 'PettyCashRecord', entityId: id, entityLabel: record.recordNo,
+        changes: { status: { before: record.status, after: updateData.status } },
+      }).catch(() => {})
+    }
 
     return NextResponse.json(updated)
   } catch (error) {
@@ -165,6 +187,14 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     } else {
       await prisma.pettyCashRecord.delete({ where: { id } })
     }
+
+    logAudit({
+      userId: session.user.id, userName: session.user.name ?? '', userRole: role,
+      module: 'petty-cash', action: 'DELETE',
+      entityType: 'PettyCashRecord', entityId: id,
+      entityLabel: `${record.recordNo} — ${record.description}`,
+      changes: { amount: { before: Number(record.amount), after: null } },
+    }).catch(() => {})
 
     return NextResponse.json({ success: true })
   } catch (error) {
