@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { aiVisionChat } from '@/lib/ai'
+import { aiVisionChat, getVisionConfig } from '@/lib/ai'
 import { handleApiError } from '@/lib/api-error'
 
-const RECEIPT_SYSTEM_PROMPT = `你是一個專業的收據/發票辨識系統。請從圖片中精確提取以下資訊，回傳 JSON 格式。
+const RECEIPT_SYSTEM_PROMPT = `你是一個專業的收據/發票辨識系統。請從提供的內容中精確提取以下資訊，回傳 JSON 格式。
 
 回傳格式（嚴格 JSON，不要加 markdown code block）：
 {
@@ -37,63 +37,80 @@ const RECEIPT_SYSTEM_PROMPT = `你是一個專業的收據/發票辨識系統。
 6. 如果只有總金額沒有明細，items 只放一筆並用收據標題當描述
 7. category 根據品項內容自動判斷`
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+
+function parseAiJson(raw: string): Record<string, unknown> {
+  const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  return JSON.parse(cleaned)
+}
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const contentType = req.headers.get('content-type') ?? ''
-    let imageBase64: string
-    let mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
-
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await req.formData()
-      const file = formData.get('file') as File | null
-      if (!file) return NextResponse.json({ error: '請上傳收據圖片' }, { status: 400 })
-      if (file.size > MAX_IMAGE_SIZE) {
-        return NextResponse.json({ error: '圖片大小不可超過 10MB' }, { status: 400 })
-      }
-
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-      if (!validTypes.includes(file.type)) {
-        return NextResponse.json({ error: '僅支援 JPEG/PNG/WebP/GIF 格式' }, { status: 400 })
-      }
-
-      mimeType = file.type as typeof mimeType
-      const buffer = Buffer.from(await file.arrayBuffer())
-      imageBase64 = buffer.toString('base64')
-    } else {
-      const body = await req.json()
-      if (!body.imageBase64 || !body.mimeType) {
-        return NextResponse.json({ error: '請提供 imageBase64 和 mimeType' }, { status: 400 })
-      }
-      imageBase64 = body.imageBase64
-      mimeType = body.mimeType
-
-      const sizeBytes = Math.ceil(imageBase64.length * 0.75)
-      if (sizeBytes > MAX_IMAGE_SIZE) {
-        return NextResponse.json({ error: '圖片大小不可超過 10MB' }, { status: 400 })
-      }
+    const visionCfg = await getVisionConfig()
+    if (!visionCfg) {
+      return NextResponse.json(
+        { error: '視覺辨識尚未設定，請聯繫管理員至「設定 → AI」配置 Vision API' },
+        { status: 422 },
+      )
     }
 
-    const result = await aiVisionChat({
-      systemPrompt: RECEIPT_SYSTEM_PROMPT,
-      userText: '請辨識這張收據/發票的內容，提取所有可見資訊。',
-      imageBase64,
-      mimeType,
-      temperature: 0.1,
-      maxTokens: 2048,
-    })
+    const formData = await req.formData()
+    const file = formData.get('file') as File | null
+    if (!file) return NextResponse.json({ error: '請上傳收據檔案' }, { status: 400 })
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: '檔案大小不可超過 10MB' }, { status: 400 })
+    }
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    const isImage = IMAGE_TYPES.includes(file.type)
+
+    if (!isPdf && !isImage) {
+      return NextResponse.json({ error: '僅支援 JPEG/PNG/WebP/GIF/PDF 格式' }, { status: 400 })
+    }
+
+    let result
+
+    if (isPdf) {
+      const { PDFParse } = await import('pdf-parse')
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const parser = new PDFParse(buffer)
+      const textResult = await parser.getText()
+
+      if (!textResult.text || textResult.text.trim().length < 10) {
+        return NextResponse.json(
+          { error: 'PDF 無法提取文字（可能是純圖片掃描檔），請改用圖片格式上傳' },
+          { status: 422 },
+        )
+      }
+
+      result = await aiVisionChat({
+        systemPrompt: RECEIPT_SYSTEM_PROMPT,
+        userText: `以下是從 PDF 收據/發票提取的文字內容，請辨識並提取資訊：\n\n${textResult.text.slice(0, 8000)}`,
+        temperature: 0.1,
+        maxTokens: 2048,
+      })
+    } else {
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const imageBase64 = buffer.toString('base64')
+      const mimeType = file.type as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+
+      result = await aiVisionChat({
+        systemPrompt: RECEIPT_SYSTEM_PROMPT,
+        userText: '請辨識這張收據/發票的內容，提取所有可見資訊。',
+        imageBase64,
+        mimeType,
+        temperature: 0.1,
+        maxTokens: 2048,
+      })
+    }
 
     let parsed: Record<string, unknown>
     try {
-      const cleaned = result.content
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
-        .trim()
-      parsed = JSON.parse(cleaned)
+      parsed = parseAiJson(result.content)
     } catch {
       return NextResponse.json({
         error: 'AI 回傳格式解析失敗，請重試或手動輸入',

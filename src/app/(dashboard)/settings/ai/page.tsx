@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  Bot, CheckCircle2, XCircle, Loader2, RefreshCw, Server, Cpu,
+  Bot, CheckCircle2, XCircle, Loader2, RefreshCw, Server, Cpu, Eye, Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
@@ -43,6 +43,12 @@ export default function AiSettingsPage() {
   const [ollamaModel, setOllamaModel] = useState('')
   const [provider, setProvider] = useState('')
 
+  // Vision config state
+  const [visionBaseUrl, setVisionBaseUrl] = useState('')
+  const [visionModel, setVisionModel] = useState('')
+  const [visionApiKey, setVisionApiKey] = useState('')
+  const [visionSaving, setVisionSaving] = useState(false)
+
   async function fetchHealth() {
     setLoading(true)
     try {
@@ -58,7 +64,19 @@ export default function AiSettingsPage() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchHealth() }, [])
+  async function fetchVisionConfig() {
+    try {
+      const res = await fetch('/api/settings')
+      if (!res.ok) return
+      const configs: Array<{ key: string; value: string }> = await res.json()
+      const map = Object.fromEntries(configs.map(c => [c.key, c.value]))
+      setVisionBaseUrl(map.ai_vision_base_url ?? '')
+      setVisionModel(map.ai_vision_model ?? '')
+      setVisionApiKey(map.ai_vision_api_key ?? '')
+    } catch { /* ignore */ }
+  }
+
+  useEffect(() => { fetchHealth(); fetchVisionConfig() }, [])
 
   async function testConnection() {
     setTesting(true)
@@ -80,6 +98,29 @@ export default function AiSettingsPage() {
     } finally { setTesting(false) }
   }
 
+  async function saveVisionConfig() {
+    setVisionSaving(true)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ai_vision_base_url: visionBaseUrl.replace(/\/+$/, ''),
+          ai_vision_model: visionModel,
+          ai_vision_api_key: visionApiKey,
+        }),
+      })
+      if (res.ok) {
+        toast.success(p.visionSaveSuccess)
+      } else {
+        const err = await res.json()
+        toast.error(err.error ?? '儲存失敗')
+      }
+    } catch {
+      toast.error('儲存失敗')
+    } finally { setVisionSaving(false) }
+  }
+
   if (!isAdmin) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -87,6 +128,8 @@ export default function AiSettingsPage() {
       </div>
     )
   }
+
+  const visionConfigured = !!(visionBaseUrl && visionModel)
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -218,6 +261,48 @@ export default function AiSettingsPage() {
           )}
 
           <p className="text-xs text-muted-foreground border-t pt-3">{p.configNote}</p>
+        </CardContent>
+      </Card>
+
+      {/* Vision Config Card */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Eye className="h-5 w-5 text-amber-500" />
+              {p.visionCard}
+            </CardTitle>
+            <Badge variant={visionConfigured ? 'default' : 'secondary'} className="text-xs">
+              {visionConfigured ? p.visionConfigured : p.visionNotConfigured}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">{p.visionSubtitle}</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>{p.visionBaseUrl}</Label>
+            <Input value={visionBaseUrl} onChange={e => setVisionBaseUrl(e.target.value)}
+              placeholder={p.visionBaseUrlPlaceholder} />
+            <p className="text-xs text-muted-foreground">{p.visionBaseUrlHint}</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{p.visionModel}</Label>
+            <Input value={visionModel} onChange={e => setVisionModel(e.target.value)}
+              placeholder={p.visionModelPlaceholder} />
+            <p className="text-xs text-muted-foreground">{p.visionModelHint}</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{p.visionApiKey}</Label>
+            <Input type="password" value={visionApiKey} onChange={e => setVisionApiKey(e.target.value)}
+              placeholder={p.visionApiKeyPlaceholder} />
+          </div>
+          <Button onClick={saveVisionConfig} disabled={visionSaving || !visionBaseUrl || !visionModel} className="w-full">
+            {visionSaving ? (
+              <><Loader2 className="h-4 w-4 animate-spin mr-2" />{p.visionSaving}</>
+            ) : (
+              <><Save className="h-4 w-4 mr-2" />{p.visionSaveBtn}</>
+            )}
+          </Button>
         </CardContent>
       </Card>
 

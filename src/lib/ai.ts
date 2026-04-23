@@ -31,11 +31,10 @@ export interface AiCompletionOptions {
 export interface AiVisionOptions {
   systemPrompt: string
   userText: string
-  imageBase64: string
-  mimeType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+  imageBase64?: string
+  mimeType?: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
   temperature?: number
   maxTokens?: number
-  provider?: 'ollama' | 'anthropic'
 }
 
 export interface AiCompletionResult {
@@ -196,65 +195,76 @@ async function anthropicChat(options: AiCompletionOptions): Promise<AiCompletion
   }
 }
 
-// ── Vision Providers ─────────────────────────────────────────────────────────
+// ── Vision (OpenAI-compatible API) ───────────────────────────────────────────
 
-async function anthropicVision(options: AiVisionOptions): Promise<AiCompletionResult> {
-  const config = getConfig()
-  const { default: Anthropic } = await import('@anthropic-ai/sdk')
-  const client = new Anthropic()
+export interface VisionConfig {
+  baseUrl: string
+  model: string
+  apiKey: string
+}
 
-  const response = await client.messages.create({
-    model: config.anthropic.model,
-    max_tokens: options.maxTokens ?? 4096,
-    system: options.systemPrompt,
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: options.mimeType, data: options.imageBase64 } },
-        { type: 'text', text: options.userText },
-      ],
-    }],
+export async function getVisionConfig(): Promise<VisionConfig | null> {
+  const { prisma } = await import('@/lib/prisma')
+  const rows = await prisma.systemConfig.findMany({
+    where: { key: { in: ['ai_vision_base_url', 'ai_vision_model', 'ai_vision_api_key'] } },
   })
-
+  const map = Object.fromEntries(rows.map(r => [r.key, r.value]))
+  if (!map.ai_vision_base_url || !map.ai_vision_model) return null
   return {
-    content: response.content.filter(b => b.type === 'text').map(b => b.text).join(''),
-    provider: 'anthropic',
-    model: config.anthropic.model,
-    usage: { promptTokens: response.usage.input_tokens, completionTokens: response.usage.output_tokens },
+    baseUrl: map.ai_vision_base_url.replace(/\/+$/, ''),
+    model: map.ai_vision_model,
+    apiKey: map.ai_vision_api_key ?? '',
   }
 }
 
-async function ollamaVision(options: AiVisionOptions): Promise<AiCompletionResult> {
-  const config = getConfig()
-  const visionModel = process.env.OLLAMA_VISION_MODEL ?? 'llava:13b'
+async function openaiVisionChat(
+  visionCfg: VisionConfig,
+  options: AiVisionOptions,
+): Promise<AiCompletionResult> {
+  type ContentPart =
+    | { type: 'text'; text: string }
+    | { type: 'image_url'; image_url: { url: string } }
 
-  const res = await fetch(`${config.ollama.baseUrl}/api/chat`, {
+  const userContent: ContentPart[] = []
+  if (options.imageBase64 && options.mimeType) {
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: `data:${options.mimeType};base64,${options.imageBase64}` },
+    })
+  }
+  userContent.push({ type: 'text', text: options.userText })
+
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (visionCfg.apiKey) headers['Authorization'] = `Bearer ${visionCfg.apiKey}`
+
+  const res = await fetch(`${visionCfg.baseUrl}/v1/chat/completions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
-      model: visionModel,
+      model: visionCfg.model,
       messages: [
         { role: 'system', content: options.systemPrompt },
-        { role: 'user', content: options.userText, images: [options.imageBase64] },
+        { role: 'user', content: userContent },
       ],
-      stream: false,
-      options: { temperature: options.temperature ?? 0.2, num_predict: options.maxTokens ?? 4096 },
+      temperature: options.temperature ?? 0.1,
+      max_tokens: options.maxTokens ?? 4096,
     }),
   })
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`Ollama vision error (${res.status}): ${text}`)
+    throw new Error(`Vision API error (${res.status}): ${text}`)
   }
 
   const data = await res.json()
   return {
-    content: data.message?.content ?? '',
-    provider: 'ollama',
-    model: visionModel,
-    usage: data.prompt_eval_count != null
-      ? { promptTokens: data.prompt_eval_count ?? 0, completionTokens: data.eval_count ?? 0 }
-      : undefined,
+    content: data.choices?.[0]?.message?.content ?? '',
+    provider: 'openai-compatible',
+    model: visionCfg.model,
+    usage: data.usage ? {
+      promptTokens: data.usage.prompt_tokens ?? 0,
+      completionTokens: data.usage.completion_tokens ?? 0,
+    } : undefined,
   }
 }
 
@@ -274,13 +284,13 @@ export async function aiChat(options: AiCompletionOptions): Promise<AiCompletion
 }
 
 /**
- * Send an image + text prompt for vision tasks (receipt OCR, etc.).
- * Defaults to Anthropic for best accuracy; set OLLAMA_VISION_MODEL to use local.
+ * Send an image + text prompt via OpenAI-compatible vision API.
+ * Config (URL, model, API key) is read from SystemConfig (admin settings).
  */
 export async function aiVisionChat(options: AiVisionOptions): Promise<AiCompletionResult> {
-  const provider = options.provider ?? getConfig().provider
-  if (provider === 'anthropic') return anthropicVision(options)
-  return ollamaVision(options)
+  const cfg = await getVisionConfig()
+  if (!cfg) throw new Error('視覺辨識尚未設定，請至管理員設定 → AI 設定中配置 Vision API')
+  return openaiVisionChat(cfg, options)
 }
 
 /**

@@ -449,7 +449,7 @@ export default function ExpensesPage() {
               <div className="flex items-center justify-between">
                 <Label>{ex.itemsLabel}</Label>
                 <div className="flex gap-1.5">
-                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden"
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,.pdf" capture="environment" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleScanReceipt(f) }} />
                   <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={scanning}>
                     {scanning ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Camera className="h-3.5 w-3.5 mr-1" />}
