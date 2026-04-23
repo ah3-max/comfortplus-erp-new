@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
       obstacles?: string
       tomorrowPlan?: string
       needsHelp?: string
+      attachments?: Array<{ url: string; fileName: string; mimeType?: string; size?: number; uploadedAt?: string }>
     }
 
     const today = new Date()
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       prisma.quotation.count({ where: { createdById: userId, createdAt: { gte: today, lt: tomorrow } } }),
       prisma.salesDailyReport.findFirst({
         where: { salesRepId: userId, reportDate: today },
-        select: { highlights: true, obstacles: true, tomorrowPlan: true, needsHelp: true },
+        select: { highlights: true, obstacles: true, tomorrowPlan: true, needsHelp: true, attachments: true },
       }),
     ])
 
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
       obstacles:        body.obstacles ?? existing?.obstacles ?? '',
       tomorrowPlan:     body.tomorrowPlan ?? existing?.tomorrowPlan ?? '',
       needsHelp:        body.needsHelp ?? existing?.needsHelp ?? '',
+      attachments:      body.attachments ?? (existing?.attachments as unknown) ?? undefined,
       status:           'SUBMITTED',
       submittedAt:      new Date(),
     }

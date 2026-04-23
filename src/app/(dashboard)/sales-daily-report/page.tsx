@@ -15,6 +15,14 @@ import {
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 
+interface Attachment {
+  url: string
+  fileName: string
+  mimeType?: string
+  size?: number
+  uploadedAt?: string
+}
+
 interface DailyReport {
   id: string | null
   reportDate: string
@@ -28,6 +36,7 @@ interface DailyReport {
   obstacles: string
   tomorrowPlan: string
   needsHelp: string
+  attachments?: Attachment[] | null
   status: string
   submittedAt: string | null
   managerComment: string | null
@@ -45,6 +54,9 @@ export default function SalesDailyReportPage() {
     newCustomerCount: '0', quoteCount: '0',
     highlights: '', obstacles: '', tomorrowPlan: '', needsHelp: '',
   })
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [aiDrafting, setAiDrafting] = useState(false)
 
   const loadToday = useCallback(async () => {
     setLoading(true)
@@ -64,6 +76,7 @@ export default function SalesDailyReportPage() {
         tomorrowPlan:     data.tomorrowPlan ?? '',
         needsHelp:        data.needsHelp ?? '',
       })
+      setAttachments(Array.isArray(data.attachments) ? data.attachments : [])
     }
     setLoading(false)
   }, [])
@@ -75,7 +88,7 @@ export default function SalesDailyReportPage() {
     const res = await fetch('/api/sales-daily-report', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, submit }),
+      body: JSON.stringify({ ...form, attachments, submit }),
     })
     setSaving(false)
     if (res.ok) {
@@ -92,7 +105,7 @@ export default function SalesDailyReportPage() {
     const res = await fetch('/api/sales-daily-report/quick-submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ attachments }),
     })
     setSaving(false)
     if (res.ok) {
@@ -104,6 +117,75 @@ export default function SalesDailyReportPage() {
       const data = await res.json().catch(() => ({}))
       toast.error(data.error ?? dict.common.saveFailed)
     }
+  }
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setUploading(true)
+    const uploaded: Attachment[] = []
+    for (const file of Array.from(files)) {
+      const type = file.type.startsWith('image/') ? 'image'
+        : file.type.startsWith('audio/') ? 'audio'
+        : 'document'
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('type', type)
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+        if (res.ok) {
+          const data = await res.json()
+          uploaded.push({
+            url: data.url,
+            fileName: data.fileName,
+            mimeType: data.mimeType,
+            size: data.size,
+            uploadedAt: new Date().toISOString(),
+          })
+        } else {
+          const err = await res.json().catch(() => ({}))
+          toast.error(`${file.name}：${err.error ?? '上傳失敗'}`)
+        }
+      } catch {
+        toast.error(`${file.name} 上傳失敗`)
+      }
+    }
+    setAttachments(prev => [...prev, ...uploaded])
+    setUploading(false)
+    if (uploaded.length > 0) toast.success(`已上傳 ${uploaded.length} 個檔案`)
+  }
+
+  async function handleAiDraft() {
+    setAiDrafting(true)
+    try {
+      const res = await fetch('/api/sales-daily-report/ai-draft', { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error ?? 'AI 草稿產生失敗')
+        return
+      }
+      const draft = await res.json() as { highlights: string; obstacles: string; tomorrowPlan: string }
+      setForm(f => ({
+        ...f,
+        highlights: draft.highlights || f.highlights,
+        obstacles: draft.obstacles || f.obstacles,
+        tomorrowPlan: draft.tomorrowPlan || f.tomorrowPlan,
+      }))
+      toast.success('AI 已草擬今日重點，你可以再編輯後送出')
+    } catch {
+      toast.error('AI 草稿產生失敗')
+    } finally {
+      setAiDrafting(false)
+    }
+  }
+
+  function removeAttachment(idx: number) {
+    setAttachments(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    if (report?.status === 'SUBMITTED' || report?.status === 'APPROVED') return
+    handleFiles(e.dataTransfer.files)
   }
 
   const isLocked = report?.status === 'SUBMITTED' || report?.status === 'APPROVED'
@@ -261,8 +343,17 @@ export default function SalesDailyReportPage() {
 
       {/* Qualitative fields */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 flex-row items-center justify-between">
           <CardTitle className="text-base">{sdr.contentTitle}</CardTitle>
+          {!isLocked && (
+            <Button size="sm" variant="outline" onClick={handleAiDraft} disabled={aiDrafting}
+              className="text-xs h-8 gap-1">
+              {aiDrafting
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <span>✨</span>}
+              AI 草擬
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1.5">
@@ -304,6 +395,63 @@ export default function SalesDailyReportPage() {
               onChange={e => setForm(f => ({ ...f, needsHelp: e.target.value }))}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Attachments — 一次丟整包檔案 */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">附件檔案</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!isLocked && (
+            <div
+              onDrop={onDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
+              <p className="text-sm text-muted-foreground mb-2">
+                把照片、PDF、Excel 整包拖進來，或點下方按鈕選檔
+              </p>
+              <input
+                type="file"
+                multiple
+                id="daily-report-files"
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+              <Button variant="outline" disabled={uploading}
+                onClick={() => document.getElementById('daily-report-files')?.click()}>
+                {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <FileText className="h-4 w-4 mr-1" />}
+                選擇檔案（可多選）
+              </Button>
+            </div>
+          )}
+          {attachments.length > 0 && (
+            <ul className="space-y-1 text-sm">
+              {attachments.map((a, idx) => (
+                <li key={idx} className="flex items-center justify-between gap-2 px-3 py-2 rounded-md bg-slate-50 border border-slate-200">
+                  <a href={a.url} target="_blank" rel="noreferrer"
+                    className="flex-1 min-w-0 truncate text-blue-600 hover:underline">
+                    {a.fileName}
+                  </a>
+                  {typeof a.size === 'number' && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {(a.size / 1024).toFixed(0)} KB
+                    </span>
+                  )}
+                  {!isLocked && (
+                    <button type="button" onClick={() => removeAttachment(idx)}
+                      className="text-xs text-red-500 hover:text-red-700 shrink-0 min-h-[32px] min-w-[32px]">
+                      移除
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {attachments.length === 0 && isLocked && (
+            <p className="text-sm text-muted-foreground">無附件</p>
+          )}
         </CardContent>
       </Card>
 
