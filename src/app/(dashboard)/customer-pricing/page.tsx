@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/context'
 import {
   Search, Pencil, Trash2, Plus, Save, Building2, CreditCard,
-  DollarSign, Package, Loader2,
+  DollarSign, Package, Loader2, Users,
 } from 'lucide-react'
 
 /* ─── Types ─── */
@@ -52,11 +52,8 @@ const TIER_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'] as const
 /* ─── Page ─── */
 export default function CustomerPricingPage() {
   const { dict } = useI18n()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d = dict as any
-  const cp = d.customerPricing ?? {}
-  const nav = d.nav ?? {}
-  const title = cp.title ?? nav.customerPricing ?? '客戶定價管理'
+  const cp = dict.customerPricing
+  const title = cp.title ?? dict.nav.customerPricing ?? '客戶定價管理'
 
   /* ── Customer search state ── */
   const [customerSearch, setCustomerSearch] = useState('')
@@ -83,6 +80,35 @@ export default function CustomerPricingPage() {
   }>({ open: false, mode: 'add', productId: '', productName: '', price: '', effectiveDate: '', expiryDate: '', notes: '' })
 
   const [saving, setSaving] = useState(false)
+
+  /* ── Price level browsing ── */
+  interface LevelCustomer { id: string; name: string; code: string; type: string }
+  interface LevelGroup { level: string; customers: LevelCustomer[] }
+  const [levelGroups, setLevelGroups] = useState<LevelGroup[]>([])
+  const [activeLevelTab, setActiveLevelTab] = useState<string | null>(null)
+  const [levelLoading, setLevelLoading] = useState(false)
+  const [levelLoaded, setLevelLoaded] = useState(false)
+
+  const loadLevelGroups = useCallback(async () => {
+    if (levelLoaded) return
+    setLevelLoading(true)
+    try {
+      const res = await fetch('/api/customers/price-level?search=')
+      const json = await res.json()
+      const records: Array<{ priceLevel: string; customer: LevelCustomer }> = json.data ?? []
+      const grouped = new Map<string, LevelCustomer[]>()
+      for (const r of records) {
+        const arr = grouped.get(r.priceLevel) ?? []
+        arr.push(r.customer)
+        grouped.set(r.priceLevel, arr)
+      }
+      const groups: LevelGroup[] = TIER_LABELS
+        .filter(l => grouped.has(l))
+        .map(l => ({ level: l, customers: grouped.get(l)! }))
+      setLevelGroups(groups)
+      setLevelLoaded(true)
+    } finally { setLevelLoading(false) }
+  }, [levelLoaded])
 
   /* ── Customer search ── */
   useEffect(() => {
@@ -271,41 +297,107 @@ export default function CustomerPricingPage() {
     <div className="space-y-6 p-4 md:p-6 max-w-7xl mx-auto">
       <h1 className="text-2xl font-bold">{title}</h1>
 
-      {/* ── Customer Search ── */}
+      {/* ── Customer Search + Level Filter ── */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder={cp.searchPlaceholder ?? '搜尋客戶名稱/代碼/統編...'}
-              value={selectedCustomer ? `${selectedCustomer.code} — ${selectedCustomer.name}` : customerSearch}
-              onChange={e => {
-                if (selectedCustomer) { setSelectedCustomer(null); setAllProducts([]); setSpecialPrices([]) }
-                setCustomerSearch(e.target.value)
-                setShowList(true)
-              }}
-              onFocus={() => { if (customerSearch && !selectedCustomer) setShowList(true) }}
-            />
-            {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
-            {showList && customers.length > 0 && !selectedCustomer && (
-              <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
-                {customers.map(c => (
-                  <button key={c.id} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex justify-between items-center text-sm"
-                    onClick={() => selectCustomer(c)}>
-                    <span><span className="font-medium">{c.code}</span> — {c.name}</span>
-                    <Badge variant="outline" className="text-xs">{c.type}</Badge>
-                  </button>
-                ))}
-              </div>
-            )}
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex gap-3 items-start">
+            {/* Search input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder={cp.searchPlaceholder ?? '搜尋客戶名稱/代碼/統編...'}
+                value={selectedCustomer ? `${selectedCustomer.code} — ${selectedCustomer.name}` : customerSearch}
+                onChange={e => {
+                  if (selectedCustomer) { setSelectedCustomer(null); setAllProducts([]); setSpecialPrices([]); setActiveLevelTab(null) }
+                  setCustomerSearch(e.target.value)
+                  setShowList(true)
+                }}
+                onFocus={() => { if (customerSearch && !selectedCustomer) setShowList(true) }}
+              />
+              {searchLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+              {showList && customers.length > 0 && !selectedCustomer && (
+                <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-auto">
+                  {customers.map(c => (
+                    <button key={c.id} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex justify-between items-center text-sm"
+                      onClick={() => { selectCustomer(c); setActiveLevelTab(null) }}>
+                      <span><span className="font-medium">{c.code}</span> — {c.name}</span>
+                      <Badge variant="outline" className="text-xs">{c.type}</Badge>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Level browse button */}
+            <Button variant="outline" className="shrink-0" onClick={() => {
+              if (activeLevelTab) { setActiveLevelTab(null) } else { loadLevelGroups(); setActiveLevelTab(levelGroups[0]?.level ?? 'A') }
+            }}>
+              <Users className="h-4 w-4 mr-1.5" />
+              {activeLevelTab ? '收起等級' : '依等級瀏覽'}
+            </Button>
           </div>
+
+          {/* Level tabs */}
+          {activeLevelTab && (
+            <div className="space-y-3">
+              {levelLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> 載入中...
+                </div>
+              ) : (
+                <>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {TIER_LABELS.map(l => {
+                      const group = levelGroups.find(g => g.level === l)
+                      const count = group?.customers.length ?? 0
+                      return (
+                        <button
+                          key={l}
+                          onClick={() => setActiveLevelTab(l)}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            activeLevelTab === l
+                              ? 'bg-slate-900 text-white'
+                              : count > 0
+                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                : 'bg-slate-50 text-slate-400'
+                          }`}
+                        >
+                          {l} 級{count > 0 && <span className="ml-1 text-xs opacity-75">({count})</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Customer list for selected level */}
+                  {(() => {
+                    const group = levelGroups.find(g => g.level === activeLevelTab)
+                    if (!group || group.customers.length === 0) {
+                      return <p className="text-sm text-muted-foreground py-3">此等級尚無客戶</p>
+                    }
+                    return (
+                      <div className="rounded-md border max-h-52 overflow-auto">
+                        {group.customers.map(c => (
+                          <button key={c.id}
+                            className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex justify-between items-center text-sm border-b last:border-b-0"
+                            onClick={() => { selectCustomer(c as Customer); setActiveLevelTab(null) }}>
+                            <span><span className="font-medium">{c.code}</span> — {c.name}</span>
+                            <Badge variant="outline" className="text-xs">{c.type}</Badge>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {!selectedCustomer && (
+      {!selectedCustomer && !activeLevelTab && (
         <div className="text-center py-20 text-muted-foreground">
-          {cp.noCustomerSelected ?? '請先選擇客戶'}
+          {cp.noCustomerSelected ?? '請先選擇客戶，或點「依等級瀏覽」查看各等級客戶'}
         </div>
       )}
 
@@ -332,7 +424,7 @@ export default function CustomerPricingPage() {
                 })
                 setEditInfoOpen(true)
               }}>
-                <Pencil className="h-3.5 w-3.5 mr-1" /> {d.common?.edit ?? '編輯'}
+                <Pencil className="h-3.5 w-3.5 mr-1" /> {dict.common?.edit ?? '編輯'}
               </Button>
             </CardHeader>
             <CardContent>

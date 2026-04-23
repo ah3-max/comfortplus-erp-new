@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
           { code:          { contains: search, mode: 'insensitive' as const } },
           { contactPerson: { contains: search, mode: 'insensitive' as const } },
           { phone:         { contains: search, mode: 'insensitive' as const } },
+          { taxId:         { contains: search, mode: 'insensitive' as const } },
         ],
       }),
       ...(type      && { type:      type      as never }),
