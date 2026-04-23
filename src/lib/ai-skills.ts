@@ -14,6 +14,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
+import { resolvePrices } from '@/lib/pricing'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,48 +32,21 @@ export interface SkillResult {
 // ── Skill: 自動產出報價單 ────────────────────────────────────────────────────
 
 /**
- * Pricing strategy based on customer grade + quotation round
- *
- * Grade A (大客戶):  首次 sellingPrice, 二次 wholesalePrice or -5%
- * Grade B (中客戶):  首次 sellingPrice +3%, 二次 sellingPrice
- * Grade C (小客戶):  首次 sellingPrice +8%, 二次 sellingPrice +3%
- * Grade D (新客戶):  首次 sellingPrice +10%, 二次 sellingPrice +5%
- * No grade:         首次 sellingPrice +5%, 二次 sellingPrice
+ * 以中央價格解析器 (src/lib/pricing.ts) 決定成交價。
+ * 優先序：SpecialPrice (客戶簽約價) > CustomerPriceLevel+Tier > PriceList > Product.sellingPrice
  */
-function getPriceMultiplier(grade: string | null, isFirstQuote: boolean): number {
-  if (isFirstQuote) {
-    switch (grade) {
-      case 'A': return 1.0    // 大客戶直接建議售價
-      case 'B': return 1.03   // +3%
-      case 'C': return 1.08   // +8%
-      case 'D': return 1.10   // +10%
-      default:  return 1.05   // 未分級 +5%
-    }
-  } else {
-    // 二次議價 — 更接近底價
-    switch (grade) {
-      case 'A': return 0.95   // 大客戶再降 5%
-      case 'B': return 1.0    // 建議售價
-      case 'C': return 1.03   // +3%
-      case 'D': return 1.05   // +5%
-      default:  return 1.0
-    }
-  }
-}
-
 export async function skillGenerateQuote(params: {
   customerId: string
   productIds?: string[]
-  isFirstQuote?: boolean
   userId: string
 }): Promise<SkillResult> {
-  const { customerId, productIds, isFirstQuote = true, userId } = params
+  const { customerId, productIds, userId } = params
 
   // 1. Get customer info
   const customer = await prisma.customer.findUnique({
     where: { id: customerId },
     select: {
-      id: true, name: true, code: true, grade: true, type: true,
+      id: true, name: true, code: true, type: true,
       paymentTerms: true,
       // 取得歷史訂單中最常購買的商品
       salesOrders: {
@@ -130,8 +104,7 @@ export async function skillGenerateQuote(params: {
     where: { id: { in: targetProductIds }, isActive: true },
     select: {
       id: true, sku: true, name: true, specification: true, unit: true,
-      sellingPrice: true, wholesalePrice: true, channelPrice: true,
-      costPrice: true, minSellPrice: true,
+      sellingPrice: true, costPrice: true, minSellPrice: true,
     },
   })
 
@@ -139,10 +112,11 @@ export async function skillGenerateQuote(params: {
     return { success: false, skill: 'generate-quote', title: '產出報價單', message: '找不到有效商品' }
   }
 
-  // 4. Calculate prices based on grade + quote round
-  const multiplier = getPriceMultiplier(customer.grade, isFirstQuote)
-  const gradeLabel = customer.grade ? `${customer.grade}級` : '未分級'
-  const roundLabel = isFirstQuote ? '首次報價' : '二次議價'
+  // 4. Resolve prices via central pricing engine (SpecialPrice > Tier > PriceList > sellingPrice)
+  const { prices: resolved, priceLevel } = await resolvePrices(customer.id, products.map(p => p.id))
+
+  // Count pricing sources for summary
+  const sourceCount = { SPECIAL: 0, TIER: 0, LIST: 0, DEFAULT: 0 } as Record<string, number>
 
   // Get last order quantities for reference
   const lastOrderItems: Record<string, { qty: number; price: number }> = {}
@@ -155,15 +129,11 @@ export async function skillGenerateQuote(params: {
   }
 
   const items = products.map(p => {
-    const basePrice = Number(p.sellingPrice)
-    let unitPrice = Math.round(basePrice * multiplier)
+    const r = resolved[p.id]
+    let unitPrice = r?.price ?? Number(p.sellingPrice)
+    sourceCount[r?.source ?? 'DEFAULT'] = (sourceCount[r?.source ?? 'DEFAULT'] ?? 0) + 1
 
-    // For Grade A second round, use wholesale price if available
-    if (customer.grade === 'A' && !isFirstQuote && p.wholesalePrice) {
-      unitPrice = Number(p.wholesalePrice)
-    }
-
-    // Never go below minSellPrice
+    // Never go below minSellPrice (safety guard; signed contract price usually honored)
     if (p.minSellPrice && unitPrice < Number(p.minSellPrice)) {
       unitPrice = Number(p.minSellPrice)
     }
@@ -198,7 +168,7 @@ export async function skillGenerateQuote(params: {
       totalAmount,
       currency: 'TWD',
       paymentTerm: customer.paymentTerms || null,
-      notes: `AI 自動產出 — ${gradeLabel}客戶${roundLabel}`,
+      notes: `AI 自動產出 — 簽約價 ${sourceCount.SPECIAL} 項 / 層級價 ${sourceCount.TIER} 項 / 價目表 ${sourceCount.LIST} 項 / 目錄價 ${sourceCount.DEFAULT} 項`,
       items: {
         create: items.map(item => {
           const p = productMap[item.productId]!
@@ -227,14 +197,15 @@ export async function skillGenerateQuote(params: {
 
   const fmt = (n: number) => new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 }).format(n)
 
+  const levelLabel = priceLevel ? `（價格層級 ${priceLevel}）` : ''
   return {
     success: true,
     skill: 'generate-quote',
     title: '報價單已產出',
     message: [
       `📋 報價單 ${quotationNo}`,
-      `👤 客戶：${customer.name}（${gradeLabel}）`,
-      `📝 策略：${roundLabel}（價格倍率 ×${multiplier}）`,
+      `👤 客戶：${customer.name}${levelLabel}`,
+      `💱 價格來源：簽約價 ${sourceCount.SPECIAL} / 層級價 ${sourceCount.TIER} / 價目表 ${sourceCount.LIST} / 目錄價 ${sourceCount.DEFAULT}`,
       `📦 商品：${products.length} 項`,
       `💰 總金額：${fmt(totalAmount)}`,
       `📅 有效期限：14 天`,

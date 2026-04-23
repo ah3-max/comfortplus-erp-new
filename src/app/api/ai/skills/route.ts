@@ -55,7 +55,6 @@ async function executeSkill(
       return skillGenerateQuote({
         customerId: params.customerId as string,
         productIds: params.productIds as string[] | undefined,
-        isFirstQuote: params.isFirstQuote as boolean | undefined,
         userId,
       })
 
@@ -81,7 +80,7 @@ async function executeSkill(
 const INTENT_SYSTEM_PROMPT = `你是 ERP 指令解析器。根據使用者的自然語言，判斷要執行哪個技能。
 
 可用技能：
-1. generate-quote — 產出報價單（需要客戶名稱，可選：首次/二次報價）
+1. generate-quote — 產出報價單（需要客戶名稱，自動套用簽約價 > 層級價 > 目錄價）
 2. today-shipments — 查詢今日出貨
 3. inventory-check — 庫存盤點摘要
 4. find-customer — 搜尋客戶
@@ -95,10 +94,9 @@ const INTENT_SYSTEM_PROMPT = `你是 ERP 指令解析器。根據使用者的自
 
 範例：
 使用者：「幫忙看一下今天要送哪些地方」→ {"skill": "today-shipments", "params": {}, "confidence": 0.95}
-使用者：「幫XX護理之家出一張報價單」→ {"skill": "generate-quote", "params": {"customerSearch": "XX護理之家", "isFirstQuote": true}, "confidence": 0.9}
+使用者：「幫XX護理之家出一張報價單」→ {"skill": "generate-quote", "params": {"customerSearch": "XX護理之家"}, "confidence": 0.9}
 使用者：「庫存狀況如何」→ {"skill": "inventory-check", "params": {}, "confidence": 0.9}
 使用者：「找一下陽明的客戶」→ {"skill": "find-customer", "params": {"search": "陽明"}, "confidence": 0.9}
-使用者：「XX客戶二次議價報價」→ {"skill": "generate-quote", "params": {"customerSearch": "XX", "isFirstQuote": false}, "confidence": 0.9}
 使用者：「KPI達成率多少」→ {"skill": "kpi-status", "params": {}, "confidence": 0.95}
 使用者：「業績目標完成了嗎」→ {"skill": "kpi-status", "params": {}, "confidence": 0.9}`
 
