@@ -542,6 +542,7 @@ export default function CRMPage() {
   const [tab, setTab] = useState<Tab>('alerts')
   const [quickLogCustomer, setQuickLogCustomer] = useState<AlertCustomer | null>(null)
   const [devStatusFilter, setDevStatusFilter] = useState<string>('')
+  const [importing, setImporting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -561,6 +562,36 @@ export default function CRMPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  async function importExcel(file: File | undefined) {
+    if (!file) return
+    setImporting(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/follow-up-logs/import', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? '匯入失敗'); return }
+      const { created = 0, skipped = 0, errors = [] } = data as {
+        created: number; skipped: number; errors: { row: number; reason: string }[]
+      }
+      if (errors.length > 0) {
+        const preview = errors.slice(0, 3).map(e => `第 ${e.row} 列：${e.reason}`).join('\n')
+        const more = errors.length > 3 ? `\n（另有 ${errors.length - 3} 筆錯誤）` : ''
+        toast.error(`匯入 ${created} 筆，${errors.length} 筆失敗：\n${preview}${more}`, { duration: 10000 })
+      } else {
+        toast.success(`✅ 成功匯入 ${created} 筆聯繫紀錄${skipped > 0 ? `（略過 ${skipped} 筆空列）` : ''}`)
+      }
+      load()
+    } catch (e) {
+      toast.error(`匯入失敗：${(e as Error).message}`)
+    } finally {
+      setImporting(false)
+      // Clear file input so same file can be re-picked
+      const el = document.getElementById('follow-up-import-file') as HTMLInputElement | null
+      if (el) el.value = ''
+    }
+  }
 
   const totalAlerts = alerts
     ? alerts.overdueFollowups.length + alerts.samplesPending.length +
@@ -591,14 +622,33 @@ export default function CRMPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-slate-900">{dict.crm.title}</h1>
           <p className="text-xs text-muted-foreground">{dict.crmPage.subtitle}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm"
+            onClick={() => document.getElementById('follow-up-import-file')?.click()}
+            disabled={importing}>
+            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <span>📥</span>}
+            <span className="ml-1 hidden sm:inline">匯入</span>
+          </Button>
+          <input
+            type="file"
+            id="follow-up-import-file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={(e) => importExcel(e.target.files?.[0])}
+          />
+          <a href="/api/follow-up-logs/import" download title="下載範本"
+            className="inline-flex items-center justify-center h-9 w-9 rounded-md text-sm hover:bg-slate-100 text-slate-600">
+            <FileText className="h-4 w-4" />
+          </a>
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
