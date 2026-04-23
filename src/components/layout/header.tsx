@@ -301,8 +301,8 @@ export function Header() {
               onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifMenu(false) }}
               className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {(user as any)?.avatar ? (
-                <img src={(user as any).avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" className="h-9 w-9 rounded-full object-cover" />
               ) : (
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700 text-sm font-medium cursor-pointer">
                   {initials}

@@ -16,6 +16,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import type { Role } from '@prisma/client'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ export async function notifyManagers(options: Omit<NotifyOptions, 'userIds'>): P
  */
 export async function notifyByRole(roles: string[], options: Omit<NotifyOptions, 'userIds'>): Promise<void> {
   const users = await prisma.user.findMany({
-    where: { role: { in: roles as any[] }, isActive: true },
+    where: { role: { in: roles as Role[] }, isActive: true },
     select: { id: true },
   })
 

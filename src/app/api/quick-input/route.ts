@@ -6,6 +6,12 @@ import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { validateUpload, isUploadError, type UploadCategory } from '@/lib/upload'
 import { logger } from '@/lib/logger'
+import { FollowUpLogType, IncidentType, IncidentSource, IncidentSeverity } from '@prisma/client'
+
+const VALID_LOG_TYPES = new Set(Object.values(FollowUpLogType))
+const VALID_INCIDENT_TYPES = new Set(Object.values(IncidentType))
+const VALID_INCIDENT_SOURCES = new Set(Object.values(IncidentSource))
+const VALID_SEVERITIES = new Set(Object.values(IncidentSeverity))
 
 const UPLOAD_BASE = path.join(process.cwd(), 'public', 'uploads')
 
@@ -121,7 +127,7 @@ export async function POST(request: NextRequest) {
             customerId: resolvedCustomerId,
             createdById: userId,
             logDate: new Date(),
-            logType: (logType as any) || 'CALL',
+            logType: (logType && VALID_LOG_TYPES.has(logType as FollowUpLogType)) ? logType as FollowUpLogType : 'CALL',
             content: content + (savedFiles.length > 0 ? `\n\n[附件: ${savedFiles.map(f => f.fileName).join(', ')}]` : ''),
           },
         })
@@ -154,9 +160,9 @@ export async function POST(request: NextRequest) {
           data: {
             incidentNo,
             customerId: resolvedCustomerId,
-            incidentType: (incidentType as any) || 'COMPLAINT',
-            incidentSource: (incidentSource as any) || 'SALES_REP',
-            severity: (severity as any) || 'MEDIUM',
+            incidentType: (incidentType && VALID_INCIDENT_TYPES.has(incidentType as IncidentType)) ? incidentType as IncidentType : 'COMPLAINT',
+            incidentSource: (incidentSource && VALID_INCIDENT_SOURCES.has(incidentSource as IncidentSource)) ? incidentSource as IncidentSource : 'SALES_REP',
+            severity: (severity && VALID_SEVERITIES.has(severity as IncidentSeverity)) ? severity as IncidentSeverity : 'MEDIUM',
             incidentDate: new Date(),
             reportedById: userId,
             issueSummary: content,

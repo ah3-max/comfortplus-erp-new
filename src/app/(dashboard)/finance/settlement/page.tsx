@@ -44,9 +44,7 @@ const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('zh-TW'
 /* ── Page ── */
 export default function SettlementPage() {
   const { dict } = useI18n()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const d = dict as any
-  const st = d.settlement ?? {}
+  const st = dict.settlement
 
   /* ── State ── */
   const [direction, setDirection] = useState<'INCOMING' | 'OUTGOING'>('INCOMING')

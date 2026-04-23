@@ -57,7 +57,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           role: user.role,
           tokenVersion: user.tokenVersion,
-        } as any // eslint-disable-line @typescript-eslint/no-explicit-any
+        }
       },
     }),
   ],
@@ -92,8 +92,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.tokenVersion = dbUser.tokenVersion
         } else {
           token.id = user.id
-          token.role = (user as any).role
-          token.tokenVersion = (user as any).tokenVersion ?? 0
+          token.role = user.role
+          token.tokenVersion = user.tokenVersion ?? 0
         }
         token.issuedAt = now
         token.absoluteExpiry = now + SESSION_ABSOLUTE_MAX_AGE

@@ -186,8 +186,7 @@ async function buildArAging(wb: ExcelJS.Workbook, hs: Partial<ExcelJS.Style>) {
   ]
   ws.getRow(1).eachCell(c => { Object.assign(c.style, hs) })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const records: any[] = await (prisma.accountsReceivable.findMany as any)({
+  const records = await prisma.accountsReceivable.findMany({
     where: { status: { notIn: ['PAID'] } },
     include: { customer: { select: { name: true } } },
     orderBy: { dueDate: 'asc' },
@@ -227,8 +226,7 @@ async function buildApAging(wb: ExcelJS.Workbook, hs: Partial<ExcelJS.Style>) {
   ]
   ws.getRow(1).eachCell(c => { Object.assign(c.style, hs) })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const records: any[] = await (prisma.accountsPayable.findMany as any)({
+  const records = await prisma.accountsPayable.findMany({
     where: { status: { notIn: ['PAID'] } },
     include: { supplier: { select: { name: true } } },
     orderBy: { dueDate: 'asc' },

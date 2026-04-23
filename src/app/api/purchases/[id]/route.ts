@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
 import { handleApiError } from '@/lib/api-error'
+import { PurchaseStatus } from '@prisma/client'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -45,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   // 僅更新狀態
   if (body.statusOnly) {
-    const newStatus = body.status as string
+    const newStatus = body.status as PurchaseStatus
     const prevOrder = await prisma.purchaseOrder.findUnique({ where: { id }, select: { status: true } })
 
     // 3-7: State machine validation
@@ -68,7 +69,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const order = await prisma.purchaseOrder.update({
       where: { id },
-      data: { status: newStatus as any },
+      data: { status: newStatus },
       include: {
         supplier: { select: { name: true } },
         items: { select: { productId: true, nameSnap: true, quantity: true, receivedQty: true } },

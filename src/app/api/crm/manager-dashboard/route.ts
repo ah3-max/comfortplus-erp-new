@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { FollowUpLogType } from '@prisma/client'
 
 export async function GET(_req: NextRequest) {
   const session = await auth()
@@ -21,8 +22,8 @@ export async function GET(_req: NextRequest) {
   const thirtyDaysAgo = new Date(todayStart.getTime() - 30 * 86400_000)
 
   // ── 1. Daily metrics ──────────────────────────────────────────────────────
-  const VISIT_TYPES = ['FIRST_VISIT', 'SECOND_VISIT', 'THIRD_VISIT', 'EXPO', 'SPRING_PARTY', 'DELIVERY']
-  const REVISIT_TYPES = ['SECOND_VISIT', 'THIRD_VISIT', 'CALL', 'LINE', 'EMAIL', 'EXPO', 'SPRING_PARTY', 'DELIVERY']
+  const VISIT_TYPES: FollowUpLogType[] = ['FIRST_VISIT', 'SECOND_VISIT', 'THIRD_VISIT', 'EXPO', 'SPRING_PARTY', 'DELIVERY']
+  const REVISIT_TYPES: FollowUpLogType[] = ['SECOND_VISIT', 'THIRD_VISIT', 'CALL', 'LINE', 'EMAIL', 'EXPO', 'SPRING_PARTY', 'DELIVERY']
 
   const [
     todayFirstVisit,
@@ -38,7 +39,7 @@ export async function GET(_req: NextRequest) {
       where: { logDate: { gte: todayStart, lt: todayEnd }, logType: 'FIRST_VISIT' },
     }),
     prisma.followUpLog.count({
-      where: { logDate: { gte: todayStart, lt: todayEnd }, logType: { in: REVISIT_TYPES as any } },
+      where: { logDate: { gte: todayStart, lt: todayEnd }, logType: { in: REVISIT_TYPES } },
     }),
     prisma.sampleRecord.count({
       where: { sentDate: { gte: todayStart, lt: todayEnd } },
@@ -158,7 +159,7 @@ export async function GET(_req: NextRequest) {
           where: {
             createdById: rep.id,
             logDate: { gte: monthStart, lt: todayEnd },
-            logType: { in: VISIT_TYPES as any },
+            logType: { in: VISIT_TYPES },
           },
         }),
         // 本月有效追蹤數

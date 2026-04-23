@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
 
   if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
-  const cost = product.costStructure as any
+  const cost = product.costStructure
   const costs = {
     factoryCost: Number(cost?.factoryCost ?? product.costPrice ?? 0),
     packagingCost: Number(cost?.packagingCost ?? 0),

@@ -25,12 +25,17 @@ export async function GET(_req: NextRequest) {
   })
 
   // Bucket definitions
+  interface ArAgingItem {
+    id: string; customerName: string; customerCode: string; salesRep: string
+    orderId: string | null; orderNo: string; invoiceId: string | null; invoiceNo: string
+    amount: number; paid: number; balance: number; dueDate: string; overdueDays: number
+  }
   const buckets = {
-    current:  { label: '未到期', count: 0, amount: 0, items: [] as any[] },
-    days30:   { label: '1-30天', count: 0, amount: 0, items: [] as any[] },
-    days60:   { label: '31-60天', count: 0, amount: 0, items: [] as any[] },
-    days90:   { label: '61-90天', count: 0, amount: 0, items: [] as any[] },
-    over90:   { label: '90天以上', count: 0, amount: 0, items: [] as any[] },
+    current:  { label: '未到期', count: 0, amount: 0, items: [] as ArAgingItem[] },
+    days30:   { label: '1-30天', count: 0, amount: 0, items: [] as ArAgingItem[] },
+    days60:   { label: '31-60天', count: 0, amount: 0, items: [] as ArAgingItem[] },
+    days90:   { label: '61-90天', count: 0, amount: 0, items: [] as ArAgingItem[] },
+    over90:   { label: '90天以上', count: 0, amount: 0, items: [] as ArAgingItem[] },
   }
 
   for (const ar of allAR) {
@@ -65,7 +70,7 @@ export async function GET(_req: NextRequest) {
 
   // Sort items within each bucket by balance descending
   for (const bucket of Object.values(buckets)) {
-    bucket.items.sort((a: any, b: any) => b.balance - a.balance)
+    bucket.items.sort((a, b) => b.balance - a.balance)
     bucket.amount = Math.round(bucket.amount)
   }
 
