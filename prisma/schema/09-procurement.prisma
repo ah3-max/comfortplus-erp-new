@@ -155,6 +155,10 @@ model PurchaseOrder {
   supplierInvoices SupplierInvoice[] @relation("PurchaseSupplierInvoice")
   materialShipments MaterialShipment[] @relation("PurchaseMaterialShipment")
   purchaseReturns  PurchaseReturn[]
+
+  @@index([supplierId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([expectedDate])
 }
 
 // ========== 進貨退貨 ==========

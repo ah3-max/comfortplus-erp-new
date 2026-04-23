@@ -35,6 +35,9 @@ model SalesTask {
   notes        String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  @@index([assignedToId, status, dueDate])
+  @@index([customerId, status])
 }
 
 // ========== 業務行程/拜訪排程（Module 5）==========

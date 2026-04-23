@@ -26,6 +26,11 @@ model PaymentRecord {
   createdBy       User              @relation("PaymentCreatedBy", fields: [createdById], references: [id])
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
+
+  @@index([customerId, direction, paymentDate(sort: Desc)])
+  @@index([supplierId, direction, paymentDate(sort: Desc)])
+  @@index([salesOrderId, direction])
+  @@index([purchaseOrderId, direction])
 }
 
 // ========== 應收帳款 AR ==========
@@ -54,6 +59,10 @@ model AccountsReceivable {
   receipts         ReceiptRecord[]
   collectionLogs   CollectionLog[]
   settlementItems  SettlementItem[] @relation("SettlementAR")
+
+  @@index([customerId, status])
+  @@index([customerId, invoiceDate(sort: Desc)])
+  @@index([status, dueDate])
 }
 
 // ── 收款紀錄（沖銷 AR）────────────────────────────────
@@ -74,6 +83,9 @@ model ReceiptRecord {
   notes         String?
   createdById   String
   createdAt     DateTime @default(now())
+
+  @@index([arId])
+  @@index([customerId, receiptDate(sort: Desc)])
 }
 
 // ========== 應付帳款 AP ==========
@@ -105,6 +117,10 @@ model AccountsPayable {
   supplierInvoices SupplierInvoice[] @relation("APSupplierInvoice")
   inputTaxItems    InputTaxItem[]    @relation("APInputTax")
   settlementItems  SettlementItem[] @relation("SettlementAP")
+
+  @@index([supplierId, status])
+  @@index([supplierId, invoiceDate(sort: Desc)])
+  @@index([status, dueDate])
 }
 
 // ── 付款紀錄（沖銷 AP）────────────────────────────────

@@ -149,6 +149,9 @@ model FollowUpLog {
   competitorInfo  String?                          // 競品資訊（直接記錄於本次互動）
   attachments     String?         // 附件 JSON array
   createdAt       DateTime        @default(now())
+
+  @@index([customerId, logDate(sort: Desc)])
+  @@index([createdById, logDate(sort: Desc)])
 }
 
 // ========== 銷售機會管理 ==========

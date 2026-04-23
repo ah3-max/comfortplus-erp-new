@@ -243,6 +243,10 @@ model ReturnOrder {
 
   items           ReturnOrderItem[]
   inboundRecords  InboundRecord[]
+
+  @@index([customerId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([orderId])
 }
 
 model ReturnOrderItem {
