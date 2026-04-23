@@ -151,6 +151,7 @@ const en = {
     qc: 'Quality Control',
     packaging: 'Packaging',
     seaFreight: 'Sea Freight',
+    mrp: 'MRP Planning',
     channels: 'Channels',
     payments: 'Payments',
     incomingPayments: 'Receipts',

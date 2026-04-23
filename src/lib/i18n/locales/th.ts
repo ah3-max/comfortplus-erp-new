@@ -151,6 +151,7 @@ const th = {
     qc: 'ตรวจสอบคุณภาพ',
     packaging: 'บรรจุภัณฑ์',
     seaFreight: 'ขนส่งทางเรือ',
+    mrp: 'MRP การวางแผนความต้องการ',
     channels: 'ช่องทางออนไลน์',
     payments: 'การชำระเงิน',
     incomingPayments: 'รับชำระ',

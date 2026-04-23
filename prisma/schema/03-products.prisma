@@ -95,6 +95,9 @@ model Product {
 
   // ── 採購計畫 ────────────────────────────────────────
   purchasePlanItems      PurchasePlanItem[]       @relation("PurchasePlanProduct")
+
+  // ── MRP ─────────────────────────────────────────────
+  mrpDemandHistory       MrpDemandHistory[]       @relation("MrpDemandProduct")
 }
 
 // ========== 商品-廠商中介表（多廠商支援）==========

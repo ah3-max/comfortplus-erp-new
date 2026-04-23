@@ -15,7 +15,7 @@ import {
   BookOpen, FileArchive, Landmark, Briefcase, Star, Zap, PackageCheck,
   PackageX, GitPullRequestArrow, ShipIcon, UserSquare2, ClipboardList,
   MapPinned, ReceiptText, BriefcaseBusiness, HandCoins, Megaphone,
-  Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp,
+  Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp, TrendingDown,
   Clock, DollarSign, CheckCircle2, Tag, Send, BellRing, Hash, DatabaseZap,
   Printer, AlertTriangle, BadgeDollarSign, FileCheck, Search,
 } from 'lucide-react'
@@ -120,6 +120,7 @@ export const navGroups: NavGroup[] = [
           { href: '/suppliers',         key: 'suppliers',        icon: Building2 },
           { href: '/purchase-returns',  key: 'purchaseReturns',  icon: RotateCcw },
           { href: '/sea-freight',       key: 'seaFreight',       icon: Ship },
+          { href: '/mrp',               key: 'mrp',              icon: TrendingDown },
         ],
       },
       {

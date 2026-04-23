@@ -155,6 +155,7 @@ const zhTW = {
     qc: '品質檢驗',
     packaging: '包材管理',
     seaFreight: '海運追蹤',
+    mrp: 'MRP 需求規劃',
     channels: '線上通路',
     payments: '收付款',
     incomingPayments: '收款',

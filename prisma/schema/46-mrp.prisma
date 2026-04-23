@@ -1,0 +1,28 @@
+// ========== MRP 需求歷史（匯入用） ==========
+
+model MrpDemandHistory {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation("MrpDemandProduct", fields: [productId], references: [id])
+  period    String   // YYYY-MM
+  quantity  Int      // 該月銷售/出貨量
+  source    String   @default("IMPORTED") // IMPORTED | SYSTEM
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@unique([productId, period, source])
+  @@index([productId, period])
+}
+
+model MrpSnapshot {
+  id          String   @id @default(cuid())
+  runAt       DateTime @default(now())
+  runById     String
+  runBy       User     @relation("MrpSnapshotRunBy", fields: [runById], references: [id])
+  resultJson  String   @db.Text // Full MRP results JSON
+  skuCount    Int      @default(0)
+  alertCount  Int      @default(0)
+  notes       String?
+
+  @@index([runAt])
+}

@@ -214,6 +214,9 @@ model User {
   // ── 競品價格監控 ─────────────────────────────────────
   competitorPricesCreated CompetitorPrice[] @relation("CompetitorPriceCreatedBy")
 
+  // ── MRP ─────────────────────────────────────────────
+  mrpSnapshots            MrpSnapshot[]    @relation("MrpSnapshotRunBy")
+
   @@index([role, isActive])
   @@index([departmentId, isActive])
 }
