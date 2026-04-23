@@ -69,6 +69,7 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   ],
   SALES: [
     'dashboard', 'customers', 'quotations', 'orders', 'crm',
+    'salesDailyReport',
   ],
   CARE_SUPERVISOR: [
     'dashboard', 'dailyReminder', 'crm', 'institutionTours', 'calendar',

@@ -86,6 +86,26 @@ export default function SalesDailyReportPage() {
     }
   }
 
+  async function handleQuickSubmit() {
+    if (!confirm('一鍵送出今日報表？\n系統會自動抓取今日拜訪/通話/訂單/報價數據，無需填寫文字。')) return
+    setSaving(true)
+    const res = await fetch('/api/sales-daily-report/quick-submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+    setSaving(false)
+    if (res.ok) {
+      const data = await res.json()
+      const s = data.summary
+      toast.success(`今日報表已送出：拜訪 ${s.visits} / 通話 ${s.calls} / 訂單 ${s.orders} / 報價 ${s.quotes}`)
+      loadToday()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      toast.error(data.error ?? dict.common.saveFailed)
+    }
+  }
+
   const isLocked = report?.status === 'SUBMITTED' || report?.status === 'APPROVED'
   const isNeedsRevision = report?.status === 'NEEDS_REVISION'
   const isApproved = report?.status === 'APPROVED'
@@ -143,6 +163,27 @@ export default function SalesDailyReportPage() {
           </Button>
         </div>
       </div>
+
+      {/* Quick-submit CTA — one click, auto-fill stats */}
+      {!isLocked && (
+        <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardContent className="py-4 flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-blue-900 flex items-center gap-1.5">
+                <Send className="h-4 w-4" />一鍵送出今日報表
+              </p>
+              <p className="text-xs text-blue-700/80 mt-0.5">
+                自動抓取今日拜訪/通話/訂單/報價，不需填寫文字，立刻送出。
+              </p>
+            </div>
+            <Button onClick={handleQuickSubmit} disabled={saving}
+              className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 min-h-[44px] px-5">
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+              一鍵送出
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* End-of-day reminder banner */}
       {showReminder && (
