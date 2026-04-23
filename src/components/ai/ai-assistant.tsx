@@ -74,6 +74,16 @@ export function AiAssistant() {
       '庫存', '盤點', '缺貨',
       '找客戶', '搜尋客戶', '查客戶',
       'KPI', 'kpi', '目標', '達成率', '業績目標',
+      // summarize-customer
+      '介紹', '最近狀況', '現況', '摘要', '客戶資料',
+      // draft-collection-email
+      '催收', '催款', '催帳', '催信', '寫信', '寫一封',
+      // create-task
+      '提醒我', '安排', '記下', '加一個任務', '待辦',
+      // top-customers
+      '前幾大', '前幾名', '前 N', '排行', '最多訂單', '最多錢', '欠最多',
+      // pipeline-health
+      'pipeline', '卡住', '該跟進', '追蹤一下',
     ]
     return skillKeywords.some(k => msg.includes(k))
   }
@@ -253,6 +263,9 @@ export function AiAssistant() {
                       { text: dict.ai.quickCmd2, emoji: '📦' },
                       { text: dict.ai.quickCmd3, emoji: '📊' },
                       { text: dict.ai.quickCmd4, emoji: '👥' },
+                      { text: 'Pipeline 有沒有卡住的？', emoji: '🔍' },
+                      { text: '業績前 10 大客戶', emoji: '🏆' },
+                      { text: '誰欠最多錢？', emoji: '💰' },
                     ].map(q => (
                       <button
                         key={q.text}
