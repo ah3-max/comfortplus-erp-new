@@ -399,15 +399,32 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
                 <span className="ml-2">{dict.crmPage.sampleSales}{s.sentBy.name}</span>
               </div>
               {feedbackId === s.id && (
-                <div className="mt-2 flex gap-2">
-                  <Input placeholder={dict.crmPage.feedbackPlaceholder} value={feedbackText}
-                    onChange={e => setFeedbackText(e.target.value)} className="text-sm h-8 flex-1" autoFocus />
-                  <Button size="sm" className="h-8 text-xs" disabled={saving || !feedbackText.trim()}
-                    onClick={() => submitFeedback(s.id)}>
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : dict.crmPage.save}
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs"
-                    onClick={() => setFeedbackId(null)}>{dict.crmPage.cancel}</Button>
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex gap-1 flex-wrap">
+                    {[
+                      '✅ 正面回饋，願意採購',
+                      '🤔 還在評估',
+                      '👀 已試用，待後續',
+                      '❌ 不合適',
+                      '📞 聯絡不上',
+                    ].map(preset => (
+                      <button key={preset} type="button"
+                        onClick={() => setFeedbackText(preset)}
+                        className="text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-100">
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input placeholder={dict.crmPage.feedbackPlaceholder} value={feedbackText}
+                      onChange={e => setFeedbackText(e.target.value)} className="text-sm h-8 flex-1" autoFocus />
+                    <Button size="sm" className="h-8 text-xs" disabled={saving || !feedbackText.trim()}
+                      onClick={() => submitFeedback(s.id)}>
+                      {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : dict.crmPage.save}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs"
+                      onClick={() => setFeedbackId(null)}>{dict.crmPage.cancel}</Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -524,6 +541,7 @@ export default function CRMPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('alerts')
   const [quickLogCustomer, setQuickLogCustomer] = useState<AlertCustomer | null>(null)
+  const [devStatusFilter, setDevStatusFilter] = useState<string>('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -628,6 +646,32 @@ export default function CRMPage() {
                 </CardContent></Card>
               )}
 
+              {/* devStatus filter */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-muted-foreground mr-1">階段篩選：</span>
+                {([
+                  ['',                  '全部'],
+                  ['POTENTIAL',         '潛在'],
+                  ['CONTACTED',         '已聯絡'],
+                  ['VISITED',           '已拜訪'],
+                  ['NEGOTIATING',       '洽談中'],
+                  ['TRIAL',             '試用中'],
+                  ['CLOSED',            '已成交'],
+                  ['STABLE_REPURCHASE', '穩定回購'],
+                  ['DORMANT',           '休眠'],
+                ] as const).map(([v, label]) => (
+                  <button key={v} type="button"
+                    onClick={() => setDevStatusFilter(v)}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                      devStatusFilter === v
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {/* Today schedules */}
               {alerts.todaySchedules.length > 0 && (
                 <AlertSection title={dict.crmPage.todayScheduleTitle} icon={<CalendarCheck className="h-4 w-4 text-amber-600" />}
@@ -655,13 +699,13 @@ export default function CRMPage() {
               {/* Today follow-ups */}
               <AlertSection title={dict.crmPage.todayFollowupTitle} icon={<Clock className="h-4 w-4 text-blue-600" />}
                 count={alerts.todayFollowups.length} color="border-l-blue-400" emptyMsg={dict.crmPage.todayFollowupEmpty}>
-                {alerts.todayFollowups.map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={<span className="text-blue-600 font-medium">{dict.crmPage.todayFollowupLabel}</span>} />)}
+                {alerts.todayFollowups.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={<span className="text-blue-600 font-medium">{dict.crmPage.todayFollowupLabel}</span>} />)}
               </AlertSection>
 
               {/* Overdue */}
               <AlertSection title={dict.crmPage.overdueTitle} icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
                 count={alerts.overdueFollowups.length} color="border-l-red-400" emptyMsg={dict.crmPage.overdueEmpty}>
-                {alerts.overdueFollowups.map(c => {
+                {alerts.overdueFollowups.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => {
                   const d = daysSince(c.nextFollowUpDate)
                   return <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={d !== null ? <span className="text-red-600 font-medium">{dict.crmPage.overdueDays.replace('{d}', String(d))}</span> : undefined} />
                 })}
@@ -670,13 +714,13 @@ export default function CRMPage() {
               {/* Uncontacted */}
               <AlertSection title={dict.crmPage.uncontactedTitle} icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
                 count={alerts.uncontacted.length} color="border-l-orange-400" emptyMsg={dict.crmPage.uncontactedEmpty}>
-                {alerts.uncontacted.map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} />)}
+                {alerts.uncontacted.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} />)}
               </AlertSection>
 
               {/* Repurchase warning */}
               <AlertSection title={dict.crmPage.repurchaseTitle} icon={<TrendingDown className="h-4 w-4 text-rose-600" />}
                 count={alerts.repurchaseWarning.length} color="border-l-rose-400" emptyMsg={dict.crmPage.repurchaseEmpty}>
-                {alerts.repurchaseWarning.map(c => {
+                {alerts.repurchaseWarning.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => {
                   const lastOrder = c.salesOrders[0]
                   const d = daysSince(lastOrder?.orderDate ?? null)
                   return <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={d !== null ? <span className="text-rose-600">{dict.crmPage.repurchaseDays.replace('{d}', String(d))}</span> : undefined} />

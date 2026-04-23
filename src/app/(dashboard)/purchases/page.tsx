@@ -55,6 +55,35 @@ export default function PurchasesPage() {
   const [pagination, setPagination] = useState<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<PurchaseOrder | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  function toggleId(id: string) {
+    setSelectedIds(prev => {
+      const s = new Set(prev)
+      if (s.has(id)) s.delete(id); else s.add(id)
+      return s
+    })
+  }
+
+  function toggleAll() {
+    if (selectedIds.size === orders.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(orders.map(o => o.id)))
+  }
+
+  async function batchStatus(status: string, label: string) {
+    if (selectedIds.size === 0) return
+    if (!confirm(`確定將 ${selectedIds.size} 張採購單${label}？`)) return
+    const res = await fetch('/api/purchases/batch-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: Array.from(selectedIds), status }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { toast.error(data.error ?? '批次失敗'); return }
+    toast.success(data.message ?? '批次完成')
+    setSelectedIds(new Set())
+    fetchOrders()
+  }
 
   // Load supplier list once for filter dropdown
   useEffect(() => {
@@ -183,11 +212,29 @@ export default function PurchasesPage() {
         </select>
       </div>
 
+      {/* Batch action bar (only visible when something selected) */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+          <span className="text-sm text-blue-800 font-medium">已選 {selectedIds.size} 張</span>
+          <Button size="sm" variant="outline" onClick={() => batchStatus('PENDING_APPROVAL', '送出審批')}>送審</Button>
+          <Button size="sm" variant="outline" onClick={() => batchStatus('SOURCING', '進入詢價')}>詢價</Button>
+          <Button size="sm" variant="outline" onClick={() => batchStatus('ORDERED', '下單')}>下單</Button>
+          <Button size="sm" variant="outline" onClick={() => batchStatus('CANCELLED', '作廢')}>作廢</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>取消選取</Button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="rounded-lg border bg-white">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8">
+                <input type="checkbox"
+                  checked={orders.length > 0 && selectedIds.size === orders.length}
+                  onChange={toggleAll}
+                  className="h-4 w-4 cursor-pointer" />
+              </TableHead>
               <TableHead className="w-36">{dict.purchases.poNo}</TableHead>
               <TableHead>{dict.purchases.supplier}</TableHead>
               <TableHead className="w-20">{dict.common.type}</TableHead>
@@ -203,13 +250,13 @@ export default function PurchasesPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-16 text-center">
+                <TableCell colSpan={11} className="py-16 text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
+                <TableCell colSpan={11} className="py-16 text-center text-muted-foreground">
                   {search || filterStatus || filterSupplier || filterPayment ? dict.purchasesExt.noResults : dict.purchasesExt.noOrders}
                 </TableCell>
               </TableRow>
@@ -220,6 +267,12 @@ export default function PurchasesPage() {
               return (
                 <TableRow key={o.id} className="group cursor-pointer hover:bg-slate-50/80"
                   onClick={() => router.push(`/purchases/${o.id}`)}>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox"
+                      checked={selectedIds.has(o.id)}
+                      onChange={() => toggleId(o.id)}
+                      className="h-4 w-4 cursor-pointer" />
+                  </TableCell>
                   <TableCell className="font-mono text-sm font-medium">{o.poNo}</TableCell>
                   <TableCell>
                     <div className="font-medium">{o.supplier.name}</div>
