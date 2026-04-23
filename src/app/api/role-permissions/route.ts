@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 // All sidebar module codes (keep in sync with sidebar.tsx navGroups)
 const ALL_MODULES = [
@@ -164,10 +165,19 @@ export async function PUT(req: NextRequest) {
 
     const { matrix } = await req.json() as { matrix: Record<string, Record<string, boolean>> }
 
+    // Count changes against existing DB state for audit
+    const existingPerms = await prisma.rolePermission.findMany({
+      select: { roleName: true, module: true, canView: true },
+    })
+    const existingMap = new Map(existingPerms.map(p => [`${p.roleName}:${p.module}`, p.canView]))
+    const diffs: { role: string; module: string; before: boolean | null; after: boolean }[] = []
+
     // Upsert all entries
     const ops = []
     for (const [role, modules] of Object.entries(matrix)) {
       for (const [mod, canView] of Object.entries(modules)) {
+        const prev = existingMap.get(`${role}:${mod}`) ?? null
+        if (prev !== canView) diffs.push({ role, module: mod, before: prev, after: canView })
         ops.push(
           prisma.rolePermission.upsert({
             where: { roleName_module: { roleName: role, module: mod } },
@@ -179,6 +189,24 @@ export async function PUT(req: NextRequest) {
     }
 
     await prisma.$transaction(ops)
+
+    if (diffs.length > 0) {
+      const changesObj: Record<string, { before: unknown; after: unknown }> = {}
+      for (const d of diffs.slice(0, 50)) {
+        changesObj[`${d.role}.${d.module}`] = { before: d.before, after: d.after }
+      }
+      logAudit({
+        userId: session.user.id,
+        userName: session.user.name ?? '',
+        userRole: user.role,
+        module: 'role-permissions',
+        action: 'UPDATE',
+        entityType: 'RolePermissionMatrix',
+        entityId: 'global',
+        entityLabel: `${diffs.length} 項權限變更`,
+        changes: changesObj,
+      }).catch(() => {})
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {

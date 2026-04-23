@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { logAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -80,6 +81,21 @@ export async function POST(req: NextRequest) {
       where: { id: inv.id },
     })
   })
+
+  // Look up product for entityLabel
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { sku: true, name: true } })
+
+  logAudit({
+    userId: session.user.id,
+    userName: session.user.name ?? '',
+    userRole: (session.user as { role?: string }).role ?? '',
+    module: 'inventory',
+    action: `ADJUST_${type}`,
+    entityType: 'Inventory',
+    entityId: inv.id,
+    entityLabel: `${product?.name ?? ''} (${product?.sku ?? productId}) @ ${warehouse}/${category} — ${notes || '—'}`,
+    changes: { quantity: { before: inv.quantity, after: newQuantity } },
+  }).catch(() => {})
 
   return NextResponse.json(result, { status: 200 })
   } catch (e: unknown) {

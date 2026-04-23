@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 /**
  * POST /api/users/[id]/revoke-sessions
@@ -29,6 +30,18 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     data: { tokenVersion: { increment: 1 } },
     select: { id: true, name: true, tokenVersion: true },
   })
+
+  logAudit({
+    userId: session.user.id,
+    userName: session.user.name ?? '',
+    userRole: role,
+    module: 'users',
+    action: 'REVOKE_SESSIONS',
+    entityType: 'User',
+    entityId: targetId,
+    entityLabel: `${user.name} (by ${isSelf ? 'self' : 'admin'})`,
+    changes: { tokenVersion: { before: user.tokenVersion - 1, after: user.tokenVersion } },
+  }).catch(() => {})
 
   return NextResponse.json({
     message: `已撤銷 ${user.name} 的所有登入，新 tokenVersion: ${user.tokenVersion}`,

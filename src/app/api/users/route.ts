@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   try {
@@ -41,6 +42,18 @@ export async function POST(req: NextRequest) {
       data: { email, name, password: hashed, role },
       select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true },
     })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'users',
+      action: 'CREATE',
+      entityType: 'User',
+      entityId: user.id,
+      entityLabel: `${user.name} <${user.email}>`,
+      changes: { role: { before: null, after: role } },
+    }).catch(() => {})
 
     return NextResponse.json(user, { status: 201 })
   } catch (error) {
