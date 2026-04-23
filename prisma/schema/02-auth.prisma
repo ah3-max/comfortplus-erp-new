@@ -125,6 +125,7 @@ model User {
   // ── 電子發票 ────────────────────────────────────────
   eInvoicesCreated       EInvoice[]             @relation("EInvoiceCreatedBy")
   eInvoiceRangesCreated  EInvoiceNumberRange[]  @relation("EInvoiceRangeCreatedBy")
+  turnkeyLogsCreated     EInvoiceTurnkeyLog[]   @relation("TurnkeyLogCreatedBy")
 
   // ── P2-1 多級單價 ────────────────────────────────────
   priceTierUpdates       ProductPriceTier[]     @relation("PriceTierUpdatedBy")

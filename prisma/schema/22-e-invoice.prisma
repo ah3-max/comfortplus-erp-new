@@ -34,6 +34,9 @@ model EInvoice {
   buyerTaxId        String?         // 買方統一編號
   buyerName         String?
 
+  // Turnkey 傳輸記錄
+  turnkeyLogs       EInvoiceTurnkeyLog[] @relation("TurnkeyLogEInvoice")
+
   createdById       String
   createdBy         User            @relation("EInvoiceCreatedBy", fields: [createdById], references: [id])
   createdAt         DateTime        @default(now())

@@ -908,3 +908,20 @@ enum InputTaxSourceType {
   DOMESTIC_INVOICE   // 國內統一發票
   RECEIPT            // 收據（免稅/小額）
 }
+
+// ── 電子發票 Turnkey ──────────────────────────────────────
+enum TurnkeyMessageType {
+  F0401   // B2S 發票開立存證
+  F0501   // B2S 發票作廢存證
+  F0701   // B2S 發票註銷存證
+  G0401   // B2S 折讓開立存證
+  G0501   // B2S 折讓作廢存證
+}
+
+enum TurnkeyStatus {
+  GENERATED    // XML 已產生
+  UPLOADED     // 已放入 UpCast 目錄
+  PROCESSING   // Turnkey 處理中 (P)
+  SUCCESS      // 平台回覆成功 (G/C)
+  FAILED       // 傳送失敗或平台回覆錯誤
+}
