@@ -22,8 +22,11 @@ export async function GET(req: NextRequest) {
   })
   if (existing) return NextResponse.json(existing)
 
-  // Auto-populate stats from today's activity
-  const [visits, calls, orders, quotes] = await Promise.all([
+  // Auto-populate stats from today's activity.
+  // We aggregate both legacy tables (VisitRecord/CallRecord) and the unified
+  // FollowUpLog, because Excel imports land in FollowUpLog. Dedup is best-effort —
+  // power users shouldn't double-book the same contact in both tables.
+  const [visits, calls, orders, quotes, followUpLogs] = await Promise.all([
     prisma.visitRecord.count({ where: { visitedById: userId, visitDate: { gte: today, lt: tomorrow } } }),
     prisma.callRecord.count({ where: { calledById: userId, callDate: { gte: today, lt: tomorrow } } }),
     prisma.salesOrder.findMany({
@@ -31,7 +34,22 @@ export async function GET(req: NextRequest) {
       select: { id: true, totalAmount: true },
     }),
     prisma.quotation.count({ where: { createdById: userId, createdAt: { gte: today, lt: tomorrow } } }),
+    prisma.followUpLog.groupBy({
+      where: { createdById: userId, logDate: { gte: today, lt: tomorrow } },
+      by: ['logType'],
+      _count: { _all: true },
+    }),
   ])
+
+  // Bucket FollowUpLog by logType → visits or calls
+  const VISIT_TYPES = new Set(['FIRST_VISIT', 'SECOND_VISIT', 'THIRD_VISIT', 'DELIVERY', 'SPRING_PARTY', 'EXPO'])
+  const CALL_TYPES = new Set(['CALL', 'LINE', 'EMAIL', 'MEETING'])
+  let visitExtras = 0
+  let callExtras = 0
+  for (const g of followUpLogs) {
+    if (VISIT_TYPES.has(g.logType)) visitExtras += g._count._all
+    else if (CALL_TYPES.has(g.logType)) callExtras += g._count._all
+  }
 
   const orderAmount = orders.reduce((s, o) => s + Number(o.totalAmount), 0)
 
@@ -39,8 +57,8 @@ export async function GET(req: NextRequest) {
     id: null,
     reportDate: today,
     salesRepId: userId,
-    visitCount: visits,
-    callCount: calls,
+    visitCount: visits + visitExtras,
+    callCount: calls + callExtras,
     orderCount: orders.length,
     orderAmount,
     newCustomerCount: 0,

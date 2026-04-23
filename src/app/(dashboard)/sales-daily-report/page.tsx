@@ -188,6 +188,45 @@ export default function SalesDailyReportPage() {
     handleFiles(e.dataTransfer.files)
   }
 
+  // Excel import — drops a .xlsx/.xls into "Excel 快匯" drop zone and
+  // pushes rows into FollowUpLog; daily report stats will reload from /today.
+  const [excelImporting, setExcelImporting] = useState(false)
+  async function importExcelAsContact(file: File) {
+    if (!file) return
+    if (!/\.(xlsx|xls)$/i.test(file.name)) {
+      toast.error('只接受 Excel 檔（.xlsx / .xls）')
+      return
+    }
+    setExcelImporting(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/follow-up-logs/import', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? '匯入失敗'); return }
+      const { created = 0, errors = [] } = data as {
+        created: number; errors: { row: number; reason: string }[]
+      }
+      if (errors.length > 0) {
+        const preview = errors.slice(0, 3).map(e => `第 ${e.row} 列：${e.reason}`).join('\n')
+        toast.error(`匯入 ${created} 筆，${errors.length} 筆失敗：\n${preview}`, { duration: 8000 })
+      } else {
+        toast.success(`✅ 已匯入 ${created} 筆聯繫紀錄，日報統計自動更新`)
+      }
+      loadToday()
+    } catch (e) {
+      toast.error(`匯入失敗：${(e as Error).message}`)
+    } finally {
+      setExcelImporting(false)
+    }
+  }
+  function onExcelDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    if (report?.status === 'SUBMITTED' || report?.status === 'APPROVED') return
+    const f = e.dataTransfer.files?.[0]
+    if (f) importExcelAsContact(f)
+  }
+
   const isLocked = report?.status === 'SUBMITTED' || report?.status === 'APPROVED'
   const isNeedsRevision = report?.status === 'NEEDS_REVISION'
   const isApproved = report?.status === 'APPROVED'
@@ -263,6 +302,45 @@ export default function SalesDailyReportPage() {
               {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
               一鍵送出
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Excel 快匯 — 丟 Excel 進去，聯繫紀錄自動入 DB，日報統計自動更新 */}
+      {!isLocked && (
+        <Card className="border-violet-200 bg-violet-50/40">
+          <CardContent className="py-4">
+            <div
+              onDrop={onExcelDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="border-2 border-dashed border-violet-300 rounded-lg p-5 text-center bg-white"
+            >
+              <p className="text-sm font-semibold text-violet-900 mb-1">📊 Excel 快匯 — 拋入今日聯繫紀錄</p>
+              <p className="text-xs text-violet-700/80 mb-3">
+                拖 .xlsx 進來 → 自動建聯繫紀錄 → 日報的拜訪/通話數自動更新
+              </p>
+              <input
+                type="file"
+                id="daily-excel-import"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) importExcelAsContact(f)
+                  e.target.value = ''
+                }}
+              />
+              <Button variant="outline" className="bg-white" disabled={excelImporting}
+                onClick={() => document.getElementById('daily-excel-import')?.click()}>
+                {excelImporting
+                  ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />匯入中...</>
+                  : <>📥 選擇 Excel 檔</>}
+              </Button>
+              <p className="mt-2 text-xs text-muted-foreground">
+                欄位：客戶 / 日期 / 類型 / 內容 / 結果 / 下次追蹤日 / 下次動作 / 反應 ·{' '}
+                <a href="/api/follow-up-logs/import" download className="text-violet-600 underline">下載範本</a>
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
