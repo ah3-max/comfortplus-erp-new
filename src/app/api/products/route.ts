@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 // 角色權限定義
 const CAN_SEE_COST     = ['SUPER_ADMIN', 'GM', 'PROCUREMENT', 'FINANCE']
@@ -139,6 +140,21 @@ export async function POST(req: NextRequest) {
         },
       })
     }
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: role,
+      module: 'products',
+      action: 'CREATE',
+      entityType: 'Product',
+      entityId: product.id,
+      entityLabel: `${product.sku} ${product.name}`,
+      changes: {
+        sellingPrice: { before: 0, after: Number(product.sellingPrice) },
+        costPrice: { before: 0, after: Number(product.costPrice) },
+      },
+    }).catch(() => {})
 
     return NextResponse.json(maskProduct(product as unknown as Record<string, unknown>, role), { status: 201 })
   } catch (error) {

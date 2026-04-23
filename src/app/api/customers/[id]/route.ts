@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { canAccessCustomer, buildScopeContext } from '@/lib/scope'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -81,7 +82,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const body = await req.json()
 
     // IDOR check: verify user can access this customer
-    const existing = await prisma.customer.findUnique({ where: { id }, select: { salesRepId: true } })
+    const existing = await prisma.customer.findUnique({
+      where: { id },
+      select: { salesRepId: true, name: true, code: true, creditLimit: true, isActive: true, taxId: true },
+    })
     if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     const ctx = buildScopeContext(session as { user: { id: string; role: string } })
     if (!canAccessCustomer(ctx, existing)) {
@@ -129,6 +133,29 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       },
       include: { salesRep: { select: { id: true, name: true } } },
     })
+
+    const changes: Record<string, { before: unknown; after: unknown }> = {}
+    if (existing.name !== customer.name) changes.name = { before: existing.name, after: customer.name }
+    if (existing.isActive !== customer.isActive) changes.isActive = { before: existing.isActive, after: customer.isActive }
+    if (existing.taxId !== customer.taxId) changes.taxId = { before: existing.taxId, after: customer.taxId }
+    if (Number(existing.creditLimit ?? 0) !== Number(customer.creditLimit ?? 0)) {
+      changes.creditLimit = { before: existing.creditLimit, after: customer.creditLimit }
+    }
+    if (existing.salesRepId !== customer.salesRepId) {
+      changes.salesRepId = { before: existing.salesRepId, after: customer.salesRepId }
+    }
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'customers',
+      action: 'UPDATE',
+      entityType: 'Customer',
+      entityId: id,
+      entityLabel: `${customer.code} ${customer.name}`,
+      changes,
+    }).catch(() => {})
 
     return NextResponse.json(customer)
   } catch (error) {
@@ -179,7 +206,22 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (!canDelete) return NextResponse.json({ error: '無權限執行此操作' }, { status: 403 })
 
     const { id } = await params
+    const target = await prisma.customer.findUnique({ where: { id }, select: { code: true, name: true } })
+    if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     await prisma.customer.update({ where: { id }, data: { isActive: false } })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: role,
+      module: 'customers',
+      action: 'DEACTIVATE',
+      entityType: 'Customer',
+      entityId: id,
+      entityLabel: `${target.code} ${target.name}`,
+      changes: { isActive: { before: true, after: false } },
+    }).catch(() => {})
+
     return NextResponse.json({ success: true })
   } catch (error) {
     return handleApiError(error, 'customers.delete')
