@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
 import ExcelJS from 'exceljs'
 import { logAudit } from '@/lib/audit'
+import { detectColumns, readStr, readDate } from '@/lib/excel-import'
 
 /**
  * POST /api/samples/import
@@ -76,6 +77,26 @@ export async function POST(req: NextRequest) {
 
     const results = { created: 0, skipped: 0, errors: [] as { row: number; reason: string }[] }
 
+    // ── Header detection ────────────────────────────────
+    const col = detectColumns(sheet.getRow(1), {
+      customer:   ['客戶', '客戶名稱', '機構', '機構名稱', '代碼', 'customer'],
+      sentDate:   ['寄送日', '寄出日', '日期', '送樣日', 'sentdate', 'date'],
+      items:      ['品項', '樣品品項', '樣品', '商品', 'items'],
+      quantity:   ['數量', 'qty', 'quantity'],
+      purpose:    ['目的', '用途', 'purpose'],
+      trackingNo: ['寄送單號', '單號', 'tracking', 'trackingno'],
+      recipient:  ['收件人', 'recipient', 'to'],
+      followUp:   ['預計追蹤日', '下次追蹤', '追蹤日', 'followup', 'followupdate'],
+      notes:      ['備註', '說明', 'notes'],
+    })
+
+    if (!col.customer || !col.items) {
+      return NextResponse.json({
+        error: `欄位對應失敗，Excel 第一列需包含「客戶」與「樣品品項」欄。`,
+        detectedColumns: col,
+      }, { status: 400 })
+    }
+
     const customers = await prisma.customer.findMany({
       where: { isActive: true },
       select: { id: true, name: true, code: true },
@@ -92,15 +113,15 @@ export async function POST(req: NextRequest) {
     const today = new Date()
 
     for (const { row: rowNumber, data: row } of rowsToProcess) {
-      const nameOrCode = cellStr(row.getCell(1))
-      const sentDate   = cellDate(row.getCell(2)) ?? today
-      const items      = cellStr(row.getCell(3))
-      const qtyRaw     = cellStr(row.getCell(4))
-      const purposeRaw = cellStr(row.getCell(5))
-      const trackingNo = cellStr(row.getCell(6))
-      const recipient  = cellStr(row.getCell(7))
-      const followUp   = cellDate(row.getCell(8))
-      const notes      = cellStr(row.getCell(9))
+      const nameOrCode = readStr(row, col.customer)
+      const sentDate   = readDate(row, col.sentDate) ?? today
+      const items      = readStr(row, col.items)
+      const qtyRaw     = readStr(row, col.quantity)
+      const purposeRaw = readStr(row, col.purpose)
+      const trackingNo = readStr(row, col.trackingNo)
+      const recipient  = readStr(row, col.recipient)
+      const followUp   = readDate(row, col.followUp)
+      const notes      = readStr(row, col.notes)
 
       if (!nameOrCode) { results.skipped++; continue }
       if (!items) {

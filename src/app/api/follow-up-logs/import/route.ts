@@ -101,6 +101,46 @@ export async function POST(req: NextRequest) {
 
     const results = { created: 0, skipped: 0, errors: [] as { row: number; reason: string }[] }
 
+    // ── Header detection: map field → 1-based column index ──
+    // Accept many aliases so Excel from different sources just works.
+    const FIELD_ALIASES: Record<string, string[]> = {
+      customer:   ['客戶', '客戶名稱', '客戶代碼', '機構', '機構名稱', '機構代碼', '名稱', 'customer', 'name'],
+      date:       ['日期', '聯繫日', '聯繫日期', '拜訪日', '拜訪日期', '聯絡日期', 'date'],
+      logType:    ['類型', '聯繫類型', '聯繫方式', '方式', '類別', 'type', 'logtype'],
+      content:    ['內容', '聯繫內容', '拜訪內容', '摘要', '紀錄', '記錄', '說明', 'content', 'note'],
+      result:     ['結果', '聯繫結果', '拜訪結果', 'result'],
+      nextDate:   ['下次追蹤日', '下次追蹤', '下次拜訪', '下次聯繫日', '下次日期', 'nextdate'],
+      nextAction: ['下次動作', '下次行動', '下一步', 'nextaction'],
+      reaction:   ['客戶反應', '反應', '態度', 'reaction'],
+    }
+
+    const headerRow = sheet.getRow(1)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const col: Record<string, number | null> = {
+      customer: null, date: null, logType: null, content: null,
+      result: null, nextDate: null, nextAction: null, reaction: null,
+    }
+    const normalize = (s: string) => s.replace(/[\s（）()*\*]/g, '').toLowerCase()
+    headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = cellStr(cell as any)
+      const n = normalize(raw)
+      for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+        if (col[field] !== null) continue
+        if (aliases.some(a => n.includes(normalize(a)))) {
+          col[field] = colNumber
+          break
+        }
+      }
+    })
+
+    if (!col.customer || !col.content) {
+      return NextResponse.json({
+        error: `欄位對應失敗。請確認 Excel 第一列含有「客戶」與「內容」欄（找到 customer=${col.customer}, content=${col.content}）。\n系統接受的欄名：客戶/客戶名稱/機構、內容/紀錄/摘要等。`,
+        detectedColumns: col,
+      }, { status: 400 })
+    }
+
     // Pre-load customer lookup (name + code) to keep imports fast
     const customers = await prisma.customer.findMany({
       where: { isActive: true },
@@ -115,19 +155,19 @@ export async function POST(req: NextRequest) {
     })
 
     const today = new Date()
+    const getCell = (row: unknown, colIdx: number | null) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      colIdx ? (row as any).getCell(colIdx) : null
 
     for (const { row: rowNumber, data } of rowsToProcess) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const row = data as any
-
-      const nameOrCode = cellStr(row.getCell(1))
-      const logDateRaw = cellDate(row.getCell(2))
-      const logTypeRaw = cellStr(row.getCell(3))
-      const content    = cellStr(row.getCell(4))
-      const result     = cellStr(row.getCell(5))
-      const nextDate   = cellDate(row.getCell(6))
-      const nextAction = cellStr(row.getCell(7))
-      const reaction   = cellStr(row.getCell(8))
+      const nameOrCode = col.customer   ? cellStr(getCell(data, col.customer))  : ''
+      const logDateRaw = col.date       ? cellDate(getCell(data, col.date))     : null
+      const logTypeRaw = col.logType    ? cellStr(getCell(data, col.logType))   : ''
+      const content    = col.content    ? cellStr(getCell(data, col.content))   : ''
+      const result     = col.result     ? cellStr(getCell(data, col.result))    : ''
+      const nextDate   = col.nextDate   ? cellDate(getCell(data, col.nextDate)) : null
+      const nextAction = col.nextAction ? cellStr(getCell(data, col.nextAction)): ''
+      const reaction   = col.reaction   ? cellStr(getCell(data, col.reaction))  : ''
 
       if (!nameOrCode) {
         results.skipped++

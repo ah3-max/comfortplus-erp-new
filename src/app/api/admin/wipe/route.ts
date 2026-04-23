@@ -56,8 +56,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '請指定要清除的資料類型' }, { status: 400 })
     }
 
-    const scope: Scope = body.scope === 'all' ? 'all' : 'mine'
-    if (scope === 'all' && !MANAGER_ROLES.includes(role)) {
+    // Default: managers get 'all' (clearing seed/demo data is their job),
+    // regular reps get 'mine' (safe — only their own records).
+    const isManager = MANAGER_ROLES.includes(role)
+    const scope: Scope = body.scope === 'all'
+      ? 'all'
+      : body.scope === 'mine'
+        ? 'mine'
+        : (isManager ? 'all' : 'mine')
+
+    if (scope === 'all' && !isManager) {
       return NextResponse.json({ error: '僅主管/管理員可執行全站清除' }, { status: 403 })
     }
 

@@ -5,6 +5,7 @@ import { handleApiError } from '@/lib/api-error'
 import { generateSequenceNo } from '@/lib/sequence'
 import ExcelJS from 'exceljs'
 import { logAudit } from '@/lib/audit'
+import { detectColumns, readStr, readDate } from '@/lib/excel-import'
 
 /**
  * POST /api/institution-tours/import — 機構拜訪排程 Excel 批次匯入
@@ -80,6 +81,24 @@ export async function POST(req: NextRequest) {
 
     const results = { created: 0, skipped: 0, errors: [] as { row: number; reason: string }[] }
 
+    // ── Header detection ────────────────────────────────
+    const col = detectColumns(sheet.getRow(1), {
+      customer:  ['客戶', '客戶名稱', '機構', '機構名稱', '代碼', 'customer'],
+      tourDate:  ['拜訪日', '拜訪日期', '日期', 'tourdate', 'date'],
+      startTime: ['開始時間', '時間', 'starttime', 'time'],
+      tourType:  ['類型', '拜訪類型', '種類', 'type', 'tourtype'],
+      purpose:   ['目的', '備註', '目的/備註', 'purpose', 'notes'],
+      assignee:  ['指派業務', '業務', '負責人', 'assignee'],
+      reminder:  ['提醒分鐘', '提醒', 'reminder'],
+    })
+
+    if (!col.customer || !col.tourDate) {
+      return NextResponse.json({
+        error: `欄位對應失敗，Excel 第一列需包含「客戶」與「拜訪日」欄。`,
+        detectedColumns: col,
+      }, { status: 400 })
+    }
+
     const [customers, users] = await Promise.all([
       prisma.customer.findMany({
         where: { isActive: true },
@@ -102,13 +121,13 @@ export async function POST(req: NextRequest) {
     })
 
     for (const { row: rowNumber, data: row } of rowsToProcess) {
-      const nameOrCode = cellStr(row.getCell(1))
-      const tourDate   = cellDate(row.getCell(2))
-      const startTime  = cellStr(row.getCell(3))
-      const typeRaw    = cellStr(row.getCell(4))
-      const purpose    = cellStr(row.getCell(5))
-      const assigneeRaw = cellStr(row.getCell(6))
-      const reminderRaw = cellStr(row.getCell(7))
+      const nameOrCode = readStr(row, col.customer)
+      const tourDate   = readDate(row, col.tourDate)
+      const startTime  = readStr(row, col.startTime)
+      const typeRaw    = readStr(row, col.tourType)
+      const purpose    = readStr(row, col.purpose)
+      const assigneeRaw = readStr(row, col.assignee)
+      const reminderRaw = readStr(row, col.reminder)
 
       if (!nameOrCode) { results.skipped++; continue }
       if (!tourDate) {
