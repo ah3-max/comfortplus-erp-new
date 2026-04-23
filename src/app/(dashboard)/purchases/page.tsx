@@ -93,6 +93,14 @@ export default function PurchasesPage() {
       .catch(() => {})
   }, [])
 
+  // Load supplier list once for filter dropdown
+  useEffect(() => {
+    fetch('/api/suppliers?showAll=true')
+      .then(r => r.json())
+      .then(d => setSuppliers(Array.isArray(d) ? d : (d.data ?? [])))
+      .catch(() => {})
+  }, [])
+
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
