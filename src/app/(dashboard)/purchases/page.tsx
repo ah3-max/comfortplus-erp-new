@@ -30,7 +30,7 @@ interface PurchaseOrder {
   expectedDate: string | null; createdAt: string
   supplier: { id: string; name: string; code: string }
   createdBy: { id: string; name: string }
-  items: Array<{ product: { name: string } }>
+  items: Array<{ quantity: number; receivedQty: number; product: { name: string } | null }>
   _count: { receipts: number }
 }
 
@@ -48,16 +48,29 @@ export default function PurchasesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterSupplier, setFilterSupplier] = useState('')
+  const [filterPayment, setFilterPayment] = useState('')
+  const [suppliers, setSuppliers] = useState<{ id: string; code: string; name: string }[]>([])
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<{ page: number; pageSize: number; total: number; totalPages: number } | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<PurchaseOrder | null>(null)
+
+  // Load supplier list once for filter dropdown
+  useEffect(() => {
+    fetch('/api/suppliers?showAll=true')
+      .then(r => r.json())
+      .then(d => setSuppliers(Array.isArray(d) ? d : (d.data ?? [])))
+      .catch(() => {})
+  }, [])
 
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
     if (search) params.set('search', search)
     if (filterStatus) params.set('status', filterStatus)
+    if (filterSupplier) params.set('supplierId', filterSupplier)
+    if (filterPayment) params.set('paymentStatus', filterPayment)
     params.set('page', String(page))
     params.set('pageSize', '50')
     try {
@@ -69,7 +82,7 @@ export default function PurchasesPage() {
       setOrders([])
     }
     setLoading(false)
-  }, [search, filterStatus, page])
+  }, [search, filterStatus, filterSupplier, filterPayment, page])
 
   useEffect(() => {
     const t = setTimeout(fetchOrders, 300)
@@ -152,6 +165,22 @@ export default function PurchasesPage() {
             </button>
           ))}
         </div>
+        <select className="rounded-md border px-2 py-1 text-sm"
+          value={filterSupplier}
+          onChange={(e) => { setFilterSupplier(e.target.value); setPage(1) }}>
+          <option value="">全部供應商</option>
+          {suppliers.map(s => (
+            <option key={s.id} value={s.id}>{s.code} - {s.name}</option>
+          ))}
+        </select>
+        <select className="rounded-md border px-2 py-1 text-sm"
+          value={filterPayment}
+          onChange={(e) => { setFilterPayment(e.target.value); setPage(1) }}>
+          <option value="">付款全部</option>
+          <option value="UNPAID">未付款</option>
+          <option value="PARTIAL">部分付款</option>
+          <option value="PAID">已付清</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -167,7 +196,7 @@ export default function PurchasesPage() {
               <TableHead className="text-right w-32">{dict.purchasesExt.totalAmount}</TableHead>
               <TableHead className="text-right w-28">{dict.purchasesExt.paidAmount}</TableHead>
               <TableHead className="w-24">{dict.purchasesExt.expectedDate}</TableHead>
-              <TableHead className="w-16">{dict.purchases.receive}</TableHead>
+              <TableHead className="w-28">到貨進度</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -181,7 +210,7 @@ export default function PurchasesPage() {
             ) : orders.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="py-16 text-center text-muted-foreground">
-                  {search || filterStatus ? dict.purchasesExt.noResults : dict.purchasesExt.noOrders}
+                  {search || filterStatus || filterSupplier || filterPayment ? dict.purchasesExt.noResults : dict.purchasesExt.noOrders}
                 </TableCell>
               </TableRow>
             ) : orders.map(o => {
@@ -206,7 +235,7 @@ export default function PurchasesPage() {
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {o.items.length > 0
-                      ? `${o.items[0].product.name}${o.items.length > 1 ? ` ${dict.common.etcItems} ${o.items.length} ${dict.common.pieces}` : ''}`
+                      ? `${o.items[0].product?.name ?? '—'}${o.items.length > 1 ? ` ${dict.common.etcItems} ${o.items.length} ${dict.common.pieces}` : ''}`
                       : '—'}
                   </TableCell>
                   <TableCell className="text-right font-medium">{fmt(o.totalAmount)}</TableCell>
@@ -218,13 +247,38 @@ export default function PurchasesPage() {
                       </div>
                     ) : <span className="text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {o.expectedDate ? fmtDate(o.expectedDate) : '—'}
+                  <TableCell className="text-sm">
+                    {o.expectedDate ? (() => {
+                      const days = Math.floor((new Date(o.expectedDate).getTime() - Date.now()) / 86400000)
+                      const overdue = days < 0 && !['RECEIVED', 'CANCELLED'].includes(o.status)
+                      return (
+                        <div>
+                          <div className={overdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}>
+                            {fmtDate(o.expectedDate)}
+                          </div>
+                          {overdue && <div className="text-xs text-red-500">逾期 {Math.abs(days)} 天</div>}
+                        </div>
+                      )
+                    })() : <span className="text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell className="text-center text-sm">
-                    {o._count.receipts > 0
-                      ? <span className="text-blue-600 font-medium">{o._count.receipts}</span>
-                      : '—'}
+                  <TableCell className="text-sm">
+                    {(() => {
+                      const totalQty = o.items.reduce((s, i) => s + Number(i.quantity || 0), 0)
+                      const recvQty = o.items.reduce((s, i) => s + Number(i.receivedQty || 0), 0)
+                      if (totalQty <= 0) return <span className="text-muted-foreground">—</span>
+                      const pct = Math.min(100, Math.round((recvQty / totalQty) * 100))
+                      const color = pct === 100 ? 'bg-green-500' : pct > 0 ? 'bg-amber-500' : 'bg-slate-300'
+                      return (
+                        <div className="space-y-0.5">
+                          <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                            <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {recvQty}/{totalQty} ({pct}%)
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
