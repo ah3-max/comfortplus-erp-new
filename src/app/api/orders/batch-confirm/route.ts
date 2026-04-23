@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '請提供訂單 ID 清單' }, { status: 400 })
     }
 
+    // Period guard: batch-confirm writes AR + journal with today's date
+    const { assertPeriodOpen } = await import('@/lib/period-guard')
+    await assertPeriodOpen(new Date())
+
     const results: { orderId: string; orderNo: string; status: 'confirmed' | 'skipped'; reason?: string }[] = []
 
     for (const orderId of body.orderIds) {

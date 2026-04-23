@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
+import { buildScopeContext, canAccessOrder, isOwnDataOnly } from '@/lib/scope'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -16,7 +17,19 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, Number(searchParams.get('page') ?? 1))
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
 
+    // Scope: SALES/CS/CARE_SUPERVISOR only see returns for orders they can access
+    const ctx = buildScopeContext(session as { user: { id: string; role: string } })
+    const scopeFilter = isOwnDataOnly(ctx.role) ? {
+      order: {
+        OR: [
+          { createdById: ctx.userId },
+          { customer: { salesRepId: ctx.userId } },
+        ],
+      },
+    } : {}
+
     const where = {
+      ...scopeFilter,
       ...(search && {
         OR: [
           { returnNo: { contains: search, mode: 'insensitive' as const } },
@@ -61,6 +74,20 @@ export async function POST(req: NextRequest) {
 
     if (!orderId || !customerId) {
       return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 })
+    }
+
+    // Verify user can access the target order (prevents SALES from filing returns on others' orders)
+    const order = await prisma.salesOrder.findUnique({
+      where: { id: orderId },
+      select: { id: true, customerId: true, createdById: true, customer: { select: { salesRepId: true } } },
+    })
+    if (!order) return NextResponse.json({ error: '找不到訂單' }, { status: 404 })
+    if (order.customerId !== customerId) {
+      return NextResponse.json({ error: '訂單與客戶不符' }, { status: 400 })
+    }
+    const ctx = buildScopeContext(session as { user: { id: string; role: string } })
+    if (!canAccessOrder(ctx, order)) {
+      return NextResponse.json({ error: '無權限對此訂單建立退貨' }, { status: 403 })
     }
 
     const returnNo = await generateSequenceNo('SALES_RETURN')
