@@ -227,6 +227,7 @@ export default function SalesDailyReportPage() {
     if (f) importExcelAsContact(f)
   }
 
+
   const isLocked = report?.status === 'SUBMITTED' || report?.status === 'APPROVED'
   const isNeedsRevision = report?.status === 'NEEDS_REVISION'
   const isApproved = report?.status === 'APPROVED'
@@ -344,6 +345,7 @@ export default function SalesDailyReportPage() {
           </CardContent>
         </Card>
       )}
+
 
       {/* End-of-day reminder banner */}
       {showReminder && (
