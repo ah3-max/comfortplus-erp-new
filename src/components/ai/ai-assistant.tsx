@@ -35,6 +35,25 @@ function getPageContext(pathname: string): 'dashboard' | 'orders' | 'customers' 
   return undefined
 }
 
+/**
+ * Extract entity info from URL for AI context-awareness.
+ *   /customers/abc123   → { entityType: 'customer',   entityId: 'abc123' }
+ *   /orders/xyz         → { entityType: 'order',      entityId: 'xyz' }
+ *   /quotations/q1      → { entityType: 'quotation',  entityId: 'q1' }
+ *   /purchases/p1       → { entityType: 'purchase',   entityId: 'p1' }
+ */
+function getPageEntity(pathname: string): { entityType: string; entityId: string } | null {
+  const m = pathname.match(/^\/(customers|orders|quotations|purchases|sales-invoices|suppliers)\/([^/?#]+)$/)
+  if (!m) return null
+  const typeMap: Record<string, string> = {
+    customers: 'customer', orders: 'order', quotations: 'quotation',
+    purchases: 'purchase', 'sales-invoices': 'salesInvoice', suppliers: 'supplier',
+  }
+  const t = typeMap[m[1]]
+  if (!t || m[2] === 'new' || m[2] === 'edit') return null
+  return { entityType: t, entityId: m[2] }
+}
+
 export function AiAssistant() {
   const { dict } = useI18n()
 
@@ -96,13 +115,15 @@ export function AiAssistant() {
     setMessages(prev => [...prev, { role: 'user', content: msg }])
     setLoading(true)
 
+    const pageEntity = getPageEntity(pathname)
+
     try {
       // Try skill execution first for action-oriented messages
       if (looksLikeSkillCommand(msg)) {
         const skillRes = await fetch('/api/ai/skills', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg }),
+          body: JSON.stringify({ message: msg, pageEntity }),
         })
 
         if (skillRes.ok) {
@@ -253,6 +274,31 @@ export function AiAssistant() {
                     ))}
                   </div>
                 </div>
+
+                {/* Context-aware quick chips (based on current page) */}
+                {(() => {
+                  const ent = getPageEntity(pathname)
+                  if (ent?.entityType === 'customer') {
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-violet-600 px-1">📍 針對這位客戶</p>
+                        <div className="space-y-1.5">
+                          {[
+                            { text: '摘要這個客戶最近狀況', emoji: '📝' },
+                            { text: '寫一封催收信給這個客戶', emoji: '✉️' },
+                            { text: '幫這個客戶出一張報價單', emoji: '💵' },
+                          ].map(q => (
+                            <button key={q.text} onClick={() => sendMessage(q.text)}
+                              className="w-full text-left rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-sm text-violet-700 hover:bg-violet-100 active:scale-[0.99] transition-all flex items-center gap-2">
+                              <span>{q.emoji}</span>{q.text}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
 
                 {/* Quick Skills */}
                 <div className="space-y-2">

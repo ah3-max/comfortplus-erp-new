@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
     skill?: string
     params?: Record<string, unknown>
     message?: string
+    pageEntity?: { entityType: string; entityId: string } | null
   }
 
   // ── Mode 1: Direct skill execution ───────────────────────
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   // ── Mode 2: Natural language intent detection ────────────
   if (body.message) {
-    const result = await detectAndExecute(body.message, session.user.id)
+    const result = await detectAndExecute(body.message, session.user.id, body.pageEntity ?? null)
     return NextResponse.json(result)
   }
 
@@ -146,10 +147,25 @@ const INTENT_SYSTEM_PROMPT = `你是 ERP 指令解析器。根據使用者的自
 「pipeline 有沒有卡住的」→ {"skill": "pipeline-health", "params": {}, "confidence": 0.9}
 「最近哪些客戶該跟進了」→ {"skill": "pipeline-health", "params": {}, "confidence": 0.85}`
 
-async function detectAndExecute(message: string, userId: string) {
+async function detectAndExecute(
+  message: string,
+  userId: string,
+  pageEntity: { entityType: string; entityId: string } | null,
+) {
   try {
+    // If user is on a customer page, resolve the customer name so the LLM
+    // knows what "這個客戶" refers to and can infer the right skill params.
+    let contextHint = ''
+    if (pageEntity?.entityType === 'customer') {
+      const c = await prisma.customer.findUnique({
+        where: { id: pageEntity.entityId },
+        select: { name: true, code: true },
+      })
+      if (c) contextHint = `\n\n[頁面上下文] 使用者目前正在看客戶「${c.name}」(${c.code})。若提到「這個客戶」「此客戶」或未指定客戶名，customerSearch 應填「${c.name}」。`
+    }
+
     const messages: AiMessage[] = [
-      { role: 'system', content: INTENT_SYSTEM_PROMPT },
+      { role: 'system', content: INTENT_SYSTEM_PROMPT + contextHint },
       { role: 'user', content: message },
     ]
 
@@ -200,6 +216,14 @@ async function detectAndExecute(message: string, userId: string) {
     if (intent.skill === 'find-customer' && !intent.params.search) {
       // Extract search term from original message
       intent.params.search = message.replace(/找|搜尋|查|客戶|一下|的/g, '').trim()
+    }
+
+    // If LLM failed to pick a customer but we have page context, use that
+    const customerSkills = ['summarize-customer', 'draft-collection-email', 'generate-quote']
+    if (customerSkills.includes(intent.skill) && pageEntity?.entityType === 'customer') {
+      if (!intent.params.customerSearch && !intent.params.customerId) {
+        intent.params.customerId = pageEntity.entityId
+      }
     }
 
     return executeSkill(intent.skill, intent.params, userId)
