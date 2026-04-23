@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
 import { handleApiError } from '@/lib/api-error'
 import { buildScopeContext, canAccessQuotation } from '@/lib/scope'
+import { logAudit } from '@/lib/audit'
+import { getCustomerCreditUsage } from '@/lib/credit'
+import { checkKpiMilestone } from '@/lib/kpi-check'
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -39,17 +42,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (!customer) return NextResponse.json({ error: '客戶不存在' }, { status: 400 })
     if (!customer.isActive) return NextResponse.json({ error: `客戶「${customer.name}」已停用` }, { status: 400 })
 
-    // Credit limit check
+    // Credit limit check — include AR outstanding + PENDING orders (shared with /api/orders POST)
     if (customer.creditLimit) {
-      const outstandingAR = await prisma.accountsReceivable.aggregate({
-        where: { customerId: customer.id, status: { in: ['NOT_DUE', 'DUE', 'PARTIAL_PAID'] } },
-        _sum: { amount: true, paidAmount: true },
-      })
-      const outstanding = Number(outstandingAR._sum?.amount ?? 0) - Number(outstandingAR._sum?.paidAmount ?? 0)
+      const { arOutstanding, pendingCommitted, total } = await getCustomerCreditUsage(customer.id)
       const orderAmount = Number(quotation.totalAmount ?? 0)
-      if (outstanding + orderAmount > Number(customer.creditLimit)) {
+      if (total + orderAmount > Number(customer.creditLimit)) {
         return NextResponse.json({
-          error: `超過信用額度：已使用 ${outstanding.toLocaleString()}，本單 ${orderAmount.toLocaleString()}，額度 ${Number(customer.creditLimit).toLocaleString()}`,
+          error: `超過信用額度：AR 已使用 ${arOutstanding.toLocaleString()}，待確認訂單 ${pendingCommitted.toLocaleString()}，本單 ${orderAmount.toLocaleString()}，額度 ${Number(customer.creditLimit).toLocaleString()}`,
         }, { status: 400 })
       }
     }
@@ -107,6 +106,21 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       where: { id },
       data: { status: 'CONVERTED' },
     })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'quotations',
+      action: 'CONVERT',
+      entityType: 'Quotation',
+      entityId: id,
+      entityLabel: `${quotation.quotationNo} → ${order.orderNo} (${customer.name})`,
+      changes: { status: { before: 'ACCEPTED', after: 'CONVERTED' } },
+    }).catch(() => {})
+
+    // KPI milestone check for the sales rep (fire-and-forget)
+    checkKpiMilestone(session.user.id).catch(() => {})
 
     return NextResponse.json({ orderId: order.id, orderNo: order.orderNo })
   } catch (error) {
