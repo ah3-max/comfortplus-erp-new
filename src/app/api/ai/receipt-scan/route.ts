@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { aiVisionChat, getVisionConfig } from '@/lib/ai'
+import { aiVisionChat, getVisionProviders } from '@/lib/ai'
 import { handleApiError } from '@/lib/api-error'
 
 const RECEIPT_SYSTEM_PROMPT = `你是一個專業的收據/發票辨識系統。請從提供的內容中精確提取以下資訊，回傳 JSON 格式。
@@ -50,10 +50,10 @@ export async function POST(req: NextRequest) {
     const session = await auth()
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const visionCfg = await getVisionConfig()
-    if (!visionCfg) {
+    const providers = await getVisionProviders()
+    if (providers.length === 0) {
       return NextResponse.json(
-        { error: '視覺辨識尚未設定，請聯繫管理員至「設定 → AI」配置 Vision API' },
+        { error: 'AI 辨識尚未設定，請聯繫管理員至「設定 → AI」配置 API' },
         { status: 422 },
       )
     }

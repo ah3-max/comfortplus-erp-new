@@ -197,51 +197,55 @@ async function anthropicChat(options: AiCompletionOptions): Promise<AiCompletion
 
 // ── Vision (OpenAI-compatible API) ───────────────────────────────────────────
 
-export interface VisionConfig {
+export interface VisionProvider {
+  name: string
   baseUrl: string
   model: string
   apiKey: string
+  supportsImage: boolean
+  enabled: boolean
 }
 
-export async function getVisionConfig(): Promise<VisionConfig | null> {
+export async function getVisionProviders(): Promise<VisionProvider[]> {
   const { prisma } = await import('@/lib/prisma')
-  const rows = await prisma.systemConfig.findMany({
-    where: { key: { in: ['ai_vision_base_url', 'ai_vision_model', 'ai_vision_api_key'] } },
-  })
-  const map = Object.fromEntries(rows.map(r => [r.key, r.value]))
-  if (!map.ai_vision_base_url || !map.ai_vision_model) return null
-  return {
-    baseUrl: map.ai_vision_base_url.replace(/\/+$/, ''),
-    model: map.ai_vision_model,
-    apiKey: map.ai_vision_api_key ?? '',
-  }
+  const row = await prisma.systemConfig.findUnique({ where: { key: 'ai_vision_providers' } })
+  if (!row?.value) return []
+  try {
+    const providers = JSON.parse(row.value) as VisionProvider[]
+    return providers.filter(p => p.enabled && p.baseUrl && p.model)
+  } catch { return [] }
 }
 
-async function openaiVisionChat(
-  visionCfg: VisionConfig,
+async function callOpenaiCompatible(
+  provider: VisionProvider,
   options: AiVisionOptions,
 ): Promise<AiCompletionResult> {
   type ContentPart =
     | { type: 'text'; text: string }
     | { type: 'image_url'; image_url: { url: string } }
 
-  const userContent: ContentPart[] = []
-  if (options.imageBase64 && options.mimeType) {
-    userContent.push({
-      type: 'image_url',
-      image_url: { url: `data:${options.mimeType};base64,${options.imageBase64}` },
-    })
+  const hasImage = !!(options.imageBase64 && options.mimeType)
+
+  let userContent: string | ContentPart[]
+  if (hasImage && provider.supportsImage) {
+    const parts: ContentPart[] = [
+      { type: 'image_url', image_url: { url: `data:${options.mimeType};base64,${options.imageBase64}` } },
+      { type: 'text', text: options.userText },
+    ]
+    userContent = parts
+  } else {
+    userContent = options.userText
   }
-  userContent.push({ type: 'text', text: options.userText })
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (visionCfg.apiKey) headers['Authorization'] = `Bearer ${visionCfg.apiKey}`
+  if (provider.apiKey) headers['Authorization'] = `Bearer ${provider.apiKey}`
 
-  const res = await fetch(`${visionCfg.baseUrl}/v1/chat/completions`, {
+  const baseUrl = provider.baseUrl.replace(/\/+$/, '')
+  const res = await fetch(`${baseUrl}/v1/chat/completions`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      model: visionCfg.model,
+      model: provider.model,
       messages: [
         { role: 'system', content: options.systemPrompt },
         { role: 'user', content: userContent },
@@ -253,14 +257,14 @@ async function openaiVisionChat(
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`Vision API error (${res.status}): ${text}`)
+    throw new Error(`[${provider.name}] API error (${res.status}): ${text}`)
   }
 
   const data = await res.json()
   return {
     content: data.choices?.[0]?.message?.content ?? '',
-    provider: 'openai-compatible',
-    model: visionCfg.model,
+    provider: provider.name,
+    model: provider.model,
     usage: data.usage ? {
       promptTokens: data.usage.prompt_tokens ?? 0,
       completionTokens: data.usage.completion_tokens ?? 0,
@@ -284,13 +288,35 @@ export async function aiChat(options: AiCompletionOptions): Promise<AiCompletion
 }
 
 /**
- * Send an image + text prompt via OpenAI-compatible vision API.
- * Config (URL, model, API key) is read from SystemConfig (admin settings).
+ * Send a prompt via OpenAI-compatible API with automatic fallback.
+ * Providers are read from SystemConfig (admin settings).
+ * For image input: only tries providers with supportsImage=true.
+ * For text-only input: tries all providers.
  */
 export async function aiVisionChat(options: AiVisionOptions): Promise<AiCompletionResult> {
-  const cfg = await getVisionConfig()
-  if (!cfg) throw new Error('視覺辨識尚未設定，請至管理員設定 → AI 設定中配置 Vision API')
-  return openaiVisionChat(cfg, options)
+  const allProviders = await getVisionProviders()
+  if (allProviders.length === 0) {
+    throw new Error('AI 辨識尚未設定，請至管理員設定 → AI 設定中配置 API')
+  }
+
+  const needsVision = !!(options.imageBase64 && options.mimeType)
+  const candidates = needsVision
+    ? allProviders.filter(p => p.supportsImage)
+    : allProviders
+
+  if (candidates.length === 0) {
+    throw new Error('沒有支援圖片辨識的 API，請至管理員設定中新增支援圖片的模型')
+  }
+
+  const errors: string[] = []
+  for (const provider of candidates) {
+    try {
+      return await callOpenaiCompatible(provider, options)
+    } catch (e) {
+      errors.push(`${provider.name}: ${(e as Error).message}`)
+    }
+  }
+  throw new Error(`所有 API 均呼叫失敗：\n${errors.join('\n')}`)
 }
 
 /**
