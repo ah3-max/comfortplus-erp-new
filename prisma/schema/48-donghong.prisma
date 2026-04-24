@@ -102,9 +102,13 @@ model ProductVariant {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  barcodes       VariantBarcode[]
-  costSnapshots  VariantCostSnapshot[]
-  quotationItems SupplierQuotationItem[]
+  barcodes           VariantBarcode[]
+  costSnapshots      VariantCostSnapshot[]
+  quotationItems     SupplierQuotationItem[]
+  masterProduct      Product?                @relation("ProductMasterVariants", fields: [masterProductId], references: [id])
+  defaultForProducts Product[]               @relation("ProductDefaultVariant")
+  supplier           Supplier?               @relation("VariantSupplier", fields: [supplierId], references: [id])
+  poItems            PurchaseOrderItem[]     @relation("PurchaseOrderItemVariant")
 
   @@index([masterSku])
   @@index([supplierId])
@@ -169,7 +173,9 @@ model SupplierQuotation {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  items SupplierQuotationItem[]
+  items          SupplierQuotationItem[]
+  purchaseOrders PurchaseOrder[]
+  supplier       Supplier                @relation(fields: [supplierId], references: [id])
 
   @@index([supplierId, status])
   @@index([validUntil])
@@ -203,6 +209,9 @@ model POSpecLock {
   lockedReason String?
   createdAt    DateTime @default(now())
 
+  purchaseOrder PurchaseOrder       @relation(fields: [poId], references: [id], onDelete: Cascade)
+  items         PurchaseOrderItem[]
+
   @@index([poId])
   @@index([variantId])
 }
@@ -227,6 +236,8 @@ model POMilestone {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
   @@unique([poId, sequenceNo])
   @@index([status, scheduledDate])
 }
@@ -244,6 +255,8 @@ model PODocument {
   uploadedAt   DateTime       @default(now())
   notes        String?
 
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
   @@index([poId, documentType])
 }
 
@@ -259,6 +272,8 @@ model POStatusLog {
   ipAddress     String?
   userAgent     String?
   createdAt     DateTime          @default(now())
+
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
 
   @@index([poId, createdAt])
 }

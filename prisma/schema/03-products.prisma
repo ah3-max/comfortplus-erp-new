@@ -1,32 +1,39 @@
 model Product {
-  id                     String                    @id @default(cuid())
-  sku                    String                    @unique
-  name                   String
-  category               String
-  series                 String?
-  size                   String?
-  packagingType          String?
-  piecesPerPack          Int?
-  packsPerBox            Int?
-  specification          String?
-  unit                   String                    @default("包")
-  boxQuantity            Int?
-  barcode                String?
-  costPrice              Decimal                   @db.Decimal(10, 2)
-  floorPrice             Decimal?                  @db.Decimal(10, 2)
-  sellingPrice           Decimal                   @db.Decimal(10, 2)
-  channelPrice           Decimal?                  @db.Decimal(10, 2)
-  wholesalePrice         Decimal?                  @db.Decimal(10, 2)
-  minSellPrice           Decimal?                  @db.Decimal(10, 2)
-  oemBasePrice           Decimal?                  @db.Decimal(10, 2)
-  factorySku             String?
-  moq                    Int?
-  leadTimeDays           Int?
-  weight                 Decimal?                  @db.Decimal(8, 3)
-  volume                 String?
-  storageNotes           String?
-  description            String?
-  isActive               Boolean                   @default(true)
+  id             String   @id @default(cuid())
+  sku            String   @unique
+  name           String
+  category       String
+  series         String?
+  size           String?
+  packagingType  String?
+  piecesPerPack  Int?
+  packsPerBox    Int?
+  specification  String?
+  unit           String   @default("包")
+  boxQuantity    Int?
+  barcode        String?
+  costPrice      Decimal  @db.Decimal(10, 2)
+  floorPrice     Decimal? @db.Decimal(10, 2)
+  sellingPrice   Decimal  @db.Decimal(10, 2)
+  channelPrice   Decimal? @db.Decimal(10, 2)
+  wholesalePrice Decimal? @db.Decimal(10, 2)
+  minSellPrice   Decimal? @db.Decimal(10, 2)
+  oemBasePrice   Decimal? @db.Decimal(10, 2)
+  factorySku     String?
+  moq            Int?
+  leadTimeDays   Int?
+  weight         Decimal? @db.Decimal(8, 3)
+  volume         String?
+  storageNotes   String?
+  description    String?
+  isActive       Boolean  @default(true)
+
+  // === 東泓整合 v1 擴充 ===
+  isMasterSku      Boolean      @default(false)
+  masterSku        String?      @unique
+  businessUnit     BusinessUnit @default(SHARED)
+  defaultVariantId String?
+
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
   afterSalesConsumptions AfterSalesConsumption[]   @relation("AfterSalesProduct")
@@ -75,6 +82,13 @@ model Product {
   wmsInboundItems        WmsInboundItem[]          @relation("WmsInboundItemProduct")
   wmsInventories         WmsInventory[]            @relation("WmsInventoryProduct")
   wmsOutboundItems       WmsOutboundItem[]         @relation("WmsOutboundItemProduct")
+
+  // Relations (東泓整合)
+  variants       ProductVariant[] @relation("ProductMasterVariants")
+  defaultVariant ProductVariant?  @relation("ProductDefaultVariant", fields: [defaultVariantId], references: [id])
+
+  @@index([isMasterSku])
+  @@index([businessUnit])
 }
 
 model ProductSupplier {

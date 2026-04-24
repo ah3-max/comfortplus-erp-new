@@ -18,8 +18,17 @@ model Supplier {
   supplyItems      String? // 供應品項描述
   notes            String?
   isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  // === 東泓整合 v1 擴充 ===
+  defaultCurrency      String?      @default("TWD")
+  primaryContactEmail  String?
+  ccContacts           String[]
+  portalToken          String?      @unique
+  tokenExpiresAt       DateTime?
+  donghongBusinessUnit BusinessUnit @default(DONGHONG)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   purchaseOrders              PurchaseOrder[]
   priceHistory                SupplierPriceHistory[]
@@ -59,6 +68,10 @@ model Supplier {
 
   // ── 沖帳作業 ────────────────────────────────────────
   settlements SettlementBatch[] @relation("SupplierSettlements")
+
+  // Relations (東泓整合)
+  donghongQuotations SupplierQuotation[]
+  productVariants    ProductVariant[]    @relation("VariantSupplier")
 }
 
 // 歷史採購價格
@@ -141,6 +154,35 @@ model PurchaseOrder {
   delayReason          String? // 延誤原因
   finalUnitCost        Decimal? @db.Decimal(10, 2) // 最終結算單價
 
+  // === 東泓整合 v1 擴充 ===
+  donghongBusinessUnit BusinessUnit? // 若為東泓採購則設定
+  donghongStatus       DonghongPOStatus? // 與既有 status 並存
+  totalAmountTwd       Decimal?          @db.Decimal(14, 2)
+  incoterms            String?
+  depositRatio         Decimal?          @db.Decimal(5, 4)
+
+  // 審核
+  approvalTier   ApprovalTier?
+  approvedAt     DateTime?
+  approvedById   String?
+  rejectedAt     DateTime?
+  rejectedReason String?
+
+  // PDF 與回簽
+  pdfUrl          String?
+  pdfHash         String?
+  qrCodeUrl       String?
+  sentAt          DateTime?
+  signedAt        DateTime?
+  signedByName    String?
+  signedIp        String?
+  signedUserAgent String?
+  auditHash       String?
+
+  // 供應商報價關聯
+  supplierQuotationId String?
+  supplierQuotation   SupplierQuotation? @relation(fields: [supplierQuotationId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -155,10 +197,16 @@ model PurchaseOrder {
   supplierInvoices  SupplierInvoice[]   @relation("PurchaseSupplierInvoice")
   materialShipments MaterialShipment[]  @relation("PurchaseMaterialShipment")
   purchaseReturns   PurchaseReturn[]
+  milestones        POMilestone[]
+  documents         PODocument[]
+  statusLogs        POStatusLog[]
+  specLocks         POSpecLock[]
 
   @@index([supplierId, status])
   @@index([status, createdAt(sort: Desc)])
   @@index([expectedDate])
+  @@index([donghongStatus])
+  @@index([donghongBusinessUnit])
 }
 
 // ========== 進貨退貨 ==========
@@ -225,6 +273,14 @@ model PurchaseOrderItem {
   subtotal    Decimal            @db.Decimal(12, 2)
   taxType     String? // 品項稅別
   notes       String?
+
+  // === 東泓整合 v1 擴充 ===
+  variantId  String?
+  variant    ProductVariant? @relation("PurchaseOrderItemVariant", fields: [variantId], references: [id])
+  specLockId String?
+  specLock   POSpecLock?     @relation(fields: [specLockId], references: [id])
+
+  @@index([variantId])
 }
 
 model PurchaseReceipt {
