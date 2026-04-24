@@ -1,92 +1,83 @@
-// ========== 領料單（Material Requisition） ==========
-// 流程：BOM → 生產工單(ProductionOrder) → 領料單(MaterialRequisition) → 製造 → 生產入庫(ProductionReceipt)
-
 model MaterialRequisition {
-  id                  String              @id @default(cuid())
-  requisitionNumber   String              @unique // MR + YYYYMMDD + 流水號
-  date                DateTime            @default(now())
-  productionOrderId   String              // 關聯生產工單
-  productionOrder     ProductionOrder     @relation(fields: [productionOrderId], references: [id])
-  fromWarehouseId     String              // 出料倉庫
-  fromWarehouse       Warehouse           @relation("ReqFromWarehouse", fields: [fromWarehouseId], references: [id])
-  toWarehouseId       String              // 收料倉庫/工廠
-  toWarehouse         Warehouse           @relation("ReqToWarehouse", fields: [toWarehouseId], references: [id])
-  handlerId           String
-  handler             User                @relation("RequisitionHandler", fields: [handlerId], references: [id])
-  status              RequisitionStatus   @default(DRAFT)
-  notes               String?
-
-  items               MaterialRequisitionItem[]
-
-  createdById         String
-  createdBy           User                @relation("RequisitionCreatedBy", fields: [createdById], references: [id])
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id                String                    @id @default(cuid())
+  requisitionNumber String                    @unique
+  date              DateTime                  @default(now())
+  productionOrderId String
+  fromWarehouseId   String
+  toWarehouseId     String
+  handlerId         String
+  status            RequisitionStatus         @default(DRAFT)
+  notes             String?
+  createdById       String
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  createdBy         User                      @relation("RequisitionCreatedBy", fields: [createdById], references: [id])
+  fromWarehouse     Warehouse                 @relation("ReqFromWarehouse", fields: [fromWarehouseId], references: [id])
+  handler           User                      @relation("RequisitionHandler", fields: [handlerId], references: [id])
+  productionOrder   ProductionOrder           @relation(fields: [productionOrderId], references: [id])
+  toWarehouse       Warehouse                 @relation("ReqToWarehouse", fields: [toWarehouseId], references: [id])
+  items             MaterialRequisitionItem[]
 
   @@index([productionOrderId])
   @@index([status, date])
 }
 
 model MaterialRequisitionItem {
-  id              String                @id @default(cuid())
-  requisitionId   String
-  requisition     MaterialRequisition   @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
-  productId       String
-  product         Product               @relation("RequisitionItemProduct", fields: [productId], references: [id])
-  productName     String                // 冗餘存檔
-  specification   String?
-  quantity        Decimal               @db.Decimal(10, 2)
-  bomVersion      String?
-  unit            String?
-  serialNumber    String?               // 序號/批號
-  memo            String?
+  id            String              @id @default(cuid())
+  requisitionId String
+  productId     String
+  productName   String
+  specification String?
+  quantity      Decimal             @db.Decimal(10, 2)
+  bomVersion    String?
+  unit          String?
+  serialNumber  String?
+  memo          String?
+  product       Product             @relation("RequisitionItemProduct", fields: [productId], references: [id])
+  requisition   MaterialRequisition @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
 
   @@index([requisitionId])
 }
 
-// ========== 生產入庫（Production Receipt） ==========
-
 model ProductionReceipt {
-  id                    String            @id @default(cuid())
-  receiptNumber         String            @unique // PR + YYYYMMDD + 流水號
-  date                  DateTime          @default(now())
-  factoryId             String            // 生產工廠(Supplier)
-  factory               Supplier          @relation("ReceiptFactory", fields: [factoryId], references: [id])
-  receivingWarehouseId  String            // 收貨倉庫
-  receivingWarehouse    Warehouse         @relation("ReceiptWarehouse", fields: [receivingWarehouseId], references: [id])
-  handlerId             String
-  handler               User              @relation("ReceiptHandler", fields: [handlerId], references: [id])
-  productionOrderId     String?
-  productionOrder       ProductionOrder?  @relation("ReceiptFromProduction", fields: [productionOrderId], references: [id])
-  status                ReceiptStatus     @default(DRAFT)
-  notes                 String?
-
-  items                 ProductionReceiptItem[]
-
-  createdById           String
-  createdBy             User              @relation("ReceiptCreatedBy", fields: [createdById], references: [id])
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  id                   String                  @id @default(cuid())
+  receiptNumber        String                  @unique
+  date                 DateTime                @default(now())
+  factoryId            String
+  receivingWarehouseId String
+  handlerId            String
+  productionOrderId    String?
+  status               ReceiptStatus           @default(DRAFT)
+  notes                String?
+  createdById          String
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  createdBy            User                    @relation("ReceiptCreatedBy", fields: [createdById], references: [id])
+  factory              Supplier                @relation("ReceiptFactory", fields: [factoryId], references: [id])
+  handler              User                    @relation("ReceiptHandler", fields: [handlerId], references: [id])
+  productionOrder      ProductionOrder?        @relation("ReceiptFromProduction", fields: [productionOrderId], references: [id])
+  receivingWarehouse   Warehouse               @relation("ReceiptWarehouse", fields: [receivingWarehouseId], references: [id])
+  items                ProductionReceiptItem[]
 
   @@index([productionOrderId])
   @@index([status, date])
 }
 
 model ProductionReceiptItem {
-  id                  String              @id @default(cuid())
-  receiptId           String
-  receipt             ProductionReceipt   @relation(fields: [receiptId], references: [id], onDelete: Cascade)
-  productId           String              // 生產品項
-  product             Product             @relation("ReceiptItemProduct", fields: [productId], references: [id])
-  productName         String
-  specification       String?
-  quantity            Decimal             @db.Decimal(10, 2)
-  bomVersion          String?
-  manufacturedItemId  String?             // 製造品項
-  resourceInput       String?             // 投入資源
-  productionTime      Decimal?            @db.Decimal(8, 2) // 製造時間(小時)
-  unit                String?
-  memo                String?
+  id                 String            @id @default(cuid())
+  receiptId          String
+  productId          String
+  productName        String
+  specification      String?
+  quantity           Decimal           @db.Decimal(10, 2)
+  bomVersion         String?
+  manufacturedItemId String?
+  resourceInput      String?
+  productionTime     Decimal?          @db.Decimal(8, 2)
+  unit               String?
+  memo               String?
+  product            Product           @relation("ReceiptItemProduct", fields: [productId], references: [id])
+  receipt            ProductionReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
 
   @@index([receiptId])
 }

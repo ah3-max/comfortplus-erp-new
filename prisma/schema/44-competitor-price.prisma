@@ -1,24 +1,21 @@
-// ========== 競品每日價格監控 ==========
-// 手動填報競品在各通路的售價，供業務人員追蹤價格趨勢
-
 model CompetitorPrice {
   id            String   @id @default(cuid())
-  recordDate    DateTime @db.Date        // 填報日期
-  channel       String                   // 通路：Costco / 全聯 / 家樂福 / 大樹 / 愛買 / 丁丁 / 蝦皮 / 其他
-  competitor    String                   // 競品品牌：包大人 / 來復易 / 安安 / 金安心 / 其他
-  productName   String                   // 競品商品名稱（自由文字）
-  sku           String?                  // 競品 SKU（可選）
-  spec          String?                  // 規格（如 30片/包）
-  unitPrice     Decimal  @db.Decimal(10, 2)  // 單價（含促銷後）
-  originalPrice Decimal? @db.Decimal(10, 2)  // 原價（促銷前）
-  promoNote     String?                  // 促銷說明（如「買一送一」「折扣」）
-  isOnShelf     Boolean  @default(true)  // 是否上架中
-  sourceUrl     String?                  // 商品頁連結（蝦皮/電商）
+  recordDate    DateTime @db.Date
+  channel       String
+  competitor    String
+  productName   String
+  sku           String?
+  spec          String?
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  originalPrice Decimal? @db.Decimal(10, 2)
+  promoNote     String?
+  isOnShelf     Boolean  @default(true)
+  sourceUrl     String?
   notes         String?
   createdById   String
-  createdBy     User     @relation("CompetitorPriceCreatedBy", fields: [createdById], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  createdBy     User     @relation("CompetitorPriceCreatedBy", fields: [createdById], references: [id])
 
   @@index([recordDate, channel, competitor])
   @@index([competitor, productName])

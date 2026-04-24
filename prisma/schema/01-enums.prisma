@@ -1,67 +1,63 @@
-// ========== All Enum Definitions ==========
-
 enum Role {
-  SUPER_ADMIN        // 超級管理員
-  GM                 // 總經理/高階主管
-  SALES_MANAGER      // 業務主管
-  SALES              // 業務人員
-  CARE_SUPERVISOR    // 照顧督導
-  ECOMMERCE          // 電商營運
-  CS                 // 客服人員
-  WAREHOUSE_MANAGER  // 物流倉管主管
-  WAREHOUSE          // 倉儲/物流人員
-  PROCUREMENT        // 採購人員
-  FINANCE            // 財務人員
+  SUPER_ADMIN
+  GM
+  SALES_MANAGER
+  SALES
+  CARE_SUPERVISOR
+  ECOMMERCE
+  CS
+  WAREHOUSE_MANAGER
+  WAREHOUSE
+  PROCUREMENT
+  FINANCE
 }
 
 enum CustomerType {
-  // B2B 機構
-  NURSING_HOME       // 護理之家
-  CARE_HOME          // 養老院
-  ELDERLY_HOME       // 老福法養老院
-  SOCIAL_WELFARE     // 社團法人長照機構
-  DAY_CARE           // 日照中心
-  HOME_CARE          // 居家服務單位
-  HOSPITAL           // 醫院/診所
-  DISTRIBUTOR        // 經銷商
-  MEDICAL_CHANNEL    // 醫材通路
-  PHARMACY_CHANNEL   // 藥局通路
-  // B2C
-  B2C_OFFICIAL       // 官網會員
-  B2C_SHOPEE         // 蝦皮客戶
-  B2C_MOMO           // momo 客戶
-  B2C_OTHER          // 其他平台客戶
-  OTHER              // 其他
+  NURSING_HOME
+  CARE_HOME
+  ELDERLY_HOME
+  SOCIAL_WELFARE
+  DAY_CARE
+  HOME_CARE
+  HOSPITAL
+  DISTRIBUTOR
+  MEDICAL_CHANNEL
+  PHARMACY_CHANNEL
+  B2C_OFFICIAL
+  B2C_SHOPEE
+  B2C_MOMO
+  B2C_OTHER
+  OTHER
 }
 
 enum OrgLevel {
-  HEADQUARTERS  // 總部
-  BRANCH        // 分院/分館
-  STANDALONE    // 單一機構
+  HEADQUARTERS
+  BRANCH
+  STANDALONE
 }
 
 enum ContactRole {
-  PURCHASING  // 採購
-  DIRECTOR    // 主任
-  HEAD_NURSE  // 護理長
-  ACCOUNTING  // 會計
-  ADMIN       // 行政
-  OWNER       // 老闆/負責人
-  WAREHOUSE   // 倉管
-  RECEIVING   // 收貨窗口
-  OTHER       // 其他
+  PURCHASING
+  DIRECTOR
+  HEAD_NURSE
+  ACCOUNTING
+  ADMIN
+  OWNER
+  WAREHOUSE
+  RECEIVING
+  OTHER
 }
 
 enum ContactTimeSlot {
-  MORNING_9_11       // 上午 09:00–11:00
-  NOON_11_13         // 中午 11:00–13:00
-  AFTERNOON_13_15    // 下午 13:00–15:00
-  AFTERNOON_15_17    // 下午 15:00–17:00
-  BEFORE_NIGHT       // 晚班前
-  AFTER_NIGHT        // 晚班後
-  FLEXIBLE           // 不固定
-  NEED_LINE          // 需先 LINE
-  OTHER              // 其他備註
+  MORNING_9_11
+  NOON_11_13
+  AFTERNOON_13_15
+  AFTERNOON_15_17
+  BEFORE_NIGHT
+  AFTER_NIGHT
+  FLEXIBLE
+  NEED_LINE
+  OTHER
 }
 
 enum CustomerGrade {
@@ -72,206 +68,206 @@ enum CustomerGrade {
 }
 
 enum CustomerDevStatus {
-  POTENTIAL       // 潛在名單
-  CONTACTED       // 已接觸
-  VISITED         // 已拜訪
-  NEGOTIATING     // 報價中/洽談中
-  TRIAL           // 試用中
-  CLOSED          // 成交
-  STABLE_REPURCHASE // 穩定回購
-  DORMANT         // 休眠
-  CHURNED         // 流失
-  REJECTED        // 確定拒絕
-  OTHER           // 其他
+  POTENTIAL
+  CONTACTED
+  VISITED
+  NEGOTIATING
+  TRIAL
+  CLOSED
+  STABLE_REPURCHASE
+  DORMANT
+  CHURNED
+  REJECTED
+  OTHER
 }
 
 enum CustomerSource {
-  COLD_CALL     // 陌生開發
-  REFERRAL      // 介紹
-  EXHIBITION    // 展會
-  ADVERTISING   // 廣告
-  WEBSITE       // 官網
+  COLD_CALL
+  REFERRAL
+  EXHIBITION
+  ADVERTISING
+  WEBSITE
 }
 
 enum SalesRegion {
-  NORTH_METRO        // 北北桃（台北市・新北市・桃園市）
-  KEELUNG_YILAN      // 基隆宜蘭
-  HSINCHU_MIAOLI     // 新竹苗栗
-  TAICHUNG_AREA      // 台中彰化南投
-  YUNLIN_CHIAYI      // 雲林嘉義
-  TAINAN_KAOHSIUNG   // 台南高屏
-  HUALIEN_TAITUNG    // 花東
-  OFFSHORE           // 離島
+  NORTH_METRO
+  KEELUNG_YILAN
+  HSINCHU_MIAOLI
+  TAICHUNG_AREA
+  YUNLIN_CHIAYI
+  TAINAN_KAOHSIUNG
+  HUALIEN_TAITUNG
+  OFFSHORE
 }
 
 enum ForeignCaregiverCountry {
-  INDONESIA    // 印尼
-  VIETNAM      // 越南
-  PHILIPPINES  // 菲律賓
-  THAILAND     // 泰國
-  OTHER        // 其他
-  NONE         // 無
+  INDONESIA
+  VIETNAM
+  PHILIPPINES
+  THAILAND
+  OTHER
+  NONE
 }
 
 enum OrderFrequency {
-  WEEKLY       // 每週
-  BIWEEKLY     // 每兩週
-  MONTHLY      // 每月
-  IRREGULAR    // 不固定
-  URGENT_ONLY  // 急單型
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  IRREGULAR
+  URGENT_ONLY
 }
 
 enum ForecastConfidence {
-  HIGH    // 高
-  MEDIUM  // 中
-  LOW     // 低
+  HIGH
+  MEDIUM
+  LOW
 }
 
 enum DemandProductCategory {
-  DIAPER_LARGE  // 大尿布 (L/XL/2XL)
-  DIAPER_SMALL  // 小尿布 (S/M)
-  UNDERPAD      // 看護墊
-  WIPES         // 濕紙巾
-  OTHER         // 其他
+  DIAPER_LARGE
+  DIAPER_SMALL
+  UNDERPAD
+  WIPES
+  OTHER
 }
 
 enum ManagementQualityLevel {
-  GOOD               // 很好
-  AVERAGE            // 普通
-  NEEDS_IMPROVEMENT  // 待加強
-  UNKNOWN            // 不明
+  GOOD
+  AVERAGE
+  NEEDS_IMPROVEMENT
+  UNKNOWN
 }
 
 enum BrandSwitchFrequency {
-  ALMOST_NEVER     // 幾乎不換
-  OCCASIONAL_TEST  // 偶爾測試
-  QUARTERLY_EVAL   // 每季評估
-  FREQUENT         // 經常更換
-  PRICE_DRIVEN     // 看價格決定
+  ALMOST_NEVER
+  OCCASIONAL_TEST
+  QUARTERLY_EVAL
+  FREQUENT
+  PRICE_DRIVEN
 }
 
 enum ProcurementDecisionStyle {
-  PRICE_ORIENTED          // 價格導向
-  QUALITY_ORIENTED        // 品質導向
-  STABLE_SUPPLY_ORIENTED  // 穩定供貨導向
-  MANAGEMENT_DECIDES      // 主管決定
-  FRONTLINE_DECIDES       // 第一線決定
-  MIXED                   // 混合型
+  PRICE_ORIENTED
+  QUALITY_ORIENTED
+  STABLE_SUPPLY_ORIENTED
+  MANAGEMENT_DECIDES
+  FRONTLINE_DECIDES
+  MIXED
 }
 
 enum SamplePurpose {
-  TRIAL       // 試用
-  COMPARISON  // 比較/競品
-  EDUCATION   // 衛教/教育訓練
-  NEGOTIATION // 議價
-  OTHER       // 其他
+  TRIAL
+  COMPARISON
+  EDUCATION
+  NEGOTIATION
+  OTHER
 }
 
 enum ComplaintSeverity {
-  LOW       // 低
-  MEDIUM    // 中
-  HIGH      // 高
-  CRITICAL  // 緊急
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum ComplaintAction {
-  PHONE_CALL       // 電話聯繫
-  ONSITE_VISIT     // 現場關心
-  LINE_MSG         // LINE 聯繫
-  EMAIL            // Email 溝通
-  INTERNAL         // 內部協調
-  PRODUCT_EXCHANGE // 換貨處理
-  REFUND           // 退款/折讓
-  CLOSURE          // 結案
+  PHONE_CALL
+  ONSITE_VISIT
+  LINE_MSG
+  EMAIL
+  INTERNAL
+  PRODUCT_EXCHANGE
+  REFUND
+  CLOSURE
 }
 
 enum ComplaintType {
-  COMPLAINT      // 客訴
-  AFTER_SALES    // 售後服務
-  RETURN         // 退貨申請
-  PRODUCT_ISSUE  // 產品異常
-  OTHER          // 其他
+  COMPLAINT
+  AFTER_SALES
+  RETURN
+  PRODUCT_ISSUE
+  OTHER
 }
 
 enum ComplaintStatus {
-  OPEN        // 待處理
-  IN_PROGRESS // 處理中
-  RESOLVED    // 已解決
-  CLOSED      // 已關閉
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 enum FollowUpLogType {
-  CALL         // 電話
-  LINE         // LINE 訊息
-  EMAIL        // 電子郵件
-  MEETING      // 會議
-  FIRST_VISIT  // 初訪
-  SECOND_VISIT // 二訪
-  THIRD_VISIT  // 三訪
-  DELIVERY     // 送貨拜訪
-  SPRING_PARTY // 春酒活動
-  EXPO         // 擺攤活動
-  OTHER        // 其他
+  CALL
+  LINE
+  EMAIL
+  MEETING
+  FIRST_VISIT
+  SECOND_VISIT
+  THIRD_VISIT
+  DELIVERY
+  SPRING_PARTY
+  EXPO
+  OTHER
 }
 
 enum OpportunityStage {
-  PROSPECTING     // 初步接觸
-  CONTACTED       // 已聯繫
-  VISITED         // 已拜訪
-  NEEDS_ANALYSIS  // 需求分析
-  SAMPLING        // 樣品試用
-  QUOTED          // 已報價
-  NEGOTIATING     // 議價中
-  REGULAR_ORDER   // 穩定訂購
-  LOST            // 失單
-  INACTIVE        // 暫停追蹤
+  PROSPECTING
+  CONTACTED
+  VISITED
+  NEEDS_ANALYSIS
+  SAMPLING
+  QUOTED
+  NEGOTIATING
+  REGULAR_ORDER
+  LOST
+  INACTIVE
 }
 
 enum QuotationStatus {
-  DRAFT              // 草稿
-  PENDING_APPROVAL   // 待審批
-  APPROVED           // 已核准
-  SENT               // 已送出
-  CUSTOMER_REVIEWING // 客戶確認中
-  ACCEPTED           // 已接受
-  REJECTED           // 已拒絕
-  EXPIRED            // 已失效
-  CONVERTED          // 已轉訂單
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  CUSTOMER_REVIEWING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
 }
 
 enum OrderType {
-  B2B           // B2B 機構訂單
-  B2C           // B2C 零售訂單
-  RECURRING     // 定期配送訂單
-  TRIAL         // 試用品訂單
-  REPLENISH     // 補貨訂單
-  EXCHANGE      // 換貨訂單
+  B2B
+  B2C
+  RECURRING
+  TRIAL
+  REPLENISH
+  EXCHANGE
 }
 
 enum OrderSource {
-  SALES_INPUT        // 業務輸入
-  PHONE              // 電話
-  LINE               // LINE
-  SHOPEE             // 蝦皮
-  MOMO               // momo
-  WEBSITE            // 官網
-  DISTRIBUTOR_IMPORT // 經銷商匯入
-  AUTO_RECURRING     // 系統自動(週配)
+  SALES_INPUT
+  PHONE
+  LINE
+  SHOPEE
+  MOMO
+  WEBSITE
+  DISTRIBUTOR_IMPORT
+  AUTO_RECURRING
 }
 
 enum OrderStatus {
-  DRAFT             // 草稿
-  PENDING           // 待確認
-  CONFIRMED         // 已確認
-  ALLOCATING        // 待配貨
-  READY_TO_SHIP     // 待出貨
-  PARTIAL_SHIPPED   // 部分出貨
-  SHIPPED           // 已出貨
-  SIGNED            // 已簽收
-  COMPLETED         // 已完成
-  CANCELLED         // 已取消
-  RETURNING         // 退貨中
-  RETURNED          // 已退貨
+  DRAFT
+  PENDING
+  CONFIRMED
+  ALLOCATING
+  READY_TO_SHIP
+  PARTIAL_SHIPPED
+  SHIPPED
+  SIGNED
+  COMPLETED
+  CANCELLED
+  RETURNING
+  RETURNED
 }
 
 enum TransactionType {
@@ -285,85 +281,85 @@ enum TransactionType {
 }
 
 enum InventoryCategory {
-  FINISHED_GOODS    // 成品庫存
-  OEM_PENDING       // OEM 待交庫存
-  IN_TRANSIT        // 在途庫存
-  PACKAGING         // 包材庫存
-  RAW_MATERIAL      // 原物料庫存
-  DEFECTIVE         // 不良品庫存
-  GIFT_PROMO        // 贈品庫存
+  FINISHED_GOODS
+  OEM_PENDING
+  IN_TRANSIT
+  PACKAGING
+  RAW_MATERIAL
+  DEFECTIVE
+  GIFT_PROMO
 }
 
 enum StockStatus {
-  AVAILABLE         // 可用
-  LOCKED            // 鎖定
-  PENDING_QC        // 待驗
-  DEFECTIVE         // 不良
-  SCRAPPED          // 報廢
-  IN_TRANSIT        // 在途
-  PENDING_TRANSFER  // 待調撥
+  AVAILABLE
+  LOCKED
+  PENDING_QC
+  DEFECTIVE
+  SCRAPPED
+  IN_TRANSIT
+  PENDING_TRANSFER
 }
 
 enum TransferStatus {
-  PENDING           // 待出庫
-  IN_TRANSIT        // 轉運中
-  COMPLETED         // 已完成
-  CANCELLED         // 已取消
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
 }
 
 enum StockCountStatus {
-  DRAFT             // 草稿
-  COUNTING          // 盤點中
-  REVIEWING         // 複核中
-  COMPLETED         // 已完成
-  CANCELLED         // 已取消
+  DRAFT
+  COUNTING
+  REVIEWING
+  COMPLETED
+  CANCELLED
 }
 
 enum DeliveryTripStatus {
-  PLANNED    // 排定
-  DEPARTED   // 出發中
-  COMPLETED  // 完成
-  CANCELLED  // 取消
+  PLANNED
+  DEPARTED
+  COMPLETED
+  CANCELLED
 }
 
 enum DeliveryMethod {
-  OWN_FLEET      // 自有車配送
-  OUTSOURCED     // 外包物流
-  EXPRESS        // 宅配
-  FREIGHT        // 貨運/大宗
-  COLD_CHAIN     // 冷鏈
-  SELF_PICKUP    // 自取
+  OWN_FLEET
+  OUTSOURCED
+  EXPRESS
+  FREIGHT
+  COLD_CHAIN
+  SELF_PICKUP
 }
 
 enum ReturnType {
-  RETURN       // 退貨
-  EXCHANGE     // 換貨
-  PARTIAL      // 部分退貨
+  RETURN
+  EXCHANGE
+  PARTIAL
 }
 
 enum ReturnStatus {
-  PENDING      // 待處理
-  APPROVED     // 已核准
-  RECEIVING    // 收貨中
-  RECEIVED     // 已收貨
-  INSPECTING   // 檢驗中
-  COMPLETED    // 已完成
-  REJECTED     // 已拒絕
-  CANCELLED    // 已取消
+  PENDING
+  APPROVED
+  RECEIVING
+  RECEIVED
+  INSPECTING
+  COMPLETED
+  REJECTED
+  CANCELLED
 }
 
 enum SignStatus {
-  PENDING   // 待簽收
-  SIGNED    // 已簽收
-  REJECTED  // 拒收
+  PENDING
+  SIGNED
+  REJECTED
 }
 
 enum AnomalyStatus {
-  NORMAL   // 正常
-  DELAY    // 延誤
-  LOST     // 遺失
-  DAMAGE   // 損毀
-  PARTIAL  // 部分短缺
+  NORMAL
+  DELAY
+  LOST
+  DAMAGE
+  PARTIAL
 }
 
 enum ShipmentStatus {
@@ -375,40 +371,40 @@ enum ShipmentStatus {
 }
 
 enum PurchaseStatus {
-  DRAFT                // 草稿
-  PENDING_APPROVAL     // 待審批
-  SOURCING             // 詢價比價
-  ORDERED              // 已下單
-  FACTORY_CONFIRMED    // 工廠確認
-  IN_PRODUCTION        // 生產中
-  PARTIAL              // 部分到貨
-  RECEIVED             // 已到貨
-  INSPECTED            // 已驗收
-  WAREHOUSED           // 已入庫
-  CLOSED               // 已結案
-  CANCELLED            // 已取消
+  DRAFT
+  PENDING_APPROVAL
+  SOURCING
+  ORDERED
+  FACTORY_CONFIRMED
+  IN_PRODUCTION
+  PARTIAL
+  RECEIVED
+  INSPECTED
+  WAREHOUSED
+  CLOSED
+  CANCELLED
 }
 
 enum PurchaseType {
-  FINISHED_GOODS      // 成品/OEM 採購
-  OEM                 // OEM 代工採購
-  PACKAGING           // 包材採購
-  RAW_MATERIAL        // 原物料採購
-  AUXILIARY           // 輔料採購
-  SPARE_PARTS         // 備品採購
-  SAMPLE              // 樣品採購
-  GIFT_PROMO          // 贈品/活動物料
-  LOGISTICS_SUPPLIES  // 物流耗材
+  FINISHED_GOODS
+  OEM
+  PACKAGING
+  RAW_MATERIAL
+  AUXILIARY
+  SPARE_PARTS
+  SAMPLE
+  GIFT_PROMO
+  LOGISTICS_SUPPLIES
 }
 
 enum TaskType {
-  VISIT        // 拜訪
-  CALL         // 電訪
-  FOLLOW_UP    // 跟進
-  PROPOSAL     // 提案
-  DEMO         // 產品示範
-  ADMIN        // 行政作業
-  OTHER        // 其他
+  VISIT
+  CALL
+  FOLLOW_UP
+  PROPOSAL
+  DEMO
+  ADMIN
+  OTHER
 }
 
 enum TaskPriority {
@@ -419,57 +415,57 @@ enum TaskPriority {
 }
 
 enum TaskStatus {
-  PENDING      // 待辦
-  IN_PROGRESS  // 進行中
-  DONE         // 已完成
-  CANCELLED    // 已取消
+  PENDING
+  IN_PROGRESS
+  DONE
+  CANCELLED
 }
 
 enum ScheduleType {
-  FIRST_VISIT     // 初訪
-  SECOND_VISIT    // 二訪
-  THIRD_VISIT     // 三訪
-  PAYMENT_COLLECT // 收款
-  DELIVERY        // 送貨
-  EXPO            // 擺攤
-  SPRING_PARTY    // 春酒
-  RECONCILE       // 對帳
-  OTHER           // 其他
+  FIRST_VISIT
+  SECOND_VISIT
+  THIRD_VISIT
+  PAYMENT_COLLECT
+  DELIVERY
+  EXPO
+  SPRING_PARTY
+  RECONCILE
+  OTHER
 }
 
 enum SalesEventType {
-  ORDER           // 下單
-  DELIVERY        // 配送
-  PAYMENT         // 收款
-  RECONCILE       // 對帳
-  INVOICE_RECEIPT // 收票
-  OTHER           // 其他
+  ORDER
+  DELIVERY
+  PAYMENT
+  RECONCILE
+  INVOICE_RECEIPT
+  OTHER
 }
 
 enum CareVisitType {
-  ROUTINE_VISIT    // 定期巡訪
-  TRAINING         // 教育訓練
-  ONBOARDING       // 新客戶上線
-  COMPLAINT_FOLLOW // 客訴跟進
-  PRODUCT_DEMO     // 產品示範
-  OTHER            // 其他
+  ROUTINE_VISIT
+  TRAINING
+  ONBOARDING
+  COMPLAINT_FOLLOW
+  PRODUCT_DEMO
+  OTHER
 }
 
 enum CareScheduleStatus {
-  SCHEDULED    // 已排定
-  IN_PROGRESS  // 進行中
-  COMPLETED    // 已完成
-  CANCELLED    // 已取消
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum ServiceRequestType {
-  SKIN_ISSUE      // 皮膚問題/紅屁股
-  PRODUCT_CHANGE  // 產品更換需求
-  TRAINING        // 教育訓練需求
-  COMPLAINT       // 客訴
-  SUPPLY_ISSUE    // 供應問題
-  NEW_ONBOARD     // 新客戶上線
-  OTHER           // 其他
+  SKIN_ISSUE
+  PRODUCT_CHANGE
+  TRAINING
+  COMPLAINT
+  SUPPLY_ISSUE
+  NEW_ONBOARD
+  OTHER
 }
 
 enum ServiceUrgency {
@@ -480,38 +476,38 @@ enum ServiceUrgency {
 }
 
 enum ServiceRequestStatus {
-  OPEN         // 待處理
-  ASSIGNED     // 已指派
-  IN_PROGRESS  // 處理中
-  RESOLVED     // 已解決
-  CLOSED       // 已關閉
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
 }
 
 enum QcInspectionType {
-  RAW_MATERIAL       // 原物料 QC
-  PACKAGING          // 包材 QC
-  IN_PRODUCTION      // 生產中 QC
-  FINISHED_PRODUCT   // 成品 QC
-  PRE_SHIPMENT       // 出貨前 QC
-  INCOMING           // 到貨驗收 QC
-  COMPLAINT_TRACE    // 客訴反查 QC
+  RAW_MATERIAL
+  PACKAGING
+  IN_PRODUCTION
+  FINISHED_PRODUCT
+  PRE_SHIPMENT
+  INCOMING
+  COMPLAINT_TRACE
 }
 
 enum QcStatus {
-  PENDING            // 待檢驗
-  IN_PROGRESS        // 檢驗中
-  COMPLETED          // 已完成
-  ON_HOLD            // 暫停
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
 }
 
 enum QcResult {
-  ACCEPTED           // 允收
-  CONDITIONAL_ACCEPT // 條件允收
-  REWORK             // 重工
-  RETURN_TO_SUPPLIER // 退貨
-  SUPPLEMENT         // 補貨
-  DEDUCTION          // 扣款
-  ANOMALY_CLOSED     // 異常結案
+  ACCEPTED
+  CONDITIONAL_ACCEPT
+  REWORK
+  RETURN_TO_SUPPLIER
+  SUPPLEMENT
+  DEDUCTION
+  ANOMALY_CLOSED
 }
 
 enum MediaType {
@@ -522,108 +518,106 @@ enum MediaType {
 }
 
 enum ProductionStatus {
-  PENDING            // 待排產
-  SAMPLE_SUBMITTED   // 打樣中
-  SAMPLE_APPROVED    // 樣品確認
-  IN_PRODUCTION      // 生產中
-  QC_INSPECTION      // 驗貨中
-  READY_TO_SHIP      // 待出廠
-  SHIPPED            // 已出廠
-  COMPLETED          // 已完成
-  CANCELLED          // 已取消
+  PENDING
+  SAMPLE_SUBMITTED
+  SAMPLE_APPROVED
+  IN_PRODUCTION
+  QC_INSPECTION
+  READY_TO_SHIP
+  SHIPPED
+  COMPLETED
+  CANCELLED
 }
 
 enum FreightStatus {
-  PENDING         // 待處理
-  BOOKED          // 已訂艙
-  FACTORY_EXIT    // 工廠出廠
-  CONSOLIDATED    // 已集貨
-  LOADED          // 已裝櫃
-  CUSTOMS_DECLARE // 報關中
-  CUSTOMS_CLEARED // 已放行
-  IN_TRANSIT      // 海運中
-  ARRIVED         // 已到港
-  CUSTOMS_DEST    // 目的港清關中
-  DEVANNING       // 拆櫃中
-  DELIVERING      // 內陸配送中
-  RECEIVED        // 已到倉
-  CANCELLED       // 取消
+  PENDING
+  BOOKED
+  FACTORY_EXIT
+  CONSOLIDATED
+  LOADED
+  CUSTOMS_DECLARE
+  CUSTOMS_CLEARED
+  IN_TRANSIT
+  ARRIVED
+  CUSTOMS_DEST
+  DEVANNING
+  DELIVERING
+  RECEIVED
+  CANCELLED
 }
 
 enum CustomsStatus {
-  NOT_STARTED    // 未開始
-  SUBMITTED      // 已報關
-  INSPECTING     // 查驗中
-  CLEARED        // 已放行
-  HELD           // 扣留中
+  NOT_STARTED
+  SUBMITTED
+  INSPECTING
+  CLEARED
+  HELD
 }
 
 enum ChannelPlatform {
-  SHOPEE         // 蝦皮
-  MOMO           // momo
-  PCHOME         // PChome
-  YAHOO          // Yahoo
-  RAKUTEN        // 樂天
-  LINE_SHOP      // LINE 購物
-  OFFICIAL       // 官網
-  OTHER          // 其他
+  SHOPEE
+  MOMO
+  PCHOME
+  YAHOO
+  RAKUTEN
+  LINE_SHOP
+  OFFICIAL
+  OTHER
 }
 
 enum ChannelOrderStatus {
-  PENDING      // 待處理
-  CONFIRMED    // 已確認
-  SHIPPED      // 已出貨
-  DELIVERED    // 已送達
-  COMPLETED    // 已完成
-  CANCELLED    // 已取消
-  RETURNED     // 已退貨
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  RETURNED
 }
 
 enum PaymentDirection {
-  INCOMING       // 收款（客戶 → 我方）
-  OUTGOING       // 付款（我方 → 供應商）
+  INCOMING
+  OUTGOING
 }
 
 enum PaymentType {
-  DEPOSIT        // 訂金
-  PROGRESS       // 期款
-  FINAL          // 尾款
-  FULL           // 全額
-  REFUND         // 退款
-  ADJUSTMENT     // 調整
+  DEPOSIT
+  PROGRESS
+  FINAL
+  FULL
+  REFUND
+  ADJUSTMENT
 }
 
 enum ArStatus {
-  NOT_DUE       // 未到期
-  DUE           // 已到期
-  PARTIAL_PAID  // 部分收款
-  PAID          // 已收清
-  BAD_DEBT      // 呆帳風險
+  NOT_DUE
+  DUE
+  PARTIAL_PAID
+  PAID
+  BAD_DEBT
 }
 
 enum ApStatus {
-  NOT_DUE       // 未到期
-  DUE           // 已到期
-  PARTIAL_PAID  // 部分付款
-  PAID          // 已付清
+  NOT_DUE
+  DUE
+  PARTIAL_PAID
+  PAID
 }
 
 enum PeriodStatus {
-  OPEN          // 開放（可建立傳票）
-  CLOSING       // 結帳中（執行結帳程序）
-  CLOSED        // 已結帳（不可再建傳票，允許調整）
-  LOCKED        // 鎖定（完全封鎖，不可異動）
+  OPEN
+  CLOSING
+  CLOSED
+  LOCKED
 }
 
-// ── Care Incidents Enums ──
-
 enum IncidentType {
-  COMPLAINT        // 一般客訴
-  SKIN_ISSUE       // 皮膚問題
-  PRODUCT_DEFECT   // 產品瑕疵
-  CARE_PROCESS     // 照護流程問題
-  STAFF_FEEDBACK   // 員工反映
-  FAMILY_COMPLAINT // 家屬客訴
+  COMPLAINT
+  SKIN_ISSUE
+  PRODUCT_DEFECT
+  CARE_PROCESS
+  STAFF_FEEDBACK
+  FAMILY_COMPLAINT
   OTHER
 }
 
@@ -653,23 +647,23 @@ enum IncidentStatus {
 }
 
 enum SymptomCategory {
-  SKIN_REDNESS      // 皮膚紅腫
-  SKIN_ULCER        // 壓瘡/潰瘍
-  ALLERGIC_REACTION // 過敏反應
-  PRODUCT_LEAKAGE   // 產品滲漏
-  FIT_ISSUE         // 穿戴不合
-  ODOR_ISSUE        // 異味問題
+  SKIN_REDNESS
+  SKIN_ULCER
+  ALLERGIC_REACTION
+  PRODUCT_LEAKAGE
+  FIT_ISSUE
+  ODOR_ISSUE
   OTHER
 }
 
 enum AttachmentType {
-  SITE_PHOTO        // 現場照片
-  SKIN_PHOTO        // 皮膚照片（敏感）
-  CHAT_SCREENSHOT   // 聊天截圖
-  AUDIO_RECORDING   // 錄音檔
-  TRANSCRIPT        // 逐字稿
-  TRAINING_PHOTO    // 教育訓練照片
-  DOCUMENT          // 文件
+  SITE_PHOTO
+  SKIN_PHOTO
+  CHAT_SCREENSHOT
+  AUDIO_RECORDING
+  TRANSCRIPT
+  TRAINING_PHOTO
+  DOCUMENT
   OTHER
 }
 
@@ -686,8 +680,6 @@ enum ActionItemStatus {
   DONE
   CANCELLED
 }
-
-// ── NEW Enums ──
 
 enum ScrapCategory {
   DAMAGED
@@ -728,200 +720,187 @@ enum PhotoSource {
   SALESPERSON_TAKEN
 }
 
-// ========== 業務行事曆 ==========
-
 enum BusinessEventType {
-  EXHIBITION_LARGE       // 大型展會（年度）
-  EXHIBITION_SMALL       // 小型展會/擺攤
-  ASSOCIATION_NATIONAL   // 全國公會理監事會議
-  ASSOCIATION_COUNTY     // 縣市公會理監事會議
-  CHANNEL_PROMO          // 通路促銷檔期
-  WEEKLY_ADMIN           // 每週行政周會
-  MAJOR_PROMO            // 大檔期（618/雙11/318）
-  QUARTERLY_PROMO        // 季度促銷檔期
-  OTHER                  // 其他
+  EXHIBITION_LARGE
+  EXHIBITION_SMALL
+  ASSOCIATION_NATIONAL
+  ASSOCIATION_COUNTY
+  CHANNEL_PROMO
+  WEEKLY_ADMIN
+  MAJOR_PROMO
+  QUARTERLY_PROMO
+  OTHER
 }
 
 enum BusinessEventStatus {
-  PLANNING       // 規劃中
-  CONFIRMED      // 已確認
-  IN_PROGRESS    // 進行中
-  COMPLETED      // 已結束
-  CANCELLED      // 已取消
+  PLANNING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum MeetingType {
-  WEEKLY_ADMIN          // 每週行政周會
-  CHANNEL_NEGOTIATION   // 通路談判
-  ASSOCIATION_MEETING   // 公會會議
-  EXHIBITION_DEBRIEF    // 展後檢討
-  PROMO_PLANNING        // 檔期規劃會議
-  SUPPLIER_MEETING      // 供應商會議
-  INTERNAL              // 內部會議
-  OTHER                 // 其他
+  WEEKLY_ADMIN
+  CHANNEL_NEGOTIATION
+  ASSOCIATION_MEETING
+  EXHIBITION_DEBRIEF
+  PROMO_PLANNING
+  SUPPLIER_MEETING
+  INTERNAL
+  OTHER
 }
 
 enum MeetingStatus {
-  SCHEDULED    // 已排定
-  IN_PROGRESS  // 進行中
-  COMPLETED    // 已完成
-  CANCELLED    // 已取消
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
 }
 
 enum PromoTier {
-  NATIONAL_MAJOR   // 全國大檔（618/雙11/318）
-  QUARTERLY        // 季度大促
-  MONTHLY          // 月檔
-  FLASH_SALE       // 閃購
-  CHANNEL_SPECIAL  // 通路特殊檔
+  NATIONAL_MAJOR
+  QUARTERLY
+  MONTHLY
+  FLASH_SALE
+  CHANNEL_SPECIAL
 }
 
 enum PrepPhase {
-  PREPARATION   // 備貨規劃期（D-90 至 D-60）
-  NEGOTIATION   // 談判確認期（D-60 至 D-30）
-  EXECUTION     // 執行期（D-30 至 D-7）
-  LIVE          // 活動進行中
-  REVIEW        // 活動後檢討
+  PREPARATION
+  NEGOTIATION
+  EXECUTION
+  LIVE
+  REVIEW
 }
 
-// ── 行銷倉取貨 ──────────────────────────────────────
 enum PickupPurpose {
-  DELIVERY      // 業務送貨
-  SAMPLE        // 寄樣品
-  DEMO          // 展示/教育訓練
-  RETURN        // 退回大倉
-  OTHER         // 其他
+  DELIVERY
+  SAMPLE
+  DEMO
+  RETURN
+  OTHER
 }
 
 enum PickupStatus {
-  PENDING_PHOTO   // 待拍照（業務取貨中）
-  PENDING_VERIFY  // 待核對（已上傳照片，等助理確認）
-  VERIFIED        // 已核對（助理確認 OK）
-  DEDUCTED        // 已扣庫存
-  REJECTED        // 核對異常（數量/品項不對）
+  PENDING_PHOTO
+  PENDING_VERIFY
+  VERIFIED
+  DEDUCTED
+  REJECTED
 }
 
-// ── 銷貨單 ──────────────────────────────────────
 enum SalesInvoiceStatus {
-  DRAFT       // 草稿
-  CONFIRMED   // 已確認
-  SHIPPED     // 已出貨
-  RETURNED    // 已退貨
-  CANCELLED   // 已取消
+  DRAFT
+  CONFIRMED
+  SHIPPED
+  RETURNED
+  CANCELLED
 }
 
 enum ApprovalStatus {
-  PENDING     // 待審批
-  APPROVED    // 已批准
-  REJECTED    // 已拒絕
+  PENDING
+  APPROVED
+  REJECTED
 }
 
-// ── 領料單 ──────────────────────────────────────
 enum RequisitionStatus {
-  DRAFT       // 草稿
-  CONFIRMED   // 已確認
-  ISSUED      // 已發料
-  COMPLETED   // 已完成
-  CANCELLED   // 已取消
+  DRAFT
+  CONFIRMED
+  ISSUED
+  COMPLETED
+  CANCELLED
 }
 
-// ── 生產入庫 ──────────────────────────────────────
 enum ReceiptStatus {
-  DRAFT       // 草稿
-  CONFIRMED   // 已確認
-  RECEIVED    // 已入庫
-  CANCELLED   // 已取消
+  DRAFT
+  CONFIRMED
+  RECEIVED
+  CANCELLED
 }
 
-// ── 電子發票 ──────────────────────────────────────
 enum EInvoiceType {
-  B2B         // B2B 存證
-  B2C         // B2C 存證
+  B2B
+  B2C
 }
 
 enum EInvoiceStatus {
-  CREATED     // 新增
-  APPROVED    // 已批准
-  VOIDED      // 已作廢
-  CREDIT_NOTE // 折讓
+  CREATED
+  APPROVED
+  VOIDED
+  CREDIT_NOTE
 }
 
 enum TransmitStatus {
-  PENDING     // 待傳送
-  PROCESSING  // 傳送中
-  TRANSMITTED // 傳送完畢
-  FAILED      // 傳送失敗
-  EMAIL_SENT  // Email傳送完成
+  PENDING
+  PROCESSING
+  TRANSMITTED
+  FAILED
+  EMAIL_SENT
 }
 
-// ── 請購單 ──────────────────────────────────────
 enum PurchaseRequestStatus {
-  DRAFT       // 草稿
-  SUBMITTED   // 已提交
-  APPROVED    // 已核准
-  ORDERED     // 已下單
-  CANCELLED   // 已取消
+  DRAFT
+  SUBMITTED
+  APPROVED
+  ORDERED
+  CANCELLED
 }
 
-// ── 詢價單 ──────────────────────────────────────
 enum RFQStatus {
-  DRAFT       // 草稿
-  SENT        // 已送出
-  RESPONDED   // 已回覆
-  COMPLETED   // 已完成
-  CANCELLED   // 已取消
+  DRAFT
+  SENT
+  RESPONDED
+  COMPLETED
+  CANCELLED
 }
 
-// ── 理貨單 ──────────────────────────────────────
 enum PickingStatus {
-  PENDING     // 待理貨
-  PICKING     // 理貨中
-  PICKED      // 已完成
-  CANCELLED   // 已取消
+  PENDING
+  PICKING
+  PICKED
+  CANCELLED
 }
 
-// ── 派貨單 ──────────────────────────────────────
 enum DispatchStatus {
-  PENDING     // 待派貨
-  DISPATCHED  // 已派貨
-  DELIVERED   // 已送達
-  CANCELLED   // 已取消
+  PENDING
+  DISPATCHED
+  DELIVERED
+  CANCELLED
 }
 
-// ── WMS ──────────────────────────────────────
 enum WmsInboundStatus {
-  EXPECTED    // 預計入庫
-  RECEIVING   // 收貨中
-  RECEIVED    // 已入庫
-  CANCELLED   // 已取消
+  EXPECTED
+  RECEIVING
+  RECEIVED
+  CANCELLED
 }
 
 enum WmsOutboundStatus {
-  EXPECTED    // 預計出庫
-  PICKING     // 揀貨中
-  SHIPPED     // 已出庫
-  CANCELLED   // 已取消
+  EXPECTED
+  PICKING
+  SHIPPED
+  CANCELLED
 }
 
 enum InputTaxSourceType {
-  CUSTOMS            // 進口報單（海關）
-  DOMESTIC_INVOICE   // 國內統一發票
-  RECEIPT            // 收據（免稅/小額）
+  CUSTOMS
+  DOMESTIC_INVOICE
+  RECEIPT
 }
 
-// ── 電子發票 Turnkey ──────────────────────────────────────
 enum TurnkeyMessageType {
-  F0401   // B2S 發票開立存證
-  F0501   // B2S 發票作廢存證
-  F0701   // B2S 發票註銷存證
-  G0401   // B2S 折讓開立存證
-  G0501   // B2S 折讓作廢存證
+  F0401
+  F0501
+  F0701
+  G0401
+  G0501
 }
 
 enum TurnkeyStatus {
-  GENERATED    // XML 已產生
-  UPLOADED     // 已放入 UpCast 目錄
-  PROCESSING   // Turnkey 處理中 (P)
-  SUCCESS      // 平台回覆成功 (G/C)
-  FAILED       // 傳送失敗或平台回覆錯誤
+  GENERATED
+  UPLOADED
+  PROCESSING
+  SUCCESS
+  FAILED
 }

@@ -1,185 +1,143 @@
-// ========== 商品管理 ==========
 model Product {
-  id            String   @id @default(cuid())
-  sku           String   @unique
-  name          String
-  category      String
-  series        String?           // 系列：經濟款 / 日間型 / 夜間型
-  size          String?           // 尺寸：S / M / L / XL
-  packagingType String?           // 包裝型態：單包 / 箱 / OEM專版
-  piecesPerPack Int?              // 每包片數
-  packsPerBox   Int?              // 每箱包數
-  specification String?
-  unit          String   @default("包")
-  boxQuantity   Int?              // 舊欄位保留（同 packsPerBox）
-  barcode       String?
-
-  // ── 價格（敏感程度由高到低）──────────────────────────────
-  costPrice      Decimal  @db.Decimal(10, 2)   // 成本價   [FINANCE/PROCUREMENT/GM/SUPER_ADMIN]
-  floorPrice     Decimal? @db.Decimal(10, 2)   // 成本底價 [FINANCE/PROCUREMENT/GM/SUPER_ADMIN]
-  sellingPrice   Decimal  @db.Decimal(10, 2)   // 建議售價 [全員]
-  channelPrice   Decimal? @db.Decimal(10, 2)   // 通路價   [全員]
-  wholesalePrice Decimal? @db.Decimal(10, 2)   // 批發價   [全員]
-  minSellPrice   Decimal? @db.Decimal(10, 2)   // 最低可售價 [SALES_MANAGER+]
-  oemBasePrice   Decimal? @db.Decimal(10, 2)   // OEM報價基準 [PROCUREMENT/FINANCE/GM/SUPER_ADMIN]
-
-  // ── OEM / 工廠資訊（主力廠快照，詳細見 ProductSupplier）──
-  factorySku   String?                          // 主力廠料號（快照）
-  moq          Int?                             // 最小訂購量（主力廠）
-  leadTimeDays Int?                             // 生產交期天數（主力廠）
-
-  // ── 物流資訊 ──────────────────────────────────────────
-  weight       Decimal? @db.Decimal(8, 3)      // 重量 (kg)
-  volume       String?                          // 材積 (e.g. 30x20x15 cm)
-  storageNotes String?                          // 保存/倉儲注意事項
-
-  description  String?
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  inventory      Inventory[]
-  quotationItems QuotationItem[]
-  orderItems     SalesOrderItem[]
-  shipmentItems  ShipmentItem[]
-  purchaseItems  PurchaseOrderItem[]
-  receiptItems   PurchaseReceiptItem[]
-  priceHistory   SupplierPriceHistory[]
-  inventoryLots      InventoryLot[]
-  transferItems      StockTransferItem[]
-  countItems         StockCountItem[]
-  scrapRecords       StockScrap[]
-  channelOrderItems  ChannelOrderItem[]
-  skuMappings        ProductSkuMapping[]
-  qualityChecks      QualityCheck[]
-  priceListItems     PriceListItem[]
-  recurringItems     RecurringOrderItem[]
-  inboundItems       InboundItem[]
-  outboundItems      OutboundItem[]
-  returnItems        ReturnOrderItem[]
-  purchaseReturnItems PurchaseReturnItem[]
-  costStructure      ProductCostStructure?
-  careIncidents      CareIncident[]
-
-  // New relations for extended models
-  unitConversions    UnitConversion[]
-  productBOMs        ProductBOM[]
-  batchCostAllocations BatchCostAllocation[]
-  retailSalesPlans   RetailSalesPlan[]
-  productRecalls     ProductRecall[]
-  productSuppliers   ProductSupplier[]
-  pickupItems        WarehousePickupItem[]
-  salesInvoiceItems  SalesInvoiceItem[]    @relation("SalesInvoiceItemProduct")
-
-  // ── P0-P1 新增關聯 ──────────────────────────────────
-  requisitionItems     MaterialRequisitionItem[]  @relation("RequisitionItemProduct")
-  productionReceiptItems ProductionReceiptItem[]  @relation("ReceiptItemProduct")
-  purchaseRequestItems PurchaseRequestItem[]      @relation("PurchaseRequestItemProduct")
-  rfqItems             RFQItem[]                  @relation("RFQItemProduct")
-  pickingOrderItems    PickingOrderItem[]         @relation("PickingItemProduct")
-  dispatchOrderItems   DispatchOrderItem[]        @relation("DispatchItemProduct")
-  wmsInventories       WmsInventory[]             @relation("WmsInventoryProduct")
-  wmsInboundItems      WmsInboundItem[]           @relation("WmsInboundItemProduct")
-  wmsOutboundItems     WmsOutboundItem[]          @relation("WmsOutboundItemProduct")
-
-  // ── P2-1 多級單價 ────────────────────────────────────
-  priceTiers           ProductPriceTier?
-  specialPrices        SpecialPrice[]             @relation("ProductSpecialPrices")
-
-  // ── P2-4 內部使用 + 不良品 ───────────────────────────
-  internalUseItems     InternalUseItem[]          @relation("InternalUseItemProduct")
-  defectiveGoods       DefectiveGoods[]           @relation("DefectiveGoodsProduct")
-
-  // ── P3-4 售後管理 ────────────────────────────────────
-  afterSalesConsumptions AfterSalesConsumption[]  @relation("AfterSalesProduct")
-
-  // ── 採購計畫 ────────────────────────────────────────
-  purchasePlanItems      PurchasePlanItem[]       @relation("PurchasePlanProduct")
-
-  // ── MRP ─────────────────────────────────────────────
-  mrpDemandHistory       MrpDemandHistory[]       @relation("MrpDemandProduct")
+  id                     String                    @id @default(cuid())
+  sku                    String                    @unique
+  name                   String
+  category               String
+  series                 String?
+  size                   String?
+  packagingType          String?
+  piecesPerPack          Int?
+  packsPerBox            Int?
+  specification          String?
+  unit                   String                    @default("包")
+  boxQuantity            Int?
+  barcode                String?
+  costPrice              Decimal                   @db.Decimal(10, 2)
+  floorPrice             Decimal?                  @db.Decimal(10, 2)
+  sellingPrice           Decimal                   @db.Decimal(10, 2)
+  channelPrice           Decimal?                  @db.Decimal(10, 2)
+  wholesalePrice         Decimal?                  @db.Decimal(10, 2)
+  minSellPrice           Decimal?                  @db.Decimal(10, 2)
+  oemBasePrice           Decimal?                  @db.Decimal(10, 2)
+  factorySku             String?
+  moq                    Int?
+  leadTimeDays           Int?
+  weight                 Decimal?                  @db.Decimal(8, 3)
+  volume                 String?
+  storageNotes           String?
+  description            String?
+  isActive               Boolean                   @default(true)
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+  afterSalesConsumptions AfterSalesConsumption[]   @relation("AfterSalesProduct")
+  batchCostAllocations   BatchCostAllocation[]
+  careIncidents          CareIncident[]
+  channelOrderItems      ChannelOrderItem[]
+  defectiveGoods         DefectiveGoods[]          @relation("DefectiveGoodsProduct")
+  dispatchOrderItems     DispatchOrderItem[]       @relation("DispatchItemProduct")
+  inboundItems           InboundItem[]
+  internalUseItems       InternalUseItem[]         @relation("InternalUseItemProduct")
+  inventory              Inventory[]
+  inventoryLots          InventoryLot[]
+  requisitionItems       MaterialRequisitionItem[] @relation("RequisitionItemProduct")
+  mrpDemandHistory       MrpDemandHistory[]        @relation("MrpDemandProduct")
+  outboundItems          OutboundItem[]
+  pickingOrderItems      PickingOrderItem[]        @relation("PickingItemProduct")
+  priceListItems         PriceListItem[]
+  productBOMs            ProductBOM[]
+  costStructure          ProductCostStructure?
+  priceTiers             ProductPriceTier?
+  productRecalls         ProductRecall[]
+  skuMappings            ProductSkuMapping[]
+  productSuppliers       ProductSupplier[]
+  productionReceiptItems ProductionReceiptItem[]   @relation("ReceiptItemProduct")
+  purchaseItems          PurchaseOrderItem[]
+  purchasePlanItems      PurchasePlanItem[]        @relation("PurchasePlanProduct")
+  receiptItems           PurchaseReceiptItem[]
+  purchaseRequestItems   PurchaseRequestItem[]     @relation("PurchaseRequestItemProduct")
+  purchaseReturnItems    PurchaseReturnItem[]
+  qualityChecks          QualityCheck[]
+  quotationItems         QuotationItem[]
+  rfqItems               RFQItem[]                 @relation("RFQItemProduct")
+  recurringItems         RecurringOrderItem[]
+  retailSalesPlans       RetailSalesPlan[]
+  returnItems            ReturnOrderItem[]
+  salesInvoiceItems      SalesInvoiceItem[]        @relation("SalesInvoiceItemProduct")
+  orderItems             SalesOrderItem[]
+  shipmentItems          ShipmentItem[]
+  specialPrices          SpecialPrice[]            @relation("ProductSpecialPrices")
+  countItems             StockCountItem[]
+  scrapRecords           StockScrap[]
+  transferItems          StockTransferItem[]
+  priceHistory           SupplierPriceHistory[]
+  unitConversions        UnitConversion[]
+  pickupItems            WarehousePickupItem[]
+  wmsInboundItems        WmsInboundItem[]          @relation("WmsInboundItemProduct")
+  wmsInventories         WmsInventory[]            @relation("WmsInventoryProduct")
+  wmsOutboundItems       WmsOutboundItem[]         @relation("WmsOutboundItemProduct")
 }
 
-// ========== 商品-廠商中介表（多廠商支援）==========
 model ProductSupplier {
-  id          String   @id @default(cuid())
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  supplierId  String
-  supplier    Supplier @relation(fields: [supplierId], references: [id])
-
-  // ── 廠商料號與品名 ────────────────────────────────
-  factorySku        String?   // 工廠料號（此廠對此品的料號）
-  factoryProductName String?  // 工廠品名
-
-  // ── 採購/生產條件 ─────────────────────────────────
-  unitCost      Decimal? @db.Decimal(10,2) // 採購單價（含加工費）
-  currency      String   @default("USD")
-  moq           Int?                       // 最低訂購量
-  leadTimeDays  Int?                       // 生產交期（天）
-  paymentTerms  String?                    // 付款條件
-  deliveryTerm  String?                    // 交貨條件（EXW/FOB/CIF）
-  originCountry String?                    // 生產國
-
-  // ── 新品開發狀態 ──────────────────────────────────
-  status        String  @default("ACTIVE")
-  // DEVELOPING   - 開發中（打樣前）
-  // SAMPLING     - 打樣中
-  // APPROVED     - 樣品通過，可量產
-  // ACTIVE       - 正式量產中
-  // INACTIVE     - 停止合作
-  isPrimary     Boolean @default(false)   // 是否為主力廠
-
-  // ── 品質記錄 ──────────────────────────────────────
-  qualityGrade    String?              // A / B / C
-  avgDefectRate   Decimal? @db.Decimal(5,2)
-  lastQcResult    String?
-  lastQcDate      DateTime?
-
-  // ── 樣品/認證 ─────────────────────────────────────
-  sampleVersion    String?   // 目前樣品版本
-  sampleApprovedAt DateTime?
-  certifications   String?   // 認證說明（SGS/ISO/FDA...）
-
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String    @id @default(cuid())
+  productId          String
+  supplierId         String
+  factorySku         String?
+  factoryProductName String?
+  unitCost           Decimal?  @db.Decimal(10, 2)
+  currency           String    @default("USD")
+  moq                Int?
+  leadTimeDays       Int?
+  paymentTerms       String?
+  deliveryTerm       String?
+  originCountry      String?
+  status             String    @default("ACTIVE")
+  isPrimary          Boolean   @default(false)
+  qualityGrade       String?
+  avgDefectRate      Decimal?  @db.Decimal(5, 2)
+  lastQcResult       String?
+  lastQcDate         DateTime?
+  sampleVersion      String?
+  sampleApprovedAt   DateTime?
+  certifications     String?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  product            Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier           Supplier  @relation(fields: [supplierId], references: [id])
 
   @@unique([productId, supplierId])
   @@index([productId, status])
 }
 
-// ========== 商品 BOM (物料清單) ==========
 model ProductBOM {
-  id              String   @id @default(cuid())
+  id              String            @id @default(cuid())
   productId       String
-  product         Product  @relation(fields: [productId], references: [id])
   materialId      String
-  material        PackagingMaterial @relation(fields: [materialId], references: [id])
-  quantityPerUnit Decimal  @db.Decimal(10,4)
+  quantityPerUnit Decimal           @db.Decimal(10, 4)
   unit            String
-  isOptional      Boolean  @default(false)
-  alternativeIds  String[] @default([])
+  isOptional      Boolean           @default(false)
+  alternativeIds  String[]          @default([])
   notes           String?
+  material        PackagingMaterial @relation(fields: [materialId], references: [id])
+  product         Product           @relation(fields: [productId], references: [id])
+
   @@unique([productId, materialId])
 }
 
-// ========== 單位換算 ==========
 model UnitConversion {
-  id              String   @id @default(cuid())
-  productId       String?
-  product         Product? @relation(fields: [productId], references: [id])
-  fromUnit        String
-  toUnit          String
-  conversionRate  Decimal  @db.Decimal(10,4)
+  id             String   @id @default(cuid())
+  productId      String?
+  fromUnit       String
+  toUnit         String
+  conversionRate Decimal  @db.Decimal(10, 4)
+  product        Product? @relation(fields: [productId], references: [id])
+
   @@unique([productId, fromUnit, toUnit])
 }
 
-// ========== 商品成本結構 ==========
 model ProductCostStructure {
   id                    String   @id @default(cuid())
   productId             String   @unique
-  product               Product  @relation(fields: [productId], references: [id])
   standardCost          Decimal? @db.Decimal(10, 2)
   factoryCost           Decimal? @db.Decimal(10, 2)
   packagingCost         Decimal? @db.Decimal(10, 2)
@@ -189,4 +147,5 @@ model ProductCostStructure {
   domesticLogisticsCost Decimal? @db.Decimal(10, 2)
   totalCost             Decimal? @db.Decimal(10, 2)
   updatedAt             DateTime @updatedAt
+  product               Product  @relation(fields: [productId], references: [id])
 }

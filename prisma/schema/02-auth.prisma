@@ -1,281 +1,210 @@
-// ========== 使用者與權限 ==========
 model User {
-  id           String    @id @default(cuid())
-  employeeNo   String?   @unique  // 員工編號
-  email        String    @unique
-  name         String
-  avatar       String?            // 頭貼 URL
-  engName      String?            // 英文名
-  password     String?           // nullable for Google OAuth users
-  role         Role      @default(SALES)
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  title        String?            // 職稱
-  mobile       String?            // 手機
-  lineId       String?            // LINE ID（手動輸入）
-  lineUserId   String?   @unique  // LINE Messaging API 綁定 userId（e.g. U1234...）
-  hireDate     DateTime?          // 到職日
-  resignDate   DateTime?          // 離職日
-  bankAccountNo   String?         // 員工銀行帳號（報銷打款用）
-  bankCode        String?         // 銀行代碼（3碼）
-  bankAccountName String?         // 戶名
-  isActive     Boolean   @default(true)
-  tokenVersion Int       @default(0)  // 遞增此值可立即撤銷所有 session
-  notes        String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  quotations        Quotation[]
-  salesOrders       SalesOrder[]
-  shipments         Shipment[]
-  purchaseOrders    PurchaseOrder[]
-  managedCustomers  Customer[]        @relation("CustomerSalesRep")
-  visitRecords      VisitRecord[]     @relation("VisitedBy")
-  callRecords       CallRecord[]      @relation("CalledBy")
-  sampleRecords     SampleRecord[]    @relation("SampleSentBy")
-  complaintRecords  ComplaintRecord[] @relation("ComplaintReportedBy")
-  supervisedComplaints ComplaintRecord[] @relation("ComplaintSupervisor")
-  complaintLogs     ComplaintLog[]    @relation("ComplaintLoggedBy")
-  transfers         StockTransfer[]   @relation("TransferRequestedBy")
-  stockCounts       StockCount[]      @relation("StockCountCreatedBy")
-  scrapsApproved    StockScrap[]      @relation("ScrapApprovedBy")
-  scrapsCreated     StockScrap[]      @relation("ScrapCreatedBy")
-  tasksAssigned     SalesTask[]       @relation("TaskAssignedTo")
-  tasksCreated      SalesTask[]       @relation("TaskCreatedBy")
-  careSchedules     CareSchedule[]    @relation("CareScheduleSupervisor")
-  serviceRequests   ServiceRequest[]  @relation("ServiceRequestAssigned")
-  uploadedMedia     VisitMedia[]      @relation("MediaUploadedBy")
-  paymentsCreated   PaymentRecord[]   @relation("PaymentCreatedBy")
-  managedDepts      Department[]      @relation("DeptManager")
-  followUpLogs         FollowUpLog[]      @relation("FollowUpLogCreatedBy")
-  opportunities        SalesOpportunity[] @relation("OpportunityOwner")
-  salesSchedules       SalesSchedule[]    @relation("ScheduleSalesRep")
-  salesSchedulesCreated SalesSchedule[]   @relation("ScheduleCreatedBy")
-  salesEventsAssigned  SalesEvent[]       @relation("EventAssignedTo")
-  salesEventsCreated   SalesEvent[]       @relation("EventCreatedBy")
-
-  // Care Incidents
-  reportedIncidents    CareIncident[]     @relation("IncidentReportedBy")
-  assignedIncidents    CareIncident[]     @relation("IncidentAssignedOwner")
-  incidentAttachments  IncidentAttachment[] @relation("IncidentAttachmentUploader")
-  incidentVisitLogs    IncidentVisitLog[] @relation("IncidentVisitLogBy")
-  incidentAudioUploads IncidentAudioRecord[] @relation("IncidentAudioUploader")
-  incidentTrainings    IncidentTrainingLog[] @relation("IncidentTrainer")
-  incidentActionItems  IncidentActionItem[] @relation("IncidentActionOwner")
-
-  // New relations for extended models
-  auditLogs            AuditLog[]
-  notifications        Notification[]        @relation("NotificationUser")
-  alertsAssigned       SystemAlert[]         @relation("AlertAssignedTo")
-  handoversFrom        WorkHandover[]        @relation("HandoverFrom")
-  handoversTo          WorkHandover[]        @relation("HandoverTo")
-  salesTargets         SalesTarget[]
-  salesRepChangesFrom  SalesRepChange[]      @relation("PrevRep")
-  salesRepChangesTo    SalesRepChange[]      @relation("NewRep")
-  uploadBatches        UploadBatch[]         @relation("UploadedByUser")
-  documentVersions     DocumentVersion[]     @relation("DocVersionCreatedBy")
-  exportLogs           ExportLog[]
-  collectionLogs       CollectionLog[]       @relation("CollectionCreatedBy")
-  financeAttachments   FinanceAttachment[]   @relation("FinAttachUploadedBy")
-  customerChangeLogs   CustomerChangeLog[]   @relation("CustomerChangeBy")
-  recallNotifyBy       RecallNotification[]  @relation("RecallNotifiedBy")
-
-  // ── 沖帳作業 ────────────────────────────────────────
-  settlementsCreated     SettlementBatch[]   @relation("SettlementCreatedBy")
-
-  // ── 業務行事曆 ─────────────────────────────────────
-  ownedBusinessEvents    BusinessEvent[]     @relation("BizEventOwner")
-  createdBusinessEvents  BusinessEvent[]     @relation("BizEventCreatedBy")
-  facilitatedMeetings    MeetingRecord[]     @relation("MeetingFacilitator")
-  createdMeetingRecords  MeetingRecord[]     @relation("MeetingRecordCreatedBy")
-  meetingActionItems     MeetingActionItem[] @relation("MeetingActionOwner")
-  managedPromoCalendars  PromoCalendar[]     @relation("PromoCalendarOwner")
-
-  // ── 報價審批 ────────────────────────────────────────
-  quotationApprovals     QuotationApproval[] @relation("QuotationApprover")
-
-  // ── 心臟客戶管理 ────────────────────────────────────
-  keyAccounts            Customer[]          @relation("KeyAccountMgr")
-
-  // ── 行銷倉取貨 ────────────────────────────────────────
-  pickups                WarehousePickup[]   @relation("PickedBy")
-  verifiedPickups        WarehousePickup[]   @relation("VerifiedBy")
-
-  // ── 銷貨單 ────────────────────────────────────────────
-  salesInvoicesSales     SalesInvoice[]      @relation("SalesInvoiceSalesPerson")
-  salesInvoicesHandler   SalesInvoice[]      @relation("SalesInvoiceHandler")
-  salesInvoicesCreated   SalesInvoice[]      @relation("SalesInvoiceCreatedBy")
-
-  // ── 領料單+生產入庫 ──────────────────────────────────
-  requisitionsHandled    MaterialRequisition[]  @relation("RequisitionHandler")
-  requisitionsCreated    MaterialRequisition[]  @relation("RequisitionCreatedBy")
-  receiptsHandled        ProductionReceipt[]    @relation("ReceiptHandler")
-  receiptsCreated        ProductionReceipt[]    @relation("ReceiptCreatedBy")
-
-  // ── 請購單+詢價單 ────────────────────────────────────
-  purchaseRequests       PurchaseRequest[]      @relation("PurchaseRequestHandler")
-  purchaseRequestsCreated PurchaseRequest[]     @relation("PurchaseRequestCreatedBy")
-
-  // ── 理貨單+派貨單 ────────────────────────────────────
-  pickingOrdersHandled   PickingOrder[]         @relation("PickingHandler")
-  pickingOrdersCreated   PickingOrder[]         @relation("PickingCreatedBy")
-  dispatchOrdersHandled  DispatchOrder[]        @relation("DispatchHandler")
-  dispatchOrdersCreated  DispatchOrder[]        @relation("DispatchCreatedBy")
-
-  // ── 電子發票 ────────────────────────────────────────
-  eInvoicesCreated       EInvoice[]             @relation("EInvoiceCreatedBy")
-  eInvoiceRangesCreated  EInvoiceNumberRange[]  @relation("EInvoiceRangeCreatedBy")
-  turnkeyLogsCreated     EInvoiceTurnkeyLog[]   @relation("TurnkeyLogCreatedBy")
-
-  // ── P2-1 多級單價 ────────────────────────────────────
-  priceTierUpdates       ProductPriceTier[]     @relation("PriceTierUpdatedBy")
-
-  // ── P2-3 會計基礎 ────────────────────────────────────
-  journalEntriesCreated  JournalEntry[]         @relation("JournalCreatedBy")
-  journalEntriesPosted   JournalEntry[]         @relation("JournalPostedBy")
-  fiscalPeriodsCreated   FiscalPeriod[]         @relation("FiscalPeriodCreatedBy")
-  fiscalPeriodsClosed    FiscalPeriod[]         @relation("FiscalPeriodClosedBy")
-  fiscalPeriodsLocked    FiscalPeriod[]         @relation("FiscalPeriodLockedBy")
-  bankAccountsCreated    BankAccount[]          @relation("BankAccountCreatedBy")
-  bankTransactionsCreated BankTransaction[]     @relation("BankTxCreatedBy")
-  chequesCreated         Cheque[]               @relation("ChequeCreatedBy")
-  vatFilingsCreated      VatFiling[]            @relation("VatFilingCreatedBy")
-
-  // ── P2-4 內部使用 + 不良品 ───────────────────────────
-  internalUsesRequested  InternalUse[]          @relation("InternalUseRequested")
-  internalUsesApproved   InternalUse[]          @relation("InternalUseApproved")
-  defectiveGoodsCreated  DefectiveGoods[]       @relation("DefectiveGoodsCreated")
-  defectiveGoodsResolved DefectiveGoods[]       @relation("DefectiveGoodsResolver")
-
-  // ── P3-1 電子簽核 ────────────────────────────────────
-  approvalTemplatesCreated ApprovalTemplate[]   @relation("ApprovalTemplateCreatedBy")
-  approvalRequestsMade     ApprovalRequest[]    @relation("ApprovalRequestedBy")
-  approvalStepsAssigned    ApprovalStep[]       @relation("ApprovalStepApprover")
-
-  // ── P3-2 進口費用管理 ─────────────────────────────────
-  importProjectsCreated    ImportProject[]      @relation("ImportProjectCreatedBy")
-
-  // ── P3-3 合約管理 ────────────────────────────────────
-  contractsCreated         Contract[]           @relation("ContractCreatedBy")
-
-  // ── P3-4 售後管理 ────────────────────────────────────
-  afterSalesAssigned       AfterSalesOrder[]    @relation("AfterSalesAssigned")
-  afterSalesCreated        AfterSalesOrder[]    @relation("AfterSalesCreatedBy")
-  afterSalesLogs           AfterSalesLog[]      @relation("AfterSalesLogCreatedBy")
-
-  // ── P3-5 固定資產 ────────────────────────────────────
-  fixedAssetsAssigned      FixedAsset[]         @relation("AssetAssignedTo")
-  fixedAssetsCreated       FixedAsset[]         @relation("AssetCreatedBy")
-
-  // ── P3-6 資金計畫+預算管理 ────────────────────────────
-  budgetsCreated           Budget[]             @relation("BudgetCreatedBy")
-  cashFlowsCreated         CashFlowPlan[]       @relation("CashFlowCreatedBy")
-
-  // ── 費用報銷 ────────────────────────────────────────
-  expensesSubmitted        ExpenseReport[]      @relation("ExpenseSubmittedBy")
-  expensesApproved         ExpenseReport[]      @relation("ExpenseApprovedBy")
-
-  // ── 零用金 ──────────────────────────────────────────
-  pettyCashRecords         PettyCashRecord[]    @relation("PettyCashSubmitter")
-
-  // ── 人事管理 ────────────────────────────────────────
-  employeeProfile          EmployeeProfile?     @relation("EmployeeProfile")
-  appointments             Appointment[]        @relation("AppointmentUser")
-  attendances              Attendance[]         @relation("AttendanceUser")
-  payrollRecords           PayrollRecord[]      @relation("PayrollUser")
-
-  // ── 機構巡迴排程 ────────────────────────────────────
-  institutionToursAssigned  InstitutionTour[]   @relation("TourAssigned")
-  institutionToursCreated   InstitutionTour[]   @relation("TourCreatedBy")
-  tourAutoAssigneeCustomers Customer[]          @relation("TourAutoAssignee")
-
-  // ── 每日工作提醒 ────────────────────────────────────
-  dailyRemindersAsTarget    DailyReminderLog[]  @relation("ReminderTarget")
-  dailyRemindersConfirmed   DailyReminderLog[]  @relation("ReminderConfirmer")
-
-  // ── 行政管理 ────────────────────────────────────────
-  announcementsCreated     Announcement[]       @relation("AnnouncementCreatedBy")
-  assetsBorrowed           AssetLoan[]          @relation("AssetBorrower")
-  assetLoansCreated        AssetLoan[]          @relation("AssetLoanCreatedBy")
-
-  // ── 採購計畫 ────────────────────────────────────────
-  purchasePlansCreated     PurchasePlan[]       @relation("PurchasePlanCreatedBy")
-
-  // ── 折扣規則 ────────────────────────────────────────
-  discountRulesCreated     DiscountRule[]       @relation("DiscountRuleCreatedBy")
-
-  // ── 進貨退貨 ────────────────────────────────────────
-  purchaseReturnsCreated   PurchaseReturn[]     @relation("PurchaseReturnCreatedBy")
-
-  // ── 業務日報 ────────────────────────────────────────
-  dailyReports         SalesDailyReport[]   @relation("SalesRepDailyReport")
-  reviewedDailyReports SalesDailyReport[]   @relation("DailyReportReviewer")
-
-  // ── 競品價格監控 ─────────────────────────────────────
-  competitorPricesCreated CompetitorPrice[] @relation("CompetitorPriceCreatedBy")
-
-  // ── MRP ─────────────────────────────────────────────
-  mrpSnapshots            MrpSnapshot[]    @relation("MrpSnapshotRunBy")
+  id                        String                @id @default(cuid())
+  employeeNo                String?               @unique
+  email                     String                @unique
+  name                      String
+  avatar                    String?
+  engName                   String?
+  password                  String?
+  role                      Role                  @default(SALES)
+  departmentId              String?
+  title                     String?
+  mobile                    String?
+  lineId                    String?
+  hireDate                  DateTime?
+  resignDate                DateTime?
+  isActive                  Boolean               @default(true)
+  notes                     String?
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  lineUserId                String?               @unique
+  tokenVersion              Int                   @default(0)
+  bankAccountName           String?
+  bankAccountNo             String?
+  bankCode                  String?
+  afterSalesLogs            AfterSalesLog[]       @relation("AfterSalesLogCreatedBy")
+  afterSalesAssigned        AfterSalesOrder[]     @relation("AfterSalesAssigned")
+  afterSalesCreated         AfterSalesOrder[]     @relation("AfterSalesCreatedBy")
+  announcementsCreated      Announcement[]        @relation("AnnouncementCreatedBy")
+  appointments              Appointment[]         @relation("AppointmentUser")
+  approvalRequestsMade      ApprovalRequest[]     @relation("ApprovalRequestedBy")
+  approvalStepsAssigned     ApprovalStep[]        @relation("ApprovalStepApprover")
+  approvalTemplatesCreated  ApprovalTemplate[]    @relation("ApprovalTemplateCreatedBy")
+  assetsBorrowed            AssetLoan[]           @relation("AssetBorrower")
+  assetLoansCreated         AssetLoan[]           @relation("AssetLoanCreatedBy")
+  attendances               Attendance[]          @relation("AttendanceUser")
+  auditLogs                 AuditLog[]
+  bankAccountsCreated       BankAccount[]         @relation("BankAccountCreatedBy")
+  bankTransactionsCreated   BankTransaction[]     @relation("BankTxCreatedBy")
+  budgetsCreated            Budget[]              @relation("BudgetCreatedBy")
+  createdBusinessEvents     BusinessEvent[]       @relation("BizEventCreatedBy")
+  ownedBusinessEvents       BusinessEvent[]       @relation("BizEventOwner")
+  callRecords               CallRecord[]          @relation("CalledBy")
+  assignedIncidents         CareIncident[]        @relation("IncidentAssignedOwner")
+  reportedIncidents         CareIncident[]        @relation("IncidentReportedBy")
+  careSchedules             CareSchedule[]        @relation("CareScheduleSupervisor")
+  cashFlowsCreated          CashFlowPlan[]        @relation("CashFlowCreatedBy")
+  chequesCreated            Cheque[]              @relation("ChequeCreatedBy")
+  collectionLogs            CollectionLog[]       @relation("CollectionCreatedBy")
+  competitorPricesCreated   CompetitorPrice[]     @relation("CompetitorPriceCreatedBy")
+  complaintLogs             ComplaintLog[]        @relation("ComplaintLoggedBy")
+  supervisedComplaints      ComplaintRecord[]     @relation("ComplaintSupervisor")
+  complaintRecords          ComplaintRecord[]     @relation("ComplaintReportedBy")
+  contractsCreated          Contract[]            @relation("ContractCreatedBy")
+  keyAccounts               Customer[]            @relation("KeyAccountMgr")
+  managedCustomers          Customer[]            @relation("CustomerSalesRep")
+  tourAutoAssigneeCustomers Customer[]            @relation("TourAutoAssignee")
+  customerChangeLogs        CustomerChangeLog[]   @relation("CustomerChangeBy")
+  dailyRemindersConfirmed   DailyReminderLog[]    @relation("ReminderConfirmer")
+  dailyRemindersAsTarget    DailyReminderLog[]    @relation("ReminderTarget")
+  defectiveGoodsCreated     DefectiveGoods[]      @relation("DefectiveGoodsCreated")
+  defectiveGoodsResolved    DefectiveGoods[]      @relation("DefectiveGoodsResolver")
+  managedDepts              Department[]          @relation("DeptManager")
+  discountRulesCreated      DiscountRule[]        @relation("DiscountRuleCreatedBy")
+  dispatchOrdersCreated     DispatchOrder[]       @relation("DispatchCreatedBy")
+  dispatchOrdersHandled     DispatchOrder[]       @relation("DispatchHandler")
+  documentVersions          DocumentVersion[]     @relation("DocVersionCreatedBy")
+  eInvoicesCreated          EInvoice[]            @relation("EInvoiceCreatedBy")
+  eInvoiceRangesCreated     EInvoiceNumberRange[] @relation("EInvoiceRangeCreatedBy")
+  turnkeyLogsCreated        EInvoiceTurnkeyLog[]  @relation("TurnkeyLogCreatedBy")
+  employeeProfile           EmployeeProfile?      @relation("EmployeeProfile")
+  expensesApproved          ExpenseReport[]       @relation("ExpenseApprovedBy")
+  expensesSubmitted         ExpenseReport[]       @relation("ExpenseSubmittedBy")
+  exportLogs                ExportLog[]
+  financeAttachments        FinanceAttachment[]   @relation("FinAttachUploadedBy")
+  fiscalPeriodsClosed       FiscalPeriod[]        @relation("FiscalPeriodClosedBy")
+  fiscalPeriodsCreated      FiscalPeriod[]        @relation("FiscalPeriodCreatedBy")
+  fiscalPeriodsLocked       FiscalPeriod[]        @relation("FiscalPeriodLockedBy")
+  fixedAssetsAssigned       FixedAsset[]          @relation("AssetAssignedTo")
+  fixedAssetsCreated        FixedAsset[]          @relation("AssetCreatedBy")
+  followUpLogs              FollowUpLog[]         @relation("FollowUpLogCreatedBy")
+  importProjectsCreated     ImportProject[]       @relation("ImportProjectCreatedBy")
+  incidentActionItems       IncidentActionItem[]  @relation("IncidentActionOwner")
+  incidentAttachments       IncidentAttachment[]  @relation("IncidentAttachmentUploader")
+  incidentAudioUploads      IncidentAudioRecord[] @relation("IncidentAudioUploader")
+  incidentTrainings         IncidentTrainingLog[] @relation("IncidentTrainer")
+  incidentVisitLogs         IncidentVisitLog[]    @relation("IncidentVisitLogBy")
+  institutionToursAssigned  InstitutionTour[]     @relation("TourAssigned")
+  institutionToursCreated   InstitutionTour[]     @relation("TourCreatedBy")
+  internalUsesApproved      InternalUse[]         @relation("InternalUseApproved")
+  internalUsesRequested     InternalUse[]         @relation("InternalUseRequested")
+  journalEntriesCreated     JournalEntry[]        @relation("JournalCreatedBy")
+  journalEntriesPosted      JournalEntry[]        @relation("JournalPostedBy")
+  requisitionsCreated       MaterialRequisition[] @relation("RequisitionCreatedBy")
+  requisitionsHandled       MaterialRequisition[] @relation("RequisitionHandler")
+  meetingActionItems        MeetingActionItem[]   @relation("MeetingActionOwner")
+  createdMeetingRecords     MeetingRecord[]       @relation("MeetingRecordCreatedBy")
+  facilitatedMeetings       MeetingRecord[]       @relation("MeetingFacilitator")
+  mrpSnapshots              MrpSnapshot[]         @relation("MrpSnapshotRunBy")
+  notifications             Notification[]        @relation("NotificationUser")
+  paymentsCreated           PaymentRecord[]       @relation("PaymentCreatedBy")
+  payrollRecords            PayrollRecord[]       @relation("PayrollUser")
+  pettyCashRecords          PettyCashRecord[]     @relation("PettyCashSubmitter")
+  pickingOrdersCreated      PickingOrder[]        @relation("PickingCreatedBy")
+  pickingOrdersHandled      PickingOrder[]        @relation("PickingHandler")
+  priceTierUpdates          ProductPriceTier[]    @relation("PriceTierUpdatedBy")
+  receiptsCreated           ProductionReceipt[]   @relation("ReceiptCreatedBy")
+  receiptsHandled           ProductionReceipt[]   @relation("ReceiptHandler")
+  managedPromoCalendars     PromoCalendar[]       @relation("PromoCalendarOwner")
+  purchaseOrders            PurchaseOrder[]
+  purchasePlansCreated      PurchasePlan[]        @relation("PurchasePlanCreatedBy")
+  purchaseRequestsCreated   PurchaseRequest[]     @relation("PurchaseRequestCreatedBy")
+  purchaseRequests          PurchaseRequest[]     @relation("PurchaseRequestHandler")
+  purchaseReturnsCreated    PurchaseReturn[]      @relation("PurchaseReturnCreatedBy")
+  quotations                Quotation[]
+  quotationApprovals        QuotationApproval[]   @relation("QuotationApprover")
+  recallNotifyBy            RecallNotification[]  @relation("RecallNotifiedBy")
+  reviewedDailyReports      SalesDailyReport[]    @relation("DailyReportReviewer")
+  dailyReports              SalesDailyReport[]    @relation("SalesRepDailyReport")
+  salesEventsAssigned       SalesEvent[]          @relation("EventAssignedTo")
+  salesEventsCreated        SalesEvent[]          @relation("EventCreatedBy")
+  salesInvoicesCreated      SalesInvoice[]        @relation("SalesInvoiceCreatedBy")
+  salesInvoicesHandler      SalesInvoice[]        @relation("SalesInvoiceHandler")
+  salesInvoicesSales        SalesInvoice[]        @relation("SalesInvoiceSalesPerson")
+  opportunities             SalesOpportunity[]    @relation("OpportunityOwner")
+  salesOrders               SalesOrder[]
+  salesRepChangesTo         SalesRepChange[]      @relation("NewRep")
+  salesRepChangesFrom       SalesRepChange[]      @relation("PrevRep")
+  salesSchedulesCreated     SalesSchedule[]       @relation("ScheduleCreatedBy")
+  salesSchedules            SalesSchedule[]       @relation("ScheduleSalesRep")
+  salesTargets              SalesTarget[]
+  tasksAssigned             SalesTask[]           @relation("TaskAssignedTo")
+  tasksCreated              SalesTask[]           @relation("TaskCreatedBy")
+  sampleRecords             SampleRecord[]        @relation("SampleSentBy")
+  serviceRequests           ServiceRequest[]      @relation("ServiceRequestAssigned")
+  settlementsCreated        SettlementBatch[]     @relation("SettlementCreatedBy")
+  shipments                 Shipment[]
+  stockCounts               StockCount[]          @relation("StockCountCreatedBy")
+  scrapsApproved            StockScrap[]          @relation("ScrapApprovedBy")
+  scrapsCreated             StockScrap[]          @relation("ScrapCreatedBy")
+  transfers                 StockTransfer[]       @relation("TransferRequestedBy")
+  alertsAssigned            SystemAlert[]         @relation("AlertAssignedTo")
+  uploadBatches             UploadBatch[]         @relation("UploadedByUser")
+  department                Department?           @relation(fields: [departmentId], references: [id])
+  moduleOverrides           UserModuleOverride[]  @relation("UserModuleOverrides")
+  vatFilingsCreated         VatFiling[]           @relation("VatFilingCreatedBy")
+  uploadedMedia             VisitMedia[]          @relation("MediaUploadedBy")
+  visitRecords              VisitRecord[]         @relation("VisitedBy")
+  pickups                   WarehousePickup[]     @relation("PickedBy")
+  verifiedPickups           WarehousePickup[]     @relation("VerifiedBy")
+  handoversFrom             WorkHandover[]        @relation("HandoverFrom")
+  handoversTo               WorkHandover[]        @relation("HandoverTo")
 
   @@index([role, isActive])
   @@index([departmentId, isActive])
 }
 
-// ========== 部門設定 ==========
 model Department {
-  id           String      @id @default(cuid())
-  code         String      @unique
-  name         String
-  parentId     String?
-  parent       Department? @relation("DeptTree", fields: [parentId], references: [id])
-  children     Department[] @relation("DeptTree")
-  managerId    String?
-  manager      User?       @relation("DeptManager", fields: [managerId], references: [id])
-  isActive     Boolean     @default(true)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  users        User[]
+  id        String       @id @default(cuid())
+  code      String       @unique
+  name      String
+  parentId  String?
+  managerId String?
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  manager   User?        @relation("DeptManager", fields: [managerId], references: [id])
+  parent    Department?  @relation("DeptTree", fields: [parentId], references: [id])
+  children  Department[] @relation("DeptTree")
+  users     User[]
 }
 
-// ========== 角色權限 ==========
 model RolePermission {
-  id              String   @id @default(cuid())
-  roleName        String   // 對應 Role enum 或自定義角色名
-  module          String   // 模組代碼：customers, orders, inventory…
-  canView         Boolean  @default(false)
-  canCreate       Boolean  @default(false)
-  canEdit         Boolean  @default(false)
-  canDelete       Boolean  @default(false)
-  canApprove      Boolean  @default(false)
-  canExport       Boolean  @default(false)
-  canViewCost     Boolean  @default(false)
-  canViewMargin   Boolean  @default(false)
-  canViewFinance  Boolean  @default(false)
-  canCrossWarehouse Boolean @default(false)
-  canCrossCompany Boolean  @default(false)
-  canViewSensitivePhoto Boolean @default(false)
-  canViewFloorPrice     Boolean @default(false)
-  dataScope             String  @default("ALL")  // ALL / OWN / TEAM / REGION
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  roleName              String
+  module                String
+  canView               Boolean  @default(false)
+  canCreate             Boolean  @default(false)
+  canEdit               Boolean  @default(false)
+  canDelete             Boolean  @default(false)
+  canApprove            Boolean  @default(false)
+  canExport             Boolean  @default(false)
+  canViewCost           Boolean  @default(false)
+  canViewMargin         Boolean  @default(false)
+  canViewFinance        Boolean  @default(false)
+  canCrossWarehouse     Boolean  @default(false)
+  canCrossCompany       Boolean  @default(false)
+  canViewSensitivePhoto Boolean  @default(false)
+  canViewFloorPrice     Boolean  @default(false)
+  dataScope             String   @default("ALL")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   @@unique([roleName, module])
 }
 
-// ========== 審批流程設定 ==========
 model ApprovalFlow {
-  id            String   @id @default(cuid())
-  flowName      String
-  module        String   // 適用模組：quotations, purchases, expenses…
-  triggerCondition String? // 觸發條件描述或 JSON 規則
-  level1Role    String?  // 第一關審批角色/人
-  level2Role    String?  // 第二關
-  level3Role    String?  // 第三關
-  minAmount       Decimal? @db.Decimal(12,2)
-  maxAmount       Decimal? @db.Decimal(12,2)
-  isUrgent        Boolean  @default(false)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String   @id @default(cuid())
+  flowName         String
+  module           String
+  triggerCondition String?
+  level1Role       String?
+  level2Role       String?
+  level3Role       String?
+  minAmount        Decimal? @db.Decimal(12, 2)
+  maxAmount        Decimal? @db.Decimal(12, 2)
+  isUrgent         Boolean  @default(false)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }

@@ -1,31 +1,19 @@
-// ========== 每日工作提醒確認 ==========
-// 功能：助理每天確認業務/照顧督導已被提醒當日工作事項
-
 model DailyReminderLog {
   id            String    @id @default(cuid())
-  date          DateTime  @db.Date            // 提醒日期（僅日期）
-  targetUserId  String                         // 被提醒對象（SALES/CARE_SUPERVISOR）
-  targetUser    User      @relation("ReminderTarget", fields: [targetUserId], references: [id])
-
+  date          DateTime  @db.Date
+  targetUserId  String
   reminderType  String    @default("DAILY_TASKS")
-  // DAILY_TASKS = 每日工作確認
-  // KPI_CHECK   = KPI 進度確認
-  // VISIT_PLAN  = 今日拜訪計畫確認
-
-  // 推播狀態
   isSent        Boolean   @default(false)
   sentAt        DateTime?
-  sentChannel   String?   // WEB / LINE / EMAIL
-
-  // 助理確認狀態
+  sentChannel   String?
   isConfirmed   Boolean   @default(false)
   confirmedAt   DateTime?
   confirmedById String?
-  confirmedBy   User?     @relation("ReminderConfirmer", fields: [confirmedById], references: [id])
-  note          String?   // 助理備註
-
+  note          String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  confirmedBy   User?     @relation("ReminderConfirmer", fields: [confirmedById], references: [id])
+  targetUser    User      @relation("ReminderTarget", fields: [targetUserId], references: [id])
 
   @@unique([date, targetUserId, reminderType])
   @@index([date])

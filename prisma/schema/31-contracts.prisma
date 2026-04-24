@@ -1,46 +1,42 @@
-// ========== 合約管理 (Contract Management) ==========
-
 model Contract {
-  id              String    @id @default(cuid())
-  contractNo      String    @unique
-  title           String
-  contractType    String    // SALES | PURCHASE | SERVICE | LEASE | OTHER
-  status          String    @default("DRAFT")  // DRAFT | ACTIVE | EXPIRED | TERMINATED | RENEWED
-  customerId      String?
-  supplierId      String?
-  signedAt        DateTime? @db.Date
-  effectiveFrom   DateTime  @db.Date
-  effectiveTo     DateTime  @db.Date
-  totalValue      Decimal?  @db.Decimal(14, 2)
-  currency        String    @default("TWD")
-  paymentTerms    String?
-  autoRenew       Boolean   @default(false)
-  reminderDays    Int       @default(30)       // alert N days before expiry
-  attachmentUrl   String?
-  notes           String?
-  createdById     String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  customer        Customer?           @relation("ContractCustomer", fields: [customerId], references: [id])
-  supplier        Supplier?           @relation("ContractSupplier", fields: [supplierId], references: [id])
-  createdBy       User                @relation("ContractCreatedBy", fields: [createdById], references: [id])
-  schedules       ContractPaySchedule[]
-  renewals        ContractRenewal[]
+  id            String                @id @default(cuid())
+  contractNo    String                @unique
+  title         String
+  contractType  String
+  status        String                @default("DRAFT")
+  customerId    String?
+  supplierId    String?
+  signedAt      DateTime?             @db.Date
+  effectiveFrom DateTime              @db.Date
+  effectiveTo   DateTime              @db.Date
+  totalValue    Decimal?              @db.Decimal(14, 2)
+  currency      String                @default("TWD")
+  paymentTerms  String?
+  autoRenew     Boolean               @default(false)
+  reminderDays  Int                   @default(30)
+  attachmentUrl String?
+  notes         String?
+  createdById   String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  createdBy     User                  @relation("ContractCreatedBy", fields: [createdById], references: [id])
+  customer      Customer?             @relation("ContractCustomer", fields: [customerId], references: [id])
+  supplier      Supplier?             @relation("ContractSupplier", fields: [supplierId], references: [id])
+  schedules     ContractPaySchedule[]
+  renewals      ContractRenewal[]
 }
 
 model ContractPaySchedule {
-  id            String    @id @default(cuid())
-  contractId    String
-  dueDate       DateTime  @db.Date
-  amount        Decimal   @db.Decimal(14, 2)
-  description   String?
-  isPaid        Boolean   @default(false)
-  paidAt        DateTime?
-  journalEntryId String?  // link to accounting journal
-
-  contract      Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  journalEntry  JournalEntry? @relation("ContractJournalEntry", fields: [journalEntryId], references: [id])
+  id             String        @id @default(cuid())
+  contractId     String
+  dueDate        DateTime      @db.Date
+  amount         Decimal       @db.Decimal(14, 2)
+  description    String?
+  isPaid         Boolean       @default(false)
+  paidAt         DateTime?
+  journalEntryId String?
+  contract       Contract      @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  journalEntry   JournalEntry? @relation("ContractJournalEntry", fields: [journalEntryId], references: [id])
 }
 
 model ContractRenewal {
@@ -49,6 +45,5 @@ model ContractRenewal {
   renewedAt      DateTime @default(now())
   newEffectiveTo DateTime @db.Date
   notes          String?
-
-  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  contract       Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 }
