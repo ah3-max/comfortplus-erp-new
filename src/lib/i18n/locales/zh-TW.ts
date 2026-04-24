@@ -287,6 +287,9 @@ const zhTW = {
     groupService: '服務',
     groupOrg: '組織行政',
     groupSystem: '系統',
+    groupDonghong: '東泓供應鏈',
+    donghongVariants: '產地變體',
+    donghongMasterSkuNew: '新建主檔 SKU',
     // sub-groups
     subCustomers: '客戶',
     subOpportunity: '商機開發',

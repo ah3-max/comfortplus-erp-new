@@ -17,7 +17,7 @@ import {
   MapPinned, ReceiptText, BriefcaseBusiness, HandCoins, Megaphone,
   Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp, TrendingDown,
   Clock, DollarSign, CheckCircle2, Tag, Send, BellRing, Hash, DatabaseZap,
-  Printer, AlertTriangle, BadgeDollarSign, FileCheck, Search,
+  Printer, AlertTriangle, BadgeDollarSign, FileCheck, Search, Globe2, FilePlus2,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -239,6 +239,14 @@ export const navGroups: NavGroup[] = [
       { href: '/settings',   key: 'settings',   icon: Settings },
       { href: '/settings/expense-categories', key: 'expenseCategories', icon: BookOpen },
       { href: '/migration',  key: 'migration',  icon: DatabaseZap },
+    ],
+  },
+  /* ─── 東泓供應鏈 ─── */
+  {
+    labelKey: 'groupDonghong',
+    items: [
+      { href: '/donghong/variants',         key: 'donghongVariants',    icon: Globe2 },
+      { href: '/donghong/master-skus/new',  key: 'donghongMasterSkuNew', icon: FilePlus2 },
     ],
   },
 ]
