@@ -1,0 +1,268 @@
+// ============================================================================
+// 檔案: prisma/schema/48-donghong.prisma
+// 用途: 東泓供應鏈中控平台整合 Schema
+// 版本: v1.0
+// 日期: 2026-04-24
+// 說明: 9 張新 model,不動既有 model
+// ============================================================================
+
+// ────────────────────────────────────────────────────────────────────────────
+// SECTION 1: ENUMS
+// ────────────────────────────────────────────────────────────────────────────
+
+enum BusinessUnit {
+  DONGHONG
+  COMFORTPLUS
+  SHARED
+}
+
+enum CountryOrigin {
+  TW
+  CN
+  VN
+  TH
+  JP
+  OTHER
+}
+
+enum OriginCode {
+  TW_FB
+  CN_KD
+  VN_XX
+  TH_OEM
+  OTHER
+}
+
+enum DonghongPOStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SENT
+  SIGNED
+  IN_PRODUCTION
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum POMilestoneType {
+  DEPOSIT
+  BALANCE
+  CLOSING
+  OTHER_ADVANCE
+  OTHER_FINAL
+}
+
+enum POMilestoneStatus {
+  PENDING
+  SCHEDULED
+  PAID
+  OVERDUE
+  WAIVED
+}
+
+enum PODocumentType {
+  PO_PDF
+  SIGNED_PDF
+  INVOICE
+  BILL_OF_LADING
+  PACKING_LIST
+  QC_REPORT
+  OTHER
+}
+
+enum ApprovalTier {
+  SELF
+  MANAGER
+  CFO
+  CEO
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// SECTION 2: 產地變體(核心)
+// ────────────────────────────────────────────────────────────────────────────
+
+model ProductVariant {
+  id              String        @id @default(cuid())
+  masterSku       String
+  originCode      OriginCode
+  variantSku      String        @unique
+  countryOrigin   CountryOrigin
+  hsCode          String?
+  productImage    String?
+  packageImage    String?
+  defaultSpecLock Json?
+
+  masterProductId String?
+  supplierId      String?
+
+  isActive     Boolean      @default(true)
+  businessUnit BusinessUnit @default(DONGHONG)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  barcodes       VariantBarcode[]
+  costSnapshots  VariantCostSnapshot[]
+  quotationItems SupplierQuotationItem[]
+
+  @@index([masterSku])
+  @@index([supplierId])
+  @@index([isActive, businessUnit])
+}
+
+model VariantBarcode {
+  id              String         @id @default(cuid())
+  variantId       String
+  variant         ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  barcodeEan13    String         @unique
+  barcodeType     String
+  quantityPerUnit Int            @default(1)
+  notes           String?
+  createdAt       DateTime       @default(now())
+
+  @@index([variantId])
+}
+
+model VariantCostSnapshot {
+  id            String         @id @default(cuid())
+  variantId     String
+  variant       ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  unitCost      Decimal        @db.Decimal(12, 4)
+  currency      String         @default("CNY")
+  unitCostTwd   Decimal        @db.Decimal(12, 4)
+  exchangeRate  Decimal        @db.Decimal(10, 6)
+  effectiveDate DateTime
+  sourcePoId    String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+
+  @@index([variantId, effectiveDate])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// SECTION 3: 供應商報價
+// ────────────────────────────────────────────────────────────────────────────
+
+model SupplierQuotation {
+  id              String          @id @default(cuid())
+  quotationNumber String          @unique
+  supplierId      String
+  quotedAt        DateTime
+  validFrom       DateTime
+  validUntil      DateTime
+  currency        String          @default("CNY")
+  incoterms       String?
+  paymentTerms    String?
+  minOrderQty     Int?
+  leadTimeDays    Int?
+  status          QuotationStatus @default(DRAFT)
+  notes           String?
+  attachmentUrl   String?
+
+  supersededById String?
+  supersededBy   SupplierQuotation?  @relation("QuotationSupersede", fields: [supersededById], references: [id])
+  replacedBy     SupplierQuotation[] @relation("QuotationSupersede")
+
+  businessUnit BusinessUnit @default(DONGHONG)
+  createdById  String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  items SupplierQuotationItem[]
+
+  @@index([supplierId, status])
+  @@index([validUntil])
+}
+
+model SupplierQuotationItem {
+  id          String            @id @default(cuid())
+  quotationId String
+  quotation   SupplierQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  variantId   String
+  variant     ProductVariant    @relation(fields: [variantId], references: [id])
+  unitPrice   Decimal           @db.Decimal(12, 4)
+  unit        String            @default("pc")
+  packingSpec String?
+  specNotes   Json?
+  createdAt   DateTime          @default(now())
+
+  @@unique([quotationId, variantId])
+  @@index([variantId])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// SECTION 4: PO 衍生資料
+// ────────────────────────────────────────────────────────────────────────────
+
+model POSpecLock {
+  id           String   @id @default(cuid())
+  poId         String
+  variantId    String?
+  specLockJson Json
+  lockedReason String?
+  createdAt    DateTime @default(now())
+
+  @@index([poId])
+  @@index([variantId])
+}
+
+model POMilestone {
+  id               String            @id @default(cuid())
+  poId             String
+  milestoneType    POMilestoneType
+  sequenceNo       Int               @default(1)
+  amountRatio      Decimal?          @db.Decimal(5, 4)
+  amountCurrency   Decimal           @db.Decimal(14, 2)
+  currency         String            @default("TWD")
+  amountTwd        Decimal           @db.Decimal(14, 2)
+  triggerCondition String
+  scheduledDate    DateTime?
+  paidDate         DateTime?
+  status           POMilestoneStatus @default(PENDING)
+  paymentMethod    String?
+  transactionRef   String?
+  notes            String?
+  notifiedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([poId, sequenceNo])
+  @@index([status, scheduledDate])
+}
+
+model PODocument {
+  id           String         @id @default(cuid())
+  poId         String
+  documentType PODocumentType
+  fileName     String
+  fileUrl      String
+  fileSize     Int?
+  fileHash     String?
+  mimeType     String?
+  uploadedById String
+  uploadedAt   DateTime       @default(now())
+  notes        String?
+
+  @@index([poId, documentType])
+}
+
+model POStatusLog {
+  id            String            @id @default(cuid())
+  poId          String
+  fromStatus    DonghongPOStatus?
+  toStatus      DonghongPOStatus
+  changedById   String?
+  changedByRole String?
+  changeReason  String?
+  metadata      Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime          @default(now())
+
+  @@index([poId, createdAt])
+}
+
+// ============================================================================
+// End of 48-donghong.prisma
+// ============================================================================

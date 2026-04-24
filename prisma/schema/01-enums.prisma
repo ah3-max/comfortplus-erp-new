@@ -233,6 +233,9 @@ enum QuotationStatus {
   REJECTED
   EXPIRED
   CONVERTED
+  ACTIVE
+  SUPERSEDED
+  CANCELLED
 }
 
 enum OrderType {
