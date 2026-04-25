@@ -1083,7 +1083,7 @@ export default function CustomerDetailPage() {
                       {v.purpose && <Badge variant="outline" className="text-xs">{v.purpose}</Badge>}
                       <span className="text-xs text-muted-foreground">by {v.visitedBy.name}</span>
                     </div>
-                    <button onClick={() => del('visits', v.id)} className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => del('visits', v.id)} className="opacity-60 hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                   {v.content    && <p className="text-sm text-slate-700">{v.content}</p>}
                   {v.result     && <p className="text-sm"><span className="text-muted-foreground">{cd.visits.resultLabel}</span>{v.result}</p>}
@@ -1109,7 +1109,7 @@ export default function CustomerDetailPage() {
                       {c.duration && <span className="text-xs text-muted-foreground">{c.duration}{cd.calls.durationUnit}</span>}
                       <span className="text-xs text-muted-foreground">by {c.calledBy.name}</span>
                     </div>
-                    <button onClick={() => del('calls', c.id)} className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => del('calls', c.id)} className="opacity-60 hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                   {c.content && <p className="text-sm text-slate-700">{c.content}</p>}
                   {c.result  && <p className="text-sm"><span className="text-muted-foreground">{cd.calls.resultLabel}</span>{c.result}</p>}
@@ -1133,7 +1133,7 @@ export default function CustomerDetailPage() {
                       <span className="text-xs text-muted-foreground">by {s.sentBy.name}</span>
                       {s.trackingNo && <Badge variant="outline" className="text-xs font-mono">{s.trackingNo}</Badge>}
                     </div>
-                    <button onClick={() => del('samples', s.id)} className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => del('samples', s.id)} className="opacity-60 hover:opacity-100 rounded p-1 hover:bg-red-50 text-red-400 transition-opacity"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                   <p className="text-sm font-medium">{s.items}</p>
                   {s.recipient      && <p className="text-sm text-muted-foreground">{cd.samples.recipientLabel}{s.recipient}</p>}
@@ -3055,7 +3055,7 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
                       <img src={URL.createObjectURL(f)} alt={f.name} className="h-16 w-16 object-cover rounded border" />
                       <button type="button"
                         onClick={() => setNewFiles(prev => prev.filter((_, j) => j !== i))}
-                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-60 hover:opacity-100">
                         <X className="h-2.5 w-2.5" />
                       </button>
                     </div>
@@ -3121,7 +3121,7 @@ function ComplaintsTab({ customerId }: { customerId: string }) {
                       <img src={URL.createObjectURL(f)} alt={f.name} className="h-16 w-16 object-cover rounded border" />
                       <button type="button"
                         onClick={() => setLogFiles(prev => prev.filter((_, j) => j !== i))}
-                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-60 hover:opacity-100">
                         <X className="h-2.5 w-2.5" />
                       </button>
                     </div>

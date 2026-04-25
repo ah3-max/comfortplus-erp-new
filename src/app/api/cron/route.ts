@@ -396,6 +396,81 @@ export async function GET(req: NextRequest) {
     results.meetingActionOverdue = { status: 'error', error: (e as Error).message }
   }
 
+  // ── Task: AI Pipeline Health — daily per-rep alert ─────────
+  // 每位業務一天一次，若有 stuck quotes / uncontacted / stuck orders / overdue tasks 就推播
+  try {
+    const salesUsers = await prisma.user.findMany({
+      where: { isActive: true, role: { in: ['SALES', 'SALES_MANAGER', 'CS'] } },
+      select: { id: true, name: true, role: true },
+    })
+
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000)
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400000)
+    const threeDaysAgo = new Date(now.getTime() - 3 * 86400000)
+
+    let notified = 0
+    for (const u of salesUsers) {
+      // Idempotent: one pipeline-health alert per rep per day
+      const already = await prisma.notification.findFirst({
+        where: { userId: u.id, category: 'PIPELINE_HEALTH', createdAt: { gte: todayStart } },
+      })
+      if (already) continue
+
+      const isManager = u.role === 'SALES_MANAGER'
+      const createdScope = isManager ? {} : { createdById: u.id }
+      const salesRepScope = isManager ? {} : { salesRepId: u.id }
+      const assigneeScope = isManager ? undefined : u.id
+
+      const [staleQuotes, uncontacted, stuckOrders, overdueTasks] = await Promise.all([
+        prisma.quotation.count({
+          where: { ...createdScope, status: 'SENT', updatedAt: { lt: sevenDaysAgo } },
+        }),
+        prisma.customer.count({
+          where: {
+            ...salesRepScope,
+            isActive: true,
+            devStatus: { in: ['POTENTIAL', 'CONTACTED', 'VISITED', 'NEGOTIATING'] },
+            OR: [{ lastContactDate: null }, { lastContactDate: { lt: fourteenDaysAgo } }],
+          },
+        }),
+        prisma.salesOrder.count({
+          where: { ...createdScope, status: 'CONFIRMED', createdAt: { lt: threeDaysAgo } },
+        }),
+        prisma.salesTask.count({
+          where: {
+            assignedToId: assigneeScope,
+            status: { in: ['PENDING', 'IN_PROGRESS'] },
+            dueDate: { lt: now },
+          },
+        }),
+      ])
+
+      const total = staleQuotes + uncontacted + stuckOrders + overdueTasks
+      if (total === 0) continue
+
+      const parts = [
+        staleQuotes > 0 && `${staleQuotes} 張卡住的報價`,
+        uncontacted > 0 && `${uncontacted} 位久未聯絡客戶`,
+        stuckOrders > 0 && `${stuckOrders} 張 confirmed 訂單未出貨`,
+        overdueTasks > 0 && `${overdueTasks} 項逾期任務`,
+      ].filter(Boolean).join('、')
+
+      await notify({
+        userIds: [u.id],
+        title: `🩺 Pipeline 診斷：${total} 項待處理`,
+        message: parts,
+        linkUrl: '/crm',
+        category: 'PIPELINE_HEALTH',
+        priority: overdueTasks > 0 || uncontacted >= 5 ? 'HIGH' : 'NORMAL',
+      })
+      notified++
+    }
+
+    results.pipelineHealth = { status: 'ok', data: { checked: salesUsers.length, notified } }
+  } catch (e) {
+    results.pipelineHealth = { status: 'error', error: (e as Error).message }
+  }
+
   return NextResponse.json({
     ok: Object.values(results).every(r => r.status === 'ok'),
     timestamp: now.toISOString(),

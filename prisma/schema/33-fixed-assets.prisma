@@ -1,50 +1,46 @@
-// ========== 固定資產 (Fixed Assets) ==========
-
 model FixedAsset {
-  id               String    @id @default(cuid())
-  assetNo          String    @unique
-  name             String
-  category         String    // VEHICLE | EQUIPMENT | FURNITURE | BUILDING | IT | OTHER
-  description      String?
-  location         String?
-  serialNo         String?
-  purchaseDate     DateTime  @db.Date
-  purchaseAmount   Decimal   @db.Decimal(14, 2)
-  salvageValue     Decimal   @default(0) @db.Decimal(14, 2)
-  usefulLifeYears  Int       // 耐用年數（平均年限法）
-  depreciationMethod String  @default("SL")  // SL=直線法, DB=倍數餘額法
-  status           String    @default("ACTIVE")  // ACTIVE | DISPOSED | SCRAPPED | TRANSFERRED
-  disposedAt       DateTime? @db.Date
-  disposalAmount   Decimal?  @db.Decimal(14, 2)
-  supplierId       String?
-  warehouseId      String?   // 存放位置
-  assignedToId     String?   // 使用人
-  attachmentUrl    String?
-  notes            String?
-  createdById      String
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  supplier     Supplier?          @relation("AssetSupplier",     fields: [supplierId],    references: [id])
-  assignedTo   User?              @relation("AssetAssignedTo",   fields: [assignedToId],  references: [id])
-  createdBy    User               @relation("AssetCreatedBy",    fields: [createdById],   references: [id])
-  depreciations FixedAssetDepreciation[]
+  id                 String                   @id @default(cuid())
+  assetNo            String                   @unique
+  name               String
+  category           String
+  description        String?
+  location           String?
+  serialNo           String?
+  purchaseDate       DateTime                 @db.Date
+  purchaseAmount     Decimal                  @db.Decimal(14, 2)
+  salvageValue       Decimal                  @default(0) @db.Decimal(14, 2)
+  usefulLifeYears    Int
+  depreciationMethod String                   @default("SL")
+  status             String                   @default("ACTIVE")
+  disposedAt         DateTime?                @db.Date
+  disposalAmount     Decimal?                 @db.Decimal(14, 2)
+  supplierId         String?
+  warehouseId        String?
+  assignedToId       String?
+  attachmentUrl      String?
+  notes              String?
+  createdById        String
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  assignedTo         User?                    @relation("AssetAssignedTo", fields: [assignedToId], references: [id])
+  createdBy          User                     @relation("AssetCreatedBy", fields: [createdById], references: [id])
+  supplier           Supplier?                @relation("AssetSupplier", fields: [supplierId], references: [id])
+  depreciations      FixedAssetDepreciation[]
 }
 
 model FixedAssetDepreciation {
-  id              String   @id @default(cuid())
-  assetId         String
-  periodYear      Int
-  periodMonth     Int
-  openingBookValue Decimal @db.Decimal(14, 2)
-  depreciationAmt  Decimal @db.Decimal(14, 2)
-  closingBookValue Decimal @db.Decimal(14, 2)
-  isPosted        Boolean  @default(false)
-  postedAt        DateTime?
-  journalEntryId  String?
-
-  asset        FixedAsset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  journalEntry JournalEntry? @relation("AssetDepreciationJournal", fields: [journalEntryId], references: [id])
+  id               String        @id @default(cuid())
+  assetId          String
+  periodYear       Int
+  periodMonth      Int
+  openingBookValue Decimal       @db.Decimal(14, 2)
+  depreciationAmt  Decimal       @db.Decimal(14, 2)
+  closingBookValue Decimal       @db.Decimal(14, 2)
+  isPosted         Boolean       @default(false)
+  postedAt         DateTime?
+  journalEntryId   String?
+  asset            FixedAsset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  journalEntry     JournalEntry? @relation("AssetDepreciationJournal", fields: [journalEntryId], references: [id])
 
   @@unique([assetId, periodYear, periodMonth])
 }

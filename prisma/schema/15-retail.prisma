@@ -1,260 +1,207 @@
-// ========== 實體通路品牌 ==========
 model RetailBrand {
-  id          String   @id @default(cuid())
-  code        String   @unique           // QUANSHENG / COSTCO / WATSONS ...
-  name        String                     // 全聯、家樂福、屈臣氏...
-  brandType   String   @default("OTHER") // SUPERMARKET / PHARMACY / WAREHOUSE / CONVENIENCE / DRUG_STORE / OTHER
-  logoUrl     String?
-  website     String?
-
-  // ── 總部聯絡 ──────────────────────────────────────
-  hqPhone     String?                    // 總部電話
-  hqContact   String?                    // 總部行政窗口
-
-  // ── 採購窗口（主要對口人）────────────────────────
-  buyerName   String?                    // 採購負責人姓名
-  buyerTitle  String?                    // 職稱
-  buyerDept   String?                    // 部門（採購部/商品部）
-  buyerPhone  String?                    // 直撥電話/手機
-  buyerEmail  String?                    // Email
-  buyerLine   String?                    // LINE ID
-
-  // ── 採購條件 ──────────────────────────────────────
-  purchaseMode   String?                 // 採購模式：DIRECT/CONSIGNMENT/COMMISSION/BUYOUT
-  paymentTerms   String?                 // 付款條件（月結60天 / 貨到付款 ...）
-  creditDays     Int?                    // 帳期天數
-  deliveryLeadDays Int?                  // 交期天數（下單到到貨）
-  minOrderQty    Int?                    // 最低訂購量（箱/件）
-  minOrderNote   String?                 // 最低訂購說明
-  discountNote   String?                 // 折讓/扣款條件說明
-  listingFee     Decimal?  @db.Decimal(12,2) // 上架費（元）
-  annualFee      Decimal?  @db.Decimal(12,2) // 年費/管理費
-  contractExpiry DateTime?               // 合約到期日
-  contractNote   String?                 // 合約備注
-
-  notes       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  outlets     RetailOutlet[]
+  id               String         @id @default(cuid())
+  code             String         @unique
+  name             String
+  brandType        String         @default("OTHER")
+  logoUrl          String?
+  website          String?
+  hqPhone          String?
+  hqContact        String?
+  buyerName        String?
+  buyerTitle       String?
+  buyerDept        String?
+  buyerPhone       String?
+  buyerEmail       String?
+  buyerLine        String?
+  purchaseMode     String?
+  paymentTerms     String?
+  creditDays       Int?
+  deliveryLeadDays Int?
+  minOrderQty      Int?
+  minOrderNote     String?
+  discountNote     String?
+  listingFee       Decimal?       @db.Decimal(12, 2)
+  annualFee        Decimal?       @db.Decimal(12, 2)
+  contractExpiry   DateTime?
+  contractNote     String?
+  notes            String?
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  outlets          RetailOutlet[]
 }
 
-// ========== 門市管理（擴充版）==========
 model RetailOutlet {
-  id           String       @id @default(cuid())
-
-  // ── 歸屬 ─────────────────────────────────────────
-  brandId      String
-  brand        RetailBrand  @relation(fields: [brandId], references: [id])
-  channelId    String?      // 對應線上/通路 SalesChannel（選填）
-  channel      SalesChannel? @relation(fields: [channelId], references: [id])
-
-  // ── 基本資訊 ──────────────────────────────────────
-  outletCode   String?  @unique
-  outletName   String
-  address      String?
-  city         String?
-  region       String?
-  phone        String?
-  openHours    String?        // 營業時間（文字，例：09:00-22:00）
-  closedDays   String?        // 公休日說明（例：每週三）
-
-  // ── 人員 ──────────────────────────────────────────
-  storeManagerName  String?   // 店長姓名
-  storeManagerPhone String?   // 店長電話
-  storeManagerLine  String?   // 店長 LINE
-  salesRepId        String?   // 主責業務（FK to User）
-  salesRepName      String?   // 主責業務姓名（快照）
-  backupContactName String?   // 備用聯絡人
-  backupContactPhone String?  // 備用聯絡電話
-
-  // ── 展示架 ────────────────────────────────────────
-  displayShelfCount    Int?    // 展示架數量（座）
-  displayShelfSpec     String? // 展示架規格要求（高/寬/層數）
-  displayRequirements  String? // 陳列要求（文字說明）
-  facingCount          Int?    // 面排數
-  shelfLocation        String? // 架位（A區/B區/保健品區…）
-  displayType          String? // 展示類型（端架/中島/壁架/冷藏）
-
-  // ── 活動要求 ──────────────────────────────────────
-  eventRequirements    String? // 通路活動要求（最低買量/搭配品…）
-  promoCalendarNote    String? // 促銷檔期說明
-  minOrderQtyPerEvent  Int?    // 每次活動最低訂購量
-
-  // ── 置放容量 ──────────────────────────────────────
-  placementZone        String? // 置放區域（收銀台旁/照護用品區…）
-  placementDetail      String? // 置放位置詳細
-  maxSkuCount          Int?    // 最多幾個 SKU
-  maxUnitsPerSku       Int?    // 每 SKU 最多件數
-  maxPacksTotal        Int?    // 總包數上限
-  currentSkuCount      Int?    // 目前在架 SKU 數
-
-  // ── 物流 ──────────────────────────────────────────
-  deliveryTimeWindow   String? // 收貨時間窗（例：週二 09:00-12:00）
-  deliveryDayOfWeek    String? // 固定補貨星期幾
-  logisticsNote        String? // 物流備注（進貨方式/注意事項）
-  parkingInfo          String? // 停車資訊（地下停車場B2/門口卸貨區）
-  loadingDockNote      String? // 卸貨月台說明
-
-  // ── 財務 ──────────────────────────────────────────
-  commissionRate  Decimal?  @db.Decimal(5,2)
-  paymentTerms    String?
-  settlementDay   Int?
-  shelfRent       Decimal?  @db.Decimal(10,2)  // 上架費
-  displayFee      Decimal?  @db.Decimal(10,2)  // 陳列費
-
-  // ── 狀態 ──────────────────────────────────────────
-  isActive  Boolean  @default(true)
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  salesPlans     RetailSalesPlan[]
-  displayRecords RetailDisplayRecord[]
-  shipmentRecords RetailShipmentRecord[]
-  events         RetailEvent[]
-  groupBuys      RetailGroupBuy[]
+  id                  String                 @id @default(cuid())
+  brandId             String
+  channelId           String?
+  outletCode          String?                @unique
+  outletName          String
+  address             String?
+  city                String?
+  region              String?
+  phone               String?
+  openHours           String?
+  closedDays          String?
+  storeManagerName    String?
+  storeManagerPhone   String?
+  storeManagerLine    String?
+  salesRepId          String?
+  salesRepName        String?
+  backupContactName   String?
+  backupContactPhone  String?
+  displayShelfCount   Int?
+  displayShelfSpec    String?
+  displayRequirements String?
+  facingCount         Int?
+  shelfLocation       String?
+  displayType         String?
+  eventRequirements   String?
+  promoCalendarNote   String?
+  minOrderQtyPerEvent Int?
+  placementZone       String?
+  placementDetail     String?
+  maxSkuCount         Int?
+  maxUnitsPerSku      Int?
+  maxPacksTotal       Int?
+  currentSkuCount     Int?
+  deliveryTimeWindow  String?
+  deliveryDayOfWeek   String?
+  logisticsNote       String?
+  parkingInfo         String?
+  loadingDockNote     String?
+  commissionRate      Decimal?               @db.Decimal(5, 2)
+  paymentTerms        String?
+  settlementDay       Int?
+  shelfRent           Decimal?               @db.Decimal(10, 2)
+  displayFee          Decimal?               @db.Decimal(10, 2)
+  isActive            Boolean                @default(true)
+  notes               String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  displayRecords      RetailDisplayRecord[]
+  events              RetailEvent[]
+  groupBuys           RetailGroupBuy[]
+  brand               RetailBrand            @relation(fields: [brandId], references: [id])
+  channel             SalesChannel?          @relation(fields: [channelId], references: [id])
+  salesPlans          RetailSalesPlan[]
+  shipmentRecords     RetailShipmentRecord[]
 }
 
-// ========== 銷售計畫 ==========
 model RetailSalesPlan {
-  id          String       @id @default(cuid())
-  outletId    String
-  outlet      RetailOutlet @relation(fields: [outletId], references: [id])
-  productId   String
-  product     Product      @relation(fields: [productId], references: [id])
-  planMonth   DateTime     @db.Date
-  targetQty   Int
-  actualQty   Int          @default(0)
-  targetAmount Decimal?    @db.Decimal(12,2)
-  actualAmount Decimal?    @db.Decimal(12,2)
-  promoType   String?
-  promoDetail String?
+  id             String       @id @default(cuid())
+  outletId       String
+  productId      String
+  planMonth      DateTime     @db.Date
+  targetQty      Int
+  actualQty      Int          @default(0)
+  targetAmount   Decimal?     @db.Decimal(12, 2)
+  actualAmount   Decimal?     @db.Decimal(12, 2)
+  promoType      String?
+  promoDetail    String?
   promoStartDate DateTime?
   promoEndDate   DateTime?
-  notes       String?
-  createdAt   DateTime     @default(now())
+  notes          String?
+  createdAt      DateTime     @default(now())
+  outlet         RetailOutlet @relation(fields: [outletId], references: [id])
+  product        Product      @relation(fields: [productId], references: [id])
 }
 
-// ========== 陳列巡檢 ==========
 model RetailDisplayRecord {
-  id           String       @id @default(cuid())
-  outletId     String
-  outlet       RetailOutlet @relation(fields: [outletId], references: [id])
-  visitedById  String
-  visitDate    DateTime
-  displayOk    Boolean
-  stockLevel   String?
-  facingCount  Int?
-  priceTagOk   Boolean?
+  id             String       @id @default(cuid())
+  outletId       String
+  visitedById    String
+  visitDate      DateTime
+  displayOk      Boolean
+  stockLevel     String?
+  facingCount    Int?
+  priceTagOk     Boolean?
   competitorNote String?
-  photos       Json?
-  notes        String?
-  createdAt    DateTime     @default(now())
+  photos         Json?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  outlet         RetailOutlet @relation(fields: [outletId], references: [id])
 }
 
-// ========== 出貨紀錄 ==========
 model RetailShipmentRecord {
   id          String       @id @default(cuid())
   outletId    String
-  outlet      RetailOutlet @relation(fields: [outletId], references: [id])
   shipmentId  String?
   shipDate    DateTime
   items       Json
-  totalAmount Decimal?     @db.Decimal(12,2)
+  totalAmount Decimal?     @db.Decimal(12, 2)
   invoiceNo   String?
   notes       String?
   createdAt   DateTime     @default(now())
+  outlet      RetailOutlet @relation(fields: [outletId], references: [id])
 }
 
-// ========== 活動管理（擴充版）==========
 model RetailEvent {
-  id         String        @id @default(cuid())
-  outletId   String?
-  outlet     RetailOutlet? @relation(fields: [outletId], references: [id])
-  channelId  String?
-  channel    SalesChannel? @relation("ChannelRetailEvent", fields: [channelId], references: [id])
-  customerId String?
-  customer   Customer?     @relation("RetailEventCustomer", fields: [customerId], references: [id])
-
-  // ── 活動基本資訊 ──────────────────────────────────
-  eventType   String        // DISPLAY_PROMO / TASTING / GROUP_BUY / SEASONAL / CLEARANCE / NEW_LAUNCH / EXPO / OTHER
-  eventName   String
-  eventStatus String        @default("PLANNING") // PLANNING / ACTIVE / COMPLETED / CANCELLED
-  eventDate   DateTime
-  endDate     DateTime?
-
-  // ── 活動執行 ──────────────────────────────────────
-  location    String?
-  budget      Decimal?      @db.Decimal(12,2)
-  actualCost  Decimal?      @db.Decimal(12,2)
-  staffIds    String[]                          // 負責人員（User IDs）
-  staffNote   String?                           // 人員備注
-
-  // ── 活動要求 ──────────────────────────────────────
-  setupRequirements    String?    // 活動佈置要求
-  productRequirements  String?    // 活動商品要求（指定SKU/最低庫備）
-  communicationNote    String?    // 對通路溝通事項
-
-  // ── 活動成效 ──────────────────────────────────────
-  attendeeCount        Int?       // 到場人次
-  sampleQty            Int?       // 發放樣品數
-  ordersTaken          Int?       // 現場成交筆數
-  leadsCollected       Int?       // 蒐集名單數
-  revenueDuringEvent   Decimal?   @db.Decimal(12,2)  // 活動期間銷售額
-  unitsSoldDuringEvent Int?       // 活動期間銷售件數
-  couponRedeemed       Int?       // 兌換優惠券數
-  newCustomersCollected Int?      // 新客資數
-  roi                  Decimal?   @db.Decimal(8,2)   // ROI（收入/成本）
-  targetAchievementPct Decimal?   @db.Decimal(5,2)   // 目標達成率 %
-  performanceSummary   String?    // 成效總結（文字）
-  nextActionNote       String?    // 下次活動建議/行動事項
-
-  photos      Json?
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  groupBuy    RetailGroupBuy?
+  id                    String          @id @default(cuid())
+  outletId              String?
+  channelId             String?
+  customerId            String?
+  eventType             String
+  eventName             String
+  eventStatus           String          @default("PLANNING")
+  eventDate             DateTime
+  endDate               DateTime?
+  location              String?
+  budget                Decimal?        @db.Decimal(12, 2)
+  actualCost            Decimal?        @db.Decimal(12, 2)
+  staffIds              String[]
+  staffNote             String?
+  setupRequirements     String?
+  productRequirements   String?
+  communicationNote     String?
+  attendeeCount         Int?
+  sampleQty             Int?
+  ordersTaken           Int?
+  leadsCollected        Int?
+  revenueDuringEvent    Decimal?        @db.Decimal(12, 2)
+  unitsSoldDuringEvent  Int?
+  couponRedeemed        Int?
+  newCustomersCollected Int?
+  roi                   Decimal?        @db.Decimal(8, 2)
+  targetAchievementPct  Decimal?        @db.Decimal(5, 2)
+  performanceSummary    String?
+  nextActionNote        String?
+  photos                Json?
+  notes                 String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  channel               SalesChannel?   @relation("ChannelRetailEvent", fields: [channelId], references: [id])
+  customer              Customer?       @relation("RetailEventCustomer", fields: [customerId], references: [id])
+  outlet                RetailOutlet?   @relation(fields: [outletId], references: [id])
+  groupBuy              RetailGroupBuy?
 }
 
-// ========== 團購活動 ==========
 model RetailGroupBuy {
-  id         String       @id @default(cuid())
-  eventId    String       @unique
-  event      RetailEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  outletId   String?
-  outlet     RetailOutlet? @relation(fields: [outletId], references: [id])
-
-  // ── 團購設定 ──────────────────────────────────────
-  groupBuyTitle    String          // 團購名稱
-  organizer        String?         // 揪團人/團主姓名
+  id               String        @id @default(cuid())
+  eventId          String        @unique
+  outletId         String?
+  groupBuyTitle    String
+  organizer        String?
   organizerPhone   String?
   organizerLine    String?
-  platform         String?         // 揪團平台（LINE/FB/PTT/門市公告…）
-
-  // ── 商品與價格 ────────────────────────────────────
-  minQty           Int             // 最低成團數量
-  targetQty        Int?            // 目標數量
-  groupBuyPrice    Decimal         @db.Decimal(10,2)  // 團購價
-  originalPrice    Decimal?        @db.Decimal(10,2)  // 原價
-  discountNote     String?         // 優惠說明
-  includedProducts Json?           // 包含商品（JSON: [{productId, name, qty}]）
-
-  // ── 時程 ──────────────────────────────────────────
-  openDate         DateTime        // 開團日
-  closeDate        DateTime        // 截團日
-  shipDate         DateTime?       // 預計出貨日
-
-  // ── 成效 ──────────────────────────────────────────
-  status           String          @default("OPEN") // OPEN / CLOSED / CANCELLED / FULFILLED
-  actualOrders     Int?            // 實際訂單數
-  actualQty        Int?            // 實際成團數量
-  actualRevenue    Decimal?        @db.Decimal(12,2)
-  fulfillmentNote  String?         // 出貨說明
-
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  platform         String?
+  minQty           Int
+  targetQty        Int?
+  groupBuyPrice    Decimal       @db.Decimal(10, 2)
+  originalPrice    Decimal?      @db.Decimal(10, 2)
+  discountNote     String?
+  includedProducts Json?
+  openDate         DateTime
+  closeDate        DateTime
+  shipDate         DateTime?
+  status           String        @default("OPEN")
+  actualOrders     Int?
+  actualQty        Int?
+  actualRevenue    Decimal?      @db.Decimal(12, 2)
+  fulfillmentNote  String?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  event            RetailEvent   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  outlet           RetailOutlet? @relation(fields: [outletId], references: [id])
 }

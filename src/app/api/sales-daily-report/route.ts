@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       obstacles:        body.obstacles ?? '',
       tomorrowPlan:     body.tomorrowPlan ?? '',
       needsHelp:        body.needsHelp ?? '',
+      attachments:      Array.isArray(body.attachments) ? body.attachments : undefined,
       status:           body.submit ? 'SUBMITTED' : 'DRAFT',
       submittedAt:      body.submit ? new Date() : null,
     }

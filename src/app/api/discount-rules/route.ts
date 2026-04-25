@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -81,6 +82,13 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    logAudit({
+      userId: session.user.id, userName: session.user.name ?? '', userRole: role,
+      module: 'discount-rules', action: 'CREATE',
+      entityType: 'DiscountRule', entityId: rule.id,
+      entityLabel: `${rule.name} (${rule.ruleType}/${rule.discountType} ${rule.discountValue})`,
+    }).catch(() => {})
+
     return NextResponse.json(rule, { status: 201 })
   } catch (error) {
     return handleApiError(error, 'discount-rules.POST')
@@ -127,6 +135,21 @@ export async function PUT(req: NextRequest) {
     if (notes !== undefined) data.notes = notes
 
     const rule = await prisma.discountRule.update({ where: { id }, data })
+
+    const changes: Record<string, { before: unknown; after: unknown }> = {}
+    if (Number(existing.discountValue) !== Number(rule.discountValue)) {
+      changes.discountValue = { before: Number(existing.discountValue), after: Number(rule.discountValue) }
+    }
+    if (existing.isActive !== rule.isActive) changes.isActive = { before: existing.isActive, after: rule.isActive }
+
+    logAudit({
+      userId: session.user.id, userName: session.user.name ?? '', userRole: role,
+      module: 'discount-rules', action: 'UPDATE',
+      entityType: 'DiscountRule', entityId: id,
+      entityLabel: `${rule.name} (${rule.ruleType}/${rule.discountType})`,
+      changes,
+    }).catch(() => {})
+
     return NextResponse.json(rule)
   } catch (error) {
     return handleApiError(error, 'discount-rules.PUT')

@@ -12,33 +12,34 @@ export async function GET() {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-  // ── Accounts Receivable ────────────────────────────────────
-  const arOrders = await prisma.salesOrder.findMany({
-    where: { status: { notIn: ['CANCELLED', 'COMPLETED'] } },
-    select: { totalAmount: true, paidAmount: true, createdAt: true, customer: { select: { name: true } } },
+  // ── Accounts Receivable (canonical source: AccountsReceivable model) ──────
+  const arRecords = await prisma.accountsReceivable.findMany({
+    where: { status: { not: 'PAID' } },
+    select: { amount: true, paidAmount: true, invoiceDate: true, createdAt: true, dueDate: true },
   })
-  const arTotal = arOrders.reduce((s, o) => s + Math.max(0, Number(o.totalAmount) - Number(o.paidAmount)), 0)
-  const arCount = arOrders.filter(o => Number(o.totalAmount) > Number(o.paidAmount)).length
+  const arTotal = arRecords.reduce((s, r) => s + Math.max(0, Number(r.amount) - Number(r.paidAmount)), 0)
+  const arCount = arRecords.length
 
-  // AR aging buckets
+  // AR aging buckets — age from invoiceDate (fallback to createdAt)
   const arAging = { current: 0, days30: 0, days60: 0, days90: 0, over90: 0 }
-  arOrders.forEach(o => {
-    const unpaid = Math.max(0, Number(o.totalAmount) - Number(o.paidAmount))
+  arRecords.forEach(r => {
+    const unpaid = Math.max(0, Number(r.amount) - Number(r.paidAmount))
     if (unpaid <= 0) return
-    const daysSince = Math.floor((now.getTime() - new Date(o.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    const anchor = r.invoiceDate ?? r.createdAt
+    const daysSince = Math.floor((now.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
     if (daysSince <= 30) arAging.current += unpaid
     else if (daysSince <= 60) arAging.days30 += unpaid
     else if (daysSince <= 90) arAging.days60 += unpaid
     else arAging.over90 += unpaid
   })
 
-  // ── Accounts Payable ───────────────────────────────────────
-  const apOrders = await prisma.purchaseOrder.findMany({
-    where: { status: { notIn: ['CANCELLED', 'RECEIVED'] } },
-    select: { totalAmount: true, paidAmount: true, createdAt: true },
+  // ── Accounts Payable (canonical source: AccountsPayable model) ────────────
+  const apRecords = await prisma.accountsPayable.findMany({
+    where: { status: { not: 'PAID' } },
+    select: { amount: true, paidAmount: true },
   })
-  const apTotal = apOrders.reduce((s, o) => s + Math.max(0, Number(o.totalAmount) - Number(o.paidAmount)), 0)
-  const apCount = apOrders.filter(o => Number(o.totalAmount) > Number(o.paidAmount)).length
+  const apTotal = apRecords.reduce((s, r) => s + Math.max(0, Number(r.amount) - Number(r.paidAmount)), 0)
+  const apCount = apRecords.length
 
   // ── Today's collections ────────────────────────────────────
   const todayPayments = await prisma.paymentRecord.findMany({
@@ -70,19 +71,20 @@ export async function GET() {
   const monthGrossProfit = monthRevenue - monthCost
   const grossMargin = monthRevenue > 0 ? Math.round((monthGrossProfit / monthRevenue) * 1000) / 10 : 0
 
-  // ── Overdue customers (top 5 by amount) ────────────────────
+  // ── Overdue customers (top 5 by amount, from AR model) ────
+  const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
   const overdueRaw = await prisma.$queryRaw<Array<{
     customerId: string; name: string; overdue: number
   }>>`
-    SELECT so."customerId", c.name,
-           SUM(so."totalAmount" - so."paidAmount")::float AS overdue
-    FROM "SalesOrder" so
-    JOIN "Customer" c ON c.id = so."customerId"
-    WHERE so.status NOT IN ('CANCELLED', 'COMPLETED')
-      AND so."totalAmount" > so."paidAmount"
-      AND so."createdAt" < ${new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())}
-    GROUP BY so."customerId", c.name
-    HAVING SUM(so."totalAmount" - so."paidAmount") > 0
+    SELECT ar."customerId", c.name,
+           SUM(ar.amount - ar."paidAmount")::float AS overdue
+    FROM "AccountsReceivable" ar
+    JOIN "Customer" c ON c.id = ar."customerId"
+    WHERE ar.status <> 'PAID'
+      AND ar.amount > ar."paidAmount"
+      AND COALESCE(ar."invoiceDate", ar."createdAt") < ${oneMonthAgo}
+    GROUP BY ar."customerId", c.name
+    HAVING SUM(ar.amount - ar."paidAmount") > 0
     ORDER BY overdue DESC
     LIMIT 5
   `
@@ -90,16 +92,10 @@ export async function GET() {
     customerId: r.customerId, name: r.name, overdue: Number(r.overdue),
   }))
 
-  // ── Pending reconciliation (partially paid orders) ─────────
-  const partiallyPaidOrders = await prisma.salesOrder.findMany({
-    where: {
-      status: { notIn: ['CANCELLED', 'DRAFT'] },
-    },
-    select: { totalAmount: true, paidAmount: true },
+  // ── Pending reconciliation (AR partially paid) ────────────
+  const pendingReconciliation = await prisma.accountsReceivable.count({
+    where: { status: 'PARTIAL_PAID' },
   })
-  const pendingReconciliation = partiallyPaidOrders.filter(
-    o => Number(o.paidAmount) > 0 && Number(o.totalAmount) !== Number(o.paidAmount)
-  ).length
 
   // ── Monthly purchase cost ──────────────────────────────────
   const monthPurchaseAgg = await prisma.purchaseOrder.aggregate({

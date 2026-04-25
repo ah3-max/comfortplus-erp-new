@@ -1,144 +1,114 @@
-// ========== OEM 生產追蹤 ==========
 model ProductionOrder {
-  id               String           @id @default(cuid())
-  productionNo     String           @unique
-  purchaseOrderId  String
-  purchaseOrder    PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id])
-  factoryId        String
-  factory          Supplier         @relation("FactoryProduction", fields: [factoryId], references: [id])
-  status           ProductionStatus @default(PENDING)
-
-  // 數量
-  orderQty         Int
-  producedQty      Int?
-  passedQty        Int?
-  defectQty        Int?
-  defectRate       Decimal?         @db.Decimal(5, 2)
-
-  // 里程碑
-  sampleSubmitDate    DateTime?     // 打樣送出
-  sampleApproveDate   DateTime?     // 打樣確認
-  productionStartDate DateTime?     // 開始生產
-  productionEndDate   DateTime?     // 生產完成
-  inspectionDate      DateTime?     // 驗貨日
-  shipmentDate        DateTime?     // 出廠日
-
-  packagingStatus     String?
-  rawMaterialStatus   String?
-  notes            String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  seaFreights      SeaFreight[]
-  qualityChecks    QualityCheck[]
-  factoryIncidents FactoryIncident[]
-
-  // ── P0-P1 新增關聯 ──────────────────────────────────
+  id                   String                @id @default(cuid())
+  productionNo         String                @unique
+  purchaseOrderId      String
+  factoryId            String
+  status               ProductionStatus      @default(PENDING)
+  orderQty             Int
+  producedQty          Int?
+  passedQty            Int?
+  defectQty            Int?
+  defectRate           Decimal?              @db.Decimal(5, 2)
+  sampleSubmitDate     DateTime?
+  sampleApproveDate    DateTime?
+  productionStartDate  DateTime?
+  productionEndDate    DateTime?
+  inspectionDate       DateTime?
+  shipmentDate         DateTime?
+  packagingStatus      String?
+  rawMaterialStatus    String?
+  notes                String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  factoryIncidents     FactoryIncident[]
   materialRequisitions MaterialRequisition[]
-  productionReceipts   ProductionReceipt[]     @relation("ReceiptFromProduction")
+  factory              Supplier              @relation("FactoryProduction", fields: [factoryId], references: [id])
+  purchaseOrder        PurchaseOrder         @relation(fields: [purchaseOrderId], references: [id])
+  productionReceipts   ProductionReceipt[]   @relation("ReceiptFromProduction")
+  qualityChecks        QualityCheck[]
+  seaFreights          SeaFreight[]
 }
 
-// ========== 海運追蹤 ==========
 model SeaFreight {
-  id                  String         @id @default(cuid())
-  freightNo           String         @unique
-  status              FreightStatus  @default(PENDING)
-  customsStatus       CustomsStatus  @default(NOT_STARTED)
-
-  // ── 關聯 ──────────────────────────────────────────
-  productionOrderId   String?
-  productionOrder     ProductionOrder? @relation(fields: [productionOrderId], references: [id])
-  purchaseOrderId     String?
-  purchaseOrder       PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
-
-  // ── 基本資訊 ──────────────────────────────────────
-  shippingMode        String?        // SEA / AIR / LAND / MULTIMODAL
-  incoterm            String?        // EXW / FOB / CIF / DAP / DDP
-  forwarder           String?        // 貨代公司
-  customsBroker       String?        // 報關行
-  containerType       String?        // 20GP / 40GP / 40HQ / LCL
-  containerNo         String?        // 貨櫃號
-  sealNo              String?        // 封條號
-  bookingNo           String?        // 訂艙號
-  blNo                String?        // 提單號
-
-  // ── 船務資訊 ──────────────────────────────────────
-  vesselName          String?        // 船名
-  voyageNo            String?        // 航次
-  shippingLine        String?        // 航運公司
-  portOfLoading       String?        // 起運港
-  portOfDischarge     String?        // 目的港
-  transshipPort       String?        // 轉運港
-  trackingUrl         String?        // 即時追蹤 URL
-  delayReason         String?        // 船期異常原因
-
-  // ── 時間預計 / 實際 ──────────────────────────────
-  etd                 DateTime?      // 預計開船
-  eta                 DateTime?      // 預計到港
-  actualDeparture     DateTime?      // 實際開船 (ATD)
-  actualArrival       DateTime?      // 實際到港 (ATA)
-
-  // ── 物流里程碑 ────────────────────────────────────
-  factoryExitDate     DateTime?      // 工廠出廠日
-  consolidationDate   DateTime?      // 集貨日
-  loadingDate         DateTime?      // 裝櫃日
-  customsDeclareDate  DateTime?      // 報關申報日
-  customsReleasedDate DateTime?      // 放行日
-  customsCompletedDate DateTime?     // 清關完成日
-  devanningDate       DateTime?      // 拆櫃日
-  warehouseInDate     DateTime?      // 入倉日
-
-  // ── 報關文件 ──────────────────────────────────────
-  customsDeclarationNo String?       // 報關單號
-  invoiceNo           String?        // 商業發票號碼
-  packingListNo       String?        // 裝箱單號
-  certificateOfOrigin String?        // 原產地證明
-  insuranceInfo       String?        // 保險資料
-  blAttachment        String?        // 提單附件路徑
-  customsDocAttachment String?       // 清關文件附件路徑
-
-  // ── 貨物資訊 ──────────────────────────────────────
-  palletCount         Int?
-  boxCount            Int?
-  weight              Decimal?       @db.Decimal(10, 3)
-  volume              String?
-
-  // ── 費用明細 ──────────────────────────────────────
-  oceanFreight        Decimal?       @db.Decimal(12, 2) // 海運費
-  customsFee          Decimal?       @db.Decimal(12, 2) // 報關費
-  documentFee         Decimal?       @db.Decimal(12, 2) // 文件費
-  portCharge          Decimal?       @db.Decimal(12, 2) // 港雜費
-  truckingFee         Decimal?       @db.Decimal(12, 2) // 拖車費
-  insuranceFee        Decimal?       @db.Decimal(12, 2) // 保險費
-  storageFee          Decimal?       @db.Decimal(12, 2) // 倉租
-  otherFee            Decimal?       @db.Decimal(12, 2) // 其他費用
-  totalCostTWD        Decimal?       @db.Decimal(12, 2) // 台幣換算總額
-
-  // ── 新增欄位 ──────────────────────────────────────
-  berthingTime        DateTime?
-  dischargeTime       DateTime?
-  containerPickupDate DateTime?
-  importerName        String?
-  importerTaxId       String?
-  hsCode              String?
-  declaredValue       Decimal?       @db.Decimal(12, 2)
-  dutyAmount          Decimal?       @db.Decimal(12, 2)
-  vatAmount           Decimal?       @db.Decimal(12, 2)
-  inspectionType      String?
-  inspectionResult    String?
-  documentsStatus     String?
-  demurrageFee        Decimal?       @db.Decimal(12, 2)
-  detentionFee        Decimal?       @db.Decimal(12, 2)
+  id                    String            @id @default(cuid())
+  freightNo             String            @unique
+  status                FreightStatus     @default(PENDING)
+  customsStatus         CustomsStatus     @default(NOT_STARTED)
+  productionOrderId     String?
+  purchaseOrderId       String?
+  shippingMode          String?
+  incoterm              String?
+  forwarder             String?
+  customsBroker         String?
+  containerType         String?
+  containerNo           String?
+  sealNo                String?
+  bookingNo             String?
+  blNo                  String?
+  vesselName            String?
+  voyageNo              String?
+  shippingLine          String?
+  portOfLoading         String?
+  portOfDischarge       String?
+  transshipPort         String?
+  trackingUrl           String?
+  delayReason           String?
+  etd                   DateTime?
+  eta                   DateTime?
+  actualDeparture       DateTime?
+  actualArrival         DateTime?
+  factoryExitDate       DateTime?
+  consolidationDate     DateTime?
+  loadingDate           DateTime?
+  customsDeclareDate    DateTime?
+  customsReleasedDate   DateTime?
+  customsCompletedDate  DateTime?
+  devanningDate         DateTime?
+  warehouseInDate       DateTime?
+  customsDeclarationNo  String?
+  invoiceNo             String?
+  packingListNo         String?
+  certificateOfOrigin   String?
+  insuranceInfo         String?
+  blAttachment          String?
+  customsDocAttachment  String?
+  palletCount           Int?
+  boxCount              Int?
+  weight                Decimal?          @db.Decimal(10, 3)
+  volume                String?
+  oceanFreight          Decimal?          @db.Decimal(12, 2)
+  customsFee            Decimal?          @db.Decimal(12, 2)
+  documentFee           Decimal?          @db.Decimal(12, 2)
+  portCharge            Decimal?          @db.Decimal(12, 2)
+  truckingFee           Decimal?          @db.Decimal(12, 2)
+  insuranceFee          Decimal?          @db.Decimal(12, 2)
+  storageFee            Decimal?          @db.Decimal(12, 2)
+  otherFee              Decimal?          @db.Decimal(12, 2)
+  totalCostTWD          Decimal?          @db.Decimal(12, 2)
+  berthingTime          DateTime?
+  dischargeTime         DateTime?
+  containerPickupDate   DateTime?
+  importerName          String?
+  importerTaxId         String?
+  hsCode                String?
+  declaredValue         Decimal?          @db.Decimal(12, 2)
+  dutyAmount            Decimal?          @db.Decimal(12, 2)
+  vatAmount             Decimal?          @db.Decimal(12, 2)
+  inspectionType        String?
+  inspectionResult      String?
+  documentsStatus       String?
+  demurrageFee          Decimal?          @db.Decimal(12, 2)
+  detentionFee          Decimal?          @db.Decimal(12, 2)
   packingListAttachment String?
-  coaAttachment       String?
-  originCertAttachment String?
-  documentsJson       Json?          // [{type, url, fileName, uploadedAt}] 多份單據
-
-  notes               String?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-
-  inboundRecords      InboundRecord[]
-  supplierInvoices    SupplierInvoice[]
-  importProjects      ImportProject[]   @relation("ImportProjectFreight")
+  coaAttachment         String?
+  originCertAttachment  String?
+  notes                 String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  documentsJson         Json?
+  importProjects        ImportProject[]   @relation("ImportProjectFreight")
+  inboundRecords        InboundRecord[]
+  productionOrder       ProductionOrder?  @relation(fields: [productionOrderId], references: [id])
+  purchaseOrder         PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+  supplierInvoices      SupplierInvoice[]
 }

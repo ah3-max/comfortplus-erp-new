@@ -11,22 +11,18 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'customers', 'keyAccounts', 'incidents', 'quotations', 'orders', 'salesInvoices', 'eInvoices',
     'marginCalc', 'kpi', 'pipeline', 'opportunities', 'tasks',
     'products', 'inventory', 'shipments', 'pickup',
-    'channels', 'payments', 'arAging', 'budget', 'expenses', 'contracts',
-    'afterSales', 'care', 'knowledge',
+    'channels', 'payments', 'arAging', 'expenses',
+    'afterSales',
     'approvals', 'reports', 'documents', 'announcements',
   ],
   SALES: [
-    'dashboard', 'dailyReport', 'quickInput', 'crm', 'calendar',
-    'customers', 'keyAccounts', 'quotations', 'orders', 'salesInvoices',
-    'kpi', 'pipeline', 'opportunities', 'tasks',
-    'products', 'shipments', 'pickup',
-    'afterSales', 'care', 'knowledge',
-    'approvals', 'announcements',
+    'dashboard', 'customers', 'quotations', 'orders', 'crm',
+    'salesDailyReport',
   ],
   CARE_SUPERVISOR: [
     'dashboard', 'calendar', 'businessCalendar', 'crm', 'alerts',
     'customers', 'keyAccounts', 'incidents', 'tasks',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'announcements',
   ],
   ECOMMERCE: [
@@ -34,14 +30,14 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'orders', 'salesInvoices', 'eInvoices', 'kpi',
     'products', 'inventory',
     'shipments',
-    'channels', 'retail', 'payments', 'arAging',
+    'channels', 'payments', 'arAging',
     'afterSales',
     'reports', 'announcements',
   ],
   CS: [
     'dashboard', 'crm', 'calendar',
     'customers', 'orders', 'tasks',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'announcements',
   ],
   WAREHOUSE_MANAGER: [
@@ -65,35 +61,15 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'purchases', 'purchaseRequests', 'rfq', 'suppliers', 'production',
     'materialRequisitions', 'productionReceipts', 'qc', 'packaging',
     'seaFreight', 'importProjects', 'purchasePlans',
-    'payments', 'apAging', 'disbursements', 'budget',
+    'payments', 'apAging', 'disbursements',
     'reports', 'documents', 'announcements',
   ],
   FINANCE: [
-    'dashboard', 'announcements',
-    // AR
-    'orders', 'salesInvoices', 'salesReturns', 'eInvoices',
-    'receipts', 'arAging', 'settlement', 'creditManagement',
-    // AP
-    'payments', 'apAging', 'disbursements',
-    'expenses', 'pettyCash',
-    // Bank
-    'bankAccounts', 'bankReconcile', 'cheques', 'cashBook',
-    // Ledger
-    'generalLedger', 'accountDetail', 'vatLedger',
-    'inputTax', 'vatSummary', 'vatFilings',
-    // Finance dashboard
-    'finance',
-    // Reports
-    'monthlyPL', 'cashFlowStatement', 'paymentSummary', 'receiptSummary', 'advancePaymentSummary', 'managementSummary',
-    'grossMargin', 'salesAnalysis', 'reports',
-    // Period close
-    'autoJournal', 'periodClose',
-    // Channels & pricing
-    'channels', 'priceTiers', 'discountRules', 'customerPricing',
-    // Products (read for AR verification)
-    'products',
-    // System
-    'approvals', 'documents', 'auditLog',
+    'dashboard', 'finance',
+    'receipts', 'payments', 'expenses',
+    'arAging', 'apAging',
+    'generalLedger', 'monthlyPL',
+    'vatFilings', 'periodClose',
   ],
 }
 

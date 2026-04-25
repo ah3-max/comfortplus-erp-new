@@ -85,6 +85,7 @@ export default function InboundPage() {
   // Putaway dialog
   const [putawayTarget, setPutawayTarget] = useState<InboundRecord | null>(null)
   const [putawayLoading, setPutawayLoading] = useState(false)
+  const [putawayLocations, setPutawayLocations] = useState<Record<string, string>>({})
 
   const fetchRecords = useCallback(async () => {
     setLoading(true)
@@ -131,17 +132,22 @@ export default function InboundPage() {
 
   async function handlePutaway() {
     if (!putawayTarget) return
+    // Build items payload from per-item location state (only rows with a location)
+    const items = putawayTarget.items
+      .map(i => ({ id: i.id, locationCode: (putawayLocations[i.id] ?? '').trim() }))
+      .filter(i => i.locationCode)
     setPutawayLoading(true)
     try {
       const res = await fetch(`/api/inbound/${putawayTarget.id}/putaway`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: [] }),
+        body: JSON.stringify({ items }),
       })
       const data = await res.json()
       if (!res.ok) { toast.error(data.error ?? '上架操作失敗'); return }
-      toast.success('上架完成')
+      toast.success(items.length > 0 ? `上架完成（${items.length} 項儲位已登記）` : '上架完成')
       setPutawayTarget(null)
+      setPutawayLocations({})
       fetchRecords()
     } catch {
       toast.error('上架操作失敗，請稍後重試')
@@ -343,22 +349,47 @@ export default function InboundPage() {
       </Dialog>
 
       {/* Putaway Dialog */}
-      <Dialog open={!!putawayTarget} onOpenChange={open => !open && setPutawayTarget(null)}>
-        <DialogContent>
+      <Dialog open={!!putawayTarget}
+        onOpenChange={open => { if (!open) { setPutawayTarget(null); setPutawayLocations({}) } }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>確認上架 — {putawayTarget?.inboundNo}</DialogTitle>
           </DialogHeader>
-          <div className="py-2 space-y-2">
+          <div className="py-2 space-y-3">
             <p className="text-sm text-muted-foreground">
               倉庫：{putawayTarget?.warehouse.name}（{putawayTarget?.warehouse.code}）
             </p>
-            <p className="text-sm">
-              品項：{putawayTarget?.items.map(i => `${i.product.name}×${i.quantity}`).join('、')}
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">確認後將標記上架完成，庫存已在 QC 驗收時更新。</p>
+            <div className="rounded-lg border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground">品項</th>
+                    <th className="px-3 py-2 text-center font-medium text-muted-foreground w-16">數量</th>
+                    <th className="px-3 py-2 text-left font-medium text-muted-foreground w-40">儲位</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {putawayTarget?.items.map(i => (
+                    <tr key={i.id}>
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{i.product.name}</div>
+                        <div className="text-xs text-muted-foreground">{i.product.sku}</div>
+                      </td>
+                      <td className="px-3 py-2 text-center">{i.quantity}</td>
+                      <td className="px-3 py-2">
+                        <Input className="h-8" placeholder="例：A-01-03"
+                          value={putawayLocations[i.id] ?? ''}
+                          onChange={e => setPutawayLocations(prev => ({ ...prev, [i.id]: e.target.value }))} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground">儲位選填；留空只標記上架完成。庫存已在 QC 驗收時更新。</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPutawayTarget(null)}>取消</Button>
+            <Button variant="outline" onClick={() => { setPutawayTarget(null); setPutawayLocations({}) }}>取消</Button>
             <Button onClick={handlePutaway} disabled={putawayLoading}>
               {putawayLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               確認上架

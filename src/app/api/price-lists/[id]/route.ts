@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -61,6 +62,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     include: { items: { include: { product: { select: { id: true, sku: true, name: true } } } } },
   })
 
+  logAudit({
+    userId: session.user.id,
+    userName: session.user.name ?? '',
+    userRole: (session.user as { role?: string }).role ?? '',
+    module: 'price-lists',
+    action: 'UPDATE',
+    entityType: 'PriceList',
+    entityId: id,
+    entityLabel: `${list.name} (${list.items.length} 項${body.items ? ' — 項目已取代' : ''})`,
+  }).catch(() => {})
+
   return NextResponse.json(list)
   } catch (error) { return handleApiError(error, 'price-lists.update') }
 }
@@ -71,7 +83,21 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
+  const target = await prisma.priceList.findUnique({ where: { id }, select: { name: true } })
+  if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   await prisma.priceList.delete({ where: { id } })
+
+  logAudit({
+    userId: session.user.id,
+    userName: session.user.name ?? '',
+    userRole: (session.user as { role?: string }).role ?? '',
+    module: 'price-lists',
+    action: 'DELETE',
+    entityType: 'PriceList',
+    entityId: id,
+    entityLabel: target.name,
+  }).catch(() => {})
+
   return NextResponse.json({ ok: true })
   } catch (error) { return handleApiError(error, 'price-lists.delete') }
 }

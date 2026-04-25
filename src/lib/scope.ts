@@ -9,8 +9,8 @@
  *   SALES_MANAGER            → ALL sales data (team-wide)
  *   SALES / CS               → Only OWN data (createdById / salesRepId)
  *   CARE_SUPERVISOR           → Only own-assigned data
- *   WAREHOUSE_MANAGER         → ALL warehouse-related data
- *   WAREHOUSE                 → ALL warehouse-related data
+ *   WAREHOUSE_MANAGER         → orders/shipments/inventory only (no quotes/invoices/customers)
+ *   WAREHOUSE                 → orders/shipments/inventory only (no quotes/invoices/customers)
  *   PROCUREMENT               → ALL procurement data
  *   FINANCE                   → ALL data (finance needs full visibility)
  *   ECOMMERCE                 → ALL e-commerce + orders data
@@ -24,6 +24,9 @@ const SALES_TEAM_ACCESS_ROLES = ['SALES_MANAGER']
 
 // Roles restricted to their own data only
 const OWN_DATA_ROLES = ['SALES', 'CS', 'CARE_SUPERVISOR']
+
+// Roles restricted to warehouse-domain data (orders/shipments/inventory OK; quotations/invoices denied)
+const WAREHOUSE_ROLES = ['WAREHOUSE_MANAGER', 'WAREHOUSE']
 
 interface ScopeContext {
   userId: string
@@ -56,6 +59,9 @@ export function customerScope(ctx: ScopeContext): Record<string, unknown> {
   if (OWN_DATA_ROLES.includes(ctx.role)) {
     return { salesRepId: ctx.userId }
   }
+  if (WAREHOUSE_ROLES.includes(ctx.role)) {
+    return { id: '__WAREHOUSE_DENIED__' }
+  }
   return {}
 }
 
@@ -67,6 +73,9 @@ export function customerScope(ctx: ScopeContext): Record<string, unknown> {
 export function quotationScope(ctx: ScopeContext): Record<string, unknown> {
   if (OWN_DATA_ROLES.includes(ctx.role)) {
     return { createdById: ctx.userId }
+  }
+  if (WAREHOUSE_ROLES.includes(ctx.role)) {
+    return { id: '__WAREHOUSE_DENIED__' }
   }
   return {}
 }
@@ -125,6 +134,7 @@ export function canAccessOrder(
  * Check if user can access a specific customer.
  */
 export function canAccessCustomer(ctx: ScopeContext, customer: { salesRepId: string | null }): boolean {
+  if (WAREHOUSE_ROLES.includes(ctx.role)) return false
   if (!OWN_DATA_ROLES.includes(ctx.role)) return true
   return customer.salesRepId === ctx.userId
 }
@@ -133,6 +143,7 @@ export function canAccessCustomer(ctx: ScopeContext, customer: { salesRepId: str
  * Check if user can access a specific quotation.
  */
 export function canAccessQuotation(ctx: ScopeContext, quotation: { createdById: string }): boolean {
+  if (WAREHOUSE_ROLES.includes(ctx.role)) return false
   if (!OWN_DATA_ROLES.includes(ctx.role)) return true
   return quotation.createdById === ctx.userId
 }
@@ -146,6 +157,9 @@ export function invoiceScope(ctx: ScopeContext): Record<string, unknown> {
   if (OWN_DATA_ROLES.includes(ctx.role)) {
     return { createdById: ctx.userId }
   }
+  if (WAREHOUSE_ROLES.includes(ctx.role)) {
+    return { id: '__WAREHOUSE_DENIED__' }
+  }
   return {}
 }
 
@@ -153,6 +167,7 @@ export function invoiceScope(ctx: ScopeContext): Record<string, unknown> {
  * Check if user can access a specific sales invoice.
  */
 export function canAccessInvoice(ctx: ScopeContext, invoice: { createdById: string }): boolean {
+  if (WAREHOUSE_ROLES.includes(ctx.role)) return false
   if (!OWN_DATA_ROLES.includes(ctx.role)) return true
   return invoice.createdById === ctx.userId
 }

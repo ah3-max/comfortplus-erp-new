@@ -7,6 +7,7 @@ import { checkKpiMilestone } from '@/lib/kpi-check'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
+import { getCustomerCreditUsage } from '@/lib/credit'
 
 export async function GET(req: NextRequest) {
   const session = await auth()
@@ -107,16 +108,12 @@ export async function POST(req: NextRequest) {
     0
   )
 
-  // Credit limit check
+  // Credit limit check — shared logic with quote→order convert (AR + PENDING orders, no double-counting)
   if (customer.creditLimit) {
-    const unpaid = await prisma.salesOrder.aggregate({
-      where: { customerId: body.customerId, status: { notIn: ['CANCELLED', 'COMPLETED'] } },
-      _sum: { totalAmount: true },
-    })
-    const currentDebt = Number(unpaid._sum.totalAmount ?? 0)
-    if (currentDebt + totalAmount > Number(customer.creditLimit)) {
+    const { arOutstanding, pendingCommitted, total } = await getCustomerCreditUsage(body.customerId)
+    if (total + totalAmount > Number(customer.creditLimit)) {
       return NextResponse.json({
-        error: `${customer.name} 已超過信用額度（額度 ${Number(customer.creditLimit).toLocaleString()}，目前未收 ${currentDebt.toLocaleString()}，此單 ${totalAmount.toLocaleString()}）`,
+        error: `${customer.name} 已超過信用額度（額度 ${Number(customer.creditLimit).toLocaleString()}，AR ${arOutstanding.toLocaleString()}，待確認 ${pendingCommitted.toLocaleString()}，此單 ${totalAmount.toLocaleString()}）`,
       }, { status: 400 })
     }
   }

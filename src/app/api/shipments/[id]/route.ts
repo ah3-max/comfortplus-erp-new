@@ -53,20 +53,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const now = new Date()
 
     // Guard status transitions: SHIPPED only from PREPARING/PACKED; DELIVERED only from SHIPPED
-    if (body.status === 'SHIPPED') {
-      const current = await prisma.shipment.findUnique({ where: { id }, select: { status: true } })
-      if (!current) return NextResponse.json({ error: '找不到出貨單' }, { status: 404 })
-      if (!['PREPARING', 'PACKED'].includes(current.status)) {
-        return NextResponse.json({ error: `出貨單目前狀態為 ${current.status}，無法標記為已出貨`, status: current.status }, { status: 409 })
-      }
+    const current = await prisma.shipment.findUnique({
+      where: { id },
+      select: { status: true, signStatus: true },
+    })
+    if (!current) return NextResponse.json({ error: '找不到出貨單' }, { status: 404 })
+    if (body.status === 'SHIPPED' && !['PREPARING', 'PACKED'].includes(current.status)) {
+      return NextResponse.json({ error: `出貨單目前狀態為 ${current.status}，無法標記為已出貨`, status: current.status }, { status: 409 })
     }
-    if (body.status === 'DELIVERED') {
-      const current = await prisma.shipment.findUnique({ where: { id }, select: { status: true } })
-      if (!current) return NextResponse.json({ error: '找不到出貨單' }, { status: 404 })
-      if (current.status !== 'SHIPPED') {
-        return NextResponse.json({ error: `出貨單目前狀態為 ${current.status}，無法標記為已送達`, status: current.status }, { status: 409 })
-      }
+    if (body.status === 'DELIVERED' && current.status !== 'SHIPPED') {
+      return NextResponse.json({ error: `出貨單目前狀態為 ${current.status}，無法標記為已送達`, status: current.status }, { status: 409 })
     }
+
+    // DELIVERED auto-sets signStatus to SIGNED only when:
+    // (a) caller didn't explicitly provide signStatus, AND
+    // (b) current signStatus is PENDING (preserve REJECTED / existing SIGNED)
+    const autoSign = body.status === 'DELIVERED' && !body.signStatus && current.signStatus === 'PENDING'
 
     const shipment = await prisma.shipment.update({
       where: { id },
@@ -89,7 +91,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         ...(body.notes        !== undefined && { notes: body.notes || null }),
         // Auto-set timestamps on status transitions
         ...(body.status === 'SHIPPED'   && { shipDate: body.shipDate ? new Date(body.shipDate) : now }),
-        ...(body.status === 'DELIVERED' && { deliveryDate: now, signStatus: 'SIGNED' as never }),
+        ...(body.status === 'DELIVERED' && { deliveryDate: now }),
+        ...(autoSign && { signStatus: 'SIGNED' as never }),
         // Manual sign/delivery date override
         ...(body.deliveryDate && { deliveryDate: new Date(body.deliveryDate) }),
       },

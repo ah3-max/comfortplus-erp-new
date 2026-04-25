@@ -1,46 +1,31 @@
-// ========== 電子發票（E-Invoice） ==========
-// 流程：銷貨單(SalesInvoice) → 電子發票(EInvoice) → 傳送
-
 model EInvoice {
-  id                String          @id @default(cuid())
-  invoiceNumber     String          @unique  // 發票號碼（如 ZM25585997）
-  date              DateTime        @default(now())
-  salesInvoiceId    String?         // 關聯銷貨單
-  salesInvoice      SalesInvoice?   @relation("InvoiceEInvoice", fields: [salesInvoiceId], references: [id])
-  customerId        String
-  customer          Customer        @relation("CustomerEInvoice", fields: [customerId], references: [id])
-  customerName      String          // 冗餘存檔
-
-  invoiceType       EInvoiceType    // B2B / B2C
-  subtotal          Decimal         @db.Decimal(12, 2) // 稅前價格
-  taxAmount         Decimal         @db.Decimal(12, 2) // 營業稅
-  totalAmount       Decimal         @db.Decimal(12, 2) // 含稅金額
-
-  // 折讓
-  creditNoteNumber  String?         // 折讓證明單號碼
-  creditNoteDate    DateTime?       // 折讓日期
-  creditNoteAmount  Decimal?        @db.Decimal(12, 2) // 折讓金額
-
-  // 作廢
-  voidReason        String?         // 作廢原因
-  voidedAt          DateTime?       // 作廢時間
-
-  // 狀態
-  status            EInvoiceStatus  @default(CREATED)
-  transmitStatus    TransmitStatus  @default(PENDING)
-  transmittedAt     DateTime?
-
-  // 買方資訊（B2B 需要）
-  buyerTaxId        String?         // 買方統一編號
-  buyerName         String?
-
-  // Turnkey 傳輸記錄
-  turnkeyLogs       EInvoiceTurnkeyLog[] @relation("TurnkeyLogEInvoice")
-
-  createdById       String
-  createdBy         User            @relation("EInvoiceCreatedBy", fields: [createdById], references: [id])
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id               String               @id @default(cuid())
+  invoiceNumber    String               @unique
+  date             DateTime             @default(now())
+  salesInvoiceId   String?
+  customerId       String
+  customerName     String
+  invoiceType      EInvoiceType
+  subtotal         Decimal              @db.Decimal(12, 2)
+  taxAmount        Decimal              @db.Decimal(12, 2)
+  totalAmount      Decimal              @db.Decimal(12, 2)
+  creditNoteNumber String?
+  status           EInvoiceStatus       @default(CREATED)
+  transmitStatus   TransmitStatus       @default(PENDING)
+  transmittedAt    DateTime?
+  buyerTaxId       String?
+  buyerName        String?
+  createdById      String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  creditNoteAmount Decimal?             @db.Decimal(12, 2)
+  creditNoteDate   DateTime?
+  voidReason       String?
+  voidedAt         DateTime?
+  createdBy        User                 @relation("EInvoiceCreatedBy", fields: [createdById], references: [id])
+  customer         Customer             @relation("CustomerEInvoice", fields: [customerId], references: [id])
+  salesInvoice     SalesInvoice?        @relation("InvoiceEInvoice", fields: [salesInvoiceId], references: [id])
+  turnkeyLogs      EInvoiceTurnkeyLog[] @relation("TurnkeyLogEInvoice")
 
   @@index([salesInvoiceId])
   @@index([customerId, date])

@@ -26,6 +26,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '請提供訂單 ID 清單' }, { status: 400 })
     }
 
+    // Period guard: batch-confirm writes AR + journal with today's date
+    const { assertPeriodOpen } = await import('@/lib/period-guard')
+    await assertPeriodOpen(new Date())
+
     const results: { orderId: string; orderNo: string; status: 'confirmed' | 'skipped'; reason?: string }[] = []
 
     for (const orderId of body.orderIds) {
@@ -133,15 +137,21 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Auto-create AR (idempotent)
+      // Auto-create AR (idempotent) — pull invoiceNo from linked SalesInvoice, fall back to orderNo
       const existingAR = await prisma.accountsReceivable.findFirst({ where: { orderId } })
       if (!existingAR) {
+        const linkedInvoice = await prisma.salesInvoice.findFirst({
+          where: { sourceOrderId: orderId },
+          select: { invoiceNumber: true },
+        })
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + 30)
         await prisma.accountsReceivable.create({
           data: {
             customerId: order.customerId,
             orderId,
+            invoiceNo: linkedInvoice?.invoiceNumber ?? order.orderNo,
+            invoiceDate: new Date(),
             amount: Number(order.totalAmount),
             paidAmount: 0,
             dueDate,

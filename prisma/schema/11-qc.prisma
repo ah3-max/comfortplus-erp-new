@@ -1,138 +1,131 @@
-// ========== QC 品質檢驗 ==========
 model QualityCheck {
-  id                String           @id @default(cuid())
-  qcNo              String           @unique
+  id                String             @id @default(cuid())
+  qcNo              String             @unique
   inspectionType    QcInspectionType
-  qcStatus          QcStatus         @default(PENDING)
-  result            QcResult?        // 最終判定
-
-  // 關聯
+  qcStatus          QcStatus           @default(PENDING)
+  result            QcResult?
   productionOrderId String?
-  productionOrder   ProductionOrder? @relation(fields: [productionOrderId], references: [id])
   purchaseOrderId   String?
-  purchaseOrder     PurchaseOrder?   @relation(fields: [purchaseOrderId], references: [id])
   supplierId        String?
-  supplier          Supplier?        @relation("QcSupplier", fields: [supplierId], references: [id])
   productId         String?
-  product           Product?         @relation(fields: [productId], references: [id])
-
-  // 檢驗資訊
   batchNo           String?
   inspectionDate    DateTime?
   inspectedById     String?
-  sampleSize        Int?             // 抽樣數
+  sampleSize        Int?
   passedQty         Int?
   failedQty         Int?
-  passRate          Decimal?         @db.Decimal(5, 2)
-  defectRate        Decimal?         @db.Decimal(5, 2)
-  resultSummary     String?          // 結果摘要
+  passRate          Decimal?           @db.Decimal(5, 2)
+  defectRate        Decimal?           @db.Decimal(5, 2)
+  resultSummary     String?
   lotSize           Int?
   aqlLevel          String?
   acceptQty         Int?
   rejectQty         Int?
   acceptanceStatus  String?
   rejectQtyTotal    Int?
-  lossAmount        Decimal?         @db.Decimal(12,2)
-  reworkCost        Decimal?         @db.Decimal(12,2)
+  lossAmount        Decimal?           @db.Decimal(12, 2)
+  reworkCost        Decimal?           @db.Decimal(12, 2)
   disposalMethod    String?
   notes             String?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-
-  checkItems        QcCheckItem[]
-  diaperChecklist   QcDiaperChecklist?
-  qcAttachments     QcAttachment[]
-  qcDefects         QcDefect[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   defectiveGoods    DefectiveGoods[]   @relation("DefectiveFromQC")
+  qcAttachments     QcAttachment[]
+  checkItems        QcCheckItem[]
+  qcDefects         QcDefect[]
+  diaperChecklist   QcDiaperChecklist?
+  product           Product?           @relation(fields: [productId], references: [id])
+  productionOrder   ProductionOrder?   @relation(fields: [productionOrderId], references: [id])
+  purchaseOrder     PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id])
+  supplier          Supplier?          @relation("QcSupplier", fields: [supplierId], references: [id])
 }
 
-// ── QC 檢驗明細 ────────────────────────────────────
 model QcCheckItem {
-  id              String       @id @default(cuid())
-  qcId            String
-  qc              QualityCheck @relation(fields: [qcId], references: [id], onDelete: Cascade)
-  itemName        String       // 檢驗項目名稱（吸收量/回滲量/腰貼黏性…）
-  standardValue   String?      // 標準值（e.g. ">300ml", "≤5ml"）
-  actualValue     String?      // 實測值
-  isQualified     Boolean?     // 合格與否
-  defectType      String?      // 缺陷類型
-  defectQty       Int?         // 缺陷數量
-  judgment        String?      // 判定（PASS/FAIL/WARNING）
-  notes           String?
+  id            String       @id @default(cuid())
+  qcId          String
+  itemName      String
+  standardValue String?
+  actualValue   String?
+  isQualified   Boolean?
+  defectType    String?
+  defectQty     Int?
+  judgment      String?
+  notes         String?
+  qc            QualityCheck @relation(fields: [qcId], references: [id], onDelete: Cascade)
 }
 
 model QcDiaperChecklist {
-  id String @id @default(cuid())
-  qcId String @unique
-  qc QualityCheck @relation(fields: [qcId], references: [id])
-  cartonDamageQty Int?
-  cartonDirty Boolean?
-  cartonDeformation Boolean?
-  cartonLabelCorrect Boolean?
+  id                    String       @id @default(cuid())
+  qcId                  String       @unique
+  cartonDamageQty       Int?
+  cartonDirty           Boolean?
+  cartonDeformation     Boolean?
+  cartonLabelCorrect    Boolean?
   cartonBarcodeScanable Boolean?
-  cartonSealingOk Boolean?
-  cartonMixedItems Boolean?
-  cartonCountCorrect Boolean?
-  cartonWeightActual Decimal? @db.Decimal(8,3)
-  cartonWeightStandard Decimal? @db.Decimal(8,3)
-  packWeightActual Decimal? @db.Decimal(8,3)
-  packWeightStandard Decimal? @db.Decimal(8,3)
-  pieceWeightActual Decimal? @db.Decimal(8,3)
-  pieceWeightStandard Decimal? @db.Decimal(8,3)
-  lengthMm Decimal? @db.Decimal(6,1)
-  widthMm Decimal? @db.Decimal(6,1)
-  thicknessFront Decimal? @db.Decimal(5,2)
-  thicknessMiddle Decimal? @db.Decimal(5,2)
-  thicknessBack Decimal? @db.Decimal(5,2)
-  thicknessUniform Boolean?
-  maxAbsorptionMl Decimal? @db.Decimal(8,1)
-  absorptionTimeSec Int?
-  rewetValue Decimal? @db.Decimal(6,1)
-  leakageTest Boolean?
-  gelIntegrity Boolean?
-  absorptionUniform Boolean?
-  adhesionStrength String?
-  repeatableUse Boolean?
-  peelTestResult String?
-  detachmentIssue Boolean?
-  tensileForceN Decimal? @db.Decimal(8,2)
-  stretchLimit String?
-  breakPoint String?
-  elasticity String?
-  surfaceWear String?
-  fabricIntegrity Boolean?
-  rubbingTestResult String?
-  odorLevel String?
-  chemicalSmell Boolean?
-  skinIrritationRisk Boolean?
-  fitTest String?
-  sideLeakRisk Boolean?
-  comfortLevel String?
-  easeOfUse String?
-  manufacturingDate DateTime?
-  expiryDate DateTime?
-  productionLine String?
-  createdAt DateTime @default(now())
+  cartonSealingOk       Boolean?
+  cartonMixedItems      Boolean?
+  cartonCountCorrect    Boolean?
+  cartonWeightActual    Decimal?     @db.Decimal(8, 3)
+  cartonWeightStandard  Decimal?     @db.Decimal(8, 3)
+  packWeightActual      Decimal?     @db.Decimal(8, 3)
+  packWeightStandard    Decimal?     @db.Decimal(8, 3)
+  pieceWeightActual     Decimal?     @db.Decimal(8, 3)
+  pieceWeightStandard   Decimal?     @db.Decimal(8, 3)
+  lengthMm              Decimal?     @db.Decimal(6, 1)
+  widthMm               Decimal?     @db.Decimal(6, 1)
+  thicknessFront        Decimal?     @db.Decimal(5, 2)
+  thicknessMiddle       Decimal?     @db.Decimal(5, 2)
+  thicknessBack         Decimal?     @db.Decimal(5, 2)
+  thicknessUniform      Boolean?
+  maxAbsorptionMl       Decimal?     @db.Decimal(8, 1)
+  absorptionTimeSec     Int?
+  rewetValue            Decimal?     @db.Decimal(6, 1)
+  leakageTest           Boolean?
+  gelIntegrity          Boolean?
+  absorptionUniform     Boolean?
+  adhesionStrength      String?
+  repeatableUse         Boolean?
+  peelTestResult        String?
+  detachmentIssue       Boolean?
+  tensileForceN         Decimal?     @db.Decimal(8, 2)
+  stretchLimit          String?
+  breakPoint            String?
+  elasticity            String?
+  surfaceWear           String?
+  fabricIntegrity       Boolean?
+  rubbingTestResult     String?
+  odorLevel             String?
+  chemicalSmell         Boolean?
+  skinIrritationRisk    Boolean?
+  fitTest               String?
+  sideLeakRisk          Boolean?
+  comfortLevel          String?
+  easeOfUse             String?
+  manufacturingDate     DateTime?
+  expiryDate            DateTime?
+  productionLine        String?
+  createdAt             DateTime     @default(now())
+  qc                    QualityCheck @relation(fields: [qcId], references: [id])
 }
 
 model QcAttachment {
-  id String @id @default(cuid())
-  qcId String
-  qc QualityCheck @relation(fields: [qcId], references: [id])
-  category String
-  fileUrl String
-  fileName String?
+  id          String       @id @default(cuid())
+  qcId        String
+  category    String
+  fileUrl     String
+  fileName    String?
   description String?
-  uploadedAt DateTime @default(now())
+  uploadedAt  DateTime     @default(now())
+  qc          QualityCheck @relation(fields: [qcId], references: [id])
 }
 
 model QcDefect {
-  id String @id @default(cuid())
-  qcId String
-  qc QualityCheck @relation(fields: [qcId], references: [id])
-  defectType String
-  severity String
-  quantity Int
+  id          String       @id @default(cuid())
+  qcId        String
+  defectType  String
+  severity    String
+  quantity    Int
   description String?
-  photoUrl String?
+  photoUrl    String?
+  qc          QualityCheck @relation(fields: [qcId], references: [id])
 }

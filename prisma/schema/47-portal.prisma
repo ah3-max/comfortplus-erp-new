@@ -1,0 +1,71 @@
+model PortalAccount {
+  id             String                @id @default(cuid())
+  customerId     String                @unique
+  email          String                @unique
+  passwordHash   String
+  isActive       Boolean               @default(true)
+  lastLoginAt    DateTime?
+  googleId       String?               @unique
+  createdById    String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  customer       Customer              @relation(fields: [customerId], references: [id])
+  auditLogs      PortalAuditLog[]
+  passwordResets PortalPasswordReset[]
+
+  @@index([email])
+  @@index([isActive])
+}
+
+model PortalPasswordReset {
+  id        String        @id @default(cuid())
+  accountId String
+  tokenHash String        @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+  account   PortalAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+}
+
+model PortalAuditLog {
+  id        String        @id @default(cuid())
+  accountId String
+  action    String
+  detail    Json?
+  ip        String?
+  createdAt DateTime      @default(now())
+  account   PortalAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, createdAt(sort: Desc)])
+}
+
+model RolePermissionConfig {
+  id          String   @id @default(cuid())
+  role        String
+  module      String
+  canView     Boolean  @default(false)
+  canWrite    Boolean  @default(false)
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([role, module])
+  @@index([role])
+}
+
+model UserModuleOverride {
+  id          String   @id @default(cuid())
+  userId      String
+  module      String
+  granted     Boolean
+  reason      String?
+  grantedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation("UserModuleOverrides", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, module])
+  @@index([userId])
+}

@@ -9,112 +9,125 @@ model Supplier {
   address          String?
   taxId            String?
   paymentTerms     String?
-  country          String?           // 國家：TW/VN/ID/TH/CN
-  capacity         String?           // 月產能描述
-  moq              Int?              // 最小訂購量
+  country          String? // 國家：TW/VN/ID/TH/CN
+  capacity         String? // 月產能描述
+  moq              Int? // 最小訂購量
   avgDefectRate    Decimal? @db.Decimal(5, 2) // 平均不良率 %
-  leadTimeDays     Int?              // 交期天數
-  supplyCategories String?           // 採購分類 (JSON array of PurchaseType values)
-  supplyItems      String?           // 供應品項描述
+  leadTimeDays     Int? // 交期天數
+  supplyCategories String? // 採購分類 (JSON array of PurchaseType values)
+  supplyItems      String? // 供應品項描述
   notes            String?
   isActive         Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
 
-  purchaseOrders    PurchaseOrder[]
-  priceHistory      SupplierPriceHistory[]
-  productionOrders  ProductionOrder[]  @relation("FactoryProduction")
-  paymentRecords    PaymentRecord[]
-  qualityChecks     QualityCheck[]    @relation("QcSupplier")
-  packagingMaterials PackagingMaterial[] @relation("MaterialSupplier")
-  accountsPayable   AccountsPayable[] @relation("SupplierAP")
-  materialSuppliers MaterialSupplier[]
-  factoryTerms      FactoryMaterialTerm[] @relation("FactoryTerms")
-  factoryIncidents  FactoryIncident[] @relation("FactoryIncidentFactory")
-  materialShipmentsAsSupplier MaterialShipment[] @relation("MaterialShipmentSupplier")
-  materialShipmentsAsFactory  MaterialShipment[] @relation("MaterialShipmentFactory")
-  supplierInvoices  SupplierInvoice[] @relation("SupplierInvoiceSupplier")
-  productSuppliers  ProductSupplier[]
-  inventoryLots     InventoryLot[]    @relation("LotSupplier")
+  // === 東泓整合 v1 擴充 ===
+  defaultCurrency      String?      @default("TWD")
+  primaryContactEmail  String?
+  ccContacts           String[]
+  portalToken          String?      @unique
+  tokenExpiresAt       DateTime?
+  donghongBusinessUnit BusinessUnit @default(DONGHONG)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders              PurchaseOrder[]
+  priceHistory                SupplierPriceHistory[]
+  productionOrders            ProductionOrder[]      @relation("FactoryProduction")
+  paymentRecords              PaymentRecord[]
+  qualityChecks               QualityCheck[]         @relation("QcSupplier")
+  packagingMaterials          PackagingMaterial[]    @relation("MaterialSupplier")
+  accountsPayable             AccountsPayable[]      @relation("SupplierAP")
+  materialSuppliers           MaterialSupplier[]
+  factoryTerms                FactoryMaterialTerm[]  @relation("FactoryTerms")
+  factoryIncidents            FactoryIncident[]      @relation("FactoryIncidentFactory")
+  materialShipmentsAsSupplier MaterialShipment[]     @relation("MaterialShipmentSupplier")
+  materialShipmentsAsFactory  MaterialShipment[]     @relation("MaterialShipmentFactory")
+  supplierInvoices            SupplierInvoice[]      @relation("SupplierInvoiceSupplier")
+  productSuppliers            ProductSupplier[]
+  inventoryLots               InventoryLot[]         @relation("LotSupplier")
 
   // ── P0-P1 新增關聯 ──────────────────────────────────
-  productionReceipts ProductionReceipt[]   @relation("ReceiptFactory")
-  rfqSuppliers       RFQSupplier[]         @relation("RFQSupplierRef")
+  productionReceipts ProductionReceipt[] @relation("ReceiptFactory")
+  rfqSuppliers       RFQSupplier[]       @relation("RFQSupplierRef")
 
   // ── P3-2 進口費用 ────────────────────────────────────
-  importProjects     ImportProject[]       @relation("ImportProjectSupplier")
-  importCostItems    ImportCostItem[]      @relation("ImportCostItemSupplier")
+  importProjects  ImportProject[]  @relation("ImportProjectSupplier")
+  importCostItems ImportCostItem[] @relation("ImportCostItemSupplier")
 
   // ── P3-3 合約管理 ────────────────────────────────────
-  contracts          Contract[]            @relation("ContractSupplier")
+  contracts Contract[] @relation("ContractSupplier")
 
   // ── P3-5 固定資產 ────────────────────────────────────
-  fixedAssets        FixedAsset[]          @relation("AssetSupplier")
+  fixedAssets FixedAsset[] @relation("AssetSupplier")
 
   // ── 採購計畫 ────────────────────────────────────────
-  purchasePlanItems  PurchasePlanItem[]    @relation("PurchasePlanSupplier")
+  purchasePlanItems PurchasePlanItem[] @relation("PurchasePlanSupplier")
 
   // ── 進貨退貨 ────────────────────────────────────────
-  purchaseReturns    PurchaseReturn[]
+  purchaseReturns PurchaseReturn[]
 
   // ── 沖帳作業 ────────────────────────────────────────
-  settlements        SettlementBatch[]     @relation("SupplierSettlements")
+  settlements SettlementBatch[] @relation("SupplierSettlements")
+
+  // Relations (東泓整合)
+  donghongQuotations SupplierQuotation[]
+  productVariants    ProductVariant[]    @relation("VariantSupplier")
 }
 
 // 歷史採購價格
 model SupplierPriceHistory {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   supplierId    String
-  supplier      Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  supplier      Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   productId     String?
-  product       Product?  @relation(fields: [productId], references: [id])
-  itemName      String    // 品項名稱
-  unitCost      Decimal   @db.Decimal(10, 2)
-  currency      String    @default("TWD")
+  product       Product? @relation(fields: [productId], references: [id])
+  itemName      String // 品項名稱
+  unitCost      Decimal  @db.Decimal(10, 2)
+  currency      String   @default("TWD")
   effectiveDate DateTime
   notes         String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime @default(now())
 }
 
 // ========== 採購管理 ==========
 model PurchaseOrder {
-  id           String         @id @default(cuid())
-  poNo         String         @unique
-  supplierId   String
-  supplier     Supplier       @relation(fields: [supplierId], references: [id])
-  createdById  String
-  createdBy    User           @relation(fields: [createdById], references: [id])
-  applicantId  String?        // 申請人（提出需求的業務/倉管）
-  purchaserId  String?        // 採購經辦人
-  status       PurchaseStatus @default(DRAFT)
-  orderType    PurchaseType   @default(FINISHED_GOODS)
+  id          String         @id @default(cuid())
+  poNo        String         @unique
+  supplierId  String
+  supplier    Supplier       @relation(fields: [supplierId], references: [id])
+  createdById String
+  createdBy   User           @relation(fields: [createdById], references: [id])
+  applicantId String? // 申請人（提出需求的業務/倉管）
+  purchaserId String? // 採購經辦人
+  status      PurchaseStatus @default(DRAFT)
+  orderType   PurchaseType   @default(FINISHED_GOODS)
 
   // ── 基本資訊 ──────────────────────────────────────────
-  purchaseDate         DateTime  @default(now()) // 採購日期
-  expectedDate         DateTime?                 // 預計到貨日
-  deliveryTerm         String?                   // 交貨條件：EXW / FOB / CIF / DAP
-  paymentTerm          String?                   // 付款條件：T/T / L/C / 月結
-  currency             String    @default("TWD")
-  exchangeRate         Decimal?  @db.Decimal(8, 4) // 匯率（外幣→TWD）
-  warehouse            String?                   // 收貨倉庫
-  projectNo            String?                   // 專案號
-  specVersion          String?                   // 規格版本
-  inspectionCriteria   String?                   // 驗收標準
+  purchaseDate       DateTime  @default(now()) // 採購日期
+  expectedDate       DateTime? // 預計到貨日
+  deliveryTerm       String? // 交貨條件：EXW / FOB / CIF / DAP
+  paymentTerm        String? // 付款條件：T/T / L/C / 月結
+  currency           String    @default("TWD")
+  exchangeRate       Decimal?  @db.Decimal(8, 4) // 匯率（外幣→TWD）
+  warehouse          String? // 收貨倉庫
+  projectNo          String? // 專案號
+  specVersion        String? // 規格版本
+  inspectionCriteria String? // 驗收標準
 
   // ── 金額（4 層）──────────────────────────────────────
-  subtotal             Decimal   @db.Decimal(12, 2) // 品項小計
-  taxRate              Decimal?  @db.Decimal(5, 2)  // 稅率 %
-  taxAmount            Decimal?  @db.Decimal(12, 2) // 稅額
-  freightCost          Decimal   @default(0) @db.Decimal(12, 2) // 運費
-  otherCost            Decimal   @default(0) @db.Decimal(12, 2) // 其他費用
-  totalAmount          Decimal   @db.Decimal(12, 2) // = subtotal + taxAmount + freightCost + otherCost
-  paidAmount           Decimal   @default(0) @db.Decimal(12, 2)
-  finalSettlement      Decimal?  @db.Decimal(12, 2) // 最終結算金額
-  notes                String?
+  subtotal        Decimal  @db.Decimal(12, 2) // 品項小計
+  taxRate         Decimal? @db.Decimal(5, 2) // 稅率 %
+  taxAmount       Decimal? @db.Decimal(12, 2) // 稅額
+  freightCost     Decimal  @default(0) @db.Decimal(12, 2) // 運費
+  otherCost       Decimal  @default(0) @db.Decimal(12, 2) // 其他費用
+  totalAmount     Decimal  @db.Decimal(12, 2) // = subtotal + taxAmount + freightCost + otherCost
+  paidAmount      Decimal  @default(0) @db.Decimal(12, 2)
+  finalSettlement Decimal? @db.Decimal(12, 2) // 最終結算金額
+  notes           String?
 
   // ── OEM / 工廠延伸欄位 ────────────────────────────────
   oemProjectNo              String?
-  factory                   String?           // 對應工廠名稱（文字，supplierId 為主 FK）
+  factory                   String? // 對應工廠名稱（文字，supplierId 為主 FK）
   sampleVersion             String?
   packagingVersion          String?
   productionBatch           String?
@@ -123,66 +136,105 @@ model PurchaseOrder {
   customNotes               String?
 
   // ── 生產時程（預計 + 實際）────────────────────────────
-  plannedStartDate          DateTime?         // 預計開工日
-  plannedEndDate            DateTime?         // 預計完工日
-  actualStartDate           DateTime?         // 實際開工日
-  actualEndDate             DateTime?         // 實際完工日
-  packagingReadyDate        DateTime?         // 包材到位日
-  rawMaterialReadyDate      DateTime?         // 原料到位日
-  productionConfirmedDate   DateTime?         // 生產排程確認日
-  factoryShipDate           DateTime?         // 出廠日
-  inspectionDate            DateTime?         // 驗貨日
-  supplementDate            DateTime?         // 補料日
+  plannedStartDate        DateTime? // 預計開工日
+  plannedEndDate          DateTime? // 預計完工日
+  actualStartDate         DateTime? // 實際開工日
+  actualEndDate           DateTime? // 實際完工日
+  packagingReadyDate      DateTime? // 包材到位日
+  rawMaterialReadyDate    DateTime? // 原料到位日
+  productionConfirmedDate DateTime? // 生產排程確認日
+  factoryShipDate         DateTime? // 出廠日
+  inspectionDate          DateTime? // 驗貨日
+  supplementDate          DateTime? // 補料日
 
   // ── 品質/成本 ─────────────────────────────────────────
-  defectRate                Decimal? @db.Decimal(5, 2)
-  defectResponsibility      String?
-  lossRate                  Decimal? @db.Decimal(5, 2)
-  delayReason               String?           // 延誤原因
-  finalUnitCost             Decimal? @db.Decimal(10, 2) // 最終結算單價
+  defectRate           Decimal? @db.Decimal(5, 2)
+  defectResponsibility String?
+  lossRate             Decimal? @db.Decimal(5, 2)
+  delayReason          String? // 延誤原因
+  finalUnitCost        Decimal? @db.Decimal(10, 2) // 最終結算單價
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  // === 東泓整合 v1 擴充 ===
+  donghongBusinessUnit BusinessUnit? // 若為東泓採購則設定
+  donghongStatus       DonghongPOStatus? // 與既有 status 並存
+  totalAmountTwd       Decimal?          @db.Decimal(14, 2)
+  incoterms            String?
+  depositRatio         Decimal?          @db.Decimal(5, 4)
 
-  items            PurchaseOrderItem[]
-  receipts         PurchaseReceipt[]
-  inventoryLots    InventoryLot[]
-  productionOrders ProductionOrder[]
-  seaFreights      SeaFreight[]
-  payments         PaymentRecord[]
-  qualityChecks    QualityCheck[]
-  apRecords        AccountsPayable[] @relation("PurchaseAP")
-  supplierInvoices SupplierInvoice[] @relation("PurchaseSupplierInvoice")
-  materialShipments MaterialShipment[] @relation("PurchaseMaterialShipment")
-  purchaseReturns  PurchaseReturn[]
+  // 審核
+  approvalTier   ApprovalTier?
+  approvedAt     DateTime?
+  approvedById   String?
+  rejectedAt     DateTime?
+  rejectedReason String?
+
+  // PDF 與回簽
+  pdfUrl          String?
+  pdfHash         String?
+  qrCodeUrl       String?
+  sentAt          DateTime?
+  signedAt        DateTime?
+  signedByName    String?
+  signedIp        String?
+  signedUserAgent String?
+  auditHash       String?
+
+  // 供應商報價關聯
+  supplierQuotationId String?
+  supplierQuotation   SupplierQuotation? @relation(fields: [supplierQuotationId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items             PurchaseOrderItem[]
+  receipts          PurchaseReceipt[]
+  inventoryLots     InventoryLot[]
+  productionOrders  ProductionOrder[]
+  seaFreights       SeaFreight[]
+  payments          PaymentRecord[]
+  qualityChecks     QualityCheck[]
+  apRecords         AccountsPayable[]   @relation("PurchaseAP")
+  supplierInvoices  SupplierInvoice[]   @relation("PurchaseSupplierInvoice")
+  materialShipments MaterialShipment[]  @relation("PurchaseMaterialShipment")
+  purchaseReturns   PurchaseReturn[]
+  milestones        POMilestone[]
+  documents         PODocument[]
+  statusLogs        POStatusLog[]
+  specLocks         POSpecLock[]
+
+  @@index([supplierId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([expectedDate])
+  @@index([donghongStatus])
+  @@index([donghongBusinessUnit])
 }
 
 // ========== 進貨退貨 ==========
 model PurchaseReturn {
-  id            String       @id @default(cuid())
-  returnNo      String       @unique
-  purchaseId    String
-  purchase      PurchaseOrder @relation(fields: [purchaseId], references: [id])
-  supplierId    String
-  supplier      Supplier      @relation(fields: [supplierId], references: [id])
-  returnType    ReturnType    @default(RETURN)
-  reason        String?
+  id             String        @id @default(cuid())
+  returnNo       String        @unique
+  purchaseId     String
+  purchase       PurchaseOrder @relation(fields: [purchaseId], references: [id])
+  supplierId     String
+  supplier       Supplier      @relation(fields: [supplierId], references: [id])
+  returnType     ReturnType    @default(RETURN)
+  reason         String?
   returnCategory String?
-  status        ReturnStatus  @default(PENDING)
-  requestDate   DateTime      @default(now())
-  approvedById  String?
-  approvedAt    DateTime?
-  shippedDate   DateTime?
-  debitNoteNo   String?       // 扣款通知單號
-  deductAmount  Decimal?      @db.Decimal(12, 2)
-  deductStatus  String?       // PENDING / DEDUCTED / REFUNDED
-  notes         String?
-  createdById   String
-  createdBy     User          @relation("PurchaseReturnCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  status         ReturnStatus  @default(PENDING)
+  requestDate    DateTime      @default(now())
+  approvedById   String?
+  approvedAt     DateTime?
+  shippedDate    DateTime?
+  debitNoteNo    String? // 扣款通知單號
+  deductAmount   Decimal?      @db.Decimal(12, 2)
+  deductStatus   String? // PENDING / DEDUCTED / REFUNDED
+  notes          String?
+  createdById    String
+  createdBy      User          @relation("PurchaseReturnCreatedBy", fields: [createdById], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  items         PurchaseReturnItem[]
+  items PurchaseReturnItem[]
 }
 
 model PurchaseReturnItem {
@@ -192,8 +244,8 @@ model PurchaseReturnItem {
   productId   String
   product     Product        @relation(fields: [productId], references: [id])
   quantity    Int
-  unitCost    Decimal        @db.Decimal(10, 2) @default(0)
-  subtotal    Decimal        @db.Decimal(12, 2) @default(0)
+  unitCost    Decimal        @default(0) @db.Decimal(10, 2)
+  subtotal    Decimal        @default(0) @db.Decimal(12, 2)
   batchNo     String?
   reason      String?
   condition   String?
@@ -201,37 +253,45 @@ model PurchaseReturnItem {
 }
 
 model PurchaseOrderItem {
-  id              String         @id @default(cuid())
-  orderId         String
-  order           PurchaseOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  itemType        String         @default("PRODUCT") // PRODUCT / MATERIAL
-  productId       String?
-  product         Product?       @relation(fields: [productId], references: [id])
-  materialId      String?        // 關聯包材
-  material        PackagingMaterial? @relation(fields: [materialId], references: [id])
+  id          String             @id @default(cuid())
+  orderId     String
+  order       PurchaseOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemType    String             @default("PRODUCT") // PRODUCT / MATERIAL
+  productId   String?
+  product     Product?           @relation(fields: [productId], references: [id])
+  materialId  String? // 關聯包材
+  material    PackagingMaterial? @relation(fields: [materialId], references: [id])
   // 快照
-  skuSnap         String?        // SKU 或料號快照
-  nameSnap        String?        // 品名快照
-  specSnap        String?        // 規格版本快照
-  unit            String?        // 單位
-  quantity        Int
-  receivedQty     Int            @default(0)
-  unitCost        Decimal        @db.Decimal(10, 2)
-  currency        String?        // 品項幣別（可不同於主單）
-  subtotal        Decimal        @db.Decimal(12, 2)
-  taxType         String?        // 品項稅別
-  notes           String?
+  skuSnap     String? // SKU 或料號快照
+  nameSnap    String? // 品名快照
+  specSnap    String? // 規格版本快照
+  unit        String? // 單位
+  quantity    Int
+  receivedQty Int                @default(0)
+  unitCost    Decimal            @db.Decimal(10, 2)
+  currency    String? // 品項幣別（可不同於主單）
+  subtotal    Decimal            @db.Decimal(12, 2)
+  taxType     String? // 品項稅別
+  notes       String?
+
+  // === 東泓整合 v1 擴充 ===
+  variantId  String?
+  variant    ProductVariant? @relation("PurchaseOrderItemVariant", fields: [variantId], references: [id])
+  specLockId String?
+  specLock   POSpecLock?     @relation(fields: [specLockId], references: [id])
+
+  @@index([variantId])
 }
 
 model PurchaseReceipt {
-  id          String                @id @default(cuid())
-  receiptNo   String                @unique
+  id          String        @id @default(cuid())
+  receiptNo   String        @unique
   orderId     String
-  order       PurchaseOrder         @relation(fields: [orderId], references: [id])
+  order       PurchaseOrder @relation(fields: [orderId], references: [id])
   createdById String
-  receiptDate DateTime              @default(now())
+  receiptDate DateTime      @default(now())
   notes       String?
-  createdAt   DateTime              @default(now())
+  createdAt   DateTime      @default(now())
 
   items PurchaseReceiptItem[]
 }
@@ -247,78 +307,80 @@ model PurchaseReceiptItem {
 
 // ========== 包材追蹤 ==========
 model PackagingMaterial {
-  id              String    @id @default(cuid())
-  code            String    @unique
-  name            String
-  materialType    String    // WAISTBAND(腰貼) / BAG(袋) / BOX(箱) / LABEL(標籤) / OTHER
-  supplierId      String?
-  supplier        Supplier? @relation("MaterialSupplier", fields: [supplierId], references: [id])
-  stockQty        Int       @default(0)       // 庫存數量
-  inTransitQty    Int       @default(0)       // 在途數量
-  sentToFactoryQty Int      @default(0)       // 已送工廠數量
-  wastageRate     Decimal?  @db.Decimal(5, 2) // 損耗率 %
-  unit            String    @default("個")
-  safetyStock     Int       @default(0)
-  notes              String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  code             String    @unique
+  name             String
+  materialType     String // WAISTBAND(腰貼) / BAG(袋) / BOX(箱) / LABEL(標籤) / OTHER
+  supplierId       String?
+  supplier         Supplier? @relation("MaterialSupplier", fields: [supplierId], references: [id])
+  stockQty         Int       @default(0) // 庫存數量
+  inTransitQty     Int       @default(0) // 在途數量
+  sentToFactoryQty Int       @default(0) // 已送工廠數量
+  wastageRate      Decimal?  @db.Decimal(5, 2) // 損耗率 %
+  unit             String    @default("個")
+  safetyStock      Int       @default(0)
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  purchaseItems      PurchaseOrderItem[]
-  materialSuppliers  MaterialSupplier[]
-  factoryTerms       FactoryMaterialTerm[]
-  productBOMs        ProductBOM[]
+  purchaseItems         PurchaseOrderItem[]
+  materialSuppliers     MaterialSupplier[]
+  factoryTerms          FactoryMaterialTerm[]
+  productBOMs           ProductBOM[]
   materialShipmentItems MaterialShipmentItem[]
 }
 
 model MaterialSupplier {
-  id              String   @id @default(cuid())
-  materialId      String
-  material        PackagingMaterial @relation(fields: [materialId], references: [id])
-  supplierId      String
-  supplier        Supplier @relation(fields: [supplierId], references: [id])
-  unitPrice       Decimal  @db.Decimal(10,4)
-  currency        String   @default("USD")
-  moq             Int?
-  leadTimeDays    Int?
-  paymentTerms    String?
-  originCountry   String?
-  originCity      String?
-  avgDefectRate   Decimal? @db.Decimal(5,2)
-  lastQcResult    String?
-  isPrimary       Boolean  @default(false)
-  isActive        Boolean  @default(true)
-  notes           String?
-  updatedAt       DateTime @updatedAt
+  id            String            @id @default(cuid())
+  materialId    String
+  material      PackagingMaterial @relation(fields: [materialId], references: [id])
+  supplierId    String
+  supplier      Supplier          @relation(fields: [supplierId], references: [id])
+  unitPrice     Decimal           @db.Decimal(10, 4)
+  currency      String            @default("USD")
+  moq           Int?
+  leadTimeDays  Int?
+  paymentTerms  String?
+  originCountry String?
+  originCity    String?
+  avgDefectRate Decimal?          @db.Decimal(5, 2)
+  lastQcResult  String?
+  isPrimary     Boolean           @default(false)
+  isActive      Boolean           @default(true)
+  notes         String?
+  updatedAt     DateTime          @updatedAt
+
   @@unique([materialId, supplierId])
 }
 
 model FactoryMaterialTerm {
-  id              String   @id @default(cuid())
+  id              String            @id @default(cuid())
   factoryId       String
-  factory         Supplier @relation("FactoryTerms", fields: [factoryId], references: [id])
+  factory         Supplier          @relation("FactoryTerms", fields: [factoryId], references: [id])
   materialId      String
   material        PackagingMaterial @relation(fields: [materialId], references: [id])
-  usagePerUnit    Decimal? @db.Decimal(10,4)
+  usagePerUnit    Decimal?          @db.Decimal(10, 4)
   usageUnit       String?
-  wastageRate     Decimal? @db.Decimal(5,2)
-  supplyMode      String   @default("BUYER")
-  factoryPrice    Decimal? @db.Decimal(10,4)
+  wastageRate     Decimal?          @db.Decimal(5, 2)
+  supplyMode      String            @default("BUYER")
+  factoryPrice    Decimal?          @db.Decimal(10, 4)
   factoryCurrency String?
   specRequirement String?
   minGrade        String?
   notes           String?
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime          @updatedAt
+
   @@unique([factoryId, materialId])
 }
 
 model MaterialShipment {
-  id              String   @id @default(cuid())
-  shipmentNo      String   @unique
+  id              String                 @id @default(cuid())
+  shipmentNo      String                 @unique
   sourceType      String
   supplierId      String?
-  supplier        Supplier? @relation("MaterialShipmentSupplier", fields: [supplierId], references: [id])
+  supplier        Supplier?              @relation("MaterialShipmentSupplier", fields: [supplierId], references: [id])
   factoryId       String
-  factory         Supplier @relation("MaterialShipmentFactory", fields: [factoryId], references: [id])
+  factory         Supplier               @relation("MaterialShipmentFactory", fields: [factoryId], references: [id])
   shippingMethod  String?
   carrier         String?
   trackingNo      String?
@@ -329,54 +391,54 @@ model MaterialShipment {
   shipDate        DateTime?
   etaFactory      DateTime?
   actualArrival   DateTime?
-  status          String   @default("PREPARING")
-  freightCost     Decimal? @db.Decimal(12,2)
-  currency        String   @default("USD")
+  status          String                 @default("PREPARING")
+  freightCost     Decimal?               @db.Decimal(12, 2)
+  currency        String                 @default("USD")
   purchaseOrderId String?
-  purchaseOrder   PurchaseOrder? @relation("PurchaseMaterialShipment", fields: [purchaseOrderId], references: [id])
+  purchaseOrder   PurchaseOrder?         @relation("PurchaseMaterialShipment", fields: [purchaseOrderId], references: [id])
   notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
   items           MaterialShipmentItem[]
 }
 
 model MaterialShipmentItem {
-  id              String   @id @default(cuid())
-  shipmentId      String
-  shipment        MaterialShipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  materialId      String
-  material        PackagingMaterial @relation(fields: [materialId], references: [id])
-  batchNo         String?
-  quantity        Int
-  unit            String?
-  receivedQty     Int?
-  damageQty       Int?
-  qcResult        String?
-  notes           String?
+  id          String            @id @default(cuid())
+  shipmentId  String
+  shipment    MaterialShipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  materialId  String
+  material    PackagingMaterial @relation(fields: [materialId], references: [id])
+  batchNo     String?
+  quantity    Int
+  unit        String?
+  receivedQty Int?
+  damageQty   Int?
+  qcResult    String?
+  notes       String?
 }
 
 model FactoryIncident {
-  id                String   @id @default(cuid())
-  productionOrderId String
-  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id])
-  factoryId         String?
-  factory           Supplier? @relation("FactoryIncidentFactory", fields: [factoryId], references: [id])
-  incidentType      String
-  severity          String   @default("MEDIUM")
-  description       String
-  occurredDate      DateTime
-  affectedQty       Int?
-  affectedBatchNo   String?
-  delayDays         Int?
-  responsibility    String?
-  resolution        String?
-  compensationAmount Decimal? @db.Decimal(12,2)
-  creditNoteId      String?
-  status            String   @default("OPEN")
-  resolvedAt        DateTime?
-  photos            Json?
-  notes             String?
-  createdById       String
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String          @id @default(cuid())
+  productionOrderId  String
+  productionOrder    ProductionOrder @relation(fields: [productionOrderId], references: [id])
+  factoryId          String?
+  factory            Supplier?       @relation("FactoryIncidentFactory", fields: [factoryId], references: [id])
+  incidentType       String
+  severity           String          @default("MEDIUM")
+  description        String
+  occurredDate       DateTime
+  affectedQty        Int?
+  affectedBatchNo    String?
+  delayDays          Int?
+  responsibility     String?
+  resolution         String?
+  compensationAmount Decimal?        @db.Decimal(12, 2)
+  creditNoteId       String?
+  status             String          @default("OPEN")
+  resolvedAt         DateTime?
+  photos             Json?
+  notes              String?
+  createdById        String
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 }

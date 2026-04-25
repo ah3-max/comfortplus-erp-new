@@ -17,6 +17,10 @@ interface Message {
   actions?: { label: string; href: string }[]
   /** Is this a skill result? */
   isSkill?: boolean
+  /** Inline click-to-run buttons (e.g., pick import type) */
+  choices?: { label: string; action: string; value?: string }[]
+  /** Attached file preview (for user messages showing a dropped file) */
+  file?: { name: string; size: number }
 }
 
 interface AnalysisType {
@@ -35,6 +39,25 @@ function getPageContext(pathname: string): 'dashboard' | 'orders' | 'customers' 
   return undefined
 }
 
+/**
+ * Extract entity info from URL for AI context-awareness.
+ *   /customers/abc123   → { entityType: 'customer',   entityId: 'abc123' }
+ *   /orders/xyz         → { entityType: 'order',      entityId: 'xyz' }
+ *   /quotations/q1      → { entityType: 'quotation',  entityId: 'q1' }
+ *   /purchases/p1       → { entityType: 'purchase',   entityId: 'p1' }
+ */
+function getPageEntity(pathname: string): { entityType: string; entityId: string } | null {
+  const m = pathname.match(/^\/(customers|orders|quotations|purchases|sales-invoices|suppliers)\/([^/?#]+)$/)
+  if (!m) return null
+  const typeMap: Record<string, string> = {
+    customers: 'customer', orders: 'order', quotations: 'quotation',
+    purchases: 'purchase', 'sales-invoices': 'salesInvoice', suppliers: 'supplier',
+  }
+  const t = typeMap[m[1]]
+  if (!t || m[2] === 'new' || m[2] === 'edit') return null
+  return { entityType: t, entityId: m[2] }
+}
+
 export function AiAssistant() {
   const { dict } = useI18n()
 
@@ -50,8 +73,12 @@ export function AiAssistant() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [analyzing, setAnalyzing] = useState<string | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
+  const [dragActive, setDragActive] = useState(false)
+  const [wipeBefore, setWipeBefore] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const pathname = usePathname()
 
   const scrollToBottom = useCallback(() => {
@@ -74,6 +101,16 @@ export function AiAssistant() {
       '庫存', '盤點', '缺貨',
       '找客戶', '搜尋客戶', '查客戶',
       'KPI', 'kpi', '目標', '達成率', '業績目標',
+      // summarize-customer
+      '介紹', '最近狀況', '現況', '摘要', '客戶資料',
+      // draft-collection-email
+      '催收', '催款', '催帳', '催信', '寫信', '寫一封',
+      // create-task
+      '提醒我', '安排', '記下', '加一個任務', '待辦',
+      // top-customers
+      '前幾大', '前幾名', '前 N', '排行', '最多訂單', '最多錢', '欠最多',
+      // pipeline-health
+      'pipeline', '卡住', '該跟進', '追蹤一下',
     ]
     return skillKeywords.some(k => msg.includes(k))
   }
@@ -86,13 +123,15 @@ export function AiAssistant() {
     setMessages(prev => [...prev, { role: 'user', content: msg }])
     setLoading(true)
 
+    const pageEntity = getPageEntity(pathname)
+
     try {
       // Try skill execution first for action-oriented messages
       if (looksLikeSkillCommand(msg)) {
         const skillRes = await fetch('/api/ai/skills', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: msg }),
+          body: JSON.stringify({ message: msg, pageEntity }),
         })
 
         if (skillRes.ok) {
@@ -135,6 +174,133 @@ export function AiAssistant() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // ── File attachment: drop Excel / photos / PDFs into the AI chat ──────────
+  function handleFileSelected(file: File | null) {
+    if (!file) return
+    setPendingFile(file)
+
+    const isExcel = /\.(xlsx|xls)$/i.test(file.name) || file.type.includes('spreadsheet')
+    const kb = (file.size / 1024).toFixed(0)
+
+    if (isExcel) {
+      // Excel: offer 3 import targets as inline choices
+      setWipeBefore(false) // reset each time
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: '', file: { name: file.name, size: file.size } },
+        {
+          role: 'assistant',
+          content: `收到「${file.name}」(${kb} KB)。要匯入為哪一類？\n\n提示：勾下方「先清舊資料再匯入」會刪除你之前建的同類紀錄，再把這個 Excel 當作乾淨來源匯入。`,
+          choices: [
+            { label: '📞 聯繫紀錄', action: 'import', value: 'contact' },
+            { label: '📦 樣品紀錄', action: 'import', value: 'sample' },
+            { label: '🗓️ 拜訪排程', action: 'import', value: 'tour' },
+            { label: '☑️ 先清舊資料', action: 'toggle-wipe' },
+          ],
+        },
+      ])
+    } else {
+      // Non-Excel: just note we got the file, not wired to anything yet
+      setMessages(prev => [
+        ...prev,
+        { role: 'user', content: '', file: { name: file.name, size: file.size } },
+        {
+          role: 'assistant',
+          content: `收到「${file.name}」(${kb} KB)。目前聊天只支援 Excel 一鍵匯入（聯繫/樣品/拜訪），其他檔案請到對應頁面上傳。`,
+        },
+      ])
+      setPendingFile(null)
+    }
+  }
+
+  async function runImport(type: 'contact' | 'sample' | 'tour') {
+    if (!pendingFile) return
+    const endpoints = {
+      contact: '/api/follow-up-logs/import',
+      sample:  '/api/samples/import',
+      tour:    '/api/institution-tours/import',
+    }
+    const labels = { contact: '聯繫紀錄', sample: '樣品紀錄', tour: '拜訪排程' }
+
+    // Double-confirm before wiping
+    if (wipeBefore) {
+      const ok = confirm(`確定要先清除你所有的「${labels[type]}」，再把這個 Excel 的資料匯入嗎？此動作不可復原。`)
+      if (!ok) return
+    }
+
+    setLoading(true)
+    let wipedCount = 0
+    try {
+      // Step 1: optional wipe (scope=mine, safe)
+      if (wipeBefore) {
+        const wipeRes = await fetch('/api/admin/wipe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targets: [type], confirm: 'WIPE', scope: 'mine' }),
+        })
+        const wipeData = await wipeRes.json().catch(() => ({}))
+        if (!wipeRes.ok) {
+          setMessages(prev => [...prev, { role: 'assistant', content: `❌ 清舊資料失敗：${wipeData.error ?? '未知錯誤'}` }])
+          return
+        }
+        wipedCount = Number(wipeData.deleted?.[type] ?? 0)
+      }
+
+      // Step 2: import
+      const fd = new FormData()
+      fd.append('file', pendingFile)
+      const res = await fetch(endpoints[type], { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMessages(prev => [...prev, { role: 'assistant', content: `❌ 匯入失敗：${data.error ?? '未知錯誤'}` }])
+        return
+      }
+      const { created = 0, skipped = 0, errors = [] } = data as {
+        created: number; skipped: number; errors: { row: number; reason: string }[]
+      }
+      let msg = ''
+      if (wipeBefore) msg += `🗑️ 已清除舊資料 ${wipedCount} 筆\n`
+      msg += `✅ 已匯入 ${created} 筆${labels[type]}`
+      if (skipped > 0) msg += `（略過 ${skipped} 筆空列）`
+      if (errors.length > 0) {
+        msg += `\n\n⚠️ ${errors.length} 筆失敗：\n` +
+          errors.slice(0, 5).map(e => `第 ${e.row} 列：${e.reason}`).join('\n') +
+          (errors.length > 5 ? `\n...（另 ${errors.length - 5} 筆）` : '')
+      }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: msg,
+        isSkill: true,
+        actions: type === 'tour'
+          ? [{ label: '查看排程', href: '/institution-tours' }, { label: 'CRM', href: '/crm' }]
+          : [{ label: '查看 CRM', href: '/crm' }],
+      }])
+    } catch (e) {
+      setMessages(prev => [...prev, { role: 'assistant', content: `❌ 匯入失敗：${(e as Error).message}` }])
+    } finally {
+      setPendingFile(null)
+      setWipeBefore(false)
+      setLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function onChoiceClick(c: { action: string; value?: string }) {
+    if (c.action === 'import' && c.value) {
+      runImport(c.value as 'contact' | 'sample' | 'tour')
+    }
+    if (c.action === 'toggle-wipe') {
+      setWipeBefore(v => !v)
+    }
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault()
+    setDragActive(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFileSelected(file)
   }
 
   async function runAnalysis(type: string) {
@@ -192,13 +358,28 @@ export function AiAssistant() {
 
       {/* Chat Panel */}
       {open && (
-        <div className={cn(
-          'fixed z-50 flex flex-col bg-white dark:bg-gray-900 shadow-2xl',
-          // Mobile: full screen
-          'inset-0 lg:inset-auto',
-          // Desktop: floating panel
-          'lg:bottom-6 lg:right-6 lg:w-[420px] lg:h-[600px] lg:max-h-[80vh] lg:rounded-2xl lg:border',
-        )}>
+        <div
+          onDragEnter={(e) => { e.preventDefault(); setDragActive(true) }}
+          onDragOver={(e) => { e.preventDefault(); setDragActive(true) }}
+          onDragLeave={(e) => { e.preventDefault(); setDragActive(false) }}
+          onDrop={onDrop}
+          className={cn(
+            'fixed z-50 flex flex-col bg-white dark:bg-gray-900 shadow-2xl',
+            // Mobile: full screen
+            'inset-0 lg:inset-auto',
+            // Desktop: floating panel
+            'lg:bottom-6 lg:right-6 lg:w-[420px] lg:h-[600px] lg:max-h-[80vh] lg:rounded-2xl lg:border',
+          )}>
+          {/* Drag-drop overlay */}
+          {dragActive && (
+            <div className="absolute inset-0 z-50 rounded-2xl border-4 border-dashed border-violet-400 bg-violet-50/90 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <div className="text-5xl mb-2">📎</div>
+                <p className="text-lg font-semibold text-violet-700">放開上傳 Excel</p>
+                <p className="text-xs text-violet-600 mt-1">聯繫/樣品/拜訪紀錄三選一</p>
+              </div>
+            </div>
+          )}
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b bg-gradient-to-r from-violet-600 to-indigo-700 text-white lg:rounded-t-2xl">
             <div className="flex items-center gap-2">
@@ -244,6 +425,31 @@ export function AiAssistant() {
                   </div>
                 </div>
 
+                {/* Context-aware quick chips (based on current page) */}
+                {(() => {
+                  const ent = getPageEntity(pathname)
+                  if (ent?.entityType === 'customer') {
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-violet-600 px-1">📍 針對這位客戶</p>
+                        <div className="space-y-1.5">
+                          {[
+                            { text: '摘要這個客戶最近狀況', emoji: '📝' },
+                            { text: '寫一封催收信給這個客戶', emoji: '✉️' },
+                            { text: '幫這個客戶出一張報價單', emoji: '💵' },
+                          ].map(q => (
+                            <button key={q.text} onClick={() => sendMessage(q.text)}
+                              className="w-full text-left rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5 text-sm text-violet-700 hover:bg-violet-100 active:scale-[0.99] transition-all flex items-center gap-2">
+                              <span>{q.emoji}</span>{q.text}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
+
                 {/* Quick Skills */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-muted-foreground px-1">{dict.ai.quickCommands}</p>
@@ -253,6 +459,9 @@ export function AiAssistant() {
                       { text: dict.ai.quickCmd2, emoji: '📦' },
                       { text: dict.ai.quickCmd3, emoji: '📊' },
                       { text: dict.ai.quickCmd4, emoji: '👥' },
+                      { text: 'Pipeline 有沒有卡住的？', emoji: '🔍' },
+                      { text: '業績前 10 大客戶', emoji: '🏆' },
+                      { text: '誰欠最多錢？', emoji: '💰' },
                     ].map(q => (
                       <button
                         key={q.text}
@@ -281,6 +490,31 @@ export function AiAssistant() {
                   {msg.role === 'assistant' ? (
                     <>
                       <div className="whitespace-pre-wrap">{msg.content}</div>
+                      {msg.choices && msg.choices.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
+                          {msg.choices.map((c, j) => {
+                            const isToggle = c.action === 'toggle-wipe'
+                            const isActive = isToggle && wipeBefore
+                            return (
+                              <button key={j} type="button"
+                                onClick={() => onChoiceClick(c)}
+                                disabled={loading}
+                                className={cn(
+                                  'inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium active:scale-[0.97] transition-all shadow-sm disabled:opacity-50',
+                                  isToggle
+                                    ? isActive
+                                      ? 'bg-red-600 text-white hover:bg-red-700'
+                                      : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                                    : 'bg-violet-600 text-white hover:bg-violet-700',
+                                )}>
+                                {isToggle
+                                  ? (isActive ? '☑️ 會先清舊資料' : '☐ 先清舊資料')
+                                  : c.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                       {msg.actions && msg.actions.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2 border-t border-emerald-200 pt-3">
                           {msg.actions.map((action, j) => (
@@ -294,6 +528,14 @@ export function AiAssistant() {
                         </div>
                       )}
                     </>
+                  ) : msg.file ? (
+                    <div className="flex items-center gap-2">
+                      <span>📎</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">{msg.file.name}</div>
+                        <div className="text-xs opacity-75">{(msg.file.size / 1024).toFixed(0)} KB</div>
+                      </div>
+                    </div>
                   ) : (
                     msg.content
                   )}
@@ -316,6 +558,22 @@ export function AiAssistant() {
           {/* Input */}
           <div className="border-t p-3 pb-[env(safe-area-inset-bottom,12px)]">
             <div className="flex items-end gap-2">
+              {/* Attachment button */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                title="上傳 Excel（聯繫 / 樣品 / 拜訪紀錄）"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95 transition-all disabled:opacity-50"
+              >
+                <span className="text-xl">📎</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(e) => { handleFileSelected(e.target.files?.[0] ?? null); e.target.value = '' }}
+              />
               <textarea
                 ref={inputRef}
                 value={input}

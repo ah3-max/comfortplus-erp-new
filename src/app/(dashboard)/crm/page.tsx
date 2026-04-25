@@ -117,7 +117,11 @@ function fmtDate(d: string | null) {
 //  Reusable sub-components
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CustomerRow({ c, suffix }: { c: AlertCustomer; suffix?: React.ReactNode }) {
+function CustomerRow({ c, suffix, onQuickLog }: {
+  c: AlertCustomer
+  suffix?: React.ReactNode
+  onQuickLog?: (c: AlertCustomer) => void
+}) {
   const { dict } = useI18n()
   const days = daysSince(c.lastContactDate)
   const devStatusLabel: Record<string, string> = {
@@ -128,25 +132,154 @@ function CustomerRow({ c, suffix }: { c: AlertCustomer; suffix?: React.ReactNode
     CHURNED: dict.crmPage.devStatusChurned, REJECTED: dict.crmPage.devStatusRejected,
   }
   return (
-    <Link href={`/customers/${c.id}`}
-      className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 transition-colors group">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-sm">{c.name}</span>
-          <Badge variant="outline" className={`text-xs shrink-0 ${DEV_STATUS_COLOR[c.devStatus] ?? ''}`}>
-            {devStatusLabel[c.devStatus] ?? c.devStatus}
-          </Badge>
+    <div className="flex items-center border-b last:border-b-0 hover:bg-slate-50 transition-colors group">
+      <Link href={`/customers/${c.id}`}
+        className="flex-1 flex items-center justify-between px-3 py-2.5 min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium text-sm">{c.name}</span>
+            <Badge variant="outline" className={`text-xs shrink-0 ${DEV_STATUS_COLOR[c.devStatus] ?? ''}`}>
+              {devStatusLabel[c.devStatus] ?? c.devStatus}
+            </Badge>
+          </div>
+          <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
+            <span className="font-mono">{c.code}</span>
+            {c.salesRep && <span>{c.salesRep.name}</span>}
+            {c.phone && <span className="flex items-center gap-0.5"><Phone className="h-3 w-3" />{c.phone}</span>}
+            {days !== null && <span className="text-amber-600">{dict.crmPage.daysNoContact.replace('{days}', String(days))}</span>}
+            {suffix}
+          </div>
         </div>
-        <div className="flex gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
-          <span className="font-mono">{c.code}</span>
-          {c.salesRep && <span>{c.salesRep.name}</span>}
-          {c.phone && <span className="flex items-center gap-0.5"><Phone className="h-3 w-3" />{c.phone}</span>}
-          {days !== null && <span className="text-amber-600">{dict.crmPage.daysNoContact.replace('{days}', String(days))}</span>}
-          {suffix}
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-2 group-hover:text-slate-700" />
+      </Link>
+      {onQuickLog && (
+        <button type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickLog(c) }}
+          className="px-3 py-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-50 border-l flex items-center justify-center"
+          title="快速登錄追蹤">
+          <MessageCircle className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Quick Follow-up Dialog — 從 CRM 警示列直接登錄追蹤
+// ═══════════════════════════════════════════════════════════════════════════
+
+function QuickFollowUpDialog({ customer, open, onClose, onSaved }: {
+  customer: AlertCustomer | null
+  open: boolean
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [logType, setLogType] = useState<'CALL' | 'LINE' | 'EMAIL' | 'FIRST_VISIT' | 'SECOND_VISIT'>('CALL')
+  const [content, setContent] = useState('')
+  const [nextFollowUpDate, setNextFollowUpDate] = useState('')
+  const [nextAction, setNextAction] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  // Reset when customer changes
+  useEffect(() => {
+    if (open) {
+      setLogType('CALL')
+      setContent('')
+      setNextFollowUpDate('')
+      setNextAction('')
+    }
+  }, [open, customer?.id])
+
+  if (!open || !customer) return null
+
+  async function submit() {
+    if (!content.trim()) { toast.error('請填寫追蹤內容'); return }
+    if (!customer) return
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/customers/${customer.id}/followup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          logType,
+          method: logType === 'CALL' ? 'PHONE' : logType === 'LINE' ? 'LINE' : logType === 'EMAIL' ? 'EMAIL' : 'IN_PERSON',
+          content: content.trim(),
+          nextFollowUpDate: nextFollowUpDate || null,
+          nextAction: nextAction.trim() || null,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? '登錄失敗')
+      }
+      const data = await res.json()
+      toast.success(`已登錄追蹤${data.taskId ? '，已建立後續任務' : ''}`)
+      onSaved()
+      onClose()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '登錄失敗')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-5 space-y-4"
+        onClick={(e) => e.stopPropagation()}>
+        <div>
+          <h3 className="text-lg font-semibold">快速登錄追蹤</h3>
+          <p className="text-sm text-muted-foreground">{customer.name}（{customer.code}）</p>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium">追蹤方式</label>
+            <div className="flex gap-2 mt-1 flex-wrap">
+              {([['CALL', '📞 電話'], ['LINE', '💬 LINE'], ['EMAIL', '📧 Email'], ['FIRST_VISIT', '🚗 拜訪']] as const).map(([v, label]) => (
+                <button key={v} type="button"
+                  onClick={() => setLogType(v as typeof logType)}
+                  className={`px-3 py-1.5 rounded-md text-sm border min-h-[44px] ${logType === v ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-slate-50'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">追蹤內容 *</label>
+            <textarea
+              className="w-full mt-1 rounded-md border px-3 py-2 text-sm min-h-[80px]"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="例如：客戶表示有興趣，要求下週提供報價與樣品..."
+              autoFocus />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium">下次追蹤日</label>
+              <Input type="date" value={nextFollowUpDate}
+                onChange={(e) => setNextFollowUpDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">下次動作</label>
+              <Input value={nextAction} onChange={(e) => setNextAction(e.target.value)}
+                placeholder="例如：送樣品" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2 border-t">
+          <Button variant="outline" onClick={onClose} disabled={saving}>取消</Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+            儲存
+          </Button>
         </div>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 ml-2 group-hover:text-slate-700" />
-    </Link>
+    </div>
   )
 }
 
@@ -266,15 +399,32 @@ function SampleTrackingTab({ allSamples }: { allSamples: AlertSample[] }) {
                 <span className="ml-2">{dict.crmPage.sampleSales}{s.sentBy.name}</span>
               </div>
               {feedbackId === s.id && (
-                <div className="mt-2 flex gap-2">
-                  <Input placeholder={dict.crmPage.feedbackPlaceholder} value={feedbackText}
-                    onChange={e => setFeedbackText(e.target.value)} className="text-sm h-8 flex-1" autoFocus />
-                  <Button size="sm" className="h-8 text-xs" disabled={saving || !feedbackText.trim()}
-                    onClick={() => submitFeedback(s.id)}>
-                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : dict.crmPage.save}
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs"
-                    onClick={() => setFeedbackId(null)}>{dict.crmPage.cancel}</Button>
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex gap-1 flex-wrap">
+                    {[
+                      '✅ 正面回饋，願意採購',
+                      '🤔 還在評估',
+                      '👀 已試用，待後續',
+                      '❌ 不合適',
+                      '📞 聯絡不上',
+                    ].map(preset => (
+                      <button key={preset} type="button"
+                        onClick={() => setFeedbackText(preset)}
+                        className="text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-100">
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input placeholder={dict.crmPage.feedbackPlaceholder} value={feedbackText}
+                      onChange={e => setFeedbackText(e.target.value)} className="text-sm h-8 flex-1" autoFocus />
+                    <Button size="sm" className="h-8 text-xs" disabled={saving || !feedbackText.trim()}
+                      onClick={() => submitFeedback(s.id)}>
+                      {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : dict.crmPage.save}
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 text-xs"
+                      onClick={() => setFeedbackId(null)}>{dict.crmPage.cancel}</Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -390,6 +540,10 @@ export default function CRMPage() {
   const [managerData, setManagerData] = useState<ManagerDashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('alerts')
+  const [quickLogCustomer, setQuickLogCustomer] = useState<AlertCustomer | null>(null)
+  const [devStatusFilter, setDevStatusFilter] = useState<string>('')
+  const [importing, setImporting] = useState<'contact' | 'sample' | 'tour' | null>(null)
+  const [importMenuOpen, setImportMenuOpen] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -409,6 +563,49 @@ export default function CRMPage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  async function importExcel(file: File | undefined, type: 'contact' | 'sample' | 'tour') {
+    if (!file) return
+    const endpointMap = {
+      contact: '/api/follow-up-logs/import',
+      sample:  '/api/samples/import',
+      tour:    '/api/institution-tours/import',
+    }
+    const labelMap = { contact: '聯繫紀錄', sample: '樣品紀錄', tour: '拜訪排程' }
+    const endpoint = endpointMap[type]
+    const label = labelMap[type]
+    setImporting(type)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(endpoint, { method: 'POST', body: fd })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? '匯入失敗'); return }
+      const { created = 0, skipped = 0, errors = [] } = data as {
+        created: number; skipped: number; errors: { row: number; reason: string }[]
+      }
+      if (errors.length > 0) {
+        const preview = errors.slice(0, 3).map(e => `第 ${e.row} 列：${e.reason}`).join('\n')
+        const more = errors.length > 3 ? `\n（另有 ${errors.length - 3} 筆錯誤）` : ''
+        toast.error(`匯入 ${created} 筆，${errors.length} 筆失敗：\n${preview}${more}`, { duration: 10000 })
+      } else {
+        toast.success(`✅ 成功匯入 ${created} 筆${label}${skipped > 0 ? `（略過 ${skipped} 筆空列）` : ''}`)
+      }
+      load()
+    } catch (e) {
+      toast.error(`匯入失敗：${(e as Error).message}`)
+    } finally {
+      setImporting(null)
+      // Clear file input so same file can be re-picked
+      const inputIdMap = {
+        contact: 'follow-up-import-file',
+        sample:  'sample-import-file',
+        tour:    'tour-import-file',
+      }
+      const el = document.getElementById(inputIdMap[type]) as HTMLInputElement | null
+      if (el) el.value = ''
+    }
+  }
 
   const totalAlerts = alerts
     ? alerts.overdueFollowups.length + alerts.samplesPending.length +
@@ -439,14 +636,70 @@ export default function CRMPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
           <h1 className="text-xl font-bold text-slate-900">{dict.crm.title}</h1>
           <p className="text-xs text-muted-foreground">{dict.crmPage.subtitle}</p>
         </div>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Import menu — prominent blue button so it's easy to find */}
+          <div className="relative">
+            <Button
+              onClick={() => setImportMenuOpen(v => !v)}
+              disabled={importing !== null}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium min-h-[44px] px-4 gap-1.5">
+              {importing !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base">📥</span>}
+              <span>匯入 Excel</span>
+            </Button>
+            {importMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setImportMenuOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 w-56 rounded-md border bg-white shadow-lg py-1 text-sm">
+                  <button type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2"
+                    onClick={() => { setImportMenuOpen(false); document.getElementById('follow-up-import-file')?.click() }}>
+                    📞 聯繫紀錄
+                  </button>
+                  <button type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2"
+                    onClick={() => { setImportMenuOpen(false); document.getElementById('sample-import-file')?.click() }}>
+                    📦 樣品紀錄
+                  </button>
+                  <button type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2"
+                    onClick={() => { setImportMenuOpen(false); document.getElementById('tour-import-file')?.click() }}>
+                    🗓️ 拜訪排程
+                  </button>
+                  <div className="border-t my-1" />
+                  <a href="/api/follow-up-logs/import" download
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-muted-foreground text-xs"
+                    onClick={() => setImportMenuOpen(false)}>
+                    <FileText className="h-3 w-3" />聯繫紀錄範本
+                  </a>
+                  <a href="/api/samples/import" download
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-muted-foreground text-xs"
+                    onClick={() => setImportMenuOpen(false)}>
+                    <FileText className="h-3 w-3" />樣品紀錄範本
+                  </a>
+                  <a href="/api/institution-tours/import" download
+                    className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2 text-muted-foreground text-xs"
+                    onClick={() => setImportMenuOpen(false)}>
+                    <FileText className="h-3 w-3" />拜訪排程範本
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
+          <input type="file" id="follow-up-import-file" accept=".xlsx,.xls" className="hidden"
+            onChange={(e) => importExcel(e.target.files?.[0], 'contact')} />
+          <input type="file" id="sample-import-file" accept=".xlsx,.xls" className="hidden"
+            onChange={(e) => importExcel(e.target.files?.[0], 'sample')} />
+          <input type="file" id="tour-import-file" accept=".xlsx,.xls" className="hidden"
+            onChange={(e) => importExcel(e.target.files?.[0], 'tour')} />
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -494,6 +747,32 @@ export default function CRMPage() {
                 </CardContent></Card>
               )}
 
+              {/* devStatus filter */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-muted-foreground mr-1">階段篩選：</span>
+                {([
+                  ['',                  '全部'],
+                  ['POTENTIAL',         '潛在'],
+                  ['CONTACTED',         '已聯絡'],
+                  ['VISITED',           '已拜訪'],
+                  ['NEGOTIATING',       '洽談中'],
+                  ['TRIAL',             '試用中'],
+                  ['CLOSED',            '已成交'],
+                  ['STABLE_REPURCHASE', '穩定回購'],
+                  ['DORMANT',           '休眠'],
+                ] as const).map(([v, label]) => (
+                  <button key={v} type="button"
+                    onClick={() => setDevStatusFilter(v)}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                      devStatusFilter === v
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {/* Today schedules */}
               {alerts.todaySchedules.length > 0 && (
                 <AlertSection title={dict.crmPage.todayScheduleTitle} icon={<CalendarCheck className="h-4 w-4 text-amber-600" />}
@@ -521,31 +800,31 @@ export default function CRMPage() {
               {/* Today follow-ups */}
               <AlertSection title={dict.crmPage.todayFollowupTitle} icon={<Clock className="h-4 w-4 text-blue-600" />}
                 count={alerts.todayFollowups.length} color="border-l-blue-400" emptyMsg={dict.crmPage.todayFollowupEmpty}>
-                {alerts.todayFollowups.map(c => <CustomerRow key={c.id} c={c} suffix={<span className="text-blue-600 font-medium">{dict.crmPage.todayFollowupLabel}</span>} />)}
+                {alerts.todayFollowups.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={<span className="text-blue-600 font-medium">{dict.crmPage.todayFollowupLabel}</span>} />)}
               </AlertSection>
 
               {/* Overdue */}
               <AlertSection title={dict.crmPage.overdueTitle} icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
                 count={alerts.overdueFollowups.length} color="border-l-red-400" emptyMsg={dict.crmPage.overdueEmpty}>
-                {alerts.overdueFollowups.map(c => {
+                {alerts.overdueFollowups.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => {
                   const d = daysSince(c.nextFollowUpDate)
-                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-red-600 font-medium">{dict.crmPage.overdueDays.replace('{d}', String(d))}</span> : undefined} />
+                  return <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={d !== null ? <span className="text-red-600 font-medium">{dict.crmPage.overdueDays.replace('{d}', String(d))}</span> : undefined} />
                 })}
               </AlertSection>
 
               {/* Uncontacted */}
               <AlertSection title={dict.crmPage.uncontactedTitle} icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
                 count={alerts.uncontacted.length} color="border-l-orange-400" emptyMsg={dict.crmPage.uncontactedEmpty}>
-                {alerts.uncontacted.map(c => <CustomerRow key={c.id} c={c} />)}
+                {alerts.uncontacted.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} />)}
               </AlertSection>
 
               {/* Repurchase warning */}
               <AlertSection title={dict.crmPage.repurchaseTitle} icon={<TrendingDown className="h-4 w-4 text-rose-600" />}
                 count={alerts.repurchaseWarning.length} color="border-l-rose-400" emptyMsg={dict.crmPage.repurchaseEmpty}>
-                {alerts.repurchaseWarning.map(c => {
+                {alerts.repurchaseWarning.filter(c => !devStatusFilter || c.devStatus === devStatusFilter).map(c => {
                   const lastOrder = c.salesOrders[0]
                   const d = daysSince(lastOrder?.orderDate ?? null)
-                  return <CustomerRow key={c.id} c={c} suffix={d !== null ? <span className="text-rose-600">{dict.crmPage.repurchaseDays.replace('{d}', String(d))}</span> : undefined} />
+                  return <CustomerRow key={c.id} c={c} onQuickLog={setQuickLogCustomer} suffix={d !== null ? <span className="text-rose-600">{dict.crmPage.repurchaseDays.replace('{d}', String(d))}</span> : undefined} />
                 })}
               </AlertSection>
 
@@ -627,6 +906,13 @@ export default function CRMPage() {
           {tab === 'demand' && isManager && <DemandBoardTab />}
         </>
       )}
+
+      <QuickFollowUpDialog
+        customer={quickLogCustomer}
+        open={quickLogCustomer !== null}
+        onClose={() => setQuickLogCustomer(null)}
+        onSaved={load}
+      />
     </div>
   )
 }
@@ -864,7 +1150,7 @@ function PipelineTab({ analytics }: { analytics: Analytics }) {
                             <span className={`${days > 14 ? 'text-red-600 font-medium' : days > 7 ? 'text-amber-600' : 'text-slate-500'}`}>
                               {cp.daysAgo.replace('{days}', String(days))}
                             </span>
-                            <ChevronRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
+                            <ChevronRight className="h-3 w-3 text-muted-foreground opacity-60 hover:opacity-100" />
                           </div>
                         </Link>
                       )

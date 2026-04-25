@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 // All sidebar module codes (keep in sync with sidebar.tsx navGroups)
 const ALL_MODULES = [
@@ -39,9 +40,9 @@ const ALL_MODULES = [
   // Analysis — Ops
   'purchaseAnalysis', 'supplierPerformance', 'deliveryPerformance', 'inventoryMovement', 'deadStock',
   // Service
-  'afterSales', 'care', 'knowledge',
-  // HR & Admin
-  'hr', 'orgChart', 'announcements', 'assetLoans', 'regionMapping',
+  'afterSales',
+  // Admin
+  'orgChart', 'announcements', 'regionMapping',
   // System
   'approvals', 'documents', 'warehouses', 'auditLog', 'users', 'settings', 'migration',
 ]
@@ -63,23 +64,17 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'products', 'inventory', 'shipments',
     'channels', 'payments', 'arAging', 'expenses',
     'salesAnalysis', 'grossMargin', 'salespersonPerformance', 'competitorPrices',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'reports', 'documents', 'announcements',
   ],
   SALES: [
-    'dashboard', 'dailyReminder', 'crm', 'institutionTours', 'calendar',
-    'customers', 'keyAccounts',
-    'pipeline', 'kpi', 'tasks', 'salesDailyReport', 'meetingRecords',
-    'quotations', 'orders', 'salesInvoices',
-    'products', 'shipments',
-    'salesAnalysis', 'competitorPrices',
-    'afterSales', 'care', 'knowledge',
-    'approvals', 'announcements',
+    'dashboard', 'customers', 'quotations', 'orders', 'crm',
+    'salesDailyReport',
   ],
   CARE_SUPERVISOR: [
     'dashboard', 'dailyReminder', 'crm', 'institutionTours', 'calendar',
     'customers', 'keyAccounts', 'incidents', 'tasks',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'announcements',
   ],
   ECOMMERCE: [
@@ -94,7 +89,7 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   CS: [
     'dashboard', 'crm', 'calendar',
     'customers', 'orders', 'tasks',
-    'afterSales', 'care', 'knowledge',
+    'afterSales',
     'approvals', 'announcements',
   ],
   WAREHOUSE_MANAGER: [
@@ -122,29 +117,11 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'reports', 'documents', 'announcements',
   ],
   FINANCE: [
-    'dashboard', 'announcements',
-    // AR
-    'orders', 'salesInvoices', 'salesReturns', 'eInvoices',
-    'receipts', 'arAging', 'settlement', 'creditManagement',
-    // AP
-    'payments', 'apAging', 'disbursements',
-    'expenses', 'pettyCash',
-    // Bank
-    'bankAccounts', 'bankReconcile', 'cheques', 'cashBook',
-    // Ledger
-    'finance', 'generalLedger', 'accountDetail', 'vatLedger',
-    'inputTax', 'vatSummary', 'vatFilings',
-    // Reports
-    'monthlyPL', 'cashFlowStatement', 'paymentSummary', 'receiptSummary', 'advancePaymentSummary', 'managementSummary',
-    'grossMargin', 'salesAnalysis', 'reports',
-    // Period close
-    'autoJournal', 'periodClose',
-    // Channels & pricing
-    'channels', 'priceTiers', 'discountRules', 'customerPricing',
-    // Products (read for AR verification)
-    'products',
-    // System
-    'approvals', 'documents', 'auditLog',
+    'dashboard', 'finance',
+    'receipts', 'payments', 'expenses',
+    'arAging', 'apAging',
+    'generalLedger', 'monthlyPL',
+    'vatFilings', 'periodClose',
   ],
 }
 
@@ -189,10 +166,19 @@ export async function PUT(req: NextRequest) {
 
     const { matrix } = await req.json() as { matrix: Record<string, Record<string, boolean>> }
 
+    // Count changes against existing DB state for audit
+    const existingPerms = await prisma.rolePermission.findMany({
+      select: { roleName: true, module: true, canView: true },
+    })
+    const existingMap = new Map(existingPerms.map(p => [`${p.roleName}:${p.module}`, p.canView]))
+    const diffs: { role: string; module: string; before: boolean | null; after: boolean }[] = []
+
     // Upsert all entries
     const ops = []
     for (const [role, modules] of Object.entries(matrix)) {
       for (const [mod, canView] of Object.entries(modules)) {
+        const prev = existingMap.get(`${role}:${mod}`) ?? null
+        if (prev !== canView) diffs.push({ role, module: mod, before: prev, after: canView })
         ops.push(
           prisma.rolePermission.upsert({
             where: { roleName_module: { roleName: role, module: mod } },
@@ -204,6 +190,24 @@ export async function PUT(req: NextRequest) {
     }
 
     await prisma.$transaction(ops)
+
+    if (diffs.length > 0) {
+      const changesObj: Record<string, { before: unknown; after: unknown }> = {}
+      for (const d of diffs.slice(0, 50)) {
+        changesObj[`${d.role}.${d.module}`] = { before: d.before, after: d.after }
+      }
+      logAudit({
+        userId: session.user.id,
+        userName: session.user.name ?? '',
+        userRole: user.role,
+        module: 'role-permissions',
+        action: 'UPDATE',
+        entityType: 'RolePermissionMatrix',
+        entityId: 'global',
+        entityLabel: `${diffs.length} 項權限變更`,
+        changes: changesObj,
+      }).catch(() => {})
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {

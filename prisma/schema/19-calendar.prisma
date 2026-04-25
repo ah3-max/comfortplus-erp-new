@@ -1,173 +1,124 @@
-// ========== 大檔期規劃 ==========
 model PromoCalendar {
-  id            String    @id @default(cuid())
-  promoCode     String    @unique   // e.g. 618-2026 / 1111-2026 / 318-2027
-  promoName     String                // 618購物節、雙11全館特賣、318消費者節
-  promoTier     PromoTier
-  year          Int
-
-  eventStartDate DateTime             // 活動正式開始日（D-Day）
-  eventEndDate   DateTime             // 活動正式結束日
-
-  // 前置準備時程（系統自動計算 or 手動調整）
-  prepStartDate  DateTime             // 備貨規劃啟動日（預設 D-90）
-  negoStartDate  DateTime             // 談判協商啟動日（預設 D-60）
-  execStartDate  DateTime             // 執行期啟動日（預設 D-30）
-  currentPhase   PrepPhase @default(PREPARATION)
-
-  // 提醒設定
-  reminderDays   Int[]    @default([90, 60, 30, 14, 7]) // 在活動前幾天提醒
-  reminderSentAt Json?                // {"90":"ISO", "60":"ISO"}
-
-  // 目標與實績
-  revenueTarget  Decimal? @db.Decimal(14, 2)
-  revenueActual  Decimal? @db.Decimal(14, 2)
-  orderTarget    Int?
-  orderActual    Int?
-
-  // 通路與 SKU
-  targetChannels String[] @default([])  // ["SHOPEE","MOMO","全聯"]
-  featuredSkus   String[] @default([])  // Product SKUs
-
+  id                String          @id @default(cuid())
+  promoCode         String          @unique
+  promoName         String
+  promoTier         PromoTier
+  year              Int
+  eventStartDate    DateTime
+  eventEndDate      DateTime
+  prepStartDate     DateTime
+  negoStartDate     DateTime
+  execStartDate     DateTime
+  currentPhase      PrepPhase       @default(PREPARATION)
+  reminderDays      Int[]           @default([90, 60, 30, 14, 7])
+  reminderSentAt    Json?
+  revenueTarget     Decimal?        @db.Decimal(14, 2)
+  revenueActual     Decimal?        @db.Decimal(14, 2)
+  orderTarget       Int?
+  orderActual       Int?
+  targetChannels    String[]        @default([])
+  featuredSkus      String[]        @default([])
   responsibleUserId String?
-  responsibleUser   User?  @relation("PromoCalendarOwner", fields: [responsibleUserId], references: [id])
-
-  notes     String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  businessEvents BusinessEvent[]
-  meetingRecords MeetingRecord[]
+  notes             String?
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  businessEvents    BusinessEvent[]
+  meetingRecords    MeetingRecord[]
+  responsibleUser   User?           @relation("PromoCalendarOwner", fields: [responsibleUserId], references: [id])
 
   @@index([year, promoTier])
   @@index([eventStartDate])
 }
 
-// ========== 公司行事曆活動 ==========
 model BusinessEvent {
-  id        String              @id @default(cuid())
-  eventNo   String              @unique   // BE-YYYYMMDD-0001
-  title     String
-  eventType BusinessEventType
-  status    BusinessEventStatus @default(PLANNING)
-
-  startDate DateTime             // 活動開始日
-  endDate   DateTime             // 活動結束日
-  allDay    Boolean @default(true)
-  location  String?              // 地點（城市/縣市）
-  venue     String?              // 會場名稱 / 攤位號
-
-  // 關聯通路/客戶（展會/通路活動時填寫）
-  channelPlatform String?        // 通路名稱（自由文字，例：全聯、蝦皮）
-  customerId      String?
-  customer        Customer?      @relation("CustomerBusinessEvents", fields: [customerId], references: [id])
-
-  // 關聯大檔期（MAJOR_PROMO / QUARTERLY_PROMO 時填）
-  promoCalendarId String?
-  promoCalendar   PromoCalendar? @relation(fields: [promoCalendarId], references: [id])
-
-  // 負責人與參與人
-  ownerUserId     String
-  owner           User           @relation("BizEventOwner", fields: [ownerUserId], references: [id])
-  attendeeUserIds String[]       @default([])
-
-  budget      Decimal? @db.Decimal(12, 2)
-  actualCost  Decimal? @db.Decimal(12, 2)
-
-  // 準備清單
-  prepChecklist Json?             // [{task: String, done: Boolean, doneAt?: ISO, doneByName?: String}]
-  tags          String[] @default([])
-
-  // 展覽/擺攤專屬
-  boothSize     String?           // 攤位尺寸（3x3m / 6x3m）
-  boothNo       String?           // 攤位號
-  setupDate     DateTime?         // 佈置日
-  teardownDate  DateTime?         // 撤場日
-  estimatedVisitors Int?          // 預估人流
-  actualVisitors    Int?          // 實際人流
-  leadsCollected    Int?          // 蒐集名單
-  ordersTaken       Int?          // 現場成交
-
-  notes        String?
-  isRecurring  Boolean @default(false)
-  recurRule    String?             // RRULE e.g. FREQ=WEEKLY;BYDAY=MO
-
-  createdById String
-  createdBy   User    @relation("BizEventCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  meetingRecords MeetingRecord[]
+  id                String              @id @default(cuid())
+  eventNo           String              @unique
+  title             String
+  eventType         BusinessEventType
+  status            BusinessEventStatus @default(PLANNING)
+  startDate         DateTime
+  endDate           DateTime
+  allDay            Boolean             @default(true)
+  location          String?
+  venue             String?
+  channelPlatform   String?
+  customerId        String?
+  promoCalendarId   String?
+  ownerUserId       String
+  attendeeUserIds   String[]            @default([])
+  budget            Decimal?            @db.Decimal(12, 2)
+  actualCost        Decimal?            @db.Decimal(12, 2)
+  prepChecklist     Json?
+  tags              String[]            @default([])
+  boothSize         String?
+  boothNo           String?
+  setupDate         DateTime?
+  teardownDate      DateTime?
+  estimatedVisitors Int?
+  actualVisitors    Int?
+  leadsCollected    Int?
+  ordersTaken       Int?
+  notes             String?
+  isRecurring       Boolean             @default(false)
+  recurRule         String?
+  createdById       String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  createdBy         User                @relation("BizEventCreatedBy", fields: [createdById], references: [id])
+  customer          Customer?           @relation("CustomerBusinessEvents", fields: [customerId], references: [id])
+  owner             User                @relation("BizEventOwner", fields: [ownerUserId], references: [id])
+  promoCalendar     PromoCalendar?      @relation(fields: [promoCalendarId], references: [id])
+  meetingRecords    MeetingRecord[]
 
   @@index([startDate, endDate])
   @@index([eventType, status])
   @@index([ownerUserId])
 }
 
-// ========== 會議記錄 ==========
 model MeetingRecord {
-  id          String        @id @default(cuid())
-  meetingNo   String        @unique   // MR-YYYYMMDD-0001
-  title       String
-  meetingType MeetingType
-  status      MeetingStatus @default(SCHEDULED)
-
-  meetingDate DateTime
-  startTime   DateTime?
-  endTime     DateTime?
-  location    String?
-  isOnline    Boolean @default(false)
-  meetingUrl  String?       // 線上會議連結
-
-  // 關聯活動（可選）
-  businessEventId String?
-  businessEvent   BusinessEvent? @relation(fields: [businessEventId], references: [id])
-  promoCalendarId String?
-  promoCalendar   PromoCalendar? @relation(fields: [promoCalendarId], references: [id])
-
-  // 關聯通路/客戶（通路談判必填）
-  customerId  String?
-  customer    Customer? @relation("CustomerMeetingRecords", fields: [customerId], references: [id])
-  channelName String?   // 通路名稱（自由文字）
-
-  // 參與人員
-  facilitatorId     String
-  facilitator       User    @relation("MeetingFacilitator", fields: [facilitatorId], references: [id])
-  attendeesJson     Json?   // [{userId, name, role, isExternal}]
-  externalAttendees String? // 外部參與者（非系統用戶）
-
-  // 會議前準備
-  agenda    String? @db.Text   // 議程
-
-  // 會議記錄主體
-  summary     String? @db.Text   // 會議摘要（人工）
-  minutesText String? @db.Text   // 完整會議記錄（逐條）
-  decisions   String? @db.Text   // 決議事項
-
-  // 通路談判專用欄位
-  negotiationContext  String? @db.Text   // 本次談判背景/上次結論
-  negotiationOutcome  String? @db.Text   // 本次談判結果
-  nextNegotiationDate DateTime?          // 下次談判日期
-
-  // 附件：照片
-  photoUrls Json?   // [{url, label, uploadedAt}]
-
-  // 錄音 & AI 轉譯
-  audioFileUrl     String?             // 錄音檔 URL（S3 / 本地路徑）
-  audioDurationSec Int?
-  transcriptText   String? @db.Text    // AI 逐字稿
-  transcriptStatus TranscriptStatus @default(PENDING)
-  aiSummary        String? @db.Text    // AI 會議摘要
-  aiActionItems    Json?               // AI 提取的待辦 [{title, owner, dueDate}]
-  aiProcessedAt    DateTime?
-
-  createdById String
-  createdBy   User   @relation("MeetingRecordCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  actionItems MeetingActionItem[]
+  id                  String              @id @default(cuid())
+  meetingNo           String              @unique
+  title               String
+  meetingType         MeetingType
+  status              MeetingStatus       @default(SCHEDULED)
+  meetingDate         DateTime
+  startTime           DateTime?
+  endTime             DateTime?
+  location            String?
+  isOnline            Boolean             @default(false)
+  meetingUrl          String?
+  businessEventId     String?
+  promoCalendarId     String?
+  customerId          String?
+  channelName         String?
+  facilitatorId       String
+  attendeesJson       Json?
+  externalAttendees   String?
+  agenda              String?
+  summary             String?
+  minutesText         String?
+  decisions           String?
+  negotiationContext  String?
+  negotiationOutcome  String?
+  nextNegotiationDate DateTime?
+  photoUrls           Json?
+  audioFileUrl        String?
+  audioDurationSec    Int?
+  transcriptText      String?
+  transcriptStatus    TranscriptStatus    @default(PENDING)
+  aiSummary           String?
+  aiActionItems       Json?
+  aiProcessedAt       DateTime?
+  createdById         String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  actionItems         MeetingActionItem[]
+  businessEvent       BusinessEvent?      @relation(fields: [businessEventId], references: [id])
+  createdBy           User                @relation("MeetingRecordCreatedBy", fields: [createdById], references: [id])
+  customer            Customer?           @relation("CustomerMeetingRecords", fields: [customerId], references: [id])
+  facilitator         User                @relation("MeetingFacilitator", fields: [facilitatorId], references: [id])
+  promoCalendar       PromoCalendar?      @relation(fields: [promoCalendarId], references: [id])
 
   @@index([meetingDate])
   @@index([meetingType, status])
@@ -175,29 +126,24 @@ model MeetingRecord {
   @@index([businessEventId])
 }
 
-// ========== 會議待辦事項 ==========
 model MeetingActionItem {
-  id              String        @id @default(cuid())
-  meetingRecordId String
-  meetingRecord   MeetingRecord @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
-
-  actionTitle       String
-  actionDescription String?
-  ownerUserId       String?
-  owner             User?   @relation("MeetingActionOwner", fields: [ownerUserId], references: [id])
-  dueDate           DateTime?
-  status            ActionItemStatus @default(OPEN)
-  priority          TaskPriority     @default(MEDIUM)
-
-  // 追蹤
-  completionNote  String?
-  completedAt     DateTime?
-  followUpNote    String?       // 週會跟進備注
-  lastFollowUpAt  DateTime?
-  reportedInMeetingId String?   // 在哪次周會中被追蹤
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String           @id @default(cuid())
+  meetingRecordId     String
+  actionTitle         String
+  actionDescription   String?
+  ownerUserId         String?
+  dueDate             DateTime?
+  status              ActionItemStatus @default(OPEN)
+  priority            TaskPriority     @default(MEDIUM)
+  completionNote      String?
+  completedAt         DateTime?
+  followUpNote        String?
+  lastFollowUpAt      DateTime?
+  reportedInMeetingId String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  meetingRecord       MeetingRecord    @relation(fields: [meetingRecordId], references: [id], onDelete: Cascade)
+  owner               User?            @relation("MeetingActionOwner", fields: [ownerUserId], references: [id])
 
   @@index([meetingRecordId])
   @@index([ownerUserId, status])

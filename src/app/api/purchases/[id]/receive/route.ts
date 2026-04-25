@@ -28,6 +28,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: '請設定至少一項到貨數量' }, { status: 400 })
   }
 
+  // Period guard: receive creates AP + PURCHASE_RECEIVE journal with today's date
+  const { assertPeriodOpen } = await import('@/lib/period-guard')
+  await assertPeriodOpen(new Date())
+
   // 驗證到貨數量不超過未到量
   for (const ri of receiveItems) {
     const poi = po.items.find((i) => i.productId === ri.productId)

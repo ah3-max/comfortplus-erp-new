@@ -309,7 +309,7 @@ export default function AfterSalesPage() {
             <div className="ml-3 flex shrink-0 items-center gap-1.5">
               {canEdit(o.status) && (
                 <button
-                  className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100 text-muted-foreground"
+                  className="rounded p-1 opacity-60 hover:opacity-100 transition-opacity hover:bg-slate-100 text-muted-foreground"
                   onClick={e => openEdit(o, e)}
                   title={as.editTooltip}
                 >
@@ -318,7 +318,7 @@ export default function AfterSalesPage() {
               )}
               {o.status === 'OPEN' && (
                 <button
-                  className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 text-red-500"
+                  className="rounded p-1 opacity-60 hover:opacity-100 transition-opacity hover:bg-red-50 text-red-500"
                   onClick={e => handleDelete(o, e)}
                   title={as.deleteTooltip}
                 >

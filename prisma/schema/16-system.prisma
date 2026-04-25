@@ -18,45 +18,48 @@ model Sequence {
 
 // ========== 業務待辦事項 ==========
 model SalesTask {
-  id           String        @id @default(cuid())
+  id           String       @id @default(cuid())
   title        String
   description  String?
-  taskType     TaskType      @default(OTHER)
-  priority     TaskPriority  @default(MEDIUM)
-  status       TaskStatus    @default(PENDING)
+  taskType     TaskType     @default(OTHER)
+  priority     TaskPriority @default(MEDIUM)
+  status       TaskStatus   @default(PENDING)
   dueDate      DateTime?
   completedAt  DateTime?
   customerId   String?
-  customer     Customer?     @relation(fields: [customerId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id])
   assignedToId String
-  assignedTo   User          @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  assignedTo   User         @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
   createdById  String
-  createdBy    User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  createdBy    User         @relation("TaskCreatedBy", fields: [createdById], references: [id])
   notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([assignedToId, status, dueDate])
+  @@index([customerId, status])
 }
 
 // ========== 業務行程/拜訪排程（Module 5）==========
 model SalesSchedule {
-  id             String       @id @default(cuid())
-  customerId     String
-  customer       Customer     @relation(fields: [customerId], references: [id])
-  salesRepId     String
-  salesRep       User         @relation("ScheduleSalesRep", fields: [salesRepId], references: [id])
-  scheduleDate   DateTime
-  startTime      DateTime?    // 開始時間
-  endTime        DateTime?    // 結束時間
-  location       String?      // 地點
-  scheduleType   ScheduleType @default(OTHER)
-  preReminder    String?      // 行前提醒/事前準備
-  postResult     String?      // 行後結果
-  isCompleted    Boolean      @default(false)
-  notes          String?
-  createdById    String
-  createdBy      User         @relation("ScheduleCreatedBy", fields: [createdById], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id           String       @id @default(cuid())
+  customerId   String
+  customer     Customer     @relation(fields: [customerId], references: [id])
+  salesRepId   String
+  salesRep     User         @relation("ScheduleSalesRep", fields: [salesRepId], references: [id])
+  scheduleDate DateTime
+  startTime    DateTime? // 開始時間
+  endTime      DateTime? // 結束時間
+  location     String? // 地點
+  scheduleType ScheduleType @default(OTHER)
+  preReminder  String? // 行前提醒/事前準備
+  postResult   String? // 行後結果
+  isCompleted  Boolean      @default(false)
+  notes        String?
+  createdById  String
+  createdBy    User         @relation("ScheduleCreatedBy", fields: [createdById], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 }
 
 // ========== 訂單/配送/收款事件（Module 6）==========
@@ -66,9 +69,9 @@ model SalesEvent {
   eventDate    DateTime
   customerId   String
   customer     Customer       @relation(fields: [customerId], references: [id])
-  items        String?        // 品項描述
-  quantity     Int?           // 數量
-  amount       Decimal?       @db.Decimal(12, 2)  // 金額
+  items        String? // 品項描述
+  quantity     Int? // 數量
+  amount       Decimal?       @db.Decimal(12, 2) // 金額
   assignedToId String
   assignedTo   User           @relation("EventAssignedTo", fields: [assignedToId], references: [id])
   isCompleted  Boolean        @default(false)
@@ -80,179 +83,183 @@ model SalesEvent {
 }
 
 model AuditLog {
-  id String @id @default(cuid())
-  userId String
-  user User @relation(fields: [userId], references: [id])
-  userName String
-  userRole String
-  timestamp DateTime @default(now())
-  ipAddress String?
-  userAgent String?
-  deviceInfo String?
-  module String
-  action String
-  entityType String
-  entityId String
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  userName    String
+  userRole    String
+  timestamp   DateTime @default(now())
+  ipAddress   String?
+  userAgent   String?
+  deviceInfo  String?
+  module      String
+  action      String
+  entityType  String
+  entityId    String
   entityLabel String?
-  changes Json?
-  reason String?
+  changes     Json?
+  reason      String?
+
   @@index([userId, timestamp])
   @@index([module, action, timestamp])
   @@index([entityType, entityId])
 }
 
 model SystemAlert {
-  id String @id @default(cuid())
-  alertType String
-  severity String @default("MEDIUM")
-  title String
-  description String?
-  relatedType String?
-  relatedId String?
-  metricValue Decimal? @db.Decimal(12,2)
-  thresholdValue Decimal? @db.Decimal(12,2)
-  status String @default("OPEN")
-  assignedToId String?
-  assignedTo User? @relation("AlertAssignedTo", fields: [assignedToId], references: [id])
+  id             String    @id @default(cuid())
+  alertType      String
+  severity       String    @default("MEDIUM")
+  title          String
+  description    String?
+  relatedType    String?
+  relatedId      String?
+  metricValue    Decimal?  @db.Decimal(12, 2)
+  thresholdValue Decimal?  @db.Decimal(12, 2)
+  status         String    @default("OPEN")
+  assignedToId   String?
+  assignedTo     User?     @relation("AlertAssignedTo", fields: [assignedToId], references: [id])
   acknowledgedAt DateTime?
-  resolvedAt DateTime?
-  resolvedNote String?
-  createdAt DateTime @default(now())
+  resolvedAt     DateTime?
+  resolvedNote   String?
+  createdAt      DateTime  @default(now())
+
   @@index([alertType, status])
   @@index([relatedType, relatedId])
 }
 
 model AlertRule {
-  id String @id @default(cuid())
-  alertType String @unique
-  isActive Boolean @default(true)
+  id             String   @id @default(cuid())
+  alertType      String   @unique
+  isActive       Boolean  @default(true)
   conditionField String
-  conditionOp String
-  thresholdValue Decimal @db.Decimal(12,2)
-  notifyRoles String[] @default([])
-  notifyUserIds String[] @default([])
-  autoCreateTask Boolean @default(false)
-  notes String?
-  updatedAt DateTime @updatedAt
+  conditionOp    String
+  thresholdValue Decimal  @db.Decimal(12, 2)
+  notifyRoles    String[] @default([])
+  notifyUserIds  String[] @default([])
+  autoCreateTask Boolean  @default(false)
+  notes          String?
+  updatedAt      DateTime @updatedAt
 }
 
 model Notification {
-  id String @id @default(cuid())
-  userId String
-  user User @relation("NotificationUser", fields: [userId], references: [id])
-  category String
-  title String
-  message String?
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation("NotificationUser", fields: [userId], references: [id])
+  category    String
+  title       String
+  message     String?
   relatedType String?
-  relatedId String?
-  linkUrl String?
-  isRead Boolean @default(false)
-  readAt DateTime?
-  isDismissed Boolean @default(false)
-  channels String[] @default(["WEB"])
-  sentAt DateTime?
-  priority String @default("NORMAL")
+  relatedId   String?
+  linkUrl     String?
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  isDismissed Boolean   @default(false)
+  channels    String[]  @default(["WEB"])
+  sentAt      DateTime?
+  priority    String    @default("NORMAL")
   scheduledAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now())
+
   @@index([userId, isRead, createdAt(sort: Desc)])
   @@index([category, createdAt(sort: Desc)])
 }
 
 model CodingRule {
-  id String @id @default(cuid())
-  entityType String @unique
-  prefix String
-  pattern String
-  separator String @default("-")
-  currentSeq Int @default(0)
-  example String?
-  notes String?
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  entityType String   @unique
+  prefix     String
+  pattern    String
+  separator  String   @default("-")
+  currentSeq Int      @default(0)
+  example    String?
+  notes      String?
+  updatedAt  DateTime @updatedAt
 }
 
 model RegionMapping {
-  id String @id @default(cuid())
-  city String
-  district String?
-  region String
-  deliveryZone String?
+  id             String  @id @default(cuid())
+  city           String
+  district       String?
+  region         String
+  deliveryZone   String?
   defaultRouteId String?
+
   @@unique([city, district])
 }
 
 model UploadBatch {
-  id String @id @default(cuid())
-  source String
-  module String
-  entityType String
-  entityId String
-  fileCount Int
+  id             String       @id @default(cuid())
+  source         String
+  module         String
+  entityType     String
+  entityId       String
+  fileCount      Int
   totalSizeBytes Int?
-  deviceInfo String?
-  gpsLat Decimal? @db.Decimal(10,7)
-  gpsLng Decimal? @db.Decimal(10,7)
-  gpsAddress String?
-  uploadedById String
-  uploadedBy User @relation("UploadedByUser", fields: [uploadedById], references: [id])
-  uploadedAt DateTime @default(now())
-  files UploadFile[]
+  deviceInfo     String?
+  gpsLat         Decimal?     @db.Decimal(10, 7)
+  gpsLng         Decimal?     @db.Decimal(10, 7)
+  gpsAddress     String?
+  uploadedById   String
+  uploadedBy     User         @relation("UploadedByUser", fields: [uploadedById], references: [id])
+  uploadedAt     DateTime     @default(now())
+  files          UploadFile[]
 }
 
 model UploadFile {
-  id String @id @default(cuid())
-  batchId String
-  batch UploadBatch @relation(fields: [batchId], references: [id])
-  fileUrl String
-  fileName String
+  id            String      @id @default(cuid())
+  batchId       String
+  batch         UploadBatch @relation(fields: [batchId], references: [id])
+  fileUrl       String
+  fileName      String
   fileSizeBytes Int
-  mimeType String
-  thumbnailUrl String?
-  fileCategory String?
-  description String?
-  capturedAt DateTime?
-  capturedLat Decimal? @db.Decimal(10,7)
-  capturedLng Decimal? @db.Decimal(10,7)
-  createdAt DateTime @default(now())
+  mimeType      String
+  thumbnailUrl  String?
+  fileCategory  String?
+  description   String?
+  capturedAt    DateTime?
+  capturedLat   Decimal?    @db.Decimal(10, 7)
+  capturedLng   Decimal?    @db.Decimal(10, 7)
+  createdAt     DateTime    @default(now())
 }
 
 model ExportLog {
-  id String @id @default(cuid())
-  module String
-  exportType String
-  fileName String
-  rowCount Int
-  filters Json?
-  containsSensitive Boolean @default(false)
-  exportedById String
-  exportedBy User @relation(fields: [exportedById], references: [id])
-  ipAddress String?
-  createdAt DateTime @default(now())
+  id                String   @id @default(cuid())
+  module            String
+  exportType        String
+  fileName          String
+  rowCount          Int
+  filters           Json?
+  containsSensitive Boolean  @default(false)
+  exportedById      String
+  exportedBy        User     @relation(fields: [exportedById], references: [id])
+  ipAddress         String?
+  createdAt         DateTime @default(now())
 }
 
 model ImportExportTemplate {
-  id String @id @default(cuid())
-  templateName String
-  direction String
-  module String
-  columnMapping Json
-  fileFormat String @default("XLSX")
-  templateUrl String?
+  id              String   @id @default(cuid())
+  templateName    String
+  direction       String
+  module          String
+  columnMapping   Json
+  fileFormat      String   @default("XLSX")
+  templateUrl     String?
   validationRules Json?
-  isActive Boolean @default(true)
-  notes String?
-  updatedAt DateTime @updatedAt
+  isActive        Boolean  @default(true)
+  notes           String?
+  updatedAt       DateTime @updatedAt
 }
 
 model ImportLog {
-  id String @id @default(cuid())
-  templateId String?
-  module String
-  fileName String
-  totalRows Int
-  successRows Int @default(0)
-  failedRows Int @default(0)
-  errors Json?
-  status String @default("PROCESSING")
+  id           String   @id @default(cuid())
+  templateId   String?
+  module       String
+  fileName     String
+  totalRows    Int
+  successRows  Int      @default(0)
+  failedRows   Int      @default(0)
+  errors       Json?
+  status       String   @default("PROCESSING")
   importedById String
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now())
 }

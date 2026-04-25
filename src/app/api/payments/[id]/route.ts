@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -15,6 +16,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params
     const body = await req.json()
+
+    const before = await prisma.paymentRecord.findUnique({
+      where: { id },
+      select: { paymentNo: true, paymentType: true, paymentMethod: true, amount: true, referenceNo: true },
+    })
+    if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
     const payment = await prisma.paymentRecord.update({
       where: { id },
@@ -33,6 +40,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         supplier:      { select: { id: true, name: true } },
       },
     })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: role,
+      module: 'payments',
+      action: 'UPDATE',
+      entityType: 'PaymentRecord',
+      entityId: id,
+      entityLabel: before.paymentNo,
+      changes: {
+        paymentType: { before: before.paymentType, after: payment.paymentType },
+        paymentMethod: { before: before.paymentMethod, after: payment.paymentMethod },
+        referenceNo: { before: before.referenceNo, after: payment.referenceNo },
+      },
+    }).catch(() => {})
 
     return NextResponse.json(payment)
   } catch (error) {
@@ -77,6 +100,18 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
         })
       }
     })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: role,
+      module: 'payments',
+      action: 'DELETE',
+      entityType: 'PaymentRecord',
+      entityId: id,
+      entityLabel: `${record.paymentNo} (${record.direction})`,
+      changes: { amount: { before: Number(record.amount), after: null } },
+    }).catch(() => {})
 
     return NextResponse.json({ ok: true })
   } catch (error) {

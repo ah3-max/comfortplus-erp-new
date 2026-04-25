@@ -36,8 +36,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { status, reason, debitNoteNo, deductAmount, deductStatus,
       approvedAt, shippedDate, notes } = body
 
-    // 2-3: When SHIPPED — deduct inventory + create PURCHASE_RETURN journal
-    if (status === 'SHIPPED') {
+    // 2-3: When APPROVED — deduct inventory + create PURCHASE_RETURN journal
+    if (status === 'APPROVED') {
       const existing = await prisma.purchaseReturn.findUnique({
         where: { id },
         include: {
@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           supplier: { select: { name: true } },
         },
       })
-      if (existing && existing.items.length > 0) {
+      if (existing && existing.status === 'PENDING' && existing.items.length > 0) {
         const whCode = existing.purchase?.warehouse ?? 'MAIN'
         await prisma.$transaction(async (tx) => {
           for (const item of existing.items) {

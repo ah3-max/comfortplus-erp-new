@@ -1,43 +1,28 @@
-// ========== 電子發票 Turnkey 傳輸追蹤 ==========
-// 追蹤 MIG V4.1 XML 產生與 Turnkey 傳輸狀態
-// 訊息類型: F0401(開立) F0501(作廢) F0701(註銷) G0401(折讓) G0501(折讓作廢)
-
 model EInvoiceTurnkeyLog {
-  id              String                @id @default(cuid())
-  messageId       String                @unique // UUID，Turnkey 追蹤用
-  messageType     TurnkeyMessageType    // F0401 / F0501 / F0701 / G0401 / G0501
-  version         String                @default("v41") // MIG 版本
-
-  // 關聯發票
-  eInvoiceId      String?
-  eInvoice        EInvoice?             @relation("TurnkeyLogEInvoice", fields: [eInvoiceId], references: [id])
-  invoiceNumber   String                // 發票號碼快照
-
-  // 對象
-  sellerTaxId     String                // 賣方統編（本公司）
-  buyerTaxId      String                // 買方統編
-
-  // 檔案資訊
-  fileName        String?               // 產生的檔案名稱
-  xmlContent      String?               @db.Text // XML 內容（除錯用，正式可移除）
-
-  // Turnkey 狀態追蹤
-  status          TurnkeyStatus         @default(GENERATED)
-  turnkeyStatus   String?               // Turnkey 回傳狀態碼 (P/G/C)
-  resultCode      String?               // 平台回傳代碼 (00000=成功)
-  resultMessage   String?               // 平台回傳訊息
-  errorDetail     String?               @db.Text // 錯誤明細
-
-  // 時間戳
-  generatedAt     DateTime              @default(now()) // XML 產生時間
-  uploadedAt      DateTime?             // 放入 UpCast 時間
-  transmittedAt   DateTime?             // Turnkey 傳送時間
-  resultAt        DateTime?             // 收到平台回覆時間
-
-  createdById     String
-  createdBy       User                  @relation("TurnkeyLogCreatedBy", fields: [createdById], references: [id])
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  id            String             @id @default(cuid())
+  messageId     String             @unique
+  messageType   TurnkeyMessageType
+  version       String             @default("v41")
+  eInvoiceId    String?
+  invoiceNumber String
+  sellerTaxId   String
+  buyerTaxId    String
+  fileName      String?
+  xmlContent    String?
+  status        TurnkeyStatus      @default(GENERATED)
+  turnkeyStatus String?
+  resultCode    String?
+  resultMessage String?
+  errorDetail   String?
+  generatedAt   DateTime           @default(now())
+  uploadedAt    DateTime?
+  transmittedAt DateTime?
+  resultAt      DateTime?
+  createdById   String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  createdBy     User               @relation("TurnkeyLogCreatedBy", fields: [createdById], references: [id])
+  eInvoice      EInvoice?          @relation("TurnkeyLogEInvoice", fields: [eInvoiceId], references: [id])
 
   @@index([eInvoiceId])
   @@index([messageType, status])

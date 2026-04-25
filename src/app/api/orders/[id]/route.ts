@@ -81,6 +81,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: `訂單狀態不允許從 ${oldStatus} 轉換為 ${newStatus}` }, { status: 400 })
     }
 
+    // Period guard: CONFIRMED writes AR + journal with today's date; block if period closed
+    if (newStatus === 'CONFIRMED') {
+      const { assertPeriodOpen } = await import('@/lib/period-guard')
+      await assertPeriodOpen(new Date())
+    }
+
     // 3-6: Resolve warehouse code from order's warehouseId (fall back to MAIN)
     let warehouseCode = 'MAIN'
     if (currentOrder.warehouseId) {
@@ -216,13 +222,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (newStatus === 'CONFIRMED') {
       const existingAR = await prisma.accountsReceivable.findFirst({ where: { orderId: id } })
       if (!existingAR) {
+        const linkedInvoice = await prisma.salesInvoice.findFirst({
+          where: { sourceOrderId: id },
+          select: { invoiceNumber: true },
+        })
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + 30)
         await prisma.accountsReceivable.create({
           data: {
             customerId: currentOrder.customerId,
             orderId: id,
-            invoiceNo: currentOrder.orderNo,
+            invoiceNo: linkedInvoice?.invoiceNumber ?? currentOrder.orderNo,
             invoiceDate: new Date(),
             dueDate,
             amount: currentOrder.totalAmount ?? 0,

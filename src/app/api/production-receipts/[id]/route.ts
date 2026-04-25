@@ -5,6 +5,7 @@ import { canAccessReceipt, buildScopeContext } from '@/lib/scope'
 import { logAudit } from '@/lib/audit'
 import { handleApiError } from '@/lib/api-error'
 import { notifyByRole } from '@/lib/notify'
+import { createAutoJournal } from '@/lib/auto-journal'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -49,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       const current = await prisma.productionReceipt.findUnique({
         where: { id },
         include: {
-          items: { include: { product: { select: { name: true } } } },
+          items: { include: { product: { select: { name: true, costPrice: true } } } },
           factory: { select: { name: true } },
           productionOrder: { select: { productionNo: true } },
           receivingWarehouse: { select: { code: true } },
@@ -104,6 +105,22 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           category: 'RECEIPT_CONFIRMED',
           priority: 'HIGH',
         }).catch(() => {})
+
+        // AutoJournal: Dr 存貨 + Dr 進項稅額 / Cr 應付帳款
+        const totalCost = current.items.reduce(
+          (s, i) => s + Number(i.quantity) * Number(i.product?.costPrice ?? 0), 0
+        )
+        if (totalCost > 0) {
+          createAutoJournal({
+            type: 'PURCHASE_RECEIVE',
+            referenceType: 'PRODUCTION_RECEIPT',
+            referenceId: id,
+            entryDate: new Date(),
+            description: `生產入庫 ${current.receiptNumber}`,
+            amount: totalCost,
+            createdById: session.user.id,
+          }).catch(() => {})
+        }
       }
 
       logAudit({

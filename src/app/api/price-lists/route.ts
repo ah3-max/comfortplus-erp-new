@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(req: NextRequest) {
   try {
@@ -64,6 +65,17 @@ export async function POST(req: NextRequest) {
     },
     include: { items: { include: { product: { select: { id: true, sku: true, name: true } } } } },
   })
+
+  logAudit({
+    userId: session.user.id,
+    userName: session.user.name ?? '',
+    userRole: (session.user as { role?: string }).role ?? '',
+    module: 'price-lists',
+    action: 'CREATE',
+    entityType: 'PriceList',
+    entityId: list.id,
+    entityLabel: `${list.name} (${list.items.length} 項)`,
+  }).catch(() => {})
 
   return NextResponse.json(list, { status: 201 })
   } catch (error) { return handleApiError(error, 'price-lists.create') }

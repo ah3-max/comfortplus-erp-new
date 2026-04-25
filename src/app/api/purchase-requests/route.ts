@@ -75,12 +75,14 @@ export async function POST(req: NextRequest) {
         items: {
           create: body.items.map((item: {
             productId: string
+            supplierId?: string
             quantity: number
             unitPrice?: number
             specification?: string
             memo?: string
           }) => ({
             productId: item.productId,
+            supplierId: item.supplierId || null,
             quantity: item.quantity,
             unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
             specification: item.specification || null,

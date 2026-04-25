@@ -10,12 +10,23 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const search    = searchParams.get('search')    ?? ''
-  const status    = searchParams.get('status')    ?? ''
-  const orderType = searchParams.get('orderType') ?? ''
-  const pageParam = searchParams.get('page')
-  const page      = pageParam ? Math.max(1, Number(pageParam)) : null
-  const pageSize  = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
+  const search        = searchParams.get('search')        ?? ''
+  const status        = searchParams.get('status')        ?? ''
+  const orderType     = searchParams.get('orderType')     ?? ''
+  const supplierId    = searchParams.get('supplierId')    ?? ''
+  const paymentStatus = searchParams.get('paymentStatus') ?? '' // 'PAID' | 'UNPAID' | 'PARTIAL'
+  const pageParam     = searchParams.get('page')
+  const page          = pageParam ? Math.max(1, Number(pageParam)) : null
+  const pageSize      = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') ?? 50)))
+
+  // Payment status filter uses Prisma's column-compare via raw conditions; expressed as AND clauses
+  const paymentFilter = paymentStatus === 'PAID'
+    ? { paidAmount: { gt: 0 }, AND: [{ paidAmount: { gte: prisma.purchaseOrder.fields.totalAmount } }] }
+    : paymentStatus === 'PARTIAL'
+    ? { paidAmount: { gt: 0 }, AND: [{ paidAmount: { lt: prisma.purchaseOrder.fields.totalAmount } }] }
+    : paymentStatus === 'UNPAID'
+    ? { paidAmount: { equals: 0 } }
+    : {}
 
   const where = {
     ...(search && {
@@ -25,8 +36,10 @@ export async function GET(req: NextRequest) {
         { projectNo: { contains: search, mode: 'insensitive' as const } },
       ],
     }),
-    ...(status    && { status:    status    as never }),
-    ...(orderType && { orderType: orderType as never }),
+    ...(status     && { status:     status     as never }),
+    ...(orderType  && { orderType:  orderType  as never }),
+    ...(supplierId && { supplierId }),
+    ...paymentFilter,
   }
 
   const include = {

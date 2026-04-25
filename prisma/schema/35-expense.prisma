@@ -1,43 +1,41 @@
-// ========== 費用報銷管理 ==========
-
 model ExpenseReport {
-  id             String    @id @default(cuid())
-  reportNo       String    @unique
-  title          String
-  department     String?
-  status         String    @default("DRAFT") // DRAFT / SUBMITTED / APPROVED / REJECTED / PAID
-  totalAmount    Decimal   @db.Decimal(12, 2) @default(0)
-  currency       String    @default("TWD")
-  notes          String?
-  submittedById  String
-  submittedBy    User      @relation("ExpenseSubmittedBy", fields: [submittedById], references: [id])
-  approvedById   String?
-  approvedBy     User?     @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  id                String           @id @default(cuid())
+  reportNo          String           @unique
+  title             String
+  department        String?
+  status            String           @default("DRAFT")
+  totalAmount       Decimal          @default(0) @db.Decimal(12, 2)
+  currency          String           @default("TWD")
+  notes             String?
+  submittedById     String
+  approvedById      String?
+  submittedAt       DateTime?
+  approvedAt        DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
   approvalRequestId String?
+  journalEntryId    String?          @unique
+  periodId          String?
+  items             ExpenseItem[]
   approvalRequest   ApprovalRequest? @relation("ExpenseApprovalRequest", fields: [approvalRequestId], references: [id])
-  submittedAt    DateTime?
-  approvedAt     DateTime?
-  paidAt         DateTime?
-  periodId       String?
-  period         FiscalPeriod?  @relation("ExpensePeriod", fields: [periodId], references: [id])
-  journalEntryId String?       @unique
-  journalEntry   JournalEntry? @relation("ExpenseJournal", fields: [journalEntryId], references: [id])
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  items          ExpenseItem[]
+  approvedBy        User?            @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  journalEntry      JournalEntry?    @relation("ExpenseJournal", fields: [journalEntryId], references: [id])
+  period            FiscalPeriod?    @relation("ExpensePeriod", fields: [periodId], references: [id])
+  submittedBy       User             @relation("ExpenseSubmittedBy", fields: [submittedById], references: [id])
 
   @@index([status, submittedById])
 }
 
 model ExpenseItem {
-  id            String          @id @default(cuid())
+  id            String        @id @default(cuid())
   reportId      String
-  report        ExpenseReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  date          DateTime        @db.Date
-  category      String          // TRANSPORT / MEAL / HOTEL / OFFICE / ENTERTAINMENT / TRAINING / OTHER
+  date          DateTime      @db.Date
+  category      String
   description   String
-  amount        Decimal         @db.Decimal(12, 2)
+  amount        Decimal       @db.Decimal(12, 2)
   receiptUrl    String?
-  glAccountCode String?         // 覆寫科目（優先於 ExpenseCategoryMapping）
   lineNo        Int
+  glAccountCode String?
+  report        ExpenseReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 }

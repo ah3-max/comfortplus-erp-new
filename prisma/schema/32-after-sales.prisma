@@ -1,53 +1,48 @@
-// ========== 售後管理 (After-Sales Service) ==========
-
 model AfterSalesOrder {
-  id            String    @id @default(cuid())
-  orderNo       String    @unique
-  source        String    // WARRANTY | REPAIR | REPLACEMENT | MAINTENANCE | TRAINING | OTHER
-  status        String    @default("OPEN")  // OPEN | IN_PROGRESS | PENDING_PARTS | COMPLETED | CANCELLED
-  priority      String    @default("MEDIUM")  // LOW | MEDIUM | HIGH | URGENT
-  customerId    String?
-  contactName   String?
-  contactPhone  String?
-  description   String
-  assignedToId  String?
-  scheduledAt   DateTime?
-  completedAt   DateTime?
-  totalCost     Decimal?  @db.Decimal(14, 2)
-  notes         String?
-  createdById   String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  customer      Customer?         @relation("AfterSalesCustomer",  fields: [customerId], references: [id])
-  assignedTo    User?             @relation("AfterSalesAssigned",   fields: [assignedToId], references: [id])
-  createdBy     User              @relation("AfterSalesCreatedBy",  fields: [createdById], references: [id])
+  id             String                  @id @default(cuid())
+  orderNo        String                  @unique
+  source         String
+  status         String                  @default("OPEN")
+  priority       String                  @default("MEDIUM")
+  customerId     String?
+  contactName    String?
+  contactPhone   String?
+  description    String
+  assignedToId   String?
+  scheduledAt    DateTime?
+  completedAt    DateTime?
+  totalCost      Decimal?                @db.Decimal(14, 2)
+  notes          String?
+  createdById    String
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  consumptions   AfterSalesConsumption[]
   processingLogs AfterSalesLog[]
-  consumptions  AfterSalesConsumption[]
+  assignedTo     User?                   @relation("AfterSalesAssigned", fields: [assignedToId], references: [id])
+  createdBy      User                    @relation("AfterSalesCreatedBy", fields: [createdById], references: [id])
+  customer       Customer?               @relation("AfterSalesCustomer", fields: [customerId], references: [id])
 }
 
 model AfterSalesLog {
-  id         String   @id @default(cuid())
-  orderId    String
-  logType    String   // CONTACT | VISIT | REPAIR | REPLACEMENT | ESCALATION | RESOLVED | NOTE
-  content    String
+  id          String          @id @default(cuid())
+  orderId     String
+  logType     String
+  content     String
   createdById String
-  createdAt  DateTime @default(now())
-
-  order     AfterSalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  createdBy User            @relation("AfterSalesLogCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  createdBy   User            @relation("AfterSalesLogCreatedBy", fields: [createdById], references: [id])
+  order       AfterSalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model AfterSalesConsumption {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   orderId   String
   productId String
-  quantity  Decimal  @db.Decimal(10, 3)
-  unitCost  Decimal? @db.Decimal(14, 2)
-  totalCost Decimal? @db.Decimal(14, 2)
+  quantity  Decimal         @db.Decimal(10, 3)
+  unitCost  Decimal?        @db.Decimal(14, 2)
+  totalCost Decimal?        @db.Decimal(14, 2)
   notes     String?
-  createdAt DateTime @default(now())
-
-  order   AfterSalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product         @relation("AfterSalesProduct", fields: [productId], references: [id])
+  createdAt DateTime        @default(now())
+  order     AfterSalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product         @relation("AfterSalesProduct", fields: [productId], references: [id])
 }

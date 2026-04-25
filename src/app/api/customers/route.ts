@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { customerScope, buildScopeContext } from '@/lib/scope'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 export async function GET(req: NextRequest) {
   try {
@@ -195,6 +196,17 @@ export async function POST(req: NextRequest) {
       },
       include: { salesRep: { select: { id: true, name: true } } },
     })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'customers',
+      action: 'CREATE',
+      entityType: 'Customer',
+      entityId: customer.id,
+      entityLabel: `${customer.code} ${customer.name}`,
+    }).catch(() => {})
 
     return NextResponse.json(customer, { status: 201 })
   } catch (error) {

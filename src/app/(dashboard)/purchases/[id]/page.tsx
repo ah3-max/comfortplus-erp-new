@@ -543,6 +543,36 @@ export default function PurchaseDetailPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{dict.purchases.receive}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-1">
+            {/* Quick actions: 全收 / 清空 */}
+            <div className="flex items-center justify-between text-xs">
+              <div className="text-muted-foreground">
+                本次收貨：
+                <span className="font-medium text-slate-700 mx-1">
+                  {receiveItems.reduce((s, i) => s + Number(i.quantity || 0), 0)}
+                </span>
+                / 待收總計：
+                <span className="font-medium text-slate-700 mx-1">
+                  {order.items.reduce((s, i) => s + (i.quantity - i.receivedQty), 0)}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => {
+                    setReceiveItems(order.items
+                      .filter(i => i.quantity > i.receivedQty)
+                      .map(i => ({ productId: i.productId, quantity: i.quantity - i.receivedQty })))
+                  }}>
+                  全收
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => {
+                    setReceiveItems(prev => prev.map(x => ({ ...x, quantity: 0 })))
+                  }}>
+                  清空
+                </Button>
+              </div>
+            </div>
+
             <div className="rounded-lg border overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50">
@@ -557,20 +587,32 @@ export default function PurchaseDetailPage() {
                     const poi = order.items.find(i => i.productId === ri.productId)
                     if (!poi) return null
                     const remaining = poi.quantity - poi.receivedQty
+                    const full = ri.quantity === remaining && remaining > 0
                     return (
-                      <tr key={ri.productId}>
+                      <tr key={ri.productId} className={full ? 'bg-green-50/50' : ''}>
                         <td className="px-3 py-2">
                           <div className="font-medium">{poi.product.name}</div>
                           <div className="text-xs text-muted-foreground">{poi.product.sku}</div>
                         </td>
                         <td className="px-3 py-2 text-center text-muted-foreground">{remaining}</td>
                         <td className="px-3 py-2">
-                          <Input type="number" className="h-8 text-center" min={0} max={remaining}
-                            value={ri.quantity}
-                            onChange={(e) => {
-                              const v = Math.min(Math.max(0, Number(e.target.value)), remaining)
-                              setReceiveItems(prev => prev.map((x, i) => i === idx ? { ...x, quantity: v } : x))
-                            }} />
+                          <div className="flex items-center gap-1">
+                            <Input type="number" className="h-8 text-center flex-1" min={0} max={remaining}
+                              value={ri.quantity}
+                              onChange={(e) => {
+                                const v = Math.min(Math.max(0, Number(e.target.value)), remaining)
+                                setReceiveItems(prev => prev.map((x, i) => i === idx ? { ...x, quantity: v } : x))
+                              }} />
+                            {ri.quantity !== remaining && (
+                              <button type="button"
+                                className="text-xs text-blue-600 hover:underline whitespace-nowrap"
+                                onClick={() => {
+                                  setReceiveItems(prev => prev.map((x, i) => i === idx ? { ...x, quantity: remaining } : x))
+                                }}>
+                                滿
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )

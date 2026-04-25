@@ -1,23 +1,21 @@
-// ========== 照顧督導模組 ==========
 model CareSchedule {
-  id            String            @id @default(cuid())
-  scheduleNo    String            @unique
-  supervisorId  String
-  supervisor    User              @relation("CareScheduleSupervisor", fields: [supervisorId], references: [id])
-  customerId    String
-  customer      Customer          @relation(fields: [customerId], references: [id])
-  scheduleDate  DateTime
-  visitType     CareVisitType     @default(ROUTINE_VISIT)
-  status        CareScheduleStatus @default(SCHEDULED)
-  purpose       String?           // 拜訪目的
-  content       String?           // 服務內容
-  result        String?           // 服務結果
-  nextVisitDate DateTime?
-  reminderSent  Boolean           @default(false)
-  notes         String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-
+  id              String             @id @default(cuid())
+  scheduleNo      String             @unique
+  supervisorId    String
+  customerId      String
+  scheduleDate    DateTime
+  visitType       CareVisitType      @default(ROUTINE_VISIT)
+  status          CareScheduleStatus @default(SCHEDULED)
+  purpose         String?
+  content         String?
+  result          String?
+  nextVisitDate   DateTime?
+  reminderSent    Boolean            @default(false)
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  customer        Customer           @relation(fields: [customerId], references: [id])
+  supervisor      User               @relation("CareScheduleSupervisor", fields: [supervisorId], references: [id])
   serviceRequests ServiceRequest[]
   media           VisitMedia[]
 }
@@ -25,87 +23,77 @@ model CareSchedule {
 model ServiceRequest {
   id             String               @id @default(cuid())
   customerId     String
-  customer       Customer             @relation(fields: [customerId], references: [id])
   requestType    ServiceRequestType   @default(OTHER)
   urgency        ServiceUrgency       @default(MEDIUM)
   status         ServiceRequestStatus @default(OPEN)
   description    String
   resolution     String?
   assignedToId   String?
-  assignedTo     User?                @relation("ServiceRequestAssigned", fields: [assignedToId], references: [id])
   careScheduleId String?
-  careSchedule   CareSchedule?        @relation(fields: [careScheduleId], references: [id])
   resolvedAt     DateTime?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
+  assignedTo     User?                @relation("ServiceRequestAssigned", fields: [assignedToId], references: [id])
+  careSchedule   CareSchedule?        @relation(fields: [careScheduleId], references: [id])
+  customer       Customer             @relation(fields: [customerId], references: [id])
 }
 
-// ========== 拜訪媒體（照片/錄音/文件）==========
 model VisitMedia {
   id             String        @id @default(cuid())
   visitRecordId  String?
-  visitRecord    VisitRecord?  @relation(fields: [visitRecordId], references: [id])
   careScheduleId String?
-  careSchedule   CareSchedule? @relation(fields: [careScheduleId], references: [id])
   mediaType      MediaType
   fileName       String
-  fileUrl        String        // 儲存路徑 (local: /uploads/... 或 S3 URL)
-  fileSize       Int?          // bytes
+  fileUrl        String
+  fileSize       Int?
   mimeType       String?
   description    String?
   uploadedById   String
-  uploadedBy     User          @relation("MediaUploadedBy", fields: [uploadedById], references: [id])
   createdAt      DateTime      @default(now())
+  careSchedule   CareSchedule? @relation(fields: [careScheduleId], references: [id])
+  uploadedBy     User          @relation("MediaUploadedBy", fields: [uploadedById], references: [id])
+  visitRecord    VisitRecord?  @relation(fields: [visitRecordId], references: [id])
 }
 
-// ═══════════════════════════════════════════════════════════
-// 客訴與照護事件中心 (Care Incidents)
-// ═══════════════════════════════════════════════════════════
-
 model CareIncident {
-  id              String           @id @default(cuid())
-  incidentNo      String           @unique // e.g. CI-20260318-001
-  customerId      String
-  customer        Customer         @relation(fields: [customerId], references: [id])
-  orderId         String?
-  order           SalesOrder?      @relation(fields: [orderId], references: [id])
-  productId       String?
-  product         Product?         @relation(fields: [productId], references: [id])
-  batchNo         String?
-
-  incidentType    IncidentType
-  incidentSource  IncidentSource
-  incidentDate    DateTime
-  reportedById    String
-  reportedBy      User             @relation("IncidentReportedBy", fields: [reportedById], references: [id])
-  contactPerson   String?          // Customer contact name
-  assignedOwnerId String?
-  assignedOwner   User?            @relation("IncidentAssignedOwner", fields: [assignedOwnerId], references: [id])
-
-  severity        IncidentSeverity @default(MEDIUM)
-  status          IncidentStatus   @default(OPEN)
-  symptomCategory SymptomCategory?
-  issueSummary    String
-  detailedDescription String?
-  suspectedCause  String?
+  id                   String                @id @default(cuid())
+  incidentNo           String                @unique
+  customerId           String
+  orderId              String?
+  productId            String?
+  batchNo              String?
+  incidentType         IncidentType
+  incidentSource       IncidentSource
+  incidentDate         DateTime
+  reportedById         String
+  contactPerson        String?
+  assignedOwnerId      String?
+  severity             IncidentSeverity      @default(MEDIUM)
+  status               IncidentStatus        @default(OPEN)
+  symptomCategory      SymptomCategory?
+  issueSummary         String
+  detailedDescription  String?
+  suspectedCause       String?
   immediateActionTaken String?
-
-  requiresOnSiteVisit  Boolean  @default(false)
+  requiresOnSiteVisit  Boolean               @default(false)
   scheduledVisitDate   DateTime?
-  resolution      String?
-  resolvedAt      DateTime?
-  closedAt        DateTime?
-  isKnowledgeBase Boolean  @default(false) // auto-set on CLOSED
-
-  attachments     IncidentAttachment[]
-  visitLogs       IncidentVisitLog[]
-  audioRecords    IncidentAudioRecord[]
-  trainingLogs    IncidentTrainingLog[]
+  resolution           String?
+  resolvedAt           DateTime?
+  closedAt             DateTime?
+  isKnowledgeBase      Boolean               @default(false)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  assignedOwner        User?                 @relation("IncidentAssignedOwner", fields: [assignedOwnerId], references: [id])
+  customer             Customer              @relation(fields: [customerId], references: [id])
+  order                SalesOrder?           @relation(fields: [orderId], references: [id])
+  product              Product?              @relation(fields: [productId], references: [id])
+  reportedBy           User                  @relation("IncidentReportedBy", fields: [reportedById], references: [id])
   actionItems          IncidentActionItem[]
+  attachments          IncidentAttachment[]
+  audioRecords         IncidentAudioRecord[]
+  trainingLogs         IncidentTrainingLog[]
+  visitLogs            IncidentVisitLog[]
   knowledgeBaseEntries KnowledgeBaseEntry[]
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 
   @@index([customerId])
   @@index([status])
@@ -113,43 +101,40 @@ model CareIncident {
 }
 
 model IncidentAttachment {
-  id           String         @id @default(cuid())
-  incidentId   String
-  incident     CareIncident   @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  visitLogId   String?        // optional link to a visit log
-  visitLog     IncidentVisitLog? @relation(fields: [visitLogId], references: [id])
-  trainingLogId String?
-  trainingLog  IncidentTrainingLog? @relation(fields: [trainingLogId], references: [id])
-
-  attachmentType AttachmentType
-  fileUrl      String
-  fileName     String?
-  fileSizeBytes Int?
-  mimeType     String?
-  description  String?
-  capturedAt   DateTime?      // when was the photo/recording taken
-  isSensitive  Boolean  @default(false) // skin photos, resident photos
-  relatedStage String?        // e.g. 'initial_report', 'visit', 'resolution'
-  photoSource       String?
-  consentObtained   Boolean?
-  consentInternalUse Boolean?
+  id                  String               @id @default(cuid())
+  incidentId          String
+  visitLogId          String?
+  trainingLogId       String?
+  attachmentType      AttachmentType
+  fileUrl             String
+  fileName            String?
+  fileSizeBytes       Int?
+  mimeType            String?
+  description         String?
+  capturedAt          DateTime?
+  isSensitive         Boolean              @default(false)
+  relatedStage        String?
+  photoSource         String?
+  consentObtained     Boolean?
+  consentInternalUse  Boolean?
   consentTrainingCase Boolean?
-  needsMasking      Boolean @default(false)
-
-  uploadedById String
-  uploadedBy   User           @relation("IncidentAttachmentUploader", fields: [uploadedById], references: [id])
-  uploadedAt   DateTime       @default(now())
+  needsMasking        Boolean              @default(false)
+  uploadedById        String
+  uploadedAt          DateTime             @default(now())
+  incident            CareIncident         @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  trainingLog         IncidentTrainingLog? @relation(fields: [trainingLogId], references: [id])
+  uploadedBy          User                 @relation("IncidentAttachmentUploader", fields: [uploadedById], references: [id])
+  visitLog            IncidentVisitLog?    @relation(fields: [visitLogId], references: [id])
 
   @@index([incidentId])
 }
 
 model IncidentVisitLog {
-  id          String       @id @default(cuid())
-  incidentId  String
-  incident    CareIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  visitDate   DateTime
-  visitType   String       // 電訪 / 現場 / 視訊
-  participants String?     // JSON array of names
+  id                  String               @id @default(cuid())
+  incidentId          String
+  visitDate           DateTime
+  visitType           String
+  participants        String?
   onSiteObservation   String?
   skinConditionNote   String?
   careProcessNote     String?
@@ -158,67 +143,68 @@ model IncidentVisitLog {
   immediateSuggestion String?
   nextFollowupDate    DateTime?
   visitedById         String
-  visitedBy           User     @relation("IncidentVisitLogBy", fields: [visitedById], references: [id])
-  createdAt   DateTime @default(now())
-  attachments IncidentAttachment[]
+  createdAt           DateTime             @default(now())
+  attachments         IncidentAttachment[]
+  incident            CareIncident         @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  visitedBy           User                 @relation("IncidentVisitLogBy", fields: [visitedById], references: [id])
 
   @@index([incidentId])
 }
 
 model IncidentAudioRecord {
-  id              String            @id @default(cuid())
-  incidentId      String
-  incident        CareIncident      @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  audioFileUrl    String
+  id               String           @id @default(cuid())
+  incidentId       String
+  audioFileUrl     String
   audioDurationSec Int?
-  transcriptText   String?          @db.Text
+  transcriptText   String?
   transcriptStatus TranscriptStatus @default(PENDING)
-  aiSummary        String?          @db.Text
-  aiMeetingMinutes String?          @db.Text
-  aiConclusion     String?          @db.Text
-  aiActionItems    Json?            // [{title, owner, dueDate}]
+  aiSummary        String?
+  aiMeetingMinutes String?
+  aiConclusion     String?
+  aiActionItems    Json?
   processedAt      DateTime?
   uploadedById     String
-  uploadedBy       User             @relation("IncidentAudioUploader", fields: [uploadedById], references: [id])
   createdAt        DateTime         @default(now())
+  incident         CareIncident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  uploadedBy       User             @relation("IncidentAudioUploader", fields: [uploadedById], references: [id])
 
   @@index([incidentId])
 }
 
 model IncidentTrainingLog {
-  id              String       @id @default(cuid())
-  incidentId      String
-  incident        CareIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  trainingDate    DateTime
-  trainingTopic   String
-  trainerUserId   String
-  trainer         User         @relation("IncidentTrainer", fields: [trainerUserId], references: [id])
-  attendees       Json?        // [{name, role}]
-  trainingContent String?      @db.Text
-  trainingResult  String?
-  trainingPhotoUrls Json?      // [{url, label}]
-  followupRequired  Boolean @default(false)
+  id                String               @id @default(cuid())
+  incidentId        String
+  trainingDate      DateTime
+  trainingTopic     String
+  trainerUserId     String
+  attendees         Json?
+  trainingContent   String?
+  trainingResult    String?
+  trainingPhotoUrls Json?
+  followupRequired  Boolean              @default(false)
   nextFollowupDate  DateTime?
-  createdAt         DateTime @default(now())
+  createdAt         DateTime             @default(now())
   attachments       IncidentAttachment[]
+  incident          CareIncident         @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  trainer           User                 @relation("IncidentTrainer", fields: [trainerUserId], references: [id])
 
   @@index([incidentId])
 }
 
 model IncidentActionItem {
-  id              String           @id @default(cuid())
-  incidentId      String
-  incident        CareIncident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
-  actionTitle     String
+  id                String           @id @default(cuid())
+  incidentId        String
+  actionTitle       String
   actionDescription String?
-  ownerUserId     String?
-  owner           User?            @relation("IncidentActionOwner", fields: [ownerUserId], references: [id])
-  dueDate         DateTime?
-  status          ActionItemStatus @default(OPEN)
-  completionNote  String?
-  completedAt     DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  ownerUserId       String?
+  dueDate           DateTime?
+  status            ActionItemStatus @default(OPEN)
+  completionNote    String?
+  completedAt       DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  incident          CareIncident     @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  owner             User?            @relation("IncidentActionOwner", fields: [ownerUserId], references: [id])
 
   @@index([incidentId])
   @@index([status])

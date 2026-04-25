@@ -1,197 +1,182 @@
-// ========== P2-3 會計基礎 ==========
-// 會計科目 + 傳票分錄（配合 ECOUNT 並行使用）
-
-// 會計科目（Chart of Accounts）
 model AccountingAccount {
-  id          String   @id @default(cuid())
-  code        String   @unique          // 科目代碼（1001 / 4101 等）
-  name        String                    // 科目名稱
-  type        String                    // ASSET / LIABILITY / EQUITY / REVENUE / EXPENSE
-  subType     String?                   // 流動資產 / 非流動資產 / 流動負債 等
-  normalBalance String @default("DEBIT") // DEBIT / CREDIT
-  parentCode  String?                   // 上層科目代碼
-  level       Int      @default(1)      // 科目層級
-  isActive    Boolean  @default(true)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  lines       JournalEntryLine[]
+  id            String             @id @default(cuid())
+  code          String             @unique
+  name          String
+  type          String
+  subType       String?
+  normalBalance String             @default("DEBIT")
+  parentCode    String?
+  level         Int                @default(1)
+  isActive      Boolean            @default(true)
+  notes         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  lines         JournalEntryLine[]
 
   @@index([type, isActive])
   @@index([parentCode])
 }
 
-// 會計期間（Fiscal Period）
 model FiscalPeriod {
-  id          String       @id @default(cuid())
-  periodCode  String       @unique  // e.g. "2024-01", "2024-Q1", "2024"
-  periodType  String       @default("MONTHLY")  // MONTHLY / QUARTERLY / ANNUAL
-  year        Int
-  month       Int?                  // 1-12，月結才有
-  quarter     Int?                  // 1-4，季結才有
-  startDate   DateTime     @db.Date
-  endDate     DateTime     @db.Date
-  status      PeriodStatus @default(OPEN)
-  closedAt    DateTime?
-  closedById  String?
-  closedBy    User?        @relation("FiscalPeriodClosedBy", fields: [closedById], references: [id])
-  lockedAt    DateTime?
-  lockedById  String?
-  lockedBy    User?        @relation("FiscalPeriodLockedBy", fields: [lockedById], references: [id])
-  notes       String?
-  createdById String
-  createdBy   User         @relation("FiscalPeriodCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  journalEntries  JournalEntry[]
-  expenseReports  ExpenseReport[] @relation("ExpensePeriod")
+  id             String          @id @default(cuid())
+  periodCode     String          @unique
+  periodType     String          @default("MONTHLY")
+  year           Int
+  month          Int?
+  quarter        Int?
+  startDate      DateTime        @db.Date
+  endDate        DateTime        @db.Date
+  status         PeriodStatus    @default(OPEN)
+  closedAt       DateTime?
+  closedById     String?
+  lockedAt       DateTime?
+  lockedById     String?
+  notes          String?
+  createdById    String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  expenseReports ExpenseReport[] @relation("ExpensePeriod")
+  closedBy       User?           @relation("FiscalPeriodClosedBy", fields: [closedById], references: [id])
+  createdBy      User            @relation("FiscalPeriodCreatedBy", fields: [createdById], references: [id])
+  lockedBy       User?           @relation("FiscalPeriodLockedBy", fields: [lockedById], references: [id])
+  journalEntries JournalEntry[]
 
   @@index([year, month])
   @@index([status])
 }
 
-// 傳票（Journal Entry）
 model JournalEntry {
-  id            String   @id @default(cuid())
-  entryNo       String   @unique
-  entryDate     DateTime @db.Date
-  description   String
-  status        String   @default("DRAFT")  // DRAFT / POSTED / REVERSED
-  entryType     String   @default("MANUAL") // MANUAL / AUTO / ADJUSTMENT / CLOSING
-  referenceType String?  // SalesInvoice / AccountsPayable / PaymentRecord 等
-  referenceId   String?
-  totalDebit    Decimal  @db.Decimal(12, 2)
-  totalCredit   Decimal  @db.Decimal(12, 2)
-  postedAt      DateTime?
-  postedById    String?
-  postedBy      User?    @relation("JournalPostedBy", fields: [postedById], references: [id])
-  reversedById  String?
-  reversedEntryId String? // 沖正傳票 ID
-  periodId      String?
-  period        FiscalPeriod? @relation(fields: [periodId], references: [id])
-  notes         String?
-  createdById   String
-  createdBy     User     @relation("JournalCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  lines                JournalEntryLine[]
-  contractSchedules    ContractPaySchedule[]        @relation("ContractJournalEntry")
-  assetDepreciations   FixedAssetDepreciation[]     @relation("AssetDepreciationJournal")
-  expenseReport        ExpenseReport?               @relation("ExpenseJournal")
+  id                 String                   @id @default(cuid())
+  entryNo            String                   @unique
+  entryDate          DateTime                 @db.Date
+  description        String
+  status             String                   @default("DRAFT")
+  entryType          String                   @default("MANUAL")
+  referenceType      String?
+  referenceId        String?
+  totalDebit         Decimal                  @db.Decimal(12, 2)
+  totalCredit        Decimal                  @db.Decimal(12, 2)
+  postedAt           DateTime?
+  postedById         String?
+  reversedById       String?
+  reversedEntryId    String?
+  periodId           String?
+  notes              String?
+  createdById        String
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  contractSchedules  ContractPaySchedule[]    @relation("ContractJournalEntry")
+  expenseReport      ExpenseReport?           @relation("ExpenseJournal")
+  assetDepreciations FixedAssetDepreciation[] @relation("AssetDepreciationJournal")
+  createdBy          User                     @relation("JournalCreatedBy", fields: [createdById], references: [id])
+  period             FiscalPeriod?            @relation(fields: [periodId], references: [id])
+  postedBy           User?                    @relation("JournalPostedBy", fields: [postedById], references: [id])
+  lines              JournalEntryLine[]
 
   @@index([entryDate, status])
   @@index([referenceType, referenceId])
 }
 
-// 銀行帳戶（存摺/信用卡）
 model BankAccount {
-  id              String   @id @default(cuid())
-  accountName     String                   // 帳戶名稱（例：台灣銀行活存）
-  accountNo       String                   // 帳號
-  bankName        String                   // 銀行名稱
-  bankCode        String?                  // 銀行代碼
-  accountType     String   @default("CHECKING") // CHECKING / SAVINGS / CREDIT_CARD
-  currency        String   @default("TWD")
-  openingBalance  Decimal  @db.Decimal(14, 2) @default(0) // 期初餘額
-  currentBalance  Decimal  @db.Decimal(14, 2) @default(0) // 目前餘額
-  creditLimit     Decimal? @db.Decimal(14, 2)             // 信用卡額度
-  statementDay    Int?                     // 信用卡結帳日
-  paymentDay      Int?                     // 信用卡繳款日
-  isActive        Boolean  @default(true)
-  notes           String?
-  createdById     String
-  createdBy       User     @relation("BankAccountCreatedBy", fields: [createdById], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  transactions    BankTransaction[]
+  id             String            @id @default(cuid())
+  accountName    String
+  accountNo      String
+  bankName       String
+  bankCode       String?
+  accountType    String            @default("CHECKING")
+  currency       String            @default("TWD")
+  openingBalance Decimal           @default(0) @db.Decimal(14, 2)
+  currentBalance Decimal           @default(0) @db.Decimal(14, 2)
+  creditLimit    Decimal?          @db.Decimal(14, 2)
+  statementDay   Int?
+  paymentDay     Int?
+  isActive       Boolean           @default(true)
+  notes          String?
+  createdById    String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  createdBy      User              @relation("BankAccountCreatedBy", fields: [createdById], references: [id])
+  transactions   BankTransaction[]
 
   @@index([accountType, isActive])
 }
 
-// 存摺/信用卡交易明細
 model BankTransaction {
   id              String      @id @default(cuid())
   bankAccountId   String
-  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
   txDate          DateTime    @db.Date
   description     String
-  direction       String                   // DEBIT（支出） / CREDIT（存入）
+  direction       String
   amount          Decimal     @db.Decimal(14, 2)
-  balance         Decimal     @db.Decimal(14, 2) @default(0) // 交易後餘額
-  referenceNo     String?                  // 票號/交易序號
-  category        String?                  // 費用類別
-  paymentRecordId String?                  // 關聯付款紀錄
+  balance         Decimal     @default(0) @db.Decimal(14, 2)
+  referenceNo     String?
+  category        String?
+  paymentRecordId String?
   isReconciled    Boolean     @default(false)
   reconciledAt    DateTime?
   notes           String?
   createdById     String
-  createdBy       User        @relation("BankTxCreatedBy", fields: [createdById], references: [id])
   createdAt       DateTime    @default(now())
+  bankAccount     BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+  createdBy       User        @relation("BankTxCreatedBy", fields: [createdById], references: [id])
 
   @@index([bankAccountId, txDate])
   @@index([isReconciled])
 }
 
-// 支票管理
 model Cheque {
-  id              String   @id @default(cuid())
-  chequeNo        String                    // 支票號碼
-  chequeType      String                    // RECEIVABLE（應收票）/ PAYABLE（應付票）
+  id              String    @id @default(cuid())
+  chequeNo        String
+  chequeType      String
   bankName        String
-  bankBranch      String?                   // 分行
-  accountNo       String?                   // 票面帳號
-  amount          Decimal  @db.Decimal(14, 2)
-  issueDate       DateTime @db.Date         // 簽發日
-  dueDate         DateTime @db.Date         // 票期到期日
-  status          String   @default("HOLDING") // HOLDING / DEPOSITED / CLEARED / BOUNCED / CANCELLED / TRANSFERRED
-  partyName       String?                   // 付款人/受款人
-  partyId         String?                   // 關聯客戶/供應商 ID
-  partyType       String?                   // CUSTOMER / SUPPLIER
-  bankAccountId   String?                   // 存入的銀行帳戶（兌現後）
+  bankBranch      String?
+  accountNo       String?
+  amount          Decimal   @db.Decimal(14, 2)
+  issueDate       DateTime  @db.Date
+  dueDate         DateTime  @db.Date
+  status          String    @default("HOLDING")
+  partyName       String?
+  partyId         String?
+  partyType       String?
+  bankAccountId   String?
   depositedAt     DateTime?
   clearedAt       DateTime?
-  returnReason    String?                   // 退票原因
+  returnReason    String?
   paymentRecordId String?
   notes           String?
   createdById     String
-  createdBy       User     @relation("ChequeCreatedBy", fields: [createdById], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdBy       User      @relation("ChequeCreatedBy", fields: [createdById], references: [id])
 
   @@index([chequeType, status])
   @@index([dueDate])
 }
 
-// 營業稅申報
 model VatFiling {
-  id            String   @id @default(cuid())
-  filingNo      String   @unique          // 申報單號
-  periodCode    String                    // e.g. "2024-01/02" (雙月) / "2024-01" (月)
-  startDate     DateTime @db.Date
-  endDate       DateTime @db.Date
-  outputTaxBase Decimal  @db.Decimal(14, 2) @default(0)  // 銷項稅基
-  outputTax     Decimal  @db.Decimal(14, 2) @default(0)  // 銷項稅額
-  inputTaxBase  Decimal  @db.Decimal(14, 2) @default(0)  // 進項稅基
-  inputTax      Decimal  @db.Decimal(14, 2) @default(0)  // 進項稅額
-  netTax        Decimal  @db.Decimal(14, 2) @default(0)  // 應納稅額（+繳納/-退稅）
-  status        String   @default("DRAFT")               // DRAFT / FILED / PAID
+  id            String    @id @default(cuid())
+  filingNo      String    @unique
+  periodCode    String
+  startDate     DateTime  @db.Date
+  endDate       DateTime  @db.Date
+  outputTaxBase Decimal   @default(0) @db.Decimal(14, 2)
+  outputTax     Decimal   @default(0) @db.Decimal(14, 2)
+  inputTaxBase  Decimal   @default(0) @db.Decimal(14, 2)
+  inputTax      Decimal   @default(0) @db.Decimal(14, 2)
+  netTax        Decimal   @default(0) @db.Decimal(14, 2)
+  status        String    @default("DRAFT")
   filedAt       DateTime?
   paidAt        DateTime?
-  taxAuthRef    String?                   // 稅捐機關申報序號
+  taxAuthRef    String?
   notes         String?
   createdById   String
-  createdBy     User     @relation("VatFilingCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     User      @relation("VatFilingCreatedBy", fields: [createdById], references: [id])
 
   @@index([status])
 }
 
-// 進項稅額明細（VatFiling 的逐筆來源）
 model InputTaxItem {
   id            String             @id @default(cuid())
   vendorName    String
@@ -202,40 +187,38 @@ model InputTaxItem {
   taxAmount     Decimal            @db.Decimal(12, 2)
   totalAmount   Decimal            @db.Decimal(12, 2)
   sourceType    InputTaxSourceType
-  taxPeriod     String             // 格式：2025-01，對應雙月申報期
+  taxPeriod     String
   attachmentUrl String?
   apId          String?
-  ap            AccountsPayable?   @relation("APInputTax", fields: [apId], references: [id])
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
+  ap            AccountsPayable?   @relation("APInputTax", fields: [apId], references: [id])
 
   @@index([taxPeriod])
   @@index([apId])
   @@index([invoiceNo])
 }
 
-// 傳票分錄
 model JournalEntryLine {
-  id          String             @id @default(cuid())
+  id          String            @id @default(cuid())
   entryId     String
-  entry       JournalEntry       @relation(fields: [entryId], references: [id], onDelete: Cascade)
   accountId   String
-  account     AccountingAccount  @relation(fields: [accountId], references: [id])
-  debit       Decimal            @db.Decimal(12, 2) @default(0)
-  credit      Decimal            @db.Decimal(12, 2) @default(0)
+  debit       Decimal           @default(0) @db.Decimal(12, 2)
+  credit      Decimal           @default(0) @db.Decimal(12, 2)
   description String?
   lineNo      Int
+  account     AccountingAccount @relation(fields: [accountId], references: [id])
+  entry       JournalEntry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@index([entryId])
   @@index([accountId])
 }
 
-// ========== 費用科目對應 ==========
 model ExpenseCategoryMapping {
   id          String   @id @default(cuid())
-  category    String   @unique  // TRANSPORT / MEAL / HOTEL / OFFICE / ENTERTAINMENT / TRAINING / OTHER
-  accountCode String            // 對應 AccountingAccount.code (6300/6290/...)
-  accountName String            // 冗餘欄位方便顯示
+  category    String   @unique
+  accountCode String
+  accountName String
   isActive    Boolean  @default(true)
   updatedAt   DateTime @updatedAt
 }

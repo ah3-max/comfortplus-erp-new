@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
+import { logAudit } from '@/lib/audit'
 
 const CAN_SEE_COST    = ['SUPER_ADMIN', 'GM', 'PROCUREMENT', 'FINANCE']
 const CAN_SEE_MANAGER = ['SUPER_ADMIN', 'GM', 'SALES_MANAGER', 'PROCUREMENT', 'FINANCE']
@@ -48,6 +49,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (existing) return NextResponse.json({ error: '此 SKU 已被其他商品使用' }, { status: 400 })
     }
 
+    const before = await prisma.product.findUnique({
+      where: { id },
+      select: { sku: true, name: true, sellingPrice: true, costPrice: true, isActive: true },
+    })
+    if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
     const product = await prisma.product.update({
       where: { id },
       data: {
@@ -92,6 +99,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       await prisma.product.update({ where: { id }, data: { isActive: body.isActive } })
     }
 
+    const changes: Record<string, { before: unknown; after: unknown }> = {}
+    if (Number(before.sellingPrice) !== Number(product.sellingPrice)) {
+      changes.sellingPrice = { before: Number(before.sellingPrice), after: Number(product.sellingPrice) }
+    }
+    if (Number(before.costPrice) !== Number(product.costPrice)) {
+      changes.costPrice = { before: Number(before.costPrice), after: Number(product.costPrice) }
+    }
+    if (before.name !== product.name) changes.name = { before: before.name, after: product.name }
+    if (body.isActive !== undefined && before.isActive !== body.isActive) {
+      changes.isActive = { before: before.isActive, after: body.isActive }
+    }
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: role,
+      module: 'products',
+      action: 'UPDATE',
+      entityType: 'Product',
+      entityId: id,
+      entityLabel: `${product.sku} ${product.name}`,
+      changes,
+    }).catch(() => {})
+
     return NextResponse.json(maskProduct(product as unknown as Record<string, unknown>, role))
   } catch (error) {
     return handleApiError(error, 'products.update')
@@ -104,7 +135,22 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { id } = await params
+    const target = await prisma.product.findUnique({ where: { id }, select: { sku: true, name: true } })
+    if (!target) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     await prisma.product.update({ where: { id }, data: { isActive: false } })
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'products',
+      action: 'DEACTIVATE',
+      entityType: 'Product',
+      entityId: id,
+      entityLabel: `${target.sku} ${target.name}`,
+      changes: { isActive: { before: true, after: false } },
+    }).catch(() => {})
+
     return NextResponse.json({ success: true })
   } catch (error) {
     return handleApiError(error, 'products.delete')

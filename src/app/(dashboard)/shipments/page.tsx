@@ -659,7 +659,7 @@ export default function ShipmentsPage() {
                         <button onClick={() => toggleSelect(s.id)} className="flex items-center justify-center w-full">
                           {isSelected
                             ? <CheckSquare className="h-4 w-4 text-blue-600" />
-                            : <Square className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                            : <Square className="h-4 w-4 text-slate-300 opacity-60 hover:opacity-100 transition-opacity" />}
                         </button>
                       </TableCell>
                       <TableCell className="font-mono text-sm font-medium">{s.shipmentNo}</TableCell>
@@ -708,7 +708,7 @@ export default function ShipmentsPage() {
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100">
+                          <DropdownMenuTrigger className="rounded p-1 opacity-60 hover:opacity-100 transition-opacity hover:bg-slate-100">
                             <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-44">

@@ -329,7 +329,7 @@ export default function UsersPage() {
                       {new Date(u.createdAt).toLocaleDateString('zh-TW')}
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => openEdit(u)}
                           className="rounded p-1 hover:bg-slate-100"

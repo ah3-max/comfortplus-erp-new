@@ -356,7 +356,7 @@ export default function OrdersPage() {
                     <TableCell className="pr-0" onClick={e => { e.stopPropagation(); toggleSelect(o.id) }}>
                       {isSelected
                         ? <CheckSquare className="h-4 w-4 text-blue-600 mx-auto" />
-                        : <Square className="h-4 w-4 text-slate-300 mx-auto opacity-0 group-hover:opacity-100" />}
+                        : <Square className="h-4 w-4 text-slate-300 mx-auto opacity-60 hover:opacity-100" />}
                     </TableCell>
                     <TableCell className="font-mono text-sm font-medium">{o.orderNo}</TableCell>
                     <TableCell>
@@ -392,7 +392,7 @@ export default function OrdersPage() {
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
-                        <DropdownMenuTrigger className="rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-slate-100">
+                        <DropdownMenuTrigger className="rounded p-1 opacity-60 hover:opacity-100 transition-opacity hover:bg-slate-100">
                           <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">

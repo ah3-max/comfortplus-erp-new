@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { generateSequenceNo } from '@/lib/sequence'
 import { handleApiError } from '@/lib/api-error'
 import { buildScopeContext, isOwnDataOnly } from '@/lib/scope'
+import { logAudit } from '@/lib/audit'
+import { createAutoJournal } from '@/lib/auto-journal'
 
 export async function GET(req: NextRequest) {
   try {
@@ -90,17 +92,22 @@ export async function POST(req: NextRequest) {
 
       // 1-4: Sync with AR/AP system
       if (body.direction === 'INCOMING' && body.salesOrderId) {
-        const ar = await tx.accountsReceivable.findFirst({ where: { orderId: body.salesOrderId } })
+        const ar = await tx.accountsReceivable.findFirst({
+          where: { orderId: body.salesOrderId },
+          include: { customer: { select: { name: true } } },
+        })
         if (ar && ar.status !== 'PAID') {
-          const newArPaid = Number(ar.paidAmount) + Number(body.amount)
+          const balance = Number(ar.amount) - Number(ar.paidAmount)
+          const amt = Math.min(Number(body.amount), balance)
+          const newArPaid = Number(ar.paidAmount) + amt
           const newArStatus = newArPaid >= Number(ar.amount) ? 'PAID' : 'PARTIAL_PAID'
-          await tx.receiptRecord.create({
+          const receipt = await tx.receiptRecord.create({
             data: {
               arId: ar.id,
               customerId: ar.customerId,
               receiptDate: new Date(body.paymentDate),
               receiptMethod: body.paymentMethod ?? null,
-              amount: Number(body.amount),
+              amount: amt,
               bankLast5: body.bankAccount ? String(body.bankAccount).slice(-5) : null,
               notes: body.notes ?? null,
               createdById: session.user.id,
@@ -110,6 +117,27 @@ export async function POST(req: NextRequest) {
             where: { id: ar.id },
             data: { paidAmount: newArPaid, status: newArStatus as never },
           })
+          // Auto-journal + audit (parity with /api/finance/receipts)
+          createAutoJournal({
+            type: 'PAYMENT_IN',
+            referenceType: 'RECEIPT_RECORD',
+            referenceId: receipt.id,
+            entryDate: new Date(body.paymentDate),
+            description: `收款 ${ar.customer?.name ?? ''}`,
+            amount: amt,
+            createdById: session.user.id,
+          }).catch(() => {})
+          logAudit({
+            userId: session.user.id,
+            userName: session.user.name ?? '',
+            userRole: (session.user as { role?: string }).role ?? '',
+            module: 'finance',
+            action: 'RECEIPT_CREATE',
+            entityType: 'ReceiptRecord',
+            entityId: receipt.id,
+            entityLabel: `${ar.customer?.name ?? ''} 收款 ${amt}`,
+            changes: { paidAmount: { before: Number(ar.paidAmount), after: newArPaid }, status: { before: ar.status, after: newArStatus } },
+          }).catch(() => {})
         }
       }
       if (body.direction === 'OUTGOING' && body.purchaseOrderId) {

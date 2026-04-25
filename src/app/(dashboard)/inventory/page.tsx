@@ -699,7 +699,7 @@ function InventoryPageInner() {
                       </TableCell>
                       <TableCell className="text-center">
                         <button onClick={() => { setAdjustTarget(item); setAdjustOpen(true) }}
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 opacity-60 hover:opacity-100 transition-opacity">
                           <SlidersHorizontal className="h-3.5 w-3.5" />{dict.inventory.adjust}
                         </button>
                       </TableCell>
@@ -799,7 +799,7 @@ function InventoryPageInner() {
                       <TableCell className="text-xs text-muted-foreground">{lot.sourceFactory || '—'}</TableCell>
                       <TableCell>
                         <button onClick={() => openLotEdit(lot)}
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-xs text-slate-600 hover:bg-slate-100 opacity-60 hover:opacity-100 transition-opacity">
                           <SlidersHorizontal className="h-3 w-3" />{dict.common.edit}
                         </button>
                       </TableCell>
@@ -955,7 +955,7 @@ function InventoryPageInner() {
                       <TableCell className="text-xs text-muted-foreground">{ct.notes || '—'}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{ct.createdBy.name}</TableCell>
                       <TableCell onClick={e => e.stopPropagation()}>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 opacity-60 hover:opacity-100 transition-opacity">
                           {ct.status === 'DRAFT' && (
                             <button onClick={() => countStatusUpdate(ct.id, 'COUNTING')}
                               className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100">

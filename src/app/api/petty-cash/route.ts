@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
 import { createAutoJournal } from '@/lib/auto-journal'
+import { logAudit } from '@/lib/audit'
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'GM', 'FINANCE']
 
@@ -141,6 +142,18 @@ export async function POST(req: NextRequest) {
       amount: Number(amount),
       taxAmount: 0,
       createdById: session.user.id,
+    }).catch(() => {})
+
+    logAudit({
+      userId: session.user.id,
+      userName: session.user.name ?? '',
+      userRole: (session.user as { role?: string }).role ?? '',
+      module: 'petty-cash',
+      action: 'CREATE',
+      entityType: 'PettyCashRecord',
+      entityId: record.id,
+      entityLabel: `${record.recordNo} ${description} — ${fund.name}`,
+      changes: { amount: { before: 0, after: Number(amount) } },
     }).catch(() => {})
 
     return NextResponse.json(record, { status: 201 })
