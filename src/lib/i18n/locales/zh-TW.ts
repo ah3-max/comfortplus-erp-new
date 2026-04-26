@@ -290,6 +290,8 @@ const zhTW = {
     groupDonghong: '東泓供應鏈',
     donghongVariants: '產地變體',
     donghongMasterSkuNew: '新建主檔 SKU',
+    donghongSupplierQuotes: '供應商報價',
+    donghongCompare: '多廠比價',
     // sub-groups
     subCustomers: '客戶',
     subOpportunity: '商機開發',

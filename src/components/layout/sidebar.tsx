@@ -18,6 +18,7 @@ import {
   Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp, TrendingDown,
   Clock, DollarSign, CheckCircle2, Tag, Send, BellRing, Hash, DatabaseZap,
   Printer, AlertTriangle, BadgeDollarSign, FileCheck, Search, Globe2, FilePlus2,
+  FileSpreadsheet, GitCompareArrows,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -245,8 +246,10 @@ export const navGroups: NavGroup[] = [
   {
     labelKey: 'groupDonghong',
     items: [
-      { href: '/donghong/variants',         key: 'donghongVariants',    icon: Globe2 },
-      { href: '/donghong/master-skus/new',  key: 'donghongMasterSkuNew', icon: FilePlus2 },
+      { href: '/donghong/variants',                    key: 'donghongVariants',       icon: Globe2 },
+      { href: '/donghong/master-skus/new',             key: 'donghongMasterSkuNew',   icon: FilePlus2 },
+      { href: '/donghong/supplier-quotations',         key: 'donghongSupplierQuotes', icon: FileSpreadsheet },
+      { href: '/donghong/supplier-quotations/compare', key: 'donghongCompare',        icon: GitCompareArrows },
     ],
   },
 ]
