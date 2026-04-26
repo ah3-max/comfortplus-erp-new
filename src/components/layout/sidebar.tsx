@@ -54,9 +54,10 @@ export const navGroups: NavGroup[] = [
       {
         subLabelKey: 'subCustomers',
         items: [
-          { href: '/customers',        key: 'customers',        icon: Users },
-          { href: '/key-accounts',     key: 'keyAccounts',      icon: Star },
-          { href: '/incidents',        key: 'incidents',        icon: AlertOctagon },
+          { href: '/customers',             key: 'customers',      icon: Users },
+          { href: '/customers/ltc-import', key: 'ltcImport',    icon: FileSpreadsheet },
+          { href: '/key-accounts',          key: 'keyAccounts', icon: Star },
+          { href: '/incidents',             key: 'incidents',   icon: AlertOctagon },
         ],
       },
       {

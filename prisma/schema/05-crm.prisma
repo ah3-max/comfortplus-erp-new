@@ -263,10 +263,6 @@ model SalesDailyReport {
   // Format: [{ url, fileName, mimeType, size, uploadedAt }]
   attachments Json?
 
-  // Attachments — photos/PDFs/Excel dropped into daily report
-  // Format: [{ url, fileName, mimeType, size, uploadedAt }]
-  attachments     Json?
-
   // Manager review
   managerComment String?
   reviewedById   String?

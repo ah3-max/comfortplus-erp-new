@@ -1,6 +1,6 @@
 model Customer {
-  id                      String                    @id @default(cuid())
-  code                    String                    @unique
+  id                      String            @id @default(cuid())
+  code                    String            @unique
   name                    String
   shortName               String?
   type                    CustomerType
@@ -14,21 +14,21 @@ model Customer {
   deliveryAddress         String?
   city                    String?
   region                  SalesRegion?
-  country                 String?                   @default("TW")
+  country                 String?           @default("TW")
   taxId                   String?
   invoiceTitle            String?
   invoiceAddress          String?
   paymentTerms            String?
-  creditLimit             Decimal?                  @db.Decimal(12, 2)
+  creditLimit             Decimal?          @db.Decimal(12, 2)
   billingCycle            String?
   collectionMethod        String?
-  isMonthly               Boolean                   @default(false)
+  isMonthly               Boolean           @default(false)
   monthlySettleDay        Int?
   bankInfo                String?
-  needsPO                 Boolean                   @default(false)
-  needsStampedQuote       Boolean                   @default(false)
-  needsInvoiceRequest     Boolean                   @default(false)
-  hasContractPrice        Boolean                   @default(false)
+  needsPO                 Boolean           @default(false)
+  needsStampedQuote       Boolean           @default(false)
+  needsInvoiceRequest     Boolean           @default(false)
+  hasContractPrice        Boolean           @default(false)
   contractStartDate       DateTime?
   contractEndDate         DateTime?
   renewalRemindDate       DateTime?
@@ -38,112 +38,129 @@ model Customer {
   riskLevel               String?
   paymentStability        String?
   cooperationStability    String?
-  devStatus               CustomerDevStatus         @default(POTENTIAL)
+  devStatus               CustomerDevStatus @default(POTENTIAL)
   source                  CustomerSource?
   salesRepId              String?
   winRate                 Int?
-  estimatedMonthlyVolume  Decimal?                  @db.Decimal(12, 2)
-  estimatedAnnualVolume   Decimal?                  @db.Decimal(12, 2)
+  estimatedMonthlyVolume  Decimal?          @db.Decimal(12, 2)
+  estimatedAnnualVolume   Decimal?          @db.Decimal(12, 2)
   notes                   String?
-  isActive                Boolean                   @default(true)
-  isCorporateFoundation   Boolean                   @default(false)
+  isActive                Boolean           @default(true)
+  isCorporateFoundation   Boolean           @default(false)
   corporateFoundationName String?
   branchName              String?
   orgLevel                OrgLevel?
   bedCount                Int?
   lastContactDate         DateTime?
   nextFollowUpDate        DateTime?
-  isFollowUp              Boolean                   @default(true)
-  healthScore             Int?                      @default(100)
+  isFollowUp              Boolean           @default(true)
+  healthScore             Int?              @default(100)
   healthLevel             String?
   healthUpdatedAt         DateTime?
   lastOrderDate           DateTime?
   avgOrderInterval        Int?
-  lifetimeValue           Decimal?                  @db.Decimal(14, 2)
+  lifetimeValue           Decimal?          @db.Decimal(14, 2)
   churnReason             String?
   churnDate               DateTime?
   churnNote               String?
-  creditUsed              Decimal?                  @default(0) @db.Decimal(12, 2)
-  creditAvailable         Decimal?                  @db.Decimal(12, 2)
+  creditUsed              Decimal?          @default(0) @db.Decimal(12, 2)
+  creditAvailable         Decimal?          @db.Decimal(12, 2)
   creditUpdatedAt         DateTime?
-  isCreditHold            Boolean                   @default(false)
-  saturdayDelivery        Boolean                   @default(false)
-  callBeforeDelivery      Boolean                   @default(false)
-  floorCarry              Boolean                   @default(false)
+  isCreditHold            Boolean           @default(false)
+  saturdayDelivery        Boolean           @default(false)
+  callBeforeDelivery      Boolean           @default(false)
+  floorCarry              Boolean           @default(false)
   floorCarryNote          String?
   monthlyRestDays         String?
   deliveryTimeWindow      String?
   deliveryNote            String?
-  isKeyAccount            Boolean                   @default(false)
+  isKeyAccount            Boolean           @default(false)
   keyAccountMgrId         String?
   visitFrequencyDays      Int?
   relationshipScore       Int?
   keyAccountNote          String?
   keyAccountSince         DateTime?
-  isBlacklist             Boolean                   @default(false)
-  isWhitelist             Boolean                   @default(false)
-  isHighRisk              Boolean                   @default(false)
+  isBlacklist             Boolean           @default(false)
+  isWhitelist             Boolean           @default(false)
+  isHighRisk              Boolean           @default(false)
   riskNote                String?
-  isSupplyStopped         Boolean                   @default(false)
+  isSupplyStopped         Boolean           @default(false)
   supplyStopReason        String?
   supplyStopDate          DateTime?
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
   tourAutoAssigneeId      String?
-  tourAutoSchedule        Boolean                   @default(false)
-  accountsReceivable      AccountsReceivable[]
-  afterSalesOrders        AfterSalesOrder[]         @relation("AfterSalesCustomer")
-  billingRequests         BillingRequest[]
-  businessEvents          BusinessEvent[]           @relation("CustomerBusinessEvents")
-  callRecords             CallRecord[]
-  careIncidents           CareIncident[]
-  careSchedules           CareSchedule[]
-  collectionLogs          CollectionLog[]           @relation("CustomerCollection")
-  complaintRecords        ComplaintRecord[]
-  contracts               Contract[]                @relation("ContractCustomer")
-  creditDebitNotes        CreditDebitNote[]         @relation("CustomerCDN")
-  keyAccountMgr           User?                     @relation("KeyAccountMgr", fields: [keyAccountMgrId], references: [id])
-  salesRep                User?                     @relation("CustomerSalesRep", fields: [salesRepId], references: [id])
-  tourAutoAssignee        User?                     @relation("TourAutoAssignee", fields: [tourAutoAssigneeId], references: [id])
-  customerChangeLogs      CustomerChangeLog[]
-  contacts                CustomerContact[]
-  deliveryProfile         CustomerDeliveryProfile?
-  demandForecast          CustomerDemandForecast?
-  duplicateChecksA        CustomerDuplicateCheck[]  @relation("DupCheckA")
-  duplicateChecksB        CustomerDuplicateCheck[]  @relation("DupCheckB")
-  priceLevel              CustomerPriceLevel?       @relation("CustomerPriceLevel")
-  requirements            CustomerRequirement?
-  tagMaps                 CustomerTagMap[]
-  usageProfile            CustomerUsageProfile?
-  dispatchOrders          DispatchOrder[]           @relation("DispatchCustomer")
-  eInvoices               EInvoice[]                @relation("CustomerEInvoice")
-  followUpLogs            FollowUpLog[]
-  institutionTours        InstitutionTour[]         @relation("TourCustomer")
-  invoices                Invoice[]                 @relation("CustomerInvoice")
-  meetingRecords          MeetingRecord[]           @relation("CustomerMeetingRecords")
-  paymentRecords          PaymentRecord[]
-  pickingOrders           PickingOrder[]            @relation("PickingCustomer")
-  portalAccount           PortalAccount?
-  priceLists              PriceList[]               @relation("CustomerPriceList")
-  quotations              Quotation[]
-  recallNotifications     RecallNotification[]
-  reconciliations         ReconciliationStatement[]
-  recurringOrders         RecurringOrder[]
-  retailEvents            RetailEvent[]             @relation("RetailEventCustomer")
-  returnOrders            ReturnOrder[]
-  salesEvents             SalesEvent[]
-  salesInvoices           SalesInvoice[]
-  opportunities           SalesOpportunity[]
-  salesOrders             SalesOrder[]
-  salesRepChanges         SalesRepChange[]
-  salesSchedules          SalesSchedule[]
-  salesTasks              SalesTask[]
-  sampleRecords           SampleRecord[]
-  serviceRequests         ServiceRequest[]
-  settlements             SettlementBatch[]         @relation("CustomerSettlements")
-  specialPrices           SpecialPrice[]            @relation("CustomerSpecialPrices")
-  visitRecords            VisitRecord[]
-  warehousePickups        WarehousePickup[]
+  tourAutoSchedule        Boolean           @default(false)
+
+  // === LTC 業務追蹤擴充 ===
+  fax                    String?
+  district               String? // 行政區（如士林區/新店區）
+  currentBrand           String? // 目前使用品牌（競品）
+  ltcStage               String? // LTC 銷售階段（待追蹤/已寄樣/已報價/已成交/已拒絕）
+  carePopulation         String? // 收案對象
+  quotationNotes         String? // 報價備註
+  sampleProvided         String? // 提供樣品狀態
+  billingNotes           String? // 結帳備註
+  assignedSalesName      String? // 負責業務姓名（暫存文字，長期接 salesRepId）
+  competitorShareholders String? // 他牌股東
+  firstVisitAt           DateTime? // 初訪日期
+  monthlyContactCount    Int? // 本月聯繫次數（Excel 快照）
+  contactResultLatest    String? // 最新聯繫結果
+  historyLog             String? // 歷史紀錄（整段文字）
+
+  accountsReceivable  AccountsReceivable[]
+  afterSalesOrders    AfterSalesOrder[]         @relation("AfterSalesCustomer")
+  billingRequests     BillingRequest[]
+  businessEvents      BusinessEvent[]           @relation("CustomerBusinessEvents")
+  callRecords         CallRecord[]
+  careIncidents       CareIncident[]
+  careSchedules       CareSchedule[]
+  collectionLogs      CollectionLog[]           @relation("CustomerCollection")
+  complaintRecords    ComplaintRecord[]
+  contracts           Contract[]                @relation("ContractCustomer")
+  creditDebitNotes    CreditDebitNote[]         @relation("CustomerCDN")
+  keyAccountMgr       User?                     @relation("KeyAccountMgr", fields: [keyAccountMgrId], references: [id])
+  salesRep            User?                     @relation("CustomerSalesRep", fields: [salesRepId], references: [id])
+  tourAutoAssignee    User?                     @relation("TourAutoAssignee", fields: [tourAutoAssigneeId], references: [id])
+  customerChangeLogs  CustomerChangeLog[]
+  contacts            CustomerContact[]
+  deliveryProfile     CustomerDeliveryProfile?
+  demandForecast      CustomerDemandForecast?
+  duplicateChecksA    CustomerDuplicateCheck[]  @relation("DupCheckA")
+  duplicateChecksB    CustomerDuplicateCheck[]  @relation("DupCheckB")
+  priceLevel          CustomerPriceLevel?       @relation("CustomerPriceLevel")
+  requirements        CustomerRequirement?
+  tagMaps             CustomerTagMap[]
+  usageProfile        CustomerUsageProfile?
+  dispatchOrders      DispatchOrder[]           @relation("DispatchCustomer")
+  eInvoices           EInvoice[]                @relation("CustomerEInvoice")
+  followUpLogs        FollowUpLog[]
+  institutionTours    InstitutionTour[]         @relation("TourCustomer")
+  invoices            Invoice[]                 @relation("CustomerInvoice")
+  meetingRecords      MeetingRecord[]           @relation("CustomerMeetingRecords")
+  paymentRecords      PaymentRecord[]
+  pickingOrders       PickingOrder[]            @relation("PickingCustomer")
+  portalAccount       PortalAccount?
+  priceLists          PriceList[]               @relation("CustomerPriceList")
+  quotations          Quotation[]
+  recallNotifications RecallNotification[]
+  reconciliations     ReconciliationStatement[]
+  recurringOrders     RecurringOrder[]
+  retailEvents        RetailEvent[]             @relation("RetailEventCustomer")
+  returnOrders        ReturnOrder[]
+  salesEvents         SalesEvent[]
+  salesInvoices       SalesInvoice[]
+  opportunities       SalesOpportunity[]
+  salesOrders         SalesOrder[]
+  salesRepChanges     SalesRepChange[]
+  salesSchedules      SalesSchedule[]
+  salesTasks          SalesTask[]
+  sampleRecords       SampleRecord[]
+  serviceRequests     ServiceRequest[]
+  settlements         SettlementBatch[]         @relation("CustomerSettlements")
+  specialPrices       SpecialPrice[]            @relation("CustomerSpecialPrices")
+  visitRecords        VisitRecord[]
+  warehousePickups    WarehousePickup[]
 
   @@index([salesRepId, isActive])
   @@index([devStatus, isActive])
