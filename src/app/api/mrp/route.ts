@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const snapshot = req.nextUrl.searchParams.get('snapshot')
+    const snapshotParam = req.nextUrl.searchParams.get('snapshot')
 
-    if (snapshot === 'latest') {
+    if (snapshotParam === 'latest') {
       const latest = await prisma.mrpSnapshot.findFirst({
         orderBy: { runAt: 'desc' },
         select: { id: true, runAt: true, skuCount: true, alertCount: true, resultJson: true, runBy: { select: { name: true } } },
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const result = await runMrp()
 
     // Save snapshot
-    await prisma.mrpSnapshot.create({
+    const snapshot = await prisma.mrpSnapshot.create({
       data: {
         runById: session.user.id,
         resultJson: JSON.stringify(result),
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    return NextResponse.json(result)
+    return NextResponse.json({ ...result, snapshotId: snapshot.id })
   } catch (error) {
     return handleApiError(error, 'mrp.run')
   }
