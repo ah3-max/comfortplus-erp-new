@@ -18,7 +18,7 @@ import {
   Network, Wallet, Scale, RotateCcw, CalendarCheck2, TrendingUp, TrendingDown,
   Clock, DollarSign, CheckCircle2, Tag, Send, BellRing, Hash, DatabaseZap,
   Printer, AlertTriangle, BadgeDollarSign, FileCheck, Search, Globe2, FilePlus2,
-  FileSpreadsheet, GitCompareArrows,
+  FileSpreadsheet, GitCompareArrows, Workflow,
 } from 'lucide-react'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type { LucideIcon } from 'lucide-react'
@@ -55,6 +55,7 @@ export const navGroups: NavGroup[] = [
         subLabelKey: 'subCustomers',
         items: [
           { href: '/customers',             key: 'customers',      icon: Users },
+          { href: '/ltc-pipeline',          key: 'ltcPipeline', icon: Workflow        },
           { href: '/customers/ltc-import', key: 'ltcImport',    icon: FileSpreadsheet },
           { href: '/key-accounts',          key: 'keyAccounts', icon: Star },
           { href: '/incidents',             key: 'incidents',   icon: AlertOctagon },

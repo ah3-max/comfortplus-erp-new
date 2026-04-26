@@ -124,6 +124,7 @@ const zhTW = {
     crm: '追蹤中心',
     crmInstitutions: '機構 CRM 分級',
     customers: '客戶管理',
+    ltcPipeline: 'LTC 批次 Pipeline',
     ltcImport: 'LTC 機構匯入',
     keyAccounts: '心臟客戶',
     incidents: '客訴事件中心',
