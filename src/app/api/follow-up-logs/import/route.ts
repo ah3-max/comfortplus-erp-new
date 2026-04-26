@@ -138,6 +138,72 @@ export async function POST(req: NextRequest) {
     })
 
     if (!col.customer || !col.content) {
+      // AI fallback: let LLM figure out the column mapping
+      try {
+        const headers: string[] = []
+        headerRow.eachCell({ includeEmpty: false }, cell => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          headers.push(cellStr(cell as any))
+        })
+
+        const sampleRows: string[][] = []
+        sheet.eachRow((row, rowNumber) => {
+          if (rowNumber > 1 && rowNumber <= 3) {
+            const rowData: string[] = []
+            row.eachCell({ includeEmpty: true }, cell => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              rowData.push(cellStr(cell as any))
+            })
+            sampleRows.push(rowData)
+          }
+        })
+
+        const { aiChat } = await import('@/lib/ai')
+        const aiRes = await aiChat({
+          messages: [
+            { role: 'system', content: '你是 Excel 資料分析助手，只回傳 JSON，不加任何說明。' },
+            {
+              role: 'user',
+              content: `以下是 Excel 的表頭與前兩列資料：
+表頭：${JSON.stringify(headers)}
+資料範例：${JSON.stringify(sampleRows)}
+
+請判斷哪個欄位名稱對應以下欄位（用表頭原始名稱，找不到用 null）：
+- customer（客戶名稱/代碼/機構名稱）
+- date（聯繫日期）
+- logType（類型/方式/聯繫方式）
+- content（內容/紀錄/摘要，必填）
+- result（結果/聯繫結果）
+- nextDate（下次追蹤日/下次拜訪）
+- nextAction（下次動作/下一步）
+- reaction（客戶反應/態度）
+
+只回傳 JSON，格式：{"customer":"欄名","date":"欄名或null","logType":"欄名或null","content":"欄名","result":"欄名或null","nextDate":"欄名或null","nextAction":"欄名或null","reaction":"欄名或null"}`,
+            },
+          ],
+          temperature: 0.1,
+          maxTokens: 256,
+        })
+
+        const jsonMatch = aiRes.content.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const mapping = JSON.parse(jsonMatch[0]) as Record<string, string | null>
+          headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const raw = cellStr(cell as any).trim()
+            for (const [field, headerName] of Object.entries(mapping)) {
+              if (headerName && raw === headerName.trim() && col[field] === null) {
+                col[field] = colNumber
+              }
+            }
+          })
+        }
+      } catch {
+        // AI fallback failed — fall through to error below
+      }
+    }
+
+    if (!col.customer || !col.content) {
       return NextResponse.json({
         error: `欄位對應失敗。請確認 Excel 第一列含有「客戶」與「內容」欄（找到 customer=${col.customer}, content=${col.content}）。\n系統接受的欄名：客戶/客戶名稱/機構、內容/紀錄/摘要等。`,
         detectedColumns: col,
