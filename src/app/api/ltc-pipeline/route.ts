@@ -78,9 +78,22 @@ function cellStr(cell: ExcelJS.Cell): string {
   const v = cell?.value
   if (v === null || v === undefined) return ''
   if (v instanceof Date) return v.toISOString().slice(0, 10)
+  if (typeof v === 'object' && 'richText' in v)
+    return (v as { richText: Array<{ text: string }> }).richText.map(r => r.text).join('').trim()
   if (typeof v === 'object' && 'text'   in v) return String((v as { text: string }).text).trim()
   if (typeof v === 'object' && 'result' in v) return String((v as { result: unknown }).result).trim()
   return String(v).trim()
+}
+
+const INVALID_INSTITUTION_PATTERNS = [
+  /^(上午|下午|早上|中午|晚上|今天|昨天)/,
+  /(展覽館|搬貨|倉庫路|支援.*展)/,
+  /\/(護理師|居服員|社工|醫師|護士|照服員)/,
+  /(先生|小姐|女士)$/,
+]
+function isValidInstitution(name: string): boolean {
+  if (name.length < 3) return false
+  return !INVALID_INSTITUTION_PATTERNS.some(p => p.test(name))
 }
 
 function cellDate(cell: ExcelJS.Cell): Date | null {
@@ -213,12 +226,13 @@ export async function POST(req: NextRequest) {
       const payload: Record<string, unknown> = { ...master }
       if (devStatus) payload.devStatus = devStatus
       if (salesUser) payload.salesRepId = salesUser.id
-      delete payload.ltcStage
 
       if (cust) {
         await prisma.customer.update({ where: { id: cust.id }, data: payload })
         byName.set(name, { ...cust, ...payload } as typeof cust)
         result.customers.updated++
+      } else if (!isValidInstitution(name)) {
+        result.customers.notFound.push(name)
       } else {
         codeSeq++
         const code = `C${String(codeSeq).padStart(4, '0')}`
