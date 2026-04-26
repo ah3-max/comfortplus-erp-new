@@ -90,6 +90,9 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File | null
     if (!file) return NextResponse.json({ error: '請上傳 Excel 檔案' }, { status: 400 })
 
+    // Opt-in: auto-create customer if nameOrCode doesn't match anyone
+    const autoCreate = formData.get('autoCreateCustomer') === 'true'
+
     const bytes = await file.arrayBuffer()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const buffer: any = Buffer.from(new Uint8Array(bytes))
@@ -99,7 +102,7 @@ export async function POST(req: NextRequest) {
     const sheet = workbook.worksheets[0]
     if (!sheet) return NextResponse.json({ error: 'Excel 沒有工作表' }, { status: 400 })
 
-    const results = { created: 0, skipped: 0, errors: [] as { row: number; reason: string }[] }
+    const results = { created: 0, skipped: 0, customersCreated: 0, errors: [] as { row: number; reason: string }[] }
 
     // ── Header detection: map field → 1-based column index ──
     // Accept many aliases so Excel from different sources just works.
@@ -179,9 +182,42 @@ export async function POST(req: NextRequest) {
       }
 
       const key = nameOrCode.trim()
-      const customer = byName.get(key) ?? byCode.get(key.toUpperCase())
+      let customer = byName.get(key) ?? byCode.get(key.toUpperCase())
+
+      // Auto-create missing customer if opted in
+      if (!customer && autoCreate) {
+        try {
+          // Generate next customer code (C0001, C0002...)
+          const lastCust = await prisma.customer.findFirst({
+            where: { code: { startsWith: 'C' } },
+            orderBy: { code: 'desc' },
+            select: { code: true },
+          })
+          const seq = lastCust?.code ? (parseInt(lastCust.code.replace(/\D/g, ''), 10) || 0) : 0
+          const code = `C${String(seq + 1 + results.customersCreated).padStart(4, '0')}`
+          const created = await prisma.customer.create({
+            data: {
+              code,
+              name: key,
+              type: 'NURSING_HOME', // 最常見的 B2B type，業務手動改
+              devStatus: 'POTENTIAL',
+              isActive: true,
+              notes: `由聯繫紀錄 Excel 匯入自動建立 (${new Date().toISOString().slice(0,10)})`,
+            },
+            select: { id: true, name: true, code: true, devStatus: true },
+          })
+          customer = created
+          byName.set(key, created)
+          byCode.set(code.toUpperCase(), created)
+          results.customersCreated++
+        } catch (e) {
+          results.errors.push({ row: rowNumber, reason: `自動建客戶失敗：${(e as Error).message}` })
+          continue
+        }
+      }
+
       if (!customer) {
-        results.errors.push({ row: rowNumber, reason: `找不到客戶「${nameOrCode}」` })
+        results.errors.push({ row: rowNumber, reason: `找不到客戶「${nameOrCode}」（可勾「找不到就建新的」自動建立）` })
         continue
       }
 

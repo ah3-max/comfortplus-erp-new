@@ -14,9 +14,10 @@ import {
 } from '@/components/ui/dialog'
 import {
   Loader2, Play, Upload, AlertTriangle, AlertCircle, Clock, CheckCircle2,
-  Package, TrendingDown, Search, FileSpreadsheet, Info,
+  Package, TrendingDown, Search, FileSpreadsheet, Info, Download, History, ShoppingCart,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 interface MrpSkuResult {
   productId: string; sku: string; productName: string; category: string
@@ -58,6 +59,9 @@ export default function MrpPage() {
   const [detailSku, setDetailSku] = useState<MrpSkuResult | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadResult, setUploadResult] = useState<{ imported: number; errors?: string[]; unknownSkus?: string[] } | null>(null)
+  const [creatingPos, setCreatingPos] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [snapshotId, setSnapshotId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const runMrp = useCallback(async () => {
@@ -67,10 +71,55 @@ export default function MrpPage() {
       const json = await res.json()
       if (!res.ok) { toast.error(json.error ?? 'MRP 計算失敗'); return }
       setResult(json)
+      setSnapshotId(json.snapshotId ?? null)
       toast.success(`MRP 計算完成，${json.summary.totalSkus} 個 SKU`)
     } catch { toast.error('MRP 計算失敗') }
     finally { setLoading(false) }
   }, [])
+
+  async function handleCreatePos() {
+    if (!result) return
+    const skus = result.skus.filter(
+      s => (s.urgency === 'CRITICAL' || s.urgency === 'WARNING') && s.suggestedOrderQty > 0 && s.supplierId
+    ).map(s => ({ productId: s.productId, supplierId: s.supplierId!, qty: s.suggestedOrderQty }))
+
+    if (skus.length === 0) {
+      toast.info('無需採購項目（無緊急或注意狀態且有供應商的 SKU）')
+      return
+    }
+
+    setCreatingPos(true)
+    try {
+      const res = await fetch('/api/mrp/create-pos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skus }),
+      })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error ?? '建立失敗'); return }
+      toast.success(`已建立 ${json.created} 張採購單草稿：${json.poNos.join('、')}`)
+    } catch { toast.error('建立採購單失敗') }
+    finally { setCreatingPos(false) }
+  }
+
+  async function handleExport() {
+    if (!snapshotId) { toast.error('請先執行 MRP 計算'); return }
+    setExporting(true)
+    try {
+      const res = await fetch(`/api/mrp/export?id=${snapshotId}`)
+      if (!res.ok) { toast.error('匯出失敗'); return }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const disposition = res.headers.get('content-disposition') ?? ''
+      const match = disposition.match(/filename="([^"]+)"/)
+      a.download = match?.[1] ?? 'mrp.xlsx'
+      a.href = url
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { toast.error('匯出失敗') }
+    finally { setExporting(false) }
+  }
 
   async function handleUpload(file: File) {
     setUploading(true)
@@ -106,7 +155,10 @@ export default function MrpPage() {
           <h1 className="text-xl font-bold">MRP 物料需求規劃</h1>
           <p className="text-sm text-muted-foreground mt-0.5">銷售預測 → 淨需求 → 採購建議</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/mrp/history" className="inline-flex items-center gap-1 h-8 px-3 text-sm rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+            <History className="h-4 w-4" />歷史快照
+          </Link>
           {canUpload && (
             <>
               <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden"
@@ -198,11 +250,25 @@ export default function MrpPage() {
             ))}
           </div>
 
-          {/* Search */}
-          <div className="relative max-w-xs">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9 h-9" placeholder="搜尋 SKU / 品名 / 供應商..."
-              value={search} onChange={e => setSearch(e.target.value)} />
+          {/* Action bar */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative max-w-xs flex-1 min-w-[180px]">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-9 h-9" placeholder="搜尋 SKU / 品名 / 供應商..."
+                value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <div className="flex gap-2 ml-auto">
+              {canUpload && (
+                <Button variant="outline" size="sm" onClick={handleCreatePos} disabled={creatingPos}>
+                  {creatingPos ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <ShoppingCart className="h-4 w-4 mr-1" />}
+                  建立採購單
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || !snapshotId}>
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+                匯出 Excel
+              </Button>
+            </div>
           </div>
 
           {/* Results table */}
