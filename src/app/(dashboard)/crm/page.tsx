@@ -544,6 +544,7 @@ export default function CRMPage() {
   const [devStatusFilter, setDevStatusFilter] = useState<string>('')
   const [importing, setImporting] = useState<'contact' | 'sample' | 'tour' | null>(null)
   const [importMenuOpen, setImportMenuOpen] = useState(false)
+  const [autoCreateContact, setAutoCreateContact] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -578,6 +579,7 @@ export default function CRMPage() {
     try {
       const fd = new FormData()
       fd.append('file', file)
+      if (type === 'contact') fd.append('autoCreateCustomer', String(autoCreateContact))
       const res = await fetch(endpoint, { method: 'POST', body: fd })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { toast.error(data.error ?? '匯入失敗'); return }
@@ -660,6 +662,17 @@ export default function CRMPage() {
                     onClick={() => { setImportMenuOpen(false); document.getElementById('follow-up-import-file')?.click() }}>
                     📞 聯繫紀錄
                   </button>
+                  <div className="px-3 pb-2">
+                    <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={autoCreateContact}
+                        onChange={e => setAutoCreateContact(e.target.checked)}
+                        className="accent-blue-600"
+                      />
+                      找不到客戶時自動建立
+                    </label>
+                  </div>
                   <button type="button"
                     className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-center gap-2"
                     onClick={() => { setImportMenuOpen(false); document.getElementById('sample-import-file')?.click() }}>

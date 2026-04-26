@@ -191,6 +191,7 @@ export default function SalesDailyReportPage() {
   // Excel import — drops a .xlsx/.xls into "Excel 快匯" drop zone and
   // pushes rows into FollowUpLog; daily report stats will reload from /today.
   const [excelImporting, setExcelImporting] = useState(false)
+  const [autoCreate, setAutoCreate] = useState(false)
   async function importExcelAsContact(file: File) {
     if (!file) return
     if (!/\.(xlsx|xls)$/i.test(file.name)) {
@@ -201,6 +202,7 @@ export default function SalesDailyReportPage() {
     try {
       const fd = new FormData()
       fd.append('file', file)
+      fd.append('autoCreateCustomer', String(autoCreate))
       const res = await fetch('/api/follow-up-logs/import', { method: 'POST', body: fd })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { toast.error(data.error ?? '匯入失敗'); return }
@@ -337,6 +339,15 @@ export default function SalesDailyReportPage() {
                   ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />匯入中...</>
                   : <>📥 選擇 Excel 檔</>}
               </Button>
+              <label className="flex items-center justify-center gap-2 text-xs text-violet-700 mt-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={autoCreate}
+                  onChange={e => setAutoCreate(e.target.checked)}
+                  className="accent-violet-600"
+                />
+                找不到客戶時自動建立新機構
+              </label>
               <p className="mt-2 text-xs text-muted-foreground">
                 欄位：客戶 / 日期 / 類型 / 內容 / 結果 / 下次追蹤日 / 下次動作 / 反應 ·{' '}
                 <a href="/api/follow-up-logs/import" download className="text-violet-600 underline">下載範本</a>
