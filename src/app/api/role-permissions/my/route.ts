@@ -65,11 +65,31 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
     'reports', 'documents', 'announcements',
   ],
   FINANCE: [
-    'dashboard', 'finance',
-    'receipts', 'payments', 'expenses',
-    'arAging', 'apAging',
-    'generalLedger', 'monthlyPL',
-    'vatFilings', 'periodClose',
+    'dashboard', 'announcements',
+    // AR
+    'orders', 'salesInvoices', 'salesReturns', 'eInvoices',
+    'accountsReceivable', 'receipts', 'arAging', 'settlement', 'creditManagement',
+    // AP
+    'accountsPayable', 'payments', 'apAging', 'disbursements',
+    'expenses', 'pettyCash',
+    // Bank
+    'bankAccounts', 'bankReconcile', 'cheques', 'cashBook',
+    // Ledger
+    'generalLedger', 'accountDetail', 'vatLedger',
+    'inputTax', 'vatSummary', 'vatFilings',
+    // Finance dashboard
+    'finance',
+    // Reports
+    'monthlyPL', 'cashFlowStatement', 'paymentSummary', 'receiptSummary', 'advancePaymentSummary', 'managementSummary',
+    'grossMargin', 'salesAnalysis', 'reports',
+    // Period close
+    'autoJournal', 'periodClose',
+    // Channels & pricing
+    'channels', 'priceTiers', 'discountRules', 'customerPricing',
+    // Products (read for AR verification)
+    'products',
+    // System
+    'approvals', 'documents', 'auditLog',
   ],
 }
 
